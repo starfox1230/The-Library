@@ -4,6 +4,7 @@ import shutil
 from datetime import date
 from html import escape
 from pathlib import Path
+from urllib.parse import quote
 
 from pypdf import PdfReader, PdfWriter
 
@@ -17,9 +18,7 @@ CORE_INDEX = CORE_BASE / "index.json"
 REQ_BASE = ROOT / "apps" / "core-studying" / "Nuclear Medicine - The Requisites"
 REQ_INDEX = REQ_BASE / "index.json"
 CORE_PDF = Path(r"C:\Users\sterl\OneDrive\Desktop\Core Radiology Chapters\06 - Nuclear and Molecular Imaging.pdf")
-BOARDVITALS_OUT = ROOT / "apps" / "anki-card-creation-codex-helper" / "boardvitals"
-BOARDVITALS_PARSED = Path(r"C:\Users\sterl\Documents\Codex\2026-05-12\https-www-boardvitals-com-dashboard-quizzes")
-CORE_REVIEW = ROOT / "apps" / "core-studying" / "Core Review"
+CORE_REVIEW_NUKES = ROOT / "apps" / "temporary-apps" / "library" / "core-review" / "nuclear-medicine"
 
 
 def clean_text(s: str) -> str:
@@ -145,31 +144,48 @@ def load_requisites_outline() -> list[dict]:
             if sk == "title":
                 continue
             if isinstance(sec, dict) and "title" in sec:
-                items.append({"code": sk, "title": clean_text(sec["title"])})
+                items.append({
+                    "code": sk,
+                    "title": clean_text(sec["title"]),
+                    "file": sec.get("file", ""),
+                })
         chapters.append({"code": ck, "title": clean_text(ch.get("title", ck)), "sections": items})
     return chapters
 
 
 def count_quizzes() -> dict:
-    apkgs = sorted(BOARDVITALS_OUT.glob("**/*.apkg")) if BOARDVITALS_OUT.exists() else []
-    parsed_dirs = sorted(p for p in BOARDVITALS_PARSED.glob("boardvitals-*") if p.is_dir()) if BOARDVITALS_PARSED.exists() else []
-    q_counts = {}
-    for d in parsed_dirs:
-        q_files = list(d.glob("q*.json")) + list(d.glob("question-*.json"))
-        nums = set()
-        for f in q_files:
-            m = re.search(r"(\d+)", f.stem)
-            if m:
-                nums.add(int(m.group(1)))
-        q_counts[d.name.replace("boardvitals-", "")] = len(nums)
-    core_review_files = list(CORE_REVIEW.rglob("*")) if CORE_REVIEW.exists() else []
+    title_overrides = {
+        "2026-05-03-nuclear-medicine-endocrine-quiz": "Chapter 2: Endocrine System",
+        "2026-05-03-nuclear-medicine-msk-quiz": "Chapter 3: Musculoskeletal System",
+        "2026-05-05-nuclear-medicine-head-neck-quiz": "Chapter 4: Head and Neck",
+        "2026-05-05-nuclear-medicine-cardiology-quiz": "Chapter 5: Nuclear Cardiology",
+        "2026-05-05-nuclear-medicine-vascular-lymphatics-quiz": "Chapter 6: Vascular and Lymphatics",
+        "2026-05-05-nuclear-medicine-pulmonary-quiz": "Chapter 7: Pulmonary System",
+        "2026-05-05-nuclear-medicine-gastrointestinal-quiz": "Chapter 8: Gastrointestinal System",
+        "2026-05-05-nuclear-medicine-genitourinary-quiz": "Chapter 9: Genitourinary System",
+        "2026-05-05-nuclear-medicine-pediatric-quiz": "Chapter 10: Pediatric Nuclear Medicine",
+        "2026-05-06-nuclear-medicine-oncology-quiz": "Chapter 11: Oncology",
+    }
+    quizzes = []
+    for d in sorted(CORE_REVIEW_NUKES.glob("*-quiz")) if CORE_REVIEW_NUKES.exists() else []:
+        questions_file = d / "questions.json"
+        if not questions_file.exists() or not (d / "index.html").exists():
+            continue
+        questions = json.loads(questions_file.read_text(encoding="utf-8"))
+        title = title_overrides.get(d.name, re.sub(r"^\d{4}-\d{2}-\d{2}-", "", d.name).replace("-", " ").title())
+        quizzes.append({
+            "slug": d.name,
+            "title": title,
+            "questionCount": len(questions),
+            "href": f"../../temporary-apps/library/core-review/nuclear-medicine/{quote(d.name)}/index.html",
+        })
+    quizzes.sort(key=lambda q: int(re.search(r"Chapter (\d+)", q["title"]).group(1)) if re.search(r"Chapter (\d+)", q["title"]) else 999)
     return {
-        "boardvitals_apkg_count": len(apkgs),
-        "boardvitals_parsed_quiz_count": len(parsed_dirs),
-        "boardvitals_parsed_question_total": sum(q_counts.values()),
-        "boardvitals_more_from_scrape": max(0, len(parsed_dirs) - len(apkgs)),
-        "core_review_file_count": sum(1 for p in core_review_files if p.is_file()),
-        "apkg_names": [p.stem for p in apkgs],
+        "quiz_count": len(quizzes),
+        "question_total": sum(q["questionCount"] for q in quizzes),
+        "theoretical_more_from_existing_group": max(0, 10 - len(quizzes)),
+        "library_href": "../../temporary-apps/library/core-review/index.html",
+        "quizzes": quizzes,
     }
 
 
@@ -247,10 +263,24 @@ def render_requisites(chapters: list[dict]) -> str:
           <details>
             <summary><span>{escape(ch['code'])}</span>{escape(ch['title'])}<b>{len(ch['sections'])}</b></summary>
             <ol>
-              {''.join(f'<li><span>{escape(item["code"])}</span>{escape(item["title"])}</li>' for item in ch['sections'])}
+              {''.join(
+                  f'<li><a href="../Nuclear%20Medicine%20-%20The%20Requisites/{quote(item["file"])}"><span>{escape(item["code"])}</span>{escape(item["title"])}</a></li>'
+                  for item in ch['sections']
+              )}
             </ol>
           </details>""")
     return "".join(blocks)
+
+
+def render_quiz_links(quiz: dict) -> str:
+    return "".join(
+        f"""
+          <a class="quiz-card" href="{escape(item['href'])}">
+            <span>{escape(item['title'])}</span>
+            <b>{item['questionCount']} questions</b>
+          </a>"""
+        for item in quiz["quizzes"]
+    )
 
 
 def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pdf: dict) -> Path:
@@ -259,6 +289,7 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
     req_sections = sum(len(ch["sections"]) for ch in req_outline)
     pass_html = render_passes(core_sections)
     req_html = render_requisites(req_outline)
+    quiz_links = render_quiz_links(quiz)
     pdf_name = Path(pdf["path"]).name
     source_pdf = escape(pdf["source"])
     generated = date.today().isoformat()
@@ -339,6 +370,11 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
     .heading-list {{ columns: 2; column-gap: 28px; }}
     .fact-list li {{ margin-bottom: 8px; }}
     .quiz-grid {{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }}
+    .quiz-links {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }}
+    .quiz-card {{ display: grid; gap: 5px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); }}
+    .quiz-card span {{ color: var(--text); font-weight: 750; }}
+    .quiz-card b {{ color: var(--accent); font-size: .82rem; }}
+    .quiz-card:hover {{ border-color: var(--accent); }}
     .note {{ border-left: 3px solid var(--warn); padding: 10px 12px; background: rgba(210,153,34,.08); color: var(--text); border-radius: 6px; }}
     details {{ padding: 0; overflow: hidden; }}
     summary {{ list-style: none; cursor: pointer; padding: 11px 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: center; }}
@@ -346,18 +382,20 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
     details[open] summary {{ border-bottom: 1px solid var(--border); }}
     details ol {{ padding: 0 14px 12px 24px; }}
     details li {{ color: var(--muted); }}
+    details li a {{ color: var(--muted); display: inline-flex; gap: 8px; align-items: baseline; }}
+    details li a:hover {{ color: var(--text); }}
     .search {{ width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #0d1117; color: var(--text); font: inherit; margin-bottom: 10px; }}
     .footer {{ color: var(--muted); font-size: .82rem; padding: 4px 2px 16px; }}
     @media (max-width: 820px) {{
       .layout {{ grid-template-columns: 1fr; }}
       nav.panel {{ position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-      .top-grid, .quiz-grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .top-grid, .quiz-grid, .quiz-links {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .heading-list {{ columns: 1; }}
     }}
     @media (max-width: 520px) {{
       body {{ padding-left: 10px; padding-right: 10px; }}
       header {{ padding: 14px; }}
-      .top-grid, .quiz-grid, nav.panel {{ grid-template-columns: 1fr; }}
+      .top-grid, .quiz-grid, .quiz-links, nav.panel {{ grid-template-columns: 1fr; }}
       .metric {{ min-height: auto; }}
       summary {{ grid-template-columns: 46px 1fr auto; }}
     }}
@@ -402,19 +440,20 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
         </section>
 
         <section class="panel" id="quizzes">
-          <h2>Quiz Inventory</h2>
+          <h2>Core Review Nuclear Medicine Quizzes</h2>
           <div class="quiz-grid">
-            <div class="metric"><strong>{quiz["boardvitals_apkg_count"]}</strong><span>BoardVitals quiz APKGs made</span></div>
-            <div class="metric"><strong>{quiz["boardvitals_parsed_quiz_count"]}</strong><span>Parsed quiz folders found</span></div>
-            <div class="metric"><strong>{quiz["boardvitals_more_from_scrape"]}</strong><span>More possible from the already-scraped quiz set</span></div>
+            <div class="metric"><strong>{quiz["quiz_count"]}</strong><span>Nuclear Medicine quiz modules made</span></div>
+            <div class="metric"><strong>{quiz["question_total"]}</strong><span>Total Core Review questions linked</span></div>
+            <div class="metric"><strong>{quiz["theoretical_more_from_existing_group"]}</strong><span>More obvious modules left in this existing group</span></div>
           </div>
-          <p class="note">The local <code>Core Review</code> folder currently has {quiz["core_review_file_count"]} files, so I could not verify a separate Core Review textbook corpus from that folder. The concrete quiz count above is from the BoardVitals review-question corpus and matching generated APKGs.</p>
-          <p>The parsed BoardVitals folders contain about {quiz["boardvitals_parsed_question_total"]} question records total. If you use the Requisites section outline as a future source map, there are {req_sections} section-sized units that could theoretically become new focused quizzes.</p>
+          <p class="note">These are the organized Core Review Nuclear Medicine quiz modules under <code>apps/temporary-apps/library/core-review/nuclear-medicine</code>.</p>
+          <div class="actions"><a class="button" href="{escape(quiz["library_href"])}">Open Core Review Quiz Library</a></div>
+          <div class="quiz-links">{quiz_links}</div>
         </section>
 
         <section class="panel" id="requisites">
-          <h2>Nuclear Medicine Requisites Outline</h2>
-          <p>Use this as the deeper review-textbook map after the Core Radiology passes.</p>
+          <h2>Nuclear Medicine Requisites Links</h2>
+          <p>Use this as the deeper review-textbook map after the Core Radiology passes. Each row opens the extracted text for that section.</p>
           {req_html}
         </section>
 
