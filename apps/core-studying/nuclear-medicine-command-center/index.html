@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Nuclear Medicine Command Center</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0d1117;
+      --panel: #161b22;
+      --card: #1f2630;
+      --border: #30363d;
+      --text: #d6dee8;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --accent2: #45d49b;
+      --warn: #d29922;
+      --danger: #f85149;
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+      padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    }
+    a { color: inherit; text-decoration: none; }
+    .page { width: min(1120px, 100%); margin: 0 auto; display: grid; gap: 14px; }
+    header, .panel, .section-card, details {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    header { padding: 18px; display: grid; gap: 14px; }
+    .kicker { color: var(--accent); text-transform: uppercase; letter-spacing: .12em; font-weight: 800; font-size: .72rem; }
+    h1 { margin: 0; font-size: clamp(1.65rem, 7vw, 3rem); line-height: 1.04; letter-spacing: 0; }
+    h2 { margin: 0 0 10px; font-size: 1.05rem; }
+    h3 { margin: 0; font-size: 1rem; }
+    p { margin: 0; color: var(--muted); }
+    .top-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .metric { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; min-height: 86px; }
+    .metric strong { display: block; font-size: 1.5rem; color: var(--text); }
+    .metric span { color: var(--muted); font-size: .82rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .button, button {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font: inherit;
+      font-weight: 700;
+      color: var(--text);
+      background: #21262d;
+      cursor: pointer;
+    }
+    .button.primary, button.active { background: var(--accent); color: #07101d; border-color: var(--accent); }
+    .button.good { color: #06140f; background: var(--accent2); border-color: var(--accent2); }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 14px; align-items: start; }
+    nav.panel { position: sticky; top: 12px; padding: 12px; display: grid; gap: 8px; }
+    nav a { display: block; padding: 8px 9px; border-radius: 6px; color: var(--muted); }
+    nav a:hover { background: var(--card); color: var(--text); }
+    .panel { padding: 14px; }
+    .pass-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .pass { display: none; gap: 10px; }
+    .pass.active { display: grid; }
+    .section-card { padding: 14px; background: var(--card); }
+    .section-top { display: flex; gap: 10px; align-items: baseline; margin-bottom: 8px; }
+    .section-top span, details summary span, details li span { color: var(--accent); font-weight: 800; min-width: 44px; }
+    ol, ul { margin: 8px 0 0 1.1rem; padding: 0; }
+    li { margin: 6px 0; }
+    .heading-list { columns: 2; column-gap: 28px; }
+    .fact-list li { margin-bottom: 8px; }
+    .quiz-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .note { border-left: 3px solid var(--warn); padding: 10px 12px; background: rgba(210,153,34,.08); color: var(--text); border-radius: 6px; }
+    details { padding: 0; overflow: hidden; }
+    summary { list-style: none; cursor: pointer; padding: 11px 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    details[open] summary { border-bottom: 1px solid var(--border); }
+    details ol { padding: 0 14px 12px 24px; }
+    details li { color: var(--muted); }
+    .search { width: 100%; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border); background: #0d1117; color: var(--text); font: inherit; margin-bottom: 10px; }
+    .footer { color: var(--muted); font-size: .82rem; padding: 4px 2px 16px; }
+    @media (max-width: 820px) {
+      .layout { grid-template-columns: 1fr; }
+      nav.panel { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .top-grid, .quiz-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .heading-list { columns: 1; }
+    }
+    @media (max-width: 520px) {
+      body { padding-left: 10px; padding-right: 10px; }
+      header { padding: 14px; }
+      .top-grid, .quiz-grid, nav.panel { grid-template-columns: 1fr; }
+      .metric { min-height: auto; }
+      summary { grid-template-columns: 46px 1fr auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <div class="kicker">Study week command center</div>
+        <h1>Nuclear Medicine</h1>
+        <p>Three passes through Core Radiology Chapter 06, with the deeper Nuclear Medicine Requisites outline parked underneath for review-textbook coverage.</p>
+      </div>
+      <div class="top-grid">
+        <div class="metric"><strong>10</strong><span>Core Radiology sections</span></div>
+        <div class="metric"><strong>42</strong><span>PDF pages in the splice</span></div>
+        <div class="metric"><strong>13,777</strong><span>Approx. extracted core words</span></div>
+        <div class="metric"><strong>107</strong><span>Requisites reference sections</span></div>
+      </div>
+      <div class="actions">
+        <a class="button primary" href="core-radiology-nuclear-molecular-imaging-spliced.pdf">Open spliced PDF</a>
+        <a class="button" href="#passes">Start three-pass review</a>
+        <a class="button" href="#quizzes">Quiz inventory</a>
+        <a class="button good" href="#requisites">Deep reference outline</a>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="panel" aria-label="Sections">
+        <a href="#s-06-01-broad">06.01 PET/CT</a><a href="#s-06-02-broad">06.02 Cerebrovascular</a><a href="#s-06-03-broad">06.03 Thyroid</a><a href="#s-06-04-broad">06.04 Parathyroid</a><a href="#s-06-05-broad">06.05 Gastrointestinal</a><a href="#s-06-06-broad">06.06 Pulmonary</a><a href="#s-06-07-broad">06.07 Musculoskeletal</a><a href="#s-06-08-broad">06.08 Kidneys</a><a href="#s-06-09-broad">06.09 Whole-Body Imaging</a><a href="#s-06-10-broad">06.10 Other Non-PET Imaging</a>
+      </nav>
+      <div class="main">
+        <section class="panel" id="passes">
+          <h2>Three Passes</h2>
+          <div class="pass-tabs">
+            <button class="active" data-target="broad">1. Broad headings</button>
+            <button data-target="key">2. Key bullets</button>
+            <button data-target="facts">3. Key facts</button>
+          </div>
+          <input class="search" id="search" placeholder="Filter sections and facts..." />
+          
+      <section class="pass active" data-pass="broad">
+          <article class="section-card" id="s-06-01-broad">
+            <div class="section-top"><span>06.01</span><h3>PET/CT</h3></div>
+            <ol class="heading-list">
+              <li>Basic positron emission tomography (PET) physics</li><li>Technical considerations of F-18 FDG PET/CT</li><li>Radiotracer: Fluorine-18 FDG</li><li>�</li><li>Radiotracer uptake quantifi cation</li><li>CT correlation</li><li>Patient preparation</li><li>Normal FDG distribution</li><li>Oncologic indications of F-18 FDG PET/CT</li><li>Lung cancer</li><li>Solitary pulmonary nodule (SPN)</li><li>Colon cancer</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-02-broad">
+            <div class="section-top"><span>06.02</span><h3>Cerebrovascular</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>Tc-99m DTPA / Tc-99m pertechnetate</li><li>�</li><li>Tc-99m HMPAO / Tc-99m ECD</li><li>Both tracers are used for SPECT imaging.</li><li>Iodine-123 ioflupane (I-123 FP-CIT or DaTscan)</li><li>Thallium-201</li><li>PET agents</li><li>Radionuclide imaging of the brain</li><li>Evaluation of cerebral perfusion</li><li>Brain death</li><li>Frontal and lateral planar images</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-03-broad">
+            <div class="section-top"><span>06.03</span><h3>Thyroid</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>Iodine-131</li><li>�</li><li>Iodine-123</li><li>Tc-99m pertechnetate</li><li>Patient preparation</li><li>Pregnancy and breastfeeding</li><li>Diagnostic Indications (I-123 or Tc-99m pertechnetate)</li><li>Ectopic thyroid</li><li>Thyroid nodule</li><li>Graves disease</li><li>Graves disease (continued)</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-04-broad">
+            <div class="section-top"><span>06.04</span><h3>Parathyroid</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracer</li><li>Tc-99m sestamibi</li><li>�</li><li>Indications</li><li>Parathyroid adenoma</li><li>Nucs: 461</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-05-broad">
+            <div class="section-top"><span>06.05</span><h3>Gastrointestinal</h3></div>
+            <ol class="heading-list">
+              <li>Liver-spleen imaging</li><li>Radiotracer: Tc-99m sulfur colloid</li><li>�</li><li>Note splenic uptake is slightly</li><li>Focal decreased hepatic uptake on sulfur colloid scan</li><li>Focal increased hepatic uptake on sulfur colloid scan</li><li>Colloid shift</li><li>Diffuse pulmonary uptake</li><li>Intrapancreatic splenic tissue</li><li>Anterior and posterior images show</li><li>Esophageal and gastric motility</li><li>Radiotracer: Tc-99m sulfur colloid or DTPA</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-06-broad">
+            <div class="section-top"><span>06.06</span><h3>Pulmonary</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>Tc-99m MAA (perfusion)</li><li>�</li><li>�A</li><li>Nucs: 468</li><li>Xenon-133 (ventilation)</li><li>Tc-99m DTPA (ventilation)</li><li>Diagnosis of pulmonary embolism in pregnancy</li><li>Low-dose perfusion (Q) scan: Maternal breast dose 0.6 mGy. Fetal dose 0.1�0.2 mGy.</li><li>Nucs: 469</li><li>Diagnosis of pulmonary embolism with PIOPED II</li><li>Intermediate probability: Not clinically helpful, further imaging is required</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-07-broad">
+            <div class="section-top"><span>06.07</span><h3>Musculoskeletal</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>Tc-99m MDP or HDP</li><li>�</li><li>Common patterns and clinical applications</li><li>Patterns with high probability of metastatic disease</li><li>Cancers likely to produce a false-negative bone scan</li><li>Superscan</li><li>�A</li><li>Primary bone tumors</li><li>Fracture</li><li>Shin splints (medial tibial stress syndrome)</li><li>Anterior projection Tc-99m</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-08-broad">
+            <div class="section-top"><span>06.08</span><h3>Kidneys</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>Tc-99m DTPA</li><li>�</li><li>Tc-99m MAG3</li><li>Tc-99m DMSA</li><li>Clinical applications of renal imaging</li><li>Renogram</li><li>2 4 6 8 10 12 14 16 18 20 22 24 26 28 time (minutes)</li><li>Renogram (continued)</li><li>Lasix renogram (diuretic renography)</li><li>Angiotensin-converting enzyme (ACE) inhibitor renogram</li><li>a�erent arteriole e�erent arteriole</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-09-broad">
+            <div class="section-top"><span>06.09</span><h3>Whole-Body Imaging</h3></div>
+            <ol class="heading-list">
+              <li>Radiotracers</li><li>I-123 MIBG</li><li>�</li><li>Indium-111 pentetreotide (Octreoscan)</li><li>Indium-111 oxine leukocytes (WBCs)</li><li>Tc-99m HMPAO leukocytes (WBCs)</li><li>Gallium-67</li><li>Thallium-201</li><li>Clinical applications</li><li>Hepatocellular carcinoma (HCC)</li><li>Combined gallium and thallium imaging</li><li>Osteomyelitis</li>
+            </ol>
+          </article>
+          <article class="section-card" id="s-06-10-broad">
+            <div class="section-top"><span>06.10</span><h3>Other Non-PET Imaging</h3></div>
+            <ol class="heading-list">
+              <li>Lymphoscintigraphy</li><li>�</li><li>Molecular breast imaging</li><li>Radionuclide testicular imaging</li><li>Nucs: 485</li>
+            </ol>
+          </article></section>
+      <section class="pass" data-pass="key">
+          <article class="section-card" id="s-06-01-key">
+            <div class="section-top"><span>06.01</span><h3>PET/CT</h3></div>
+            <ul>
+              <li>� A positron emission tomography (PET) radiotracer emits a positron that travels a small</li><li>local distance within the tissue. After meeting an electron, both the positron and electron annihilate and create two 511 keV photons travelling nearly 180 degrees apart.</li><li>Technical considerations of F-18 FDG PET/CT</li><li>Radiotracer: Fluorine-18 FDG</li><li>Fluorine-18 (F-18) is a cyclotron-produced positron emitter, half-life 110 minutes.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-02-key">
+            <div class="section-top"><span>06.02</span><h3>Cerebrovascular</h3></div>
+            <ul>
+              <li>Tc-99m DTPA / Tc-99m pertechnetate</li><li>Technetium-99m has a half-life of 6 hours and is used in the majority of nuclear imaging.</li><li>Iodine-123 ioflupane (I-123 FP-CIT or DaTscan)</li><li>� Iodine-123 has a half-life of 13 hours. I-123 ioflupane is a cocaine analog that binds to the presynaptic dopamine transporter (DaT). It is used in SPECT imaging for the differentiation of essential tremor from parkinsonism.</li><li>� Thallium-201 has a half-life of 73 hours and is used for SPECT imaging in the differentiation of tumor recurrence versus radiation necrosis. Thallium accumulates in viable tumor but not normal brain tissue.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-03-key">
+            <div class="section-top"><span>06.03</span><h3>Thyroid</h3></div>
+            <ul>
+              <li>I-131 emits both beta particles and 364 keV gamma photons (only the gamma photons are used for imaging). The half-life is 8 days. I-131 is produced by fission in a nuclear reactor. It is administered orally.</li><li>I-123 decays by electron capture and emits 159 keV gamma photons. The half-life is 13 hours. I-123 is expensive because it is produced by cyclotron. It is administered orally.</li><li>I-123 is the preferred radioisotope for thyroid imaging, as it can image in high detail and obtain thyroid uptake values.</li><li>Tc-99m emits 140 keV gamma photons, has a half-life of 6 hours, and is generator-produced.</li><li>Unlike iodine, pertechnetate is trapped but not organified by the thyroid. After initial uptake it is released into the blood pool. Thyroid uptake is not routinely quantified with pertechnetate due to its rapid washout.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-04-key">
+            <div class="section-top"><span>06.04</span><h3>Parathyroid</h3></div>
+            <ul>
+              <li>Early anterior pinhole image of the thyroid after the administration of 5 mCi Tc-99m sestamibi shows diffuse uptake throughout the thyroid, with a focal area of increased uptake (arrow) in the lower pole of the right lobe.</li><li>Dual-phase (early and delayed) imaging with Tc-99m sestamibi can localize a suspected parathyroid adenoma in a patient with elevated parathyroid hormone.</li><li>� A parathyroid adenoma shows increased uptake on early images and persistent retained activity on delayed images. In contrast, a thyroid adenoma will also initially show increased uptake but will then wash out on delayed images.</li><li>Parathyroid tissue does not take up Tc-99m pertechnetate, which can be administered in indeterminate cases.</li><li>SPECT/CT imaging is also frequently performed to provide more precise localization of uptake to aid in presurgical planning.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-05-key">
+            <div class="section-top"><span>06.05</span><h3>Gastrointestinal</h3></div>
+            <ul>
+              <li>Radiotracer: Tc-99m sulfur colloid</li><li>Although Tc-99m has a physical half-life of 6 hours, sulfur colloid is rapidly cleared with a biologic half-life of 2�3 minutes.</li><li>Normal liver-spleen scan following administration of 4.2 mCi Tc-99m sulfur colloid shows homogeneous uptake in the liver and spleen.</li><li>Note splenic uptake is slightly</li><li>lower in intensity than the liver. Bone marrow uptake is faint.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-06-key">
+            <div class="section-top"><span>06.06</span><h3>Pulmonary</h3></div>
+            <ul>
+              <li>� A HIDA scan is an accurate method to assess for the presence of a biliary leak. Imaging can be performed in the right lateral decubitus position to promote dependent pooling of bile.</li><li>Xenon-133 is imaged posteriorly to avoid breast artifacts, as the relatively low keV is easily attenuated by soft tissue. Wash-in/washout imaging can be performed to evaluate for air trapping, which is seen in COPD.</li><li>V/Q scan: Maternal breast dose &lt;1.5 mGy. Fetal dose 0.5�1.1 mGy (higher than CTPA but still considerably lower than the 100 mSv threshold for potential teratogenic effects).</li><li>Low-dose perfusion (Q) scan: Maternal breast dose 0.6 mGy. Fetal dose 0.1�0.2 mGy.</li><li>In most cases, only perfusion scan is necessary and ventilation scan is not commonly performed. The administered dose of Tc-99m MAA is typically one-half of the standard dose, or approximately 100,000 particles.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-07-key">
+            <div class="section-top"><span>06.07</span><h3>Musculoskeletal</h3></div>
+            <ul>
+              <li>Tc-99m MDP and HDP are technetium-labeled diphosphonates which deposit via chemisorption in the mineral phase of bone. 20 mCi is typically administered, with imaging performed 2�4 hours later.</li><li>Rapid renal excretion is normal; bladder is the critical organ. Patients should void before imaging to prevent the bladder from obscuring a pelvic lesion.</li><li>A single focus of uptake in a rib is thought to represent malignancy only ~10% of the time.</li><li>Uptake in similar locations in two or more adjacent ribs is almost always due to trauma.</li><li>Multiple adjacent photopenic bony lesions are unlikely to be metastases, but may represent infarction, avascular necrosis, or sequela of radiation therapy.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-08-key">
+            <div class="section-top"><span>06.08</span><h3>Kidneys</h3></div>
+            <ul>
+              <li>� A nuclear renogram is a time-activity curve that provides a graphical representation of renal uptake and excretion. Approximately 10 mCi Tc-99m MAG3 (most commonly) or DTPA is administered. A normal renogram has three phases:</li><li>1) Flow or perfusion phase has a sharp upslope and lasts ~1 minute after injection. Normal kidneys are visualized within 2�5 seconds following visualization of the aorta. A slow upslope suggests decreased perfusion.</li><li>2) Cortical function phase usually occurs in the first 1�3 minutes, peaks at 3�5 minutes (= time to peak activity). Decreased renal function produces delayed cortical uptake.</li><li>Differential (or split) renal function is determined during the cortical phase by counting the % activity in each kidney, which should be equal. Normal range is 45�55% for each kidney.</li><li>After administration of Lasix, a clearance half-time &lt;10 minutes is normal.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-09-key">
+            <div class="section-top"><span>06.09</span><h3>Whole-Body Imaging</h3></div>
+            <ul>
+              <li>I-131 MIBG can be used to treat neuroblastoma in children.</li><li>Normal distribution is areas of sympathetic innervation, including salivary glands, heart, thyroid (although this is typically intentionally blocked with Lugol�s solution to reduce thyroid dosimetry), liver, kidney, and bladder.</li><li>Indium-111 is cyclotron-produced and decays by electron capture, emitting two gamma photons at 173 and 247 keV. Its half-life is 67 hours. Pentetreotide is octreotide conjugated to DTPA which allows binding to In-111.</li><li>Normal distribution is intense renal and splenic uptake, with slightly less hepatic uptake.</li><li>The normal distribution of Indium-111 labeled WBCs is spleen &gt; liver &gt;&gt; bone marrow.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-10-key">
+            <div class="section-top"><span>06.10</span><h3>Other Non-PET Imaging</h3></div>
+            <ul>
+              <li>Normal breast has low, homogeneous or patchy uptake. Focal uptake in the breast or axilla is suspicious for malignancy.</li><li>Molecular breast imaging with Tc-99m sestamibi has high sensitivity and specificity (80�90%). However, radiation dose to the breast remains a disadvantage.</li><li>Normal testes show symmetric homogeneous uptake. Decreased perfusion or focal photopenia on the symptomatic side is diagnostic of torsion. Increased perfusion suggests hyperemia, which is seen in epididymitis/orchitis.</li>
+            </ul>
+          </article></section>
+      <section class="pass" data-pass="facts">
+          <article class="section-card" id="s-06-01-facts">
+            <div class="section-top"><span>06.01</span><h3>PET/CT</h3></div>
+            <ul class="fact-list">
+              <li>� A positron emission tomography (PET) radiotracer emits a positron that travels a small</li><li>local distance within the tissue. After meeting an electron, both the positron and electron annihilate and create two 511 keV photons travelling nearly 180 degrees apart.</li><li>Technical considerations of F-18 FDG PET/CT</li><li>Radiotracer: Fluorine-18 FDG</li><li>Fluorine-18 (F-18) is a cyclotron-produced positron emitter, half-life 110 minutes.</li><li>Radiotracer uptake quantifi cation</li><li>The standardized uptake value (SUV) roughly quantifies FDG uptake.</li><li>SUV is proportional to (ROI activity * body weight) / administered activity.</li><li>An SUV value above 2.5 traditionally has been suggestive of malignancy. However, malignancy can never be definitively diagnosed or excluded using SUV as the sole criterion.</li><li>Size threshold for lesion detection on FDG PET is 6 mm. For small lesions, the average SUV may be falsely low due to partial volume averaging; the maximum SUV is a better measure.</li><li>An alternative approach to calculating SUV values is visual or quantitative assessment of FDG uptake relative to background activity in normal tissues (e.g., liver or cerebellum) or the mediastinal blood pool.</li><li>Very dense retained oral contrast or dense metallic objects (such as joint prostheses) may cause artifactual FDG uptake due to miscalculation of attenuation correction.</li><li>The uptake of FDG in both normal and pathological tissues is dependent on the serum glucose and insulin levels.</li><li>Elevated insulin levels will cause increased muscle uptake and decrease the sensitivity for detecting mildly FDG-avid lesions.</li><li>be used but is not recommended. There is no need to hold long-acting insulin and oral hypoglycemic medications such as Metformin, though the latter can increase bowel uptake.</li><li>Blood glucose should be below 200 mg/dL, preferably below 150. Elevated serum glucose will result in decreased FDG uptake by tumors and the brain.</li><li>The typical administered dose of F-18 FDG is 10�25 mCi. After intravenous injection, the</li><li>patient should rest in a quiet room for 60 minutes before imaging. If the patient talks, the vocal cords may show FDG uptake. If the patient walks, the muscles may show FDG uptake.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-02-facts">
+            <div class="section-top"><span>06.02</span><h3>Cerebrovascular</h3></div>
+            <ul class="fact-list">
+              <li>Tc-99m DTPA / Tc-99m pertechnetate</li><li>Technetium-99m has a half-life of 6 hours and is used in the majority of nuclear imaging.</li><li>Iodine-123 ioflupane (I-123 FP-CIT or DaTscan)</li><li>� Iodine-123 has a half-life of 13 hours. I-123 ioflupane is a cocaine analog that binds to the presynaptic dopamine transporter (DaT). It is used in SPECT imaging for the differentiation of essential tremor from parkinsonism.</li><li>� Thallium-201 has a half-life of 73 hours and is used for SPECT imaging in the differentiation of tumor recurrence versus radiation necrosis. Thallium accumulates in viable tumor but not normal brain tissue.</li><li>F-18 FDG is the most common FDA-approved PET agent used for brain imaging.</li><li>F-18 florbetapir, F-18 florbetaben and F-18 flutemetamol are FDA-approved PET agents for imaging of beta-amyloid.</li><li>In 2020, F-18 flortaucipir was approved by FDA for tau imaging.</li><li>Other PET radiotracers are emerging that target specific neuroreceptors (such as F-18-DOPA targeting the dopamine transporter).</li><li>following injection of Tc-99m HMPAO show absent intracranial</li><li>uptake (empty light bulb sign) and</li><li>In brain death, intravenously injected radiotracer is unable to enter the cranial cavity due to increased intracranial pressure.</li><li>SPECT imaging can be performed, either with HMPAO or ECD-labeled Tc-99m.</li><li>Pick disease (frontotemporal dementia) is characterized by decreased uptake in the frontal lobes and anterior portion of the temporal lobes.</li><li>Huntington disease shows decreased uptake in the basal ganglia.</li><li>Parkinson disease is characterized by decreased dopamine transporter density in the striatum on SPECT and PET, demonstrated with use of agents such as I-123 ioflupane (DaTscan) or F-18-DOPA.</li><li>Ictal perfusion SPECT with Tc-99m HMPAO or ECD is the most sensitive, but technically challenging to perform because the radiotracer must be injected during the seizure or within 30 seconds after the end of the seizure.</li><li>Interictal PET with F-18 FDG is very sensitive in localizing partial complex seizures, which usually originate in the temporal lobe. Ictal PET is not possible due to slow FDG uptake.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-03-facts">
+            <div class="section-top"><span>06.03</span><h3>Thyroid</h3></div>
+            <ul class="fact-list">
+              <li>I-131 emits both beta particles and 364 keV gamma photons (only the gamma photons are used for imaging). The half-life is 8 days. I-131 is produced by fission in a nuclear reactor. It is administered orally.</li><li>I-123 decays by electron capture and emits 159 keV gamma photons. The half-life is 13 hours. I-123 is expensive because it is produced by cyclotron. It is administered orally.</li><li>I-123 is the preferred radioisotope for thyroid imaging, as it can image in high detail and obtain thyroid uptake values.</li><li>Tc-99m emits 140 keV gamma photons, has a half-life of 6 hours, and is generator-produced.</li><li>Unlike iodine, pertechnetate is trapped but not organified by the thyroid. After initial uptake it is released into the blood pool. Thyroid uptake is not routinely quantified with pertechnetate due to its rapid washout.</li><li>In contrast to I-123, the salivary glands are well seen with pertechnetate.</li><li>Tc-99m pertechnetate (left image) versus I-123 (right image) thyroid scans. Note, pertechnetate has higher background counts and physiologic uptake in salivary glands.</li><li>Patients undergoing I-123 or I-131 imaging/therapy must have non-suppressed TSH, which can be achieved by stopping exogenous thyroid hormone for 4 weeks, or by two intramuscular injections of recombinant TSH (rTSH).</li><li>All thyrotropic agents cross the placenta and I-131 is contraindicated in pregnancy. Fetal iodine is taken up beginning at 12 weeks of gestation.</li><li>A breastfeeding mother who requires an I-131 ablative dose must stop breastfeeding permanently for the current child.</li><li>For I-123, breastfeeding can be resumed two to three days after administration.</li><li>For Tc-99m, breastfeeding can be resumed 12�24 hours after administration.</li><li>Diagnostic Indications (I-123 or Tc-99m pertechnetate)</li><li>Either I-123 or Tc-99m can be used to localize suspected ectopic thyroid tissue.</li><li>A discordant thyroid nodule is �hot� on Tc-99m and �cold� on I-123 as it has maintained the ability to trap pertechnetate but is unable to organify iodine. Biopsy is usually recommended as a discordant nodule may be malignant.</li><li>Graves disease on I-123 scan with 0.3 mCi I-123 NaI administered.</li><li>There is diffuse uptake throughout the thyroid gland. A faint pyramidal lobe is present (arrow).</li><li>24-hour uptake is elevated at 56%.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-04-facts">
+            <div class="section-top"><span>06.04</span><h3>Parathyroid</h3></div>
+            <ul class="fact-list">
+              <li>Early anterior pinhole image of the thyroid after the administration of 5 mCi Tc-99m sestamibi shows diffuse uptake throughout the thyroid, with a focal area of increased uptake (arrow) in the lower pole of the right lobe.</li><li>Dual-phase (early and delayed) imaging with Tc-99m sestamibi can localize a suspected parathyroid adenoma in a patient with elevated parathyroid hormone.</li><li>� A parathyroid adenoma shows increased uptake on early images and persistent retained activity on delayed images. In contrast, a thyroid adenoma will also initially show increased uptake but will then wash out on delayed images.</li><li>Parathyroid tissue does not take up Tc-99m pertechnetate, which can be administered in indeterminate cases.</li><li>SPECT/CT imaging is also frequently performed to provide more precise localization of uptake to aid in presurgical planning.</li><li>Delayed anterior pinhole image shows interval partial washout of Tc-99m sestamibi. There is a persistent focus of radiotracer uptake (arrow) in the right lower pole. A right inferior parathyroid adenoma was confirmed at surgery.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-05-facts">
+            <div class="section-top"><span>06.05</span><h3>Gastrointestinal</h3></div>
+            <ul class="fact-list">
+              <li>Radiotracer: Tc-99m sulfur colloid</li><li>Although Tc-99m has a physical half-life of 6 hours, sulfur colloid is rapidly cleared with a biologic half-life of 2�3 minutes.</li><li>Normal liver-spleen scan following administration of 4.2 mCi Tc-99m sulfur colloid shows homogeneous uptake in the liver and spleen.</li><li>Note splenic uptake is slightly</li><li>lower in intensity than the liver. Bone marrow uptake is faint.</li><li>Focal decreased hepatic uptake on sulfur colloid scan</li><li>The most common cause of a photopenic defect (complete absence of radiotracer) is a hepatic cyst. It may be difficult to distinguish focal decreased uptake from a photopenic defect if the lesion is small.</li><li>Focal increased hepatic uptake on sulfur colloid scan</li><li>A regenerating nodule in a cirrhotic liver can cause focal increased radiocolloid uptake.</li><li>Budd-Chiari syndrome, or hepatic vein thrombosis, can lead to increased uptake in the caudate lobe in the later stage of disease.</li><li>� Diffuse pulmonary uptake on a sulfur colloid scan is nonspecific, and can be seen in:</li><li>An adjunct or alternative to sulfur colloid scan is a HIDA scan. FNH contains biliary ductules so it should demonstrate radiotracer uptake on a HIDA scan.</li><li>� The presence of an intrapancreatic splenule can be confirmed by sulfur colloid scan in indeterminate cases, where the suspected tissue will show uptake. A Tc-99m damaged red cell study can also be performed.</li><li>Splenosis: Liver-spleen scan (5.5 mCi Tc-99m sulfur colloid administered) of a patient with history of splenectomy following trauma.</li><li>scattered focal uptake in the abdomen correlating to intraperitoneal soft tissue masses on SPECT/CT (not shown), consistent with splenosis.</li><li>Radiotracer: Tc-99m sulfur colloid or DTPA</li><li>Normal esophageal transit time for water is 5�11 seconds, with more than 90% of peak activity clearing the esophagus after 15 seconds. Reduced transit time is seen in patients with scleroderma and achalasia.</li><li>Normal gastric emptying scan:</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-06-facts">
+            <div class="section-top"><span>06.06</span><h3>Pulmonary</h3></div>
+            <ul class="fact-list">
+              <li>� A HIDA scan is an accurate method to assess for the presence of a biliary leak. Imaging can be performed in the right lateral decubitus position to promote dependent pooling of bile.</li><li>Xenon-133 is imaged posteriorly to avoid breast artifacts, as the relatively low keV is easily attenuated by soft tissue. Wash-in/washout imaging can be performed to evaluate for air trapping, which is seen in COPD.</li><li>V/Q scan: Maternal breast dose &lt;1.5 mGy. Fetal dose 0.5�1.1 mGy (higher than CTPA but still considerably lower than the 100 mSv threshold for potential teratogenic effects).</li><li>Low-dose perfusion (Q) scan: Maternal breast dose 0.6 mGy. Fetal dose 0.1�0.2 mGy.</li><li>In most cases, only perfusion scan is necessary and ventilation scan is not commonly performed. The administered dose of Tc-99m MAA is typically one-half of the standard dose, or approximately 100,000 particles.</li><li>Diagnostic accuracy for PE has been shown to be equivalent between CTPA and Q scan.</li><li>High probability: Specificity for pulmonary embolism 97%, positive predictive value 88%</li><li>� If the perfusion scan is normal, the exam is normal and the ventilation study is not required.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-07-facts">
+            <div class="section-top"><span>06.07</span><h3>Musculoskeletal</h3></div>
+            <ul class="fact-list">
+              <li>Tc-99m MDP and HDP are technetium-labeled diphosphonates which deposit via chemisorption in the mineral phase of bone. 20 mCi is typically administered, with imaging performed 2�4 hours later.</li><li>Rapid renal excretion is normal; bladder is the critical organ. Patients should void before imaging to prevent the bladder from obscuring a pelvic lesion.</li><li>A single focus of uptake in a rib is thought to represent malignancy only ~10% of the time.</li><li>Uptake in similar locations in two or more adjacent ribs is almost always due to trauma.</li><li>Multiple adjacent photopenic bony lesions are unlikely to be metastases, but may represent infarction, avascular necrosis, or sequela of radiation therapy.</li><li>Beware of the flare phenomenon within three months of starting chemotherapy, where treated bone metastases demonstrate increased uptake due to healing. Tracer uptake should regress by 6 months following treatment.</li><li>Cancers likely to produce a false-negative bone scan</li><li>Aggressive and lytic bony lesions or those confined to the marrow are better seen on F-18 FDG PET/CT.</li><li>Diffuse soft tissue uptake can be seen in renal failure.</li><li>Increased uptake in the brain, heart, or spleen may be due to recent infarction.</li><li>Malignant pleural effusion or ascites can cause increased uptake.</li><li>Soft-tissue metastases containing calcium can have increased uptake, including osteosarcoma, neuroblastoma, or mucin-producing tumors (gastrointestinal and ovarian).</li><li>Soft tissue uptake associated with dystrophic calcifications can be seen after trauma or in inflammatory diseases such as myositis ossificans, dermatomyositis, or rhabdomyolysis.</li><li>In the breasts, faint uptake can be normal, but focal intense uptake suggests breast carcinoma. Tracer uptake can be seen at site of recent breast procedure (e.g., biopsy).</li><li>Diffuse parenchymal uptake in kidneys can be seen with urinary obstruction, hyperparathyroidism, chemotherapy, or thalassemia.</li><li>Osteosarcoma typically causes markedly increased uptake, often with increased uptake in the entire affected limb.</li><li>Ewing sarcoma features intense and homogeneous activity. It may be positive on all three phases of a three-phase bone scan, mimicking osteomyelitis.</li><li>Benign bone tumors that have intense uptake include osteoid osteoma, osteoblastoma, fibrous dysplasia, giant cell tumor, and aneurysmal bone cyst.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-08-facts">
+            <div class="section-top"><span>06.08</span><h3>Kidneys</h3></div>
+            <ul class="fact-list">
+              <li>� A nuclear renogram is a time-activity curve that provides a graphical representation of renal uptake and excretion. Approximately 10 mCi Tc-99m MAG3 (most commonly) or DTPA is administered. A normal renogram has three phases:</li><li>1) Flow or perfusion phase has a sharp upslope and lasts ~1 minute after injection. Normal kidneys are visualized within 2�5 seconds following visualization of the aorta. A slow upslope suggests decreased perfusion.</li><li>2) Cortical function phase usually occurs in the first 1�3 minutes, peaks at 3�5 minutes (= time to peak activity). Decreased renal function produces delayed cortical uptake.</li><li>Differential (or split) renal function is determined during the cortical phase by counting the % activity in each kidney, which should be equal. Normal range is 45�55% for each kidney.</li><li>After administration of Lasix, a clearance half-time &lt;10 minutes is normal.</li><li>� A positive ACE renogram is relatively specific for renal artery stenosis, which may be a cause of hypertension. The radiotracer is Tc-99m MAG3, much less commonly Tc-99m DTPA.</li><li>is performed first, which if normal, excludes renovascular hypertension and thus eliminates the need for a baseline study. If the captopril study is abnormal, a baseline study is performed on the following day.</li><li>� A positive study depends on the radiotracer utilized (MAG3 or DTPA), but the hallmark is a post-ACE inhibitor renogram that becomes abnormal or more abnormal, usually unilaterally.</li><li>MAG3 (tubular agent): Uptake and secretion are generally preserved even with a reduced GFR, but further</li><li>. GFR results in . urine production and . washout of secreted agent from collecting system. Positive criteria for MAG3 study include: &lt;40% uptake by one kidney at 2�3 minutes; difference in cortical</li><li>activity by 20%; or delay in time to peak activity of more than 2 minutes (compared to pre-ACE inhibitor). DTPA (glomerular agent): Unlike MAG3, . GFR causes diminished uptake and excretion of DTPA.</li><li>Renal cortical imaging is limited to renal imaging in children to evaluate for pyelonephritis or scarring. The radiotracer is Tc-99m DMSA.</li><li>A normal DMSA study excludes the diagnosis of acute pyelonephritis.</li><li>A positive study for pyelonephritis can have three patterns: Focal cortical defect. Multifocal cortical defects. Diffusely decreased radiotracer.</li><li>The radiotracer chosen is variable. Tc-99m pertechnetate, Tc-99m DTPA, and Tc-99m sulfur colloid can all work well. Regardless of the radiotracer chosen, it is injected retrograde into the catheterized bladder.</li><li>While transplanted kidneys are often initially evaluated by ultrasound and ultimately by biopsy, radionuclide renogram using Tc-99m MAG3 or DTPA is an important diagnostic tool.</li><li>A normal renal transplant should be visualized on the flow phase within seconds after the iliac vessels. Its cortical and clearance phases are similar to those of a native kidney.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-09-facts">
+            <div class="section-top"><span>06.09</span><h3>Whole-Body Imaging</h3></div>
+            <ul class="fact-list">
+              <li>I-131 MIBG can be used to treat neuroblastoma in children.</li><li>Normal distribution is areas of sympathetic innervation, including salivary glands, heart, thyroid (although this is typically intentionally blocked with Lugol�s solution to reduce thyroid dosimetry), liver, kidney, and bladder.</li><li>Indium-111 is cyclotron-produced and decays by electron capture, emitting two gamma photons at 173 and 247 keV. Its half-life is 67 hours. Pentetreotide is octreotide conjugated to DTPA which allows binding to In-111.</li><li>Normal distribution is intense renal and splenic uptake, with slightly less hepatic uptake.</li><li>The normal distribution of Indium-111 labeled WBCs is spleen &gt; liver &gt;&gt; bone marrow.</li><li>Infection imaging with an In-111 WBC scan is performed at 24 hours.</li><li>Tc-99m HMPAO leukocytes (WBCs)</li><li>Normal distribution includes the nasopharynx, lacrimal and salivary glands, liver, colon, and bone marrow. Use is limited in the abdomen due to high bowel and liver uptake.</li><li>Persistent gallium in the kidneys is never normal after 24 hours and signifies renal disease or obstruction.</li><li>Diffuse pulmonary uptake is also not normal, with a wide differential of infectious and inflammatory conditions:</li><li>� The panda sign reflects increased uptake in the nasopharynx, parotid glands, and lacrimal glands due to inflammation, resembling the dark markings on a panda�s face. It is classically seen in sarcoidosis.</li><li>Differential diagnosis of the panda sign includes Sj�gren syndrome, and bone marrow, and faint lymphoma after irradiation, and AIDS. uptake in the lungs.</li><li>� Gallium scans have been largely replaced by F-18 FDG PET/CT. A residual first-line application of gallium scan is the evaluation of spinal discovertebral osteomyelitis.</li><li>� Historically, increased focal gallium uptake in the liver suggests hepatocellular carcinoma (HCC). Conversely, HCC is extremely unlikely if gallium uptake is diminished.</li><li>A positive triple-phase Tc-99m MDP bone scan is only specific for osteomyelitis if the radiograph is normal. If there is an underlying abnormality, SPECT/CT, gallium or WBC scan can increase specificity.</li><li>Gallium imaging can increase specificity of a positive bone scan, especially for vertebral osteomyelitis and discitis.</li><li>The role of F-18 FDG PET in the evaluation of metastatic extra-adrenal pheochromocytoma is evolving. Most tumors are FDG-avid.</li>
+            </ul>
+          </article>
+          <article class="section-card" id="s-06-10-facts">
+            <div class="section-top"><span>06.10</span><h3>Other Non-PET Imaging</h3></div>
+            <ul class="fact-list">
+              <li>Normal breast has low, homogeneous or patchy uptake. Focal uptake in the breast or axilla is suspicious for malignancy.</li><li>Molecular breast imaging with Tc-99m sestamibi has high sensitivity and specificity (80�90%). However, radiation dose to the breast remains a disadvantage.</li><li>Normal testes show symmetric homogeneous uptake. Decreased perfusion or focal photopenia on the symptomatic side is diagnostic of torsion. Increased perfusion suggests hyperemia, which is seen in epididymitis/orchitis.</li>
+            </ul>
+          </article></section>
+    
+        </section>
+
+        <section class="panel" id="quizzes">
+          <h2>Quiz Inventory</h2>
+          <div class="quiz-grid">
+            <div class="metric"><strong>26</strong><span>BoardVitals quiz APKGs made</span></div>
+            <div class="metric"><strong>26</strong><span>Parsed quiz folders found</span></div>
+            <div class="metric"><strong>0</strong><span>More possible from the already-scraped quiz set</span></div>
+          </div>
+          <p class="note">The local <code>Core Review</code> folder currently has 0 files, so I could not verify a separate Core Review textbook corpus from that folder. The concrete quiz count above is from the BoardVitals review-question corpus and matching generated APKGs.</p>
+          <p>The parsed BoardVitals folders contain about 1245 question records total. If you use the Requisites section outline as a future source map, there are 107 section-sized units that could theoretically become new focused quizzes.</p>
+        </section>
+
+        <section class="panel" id="requisites">
+          <h2>Nuclear Medicine Requisites Outline</h2>
+          <p>Use this as the deeper review-textbook map after the Core Radiology passes.</p>
+          
+          <details>
+            <summary><span>Chapter01</span>Radioactivity and Radionuclides<b>4</b></summary>
+            <ol>
+              <li><span>01.01</span>Atomic Structure of Matter</li><li><span>01.02</span>Electromagnetic Radiation</li><li><span>01.03</span>Radioactivity and Radioactive Decay</li><li><span>01.04</span>Interactions Between Radiation and Matter</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter02</span>Radiation Detection &amp; Ancillary Instrumentation<b>7</b></summary>
+            <ol>
+              <li><span>02.01</span>Radiation detection</li><li><span>02.02</span>Scintillation detectors</li><li><span>02.03</span>Ancillary Nuclear Medicine Equipment</li><li><span>02.04</span>The Patient as a Radioactive Source</li><li><span>02.05</span>Gamma cameras</li><li><span>02.06</span>Collimators</li><li><span>02.07</span>Quality Control</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter03</span>Single-Photon Emission Computed Tomography, Positron Emission Tomography, and Hybrid Imaging<b>1</b></summary>
+            <ol>
+              <li><span>03.01</span>Data Acquisition of Emission Tomography</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter04</span>Radiopharmaceuticals<b>10</b></summary>
+            <ol>
+              <li><span>04.01</span>Production of Radionuclides</li><li><span>04.02</span>Radiopharmaceuticals</li><li><span>04.03</span>Radiopharmaceutical Preparation</li><li><span>04.04</span>New Radioactive Drug Development</li><li><span>04.05</span>Quality Assurance in Radionuclides and Radiopharmaceuticals</li><li><span>04.06</span>Dispensing Radiopharmaceuticals</li><li><span>04.07</span>Radiation Accidents (Spills)</li><li><span>04.08</span>Quality Control in the Nuclear Pharmacy</li><li><span>04.09</span>Receiving Radioactive Packages</li><li><span>04.10</span>Radiation Dosimetry</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter05</span>Molecular Imaging<b>5</b></summary>
+            <ol>
+              <li><span>05.01</span>Imaging Techniques</li><li><span>05.02</span>Biomarkers</li><li><span>05.03</span>Cell Metabolism and Proliferation</li><li><span>05.04</span>Reporter Gene Imaging and Gene Therapy</li><li><span>05.05</span>Imaging Biomarkers and New-Drug Development</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter06</span>The Skeletal System<b>4</b></summary>
+            <ol>
+              <li><span>06.01</span>Radionuclide Imaging of the Skeleton: Radiopharmaceuticals</li><li><span>06.02</span>Clinical Uses of Skeletal Scintigraphy</li><li><span>06.03</span>Targeted Radionuclide Therapy of Metastatic Disease in Bone</li><li><span>06.04</span>Bone Mineral Density Assessment</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter07</span>The Pulmonary System<b>8</b></summary>
+            <ol>
+              <li><span>07.01</span>Introduction: The Ventilation–Perfusion Lung Scan</li><li><span>07.02</span>Pulmonary Embolism</li><li><span>07.03</span>VQ Background</li><li><span>07.04</span>Radiopharmaceuticals</li><li><span>07.05</span>Technique</li><li><span>07.06</span>Image Interpretation</li><li><span>07.07</span>PIOPED</li><li><span>07.08</span>Quantitative Lung Scan</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter08</span>Endocrine System<b>2</b></summary>
+            <ol>
+              <li><span>08.01</span>Thyroid Disease—Radionuclide Diagnosis and Therapy</li><li><span>08.02</span>Parathyroid Scintigraphy</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter09</span>Hepatic, Biliary, and Splenic Scintigraphy<b>6</b></summary>
+            <ol>
+              <li><span>09.01</span>Cholescintigraphy</li><li><span>09.02</span>Tc-99m Macroaggregated Albumin (MAA) Hepatic Arterial Perfusion Scintigraphy</li><li><span>09.03</span>Hepatic Arterial Radiolabeled Microspheres for Tumor Therapy</li><li><span>09.04</span>Tc-99m Red Blood Cell Liver Scintigraphy</li><li><span>09.05</span>Tc-99m Sulfur Colloid Liver and Spleen Imaging</li><li><span>09.06</span>Splenic Scintigraphy</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter10</span>Gastrointestinal System<b>8</b></summary>
+            <ol>
+              <li><span>10.01</span>Gastrointestinal Transit Scintigraphy</li><li><span>10.02</span>Esophageal Transit Scintigraphy</li><li><span>10.03</span>Gastroesophageal Reflux Disease</li><li><span>10.04</span>Gastrointestinal Bleeding</li><li><span>10.05</span>Meckel Scan</li><li><span>10.06</span>Protein-Losing Enteropathy</li><li><span>10.07</span>Peritoneal Scintigraphy</li><li><span>10.08</span>Helicobacter pylori Infection</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter11</span>Urinary Tract<b>9</b></summary>
+            <ol>
+              <li><span>11.01</span>Renal Anatomy and Physiology</li><li><span>11.02</span>Dynamic Renal Imaging</li><li><span>11.03</span>Dynamic Renography Imaging Protocols</li><li><span>11.04</span>Clinical Applications of Renal Scintigraphy</li><li><span>11.05</span>Renovascular Hypertension</li><li><span>11.06</span>Renal Transplant Evaluation</li><li><span>11.07</span>Measuring Renal Function: Glomerular Filtration Rate</li><li><span>11.08</span>Renal Cortical Imaging</li><li><span>11.09</span>Radionuclide Cystography</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter12</span>Oncology: F-18 Fluorodeoxyglucose Positron Emission Tomography<b>5</b></summary>
+            <ol>
+              <li><span>12.01</span>Background</li><li><span>12.02</span>F-18 FDG Oncology Protocol</li><li><span>12.03</span>Dedicated PET/MR</li><li><span>12.04</span>Image Interpretation</li><li><span>12.05</span>Clinical F-18 FDG PET Use in Oncology</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter13</span>Oncology—Beyond Fluorodeoxyglucose<b>8</b></summary>
+            <ol>
+              <li><span>13.01</span>Neuroendocrine Tumor Imaging and Peptide Receptor Radiotherapy</li><li><span>13.02</span>I-123 and I-131 mIBG Adrenergic Tumor Imaging and Therapy</li><li><span>13.03</span>Prostate Cancer Diagnostic Imaging and Therapy</li><li><span>13.04</span>Sentinel Node Mapping With Lymphoscintigraphy</li><li><span>13.05</span>Molecular Breast Imaging—Scintimammography</li><li><span>13.06</span>Radionuclide Monoclonal Antibody Therapy—B-Cell Lymphoma</li><li><span>13.07</span>Tc-99m Sestamibi Renal Imaging—Oncocytoma Versus Renal Cell Carcinoma</li><li><span>13.08</span>Gallium-67 Tumor Imaging</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter14</span>Central Nervous System<b>2</b></summary>
+            <ol>
+              <li><span>14.01</span>Radiopharmaceuticals</li><li><span>14.02</span>PET</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter15</span>Inflammation and Infection<b>4</b></summary>
+            <ol>
+              <li><span>15.01</span>Pathophysiology of Inflammation and Infection</li><li><span>15.02</span>Radiopharmaceuticals</li><li><span>15.03</span>Clinical Applications for Infection Scintigraphy</li><li><span>15.04</span>Common Clinical Indications</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter16</span>Cardiovascular System<b>7</b></summary>
+            <ol>
+              <li><span>16.01</span>Myocardial Perfusion Scintigraphy</li><li><span>16.02</span>Single-Photon Radiopharmaceuticals for Myocardial Scintigraphy</li><li><span>16.03</span>Myocardial Infarction Imaging</li><li><span>16.04</span>Cardiac Amyloidosis</li><li><span>16.05</span>Cardiac Sympathetic Hyperactivity—I-123 Metaiodo-Benzyl-Guanidine</li><li><span>16.06</span>Cardiac Positron Emission Tomography</li><li><span>16.07</span>Radionuclide Ventriculography</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Chapter17</span>Pearls, Pitfalls, and Frequently Asked Questions<b>15</b></summary>
+            <ol>
+              <li><span>17.01</span>Radiopharmaceuticals</li><li><span>17.02</span>Nuclear Medicine Physics</li><li><span>17.03</span>Radiation Detection and Instrumentation</li><li><span>17.04</span>Single-Photon Emission Computed Tomography and Positron Emission Tomography</li><li><span>17.05</span>Endocrine</li><li><span>17.06</span>Bone</li><li><span>17.07</span>Hepatobiliary</li><li><span>17.08</span>Genitourinary</li><li><span>17.09</span>Oncology: Positron Emission Tomography</li><li><span>17.10</span>Oncology: Beyond Fluorodeoxyglucose</li><li><span>17.11</span>Gastrointestinal</li><li><span>17.12</span>Infection and Inflammation</li><li><span>17.13</span>Central Nervous System</li><li><span>17.14</span>Cardiac</li><li><span>17.15</span>Pulmonary</li>
+            </ol>
+          </details>
+          <details>
+            <summary><span>Supplement</span>Appendices<b>2</b></summary>
+            <ol>
+              <li><span>A</span>Appendix 1. Dosimetry</li><li><span>B</span>Appendix 2. The Periodic Table of the Elements</li>
+            </ol>
+          </details>
+        </section>
+
+        <section class="panel">
+          <h2>Source Notes</h2>
+          <p>Generated 2026-07-05. PDF source: <code>C:\Users\sterl\OneDrive\Desktop\Core Radiology Chapters\06 - Nuclear and Molecular Imaging.pdf</code>. The output PDF is a chapter-level splice because the source PDF is already the nuclear/molecular imaging chapter.</p>
+        </section>
+      </div>
+    </div>
+    <div class="footer">Tip: on your phone, use the pass buttons first, then search a radiotracer, organ system, or pitfall when drilling facts.</div>
+  </main>
+  <script>
+    const tabs = [...document.querySelectorAll('.pass-tabs button')];
+    const passes = [...document.querySelectorAll('.pass')];
+    tabs.forEach(btn => btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      passes.forEach(p => p.classList.toggle('active', p.dataset.pass === btn.dataset.target));
+    }));
+    const search = document.getElementById('search');
+    search.addEventListener('input', () => {
+      const q = search.value.trim().toLowerCase();
+      document.querySelectorAll('.section-card').forEach(card => {
+        card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
