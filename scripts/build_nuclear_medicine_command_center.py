@@ -20,6 +20,172 @@ REQ_INDEX = REQ_BASE / "index.json"
 CORE_PDF = Path(r"C:\Users\sterl\OneDrive\Desktop\Core Radiology Chapters\06 - Nuclear and Molecular Imaging.pdf")
 CORE_REVIEW_NUKES = ROOT / "apps" / "temporary-apps" / "library" / "core-review" / "nuclear-medicine"
 
+CORE_BROAD_HEADINGS = {
+    "06.01": [
+        "Basic positron emission tomography (PET) physics",
+        "Technical considerations of F-18 FDG PET/CT",
+        "Radiotracer: Fluorine-18 FDG",
+        "Radiotracer uptake quantification",
+        "CT correlation",
+        "Patient preparation",
+        "Normal FDG distribution",
+        "Oncologic indications of F-18 FDG PET/CT",
+        "Lung cancer",
+        "Solitary pulmonary nodule (SPN)",
+        "Colon cancer",
+        "Head and neck cancer",
+        "Thyroid cancer",
+        "Lymphoma",
+        "Breast cancer",
+        "Esophageal cancer",
+        "Cancers where F-18 FDG PET/CT plays a limited role",
+        "Other types of PET/CT",
+        "Gallium-68 DOTATATE (GaTate)",
+        "PET agents for prostate cancer imaging",
+    ],
+    "06.02": [
+        "Radiotracers",
+        "Tc-99m DTPA / Tc-99m pertechnetate",
+        "Tc-99m HMPAO / Tc-99m ECD",
+        "I-123 ioflupane (DaTscan)",
+        "Thallium-201",
+        "PET agents",
+        "Radionuclide imaging of the brain",
+        "Evaluation of cerebral perfusion",
+        "Brain death",
+        "Dementia imaging",
+        "Seizure imaging",
+        "Crossed cerebellar diaschisis",
+        "Cerebrospinal fluid imaging",
+        "Radiotracer: Indium-111 DTPA",
+        "Normal pressure hydrocephalus",
+        "CSF leak",
+        "Evaluation of CSF shunt patency",
+    ],
+    "06.03": [
+        "Radiotracers",
+        "Iodine-131",
+        "Iodine-123",
+        "Tc-99m pertechnetate",
+        "Patient preparation",
+        "Pregnancy and breastfeeding",
+        "Diagnostic indications (I-123 or Tc-99m pertechnetate)",
+        "Ectopic thyroid",
+        "Thyroid nodule",
+        "Graves disease",
+        "Toxic multinodular goiter (Plummer disease)",
+        "Hashimoto thyroiditis",
+        "Subacute thyroiditis",
+        "Therapeutic indications (I-131)",
+        "Thyroid carcinoma, post-thyroidectomy",
+        "Thyroid carcinoma, post-radioiodine therapy",
+        "Treatment of Graves disease",
+        "Treatment of multinodular goiter",
+        "Treatment of toxic/autonomous nodule",
+    ],
+    "06.04": [
+        "Radiotracer",
+        "Tc-99m sestamibi",
+        "Indications",
+        "Parathyroid adenoma",
+    ],
+    "06.05": [
+        "Liver-spleen imaging",
+        "Radiotracer: Tc-99m sulfur colloid",
+        "Focal decreased hepatic uptake on sulfur colloid scan",
+        "Focal increased hepatic uptake on sulfur colloid scan",
+        "Colloid shift",
+        "Diffuse pulmonary uptake",
+        "Intrapancreatic splenic tissue",
+        "Esophageal and gastric motility",
+        "Radiotracer: Tc-99m sulfur colloid or DTPA",
+        "Esophageal transit",
+        "Gastroesophageal reflux",
+        "Salivagram for aspiration",
+        "Gastric emptying",
+        "Meckel imaging",
+        "Radiotracer: Tc-99m pertechnetate",
+        "Meckel diverticulum",
+        "Gastrointestinal bleeding",
+        "Radiotracer: Tc-99m labeled RBCs",
+        "Hepatobiliary imaging (HIDA)",
+        "Radiotracers: Tc-99m IDA agents",
+        "HIDA protocol",
+        "Normal HIDA scan",
+        "Acute cholecystitis",
+        "Chronic cholecystitis",
+        "Biliary obstruction",
+        "Hepatic dysfunction",
+        "Biliary leak",
+    ],
+    "06.06": [
+        "Radiotracers",
+        "Tc-99m MAA (perfusion)",
+        "Xenon-133 (ventilation)",
+        "Tc-99m DTPA (ventilation)",
+        "Clinical V/Q scanning in the era of CT pulmonary angiography",
+        "Diagnosis of pulmonary embolism in pregnancy",
+        "Diagnosis of pulmonary embolism with PIOPED II",
+        "High probability",
+        "Intermediate probability",
+        "Low probability",
+        "Very low probability",
+        "Normal",
+    ],
+    "06.07": [
+        "Radiotracers",
+        "Tc-99m MDP or HDP",
+        "Three-phase bone scan",
+        "Common patterns and clinical applications",
+        "Patterns with high probability of metastatic disease",
+        "Cancers likely to produce a false-negative bone scan",
+        "Superscan",
+        "Primary bone tumors",
+        "Fracture",
+        "Shin splints (medial tibial stress syndrome)",
+        "Insufficiency fracture",
+        "Prosthesis evaluation",
+        "Hypertrophic pulmonary osteoarthropathy",
+        "Avascular necrosis (AVN)",
+        "Complex regional pain syndrome",
+    ],
+    "06.08": [
+        "Radiotracers",
+        "Tc-99m DTPA",
+        "Tc-99m MAG3",
+        "Tc-99m DMSA",
+        "Clinical applications of renal imaging",
+        "Renogram",
+        "Lasix renogram (diuretic renography)",
+        "Angiotensin-converting enzyme (ACE) inhibitor renogram",
+        "Renal cortical imaging",
+        "Radionuclide cystography (RNC)",
+        "Renal transplant evaluation",
+        "Renogram findings of common transplant complications",
+    ],
+    "06.09": [
+        "Radiotracers",
+        "I-123 MIBG",
+        "Indium-111 pentetreotide (Octreoscan)",
+        "Indium-111 oxine leukocytes (WBCs)",
+        "Tc-99m HMPAO leukocytes (WBCs)",
+        "Gallium-67",
+        "Thallium-201",
+        "Clinical applications",
+        "Hepatocellular carcinoma (HCC)",
+        "Combined gallium and thallium imaging",
+        "Osteomyelitis",
+        "Adrenal pheochromocytoma",
+        "Extra-adrenal pheochromocytoma",
+        "Metastatic carcinoid/neuroendocrine tumor",
+    ],
+    "06.10": [
+        "Lymphoscintigraphy",
+        "Molecular breast imaging",
+        "Radionuclide testicular imaging",
+    ],
+}
+
 
 def bad_encoding_score(s: str) -> int:
     return (
@@ -74,6 +240,16 @@ def line_is_heading(line: str) -> bool:
         return False
     if t in {"A", "-A"}:
         return False
+    if re.search(r"\bNucs:\s*\d+\b", t, re.I):
+        return False
+    if re.fullmatch(r"[\d\s<>.=/%-]+(?:time\s*\(minutes\))?", t, re.I):
+        return False
+    if re.search(r"\b(pre|post)-captopril\b", t, re.I):
+        return False
+    if re.search(r"\b(a.?erent|e.?erent)\s+arteriole\b", t, re.I):
+        return False
+    if t.count(" ") >= 6 and not re.search(r"\b(scan|imaging|radiotracer|disease|therapy|renogram|PET|CT|SPECT|HIDA|V/Q)\b", t, re.I):
+        return False
     if not re.search(r"[A-Za-z0-9]", t):
         return False
     if len(t) > 92:
@@ -117,6 +293,17 @@ def split_bullets(text: str) -> list[str]:
     seen = set()
     for b in bullets:
         b = re.sub(r"\s+", " ", b).strip()
+        b = re.sub(r"\bdecreased infow in renin-angiotensin system.*$", "", b, flags=re.I).strip()
+        if re.search(r"\bNucs:\s*\d+\b", b, re.I):
+            continue
+        if re.fullmatch(r"[\d\s<>.=/%-]+(?:time\s*\(minutes\))?", b, re.I):
+            continue
+        if re.search(r"\b(pre|post)-captopril\b|a.?erent arteriole|e.?erent arteriole", b, re.I):
+            continue
+        if re.search(r"^(following injection|uptake \(|anterior projection|single image by|the tibial insertions|blood flow and blood pool images)", b, re.I):
+            continue
+        if b[:1].islower():
+            continue
         if len(b) < 18 or b.lower() in seen:
             continue
         if b.startswith("Lung cancer initial staging:") and len(b) > 260:
@@ -129,12 +316,14 @@ def split_bullets(text: str) -> list[str]:
 def extract_section(path: Path, code: str, title: str) -> dict:
     text = clean_text(path.read_text(encoding="utf-8", errors="replace"))
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    headings = []
-    for ln in lines[1:]:
-        if line_is_heading(ln) and ln not in headings and ln != title:
-            headings.append(ln)
-        if len(headings) >= 18:
-            break
+    headings = CORE_BROAD_HEADINGS.get(code)
+    if headings is None:
+        headings = []
+        for ln in lines[1:]:
+            if line_is_heading(ln) and ln not in headings and ln != title:
+                headings.append(ln)
+            if len(headings) >= 18:
+                break
     bullets = split_bullets(text)
     return {
         "code": code,
