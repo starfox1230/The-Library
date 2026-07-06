@@ -21,7 +21,30 @@ CORE_PDF = Path(r"C:\Users\sterl\OneDrive\Desktop\Core Radiology Chapters\06 - N
 CORE_REVIEW_NUKES = ROOT / "apps" / "temporary-apps" / "library" / "core-review" / "nuclear-medicine"
 
 
+def bad_encoding_score(s: str) -> int:
+    return (
+        s.count("\ufffd") * 4
+        + s.count("\u00c3") * 2
+        + s.count("\u00c2") * 2
+        + s.count("\u00e2") * 2
+        + s.count("ï¿½") * 4
+    )
+
+
+def repair_mojibake(s: str) -> str:
+    best = s
+    for encoding in ("cp1252", "latin1"):
+        try:
+            candidate = s.encode(encoding).decode("utf-8")
+        except UnicodeError:
+            continue
+        if bad_encoding_score(candidate) < bad_encoding_score(best):
+            best = candidate
+    return best
+
+
 def clean_text(s: str) -> str:
+    s = repair_mojibake(s)
     s = re.sub(r"(?m)^�\s+", "• ", s)
     replacements = {
         "â€“": "-",
@@ -135,6 +158,264 @@ def load_core_sections() -> list[dict]:
     return sections
 
 
+NOISE_PREFIXES = (
+    "fig.",
+    "figure",
+    "table",
+    "box",
+    "chapter",
+    "references",
+    "bibliography",
+)
+
+FACT_TERMS = (
+    "radiopharmaceutical",
+    "radiotracer",
+    "tracer",
+    "uptake",
+    "scan",
+    "imaging",
+    "scintigraphy",
+    "spect",
+    "pet",
+    "ct",
+    "mri",
+    "fdg",
+    "tc-99m",
+    "i-123",
+    "i-131",
+    "f-18",
+    "ga-68",
+    "lu-177",
+    "dose",
+    "half-life",
+    "kev",
+    "suv",
+    "sensitivity",
+    "specificity",
+    "false",
+    "normal",
+    "abnormal",
+    "indication",
+    "contraindication",
+    "diagnosis",
+    "therapy",
+    "treatment",
+    "metast",
+    "tumor",
+    "patient",
+    "protocol",
+    "delayed",
+    "dynamic",
+    "quantitative",
+    "clearance",
+    "perfusion",
+    "ventilation",
+    "renal",
+    "thyroid",
+    "bone",
+    "cardiac",
+)
+
+
+def is_noise_line(line: str) -> bool:
+    t = line.strip()
+    low = t.lower()
+    if not t:
+        return False
+    if any(low.startswith(prefix) for prefix in NOISE_PREFIXES):
+        return True
+    if re.match(r"^[A-Z]\)$", t):
+        return True
+    if re.match(r"^\d+$", t):
+        return True
+    if len(t) < 4 and not re.search(r"\d", t):
+        return True
+    return False
+
+
+def looks_like_paragraph_start(line: str) -> bool:
+    t = line.strip()
+    if len(t) < 42:
+        return False
+    return bool(re.search(
+        r"^(A|An|The|In|With|For|On|Patients|Patient|More|Most|Many|Some|Because|Although|When|If|After|Before|During|Overall)\b",
+        t,
+    ))
+
+
+def is_requisites_heading(line: str, title: str) -> bool:
+    t = line.strip()
+    if not t or t.lower() == title.lower():
+        return True
+    if len(t) > 100 or re.search(r"[.;]$", t):
+        return False
+    if ":" in t and len(t.split()) > 4:
+        return False
+    words = re.findall(r"[A-Za-z0-9][A-Za-z0-9-]*", t)
+    if not words:
+        return True
+    capish = sum(1 for word in words if word[:1].isupper() or re.search(r"[A-Z0-9]", word))
+    return len(words) <= 10 and capish / len(words) > 0.62
+
+
+def normalize_fact(text: str) -> str:
+    text = clean_text(text)
+    text = re.sub(r"\([^)]*(?:Fig\.|Figs\.|Table|Box)[^)]*\)", "", text, flags=re.I)
+    text = re.sub(r"\b(?:Fig\.|Table|Box)\s+\d+(?:\.\d+)?[A-Z]?\b", "", text, flags=re.I)
+    text = re.sub(r"\b\(?(?:Figs?\.|Tables?|Boxes?)\s*[^).]*(?:\)|\.)?", "", text, flags=re.I)
+    text = re.sub(r"\b\d+\.\d+\s+(?:and|to)\s+\d+\.\d+\)?", "", text)
+    text = re.sub(r"\(\s*\)", "", text)
+    text = re.sub(r"\(see\s*,?\s*[A-Z]?\)", "", text, flags=re.I)
+    text = re.sub(r";\s*\)\.?", ".", text)
+    text = re.sub(r"\(\s*;?\s*\)", "", text)
+    text = re.sub(r";\s*\.", ".", text)
+    text = re.sub(r"\s+", " ", text).strip(" -;:,")
+    text = re.sub(r"\s+([,.;:])", r"\1", text)
+    text = re.sub(r"\.\s+\.", ".", text)
+    text = re.sub(r"\.{2,}", ".", text)
+    text = re.sub(r"([a-z0-9])\s+(However|Although|Because|Therefore)\b", r"\1. \2", text)
+    text = re.sub(r",\s+and\b", " and", text)
+    text = re.sub(r"\bnon-small ?cell\b", "non-small-cell", text, flags=re.I)
+    text = re.sub(r"\bF-18 fluorodeoxyglucose\b", "F-18 FDG", text, flags=re.I)
+    text = re.sub(r"\btechnetium-99m\b", "Tc-99m", text, flags=re.I)
+    if text and text[-1] not in ".!?":
+        text += "."
+    return text
+
+
+def requisites_paragraphs(text: str, title: str) -> list[str]:
+    lines = []
+    skip_mode = None
+    for raw in clean_text(text).splitlines():
+        line = raw.strip()
+        low = line.lower()
+
+        if low.startswith(("fig.", "figure")):
+            skip_mode = "caption"
+            continue
+        if low.startswith(("table", "box")):
+            skip_mode = "table"
+            continue
+
+        if skip_mode == "caption":
+            if re.search(r"[.!?]$", line):
+                skip_mode = None
+            continue
+        if skip_mode == "table":
+            if looks_like_paragraph_start(line):
+                skip_mode = None
+            else:
+                continue
+
+        if is_noise_line(line):
+            line = ""
+        if is_requisites_heading(line, title):
+            line = ""
+        lines.append(line)
+
+    paragraphs = []
+    current = []
+    for line in lines:
+        if not line:
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+            continue
+        current.append(line)
+    if current:
+        paragraphs.append(" ".join(current))
+    return [normalize_fact(p) for p in paragraphs if len(normalize_fact(p)) >= 35]
+
+
+def split_sentences(paragraph: str) -> list[str]:
+    pieces = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9])", paragraph)
+    sentences = []
+    for piece in pieces:
+        sentence = normalize_fact(piece)
+        if 45 <= len(sentence) <= 320:
+            sentences.append(sentence)
+    return sentences
+
+
+def sentence_score(sentence: str, title_words: set[str], position: int) -> float:
+    low = sentence.lower()
+    score = max(0, 8 - position * 0.15)
+    score += sum(1.8 for term in FACT_TERMS if term in low)
+    score += min(5, len(re.findall(r"\b\d+(?:\.\d+)?%?|\b(?:mci|mbq|kev|hours?|minutes?|days?)\b", low)))
+    score += sum(0.5 for word in title_words if len(word) > 4 and word in low)
+    if re.search(r"\b(common|most|primary|preferred|classic|characteristic|sensitive|specific|normal|abnormal|pitfall|false-positive|false-negative)\b", low):
+        score += 3
+    if re.search(r"\b(shown|demonstrates|image|images|views|coronal|axial|sagittal|slice)\b", low):
+        score -= 4
+    if len(sentence) > 260:
+        score -= 2
+    return score
+
+
+def shorten_fact(sentence: str) -> str:
+    sentence = normalize_fact(sentence)
+    if len(sentence) <= 235:
+        return sentence
+    cut_points = [
+        sentence.find("; "),
+        sentence.find(". ", 160),
+        sentence.find(", although "),
+        sentence.find(", but "),
+    ]
+    cut_points = [p for p in cut_points if 110 <= p <= 235]
+    if cut_points:
+        sentence = sentence[: min(cut_points)].rstrip(" ,;") + "."
+    elif len(sentence) > 255:
+        sentence = sentence[:252].rsplit(" ", 1)[0].rstrip(" ,;") + "."
+    return sentence
+
+
+def extract_requisites_facts(path: Path, title: str, max_facts: int = 10) -> list[str]:
+    if not path.exists():
+        return []
+    text = path.read_text(encoding="utf-8", errors="replace")
+    title_words = set(re.findall(r"[a-z0-9]+", title.lower()))
+    candidates = []
+    for p_index, paragraph in enumerate(requisites_paragraphs(text, title)):
+        for sentence in split_sentences(paragraph):
+            if not re.match(r"^[A-Z0-9]", sentence):
+                continue
+            if re.search(r"\(\s*\)|\bsee\s*,", sentence, re.I):
+                continue
+            score = sentence_score(sentence, title_words, p_index)
+            if score >= 7:
+                candidates.append((score, p_index, sentence))
+
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    facts = []
+    seen = set()
+    for _, _, sentence in candidates:
+        fact = shorten_fact(sentence)
+        if not re.match(r"^[A-Z0-9]", fact):
+            continue
+        if re.search(r"\(\s*\)|\bsee\s*,", fact, re.I):
+            continue
+        key = re.sub(r"[^a-z0-9]+", " ", fact.lower()).strip()
+        if not key or any(key in old or old in key for old in seen):
+            continue
+        facts.append(fact)
+        seen.add(key)
+        if len(facts) >= max_facts:
+            break
+
+    if len(facts) < 4:
+        for paragraph in requisites_paragraphs(text, title)[:8]:
+            fact = shorten_fact(paragraph)
+            key = re.sub(r"[^a-z0-9]+", " ", fact.lower()).strip()
+            if key and not any(key in old or old in key for old in seen):
+                facts.append(fact)
+                seen.add(key)
+            if len(facts) >= 4:
+                break
+    return facts
+
+
 def load_requisites_outline() -> list[dict]:
     index = json.loads(REQ_INDEX.read_text(encoding="utf-8"))
     chapters = []
@@ -144,10 +425,12 @@ def load_requisites_outline() -> list[dict]:
             if sk == "title":
                 continue
             if isinstance(sec, dict) and "title" in sec:
+                path = REQ_BASE / sec.get("file", "")
                 items.append({
                     "code": sk,
                     "title": clean_text(sec["title"]),
                     "file": sec.get("file", ""),
+                    "facts": extract_requisites_facts(path, sec["title"]),
                 })
         chapters.append({"code": ck, "title": clean_text(ch.get("title", ck)), "sections": items})
     return chapters
@@ -259,16 +542,29 @@ def render_passes(sections: list[dict]) -> str:
 def render_requisites(chapters: list[dict]) -> str:
     blocks = []
     for ch in chapters:
+        chapter_number = str(int(re.search(r"\d+", ch["code"]).group(0))) if re.search(r"\d+", ch["code"]) else ch["code"]
+        sections = []
+        for item in ch["sections"]:
+            fact_count = len(item["facts"])
+            facts = "".join(f"<li>{escape(fact)}</li>" for fact in item["facts"])
+            sections.append(f"""
+              <details class="req-section">
+                <summary>
+                  <span class="req-code">{escape(item["code"])}</span>
+                  <span class="req-title">{escape(item["title"])}</span>
+                  <span class="req-count">{fact_count} facts</span>
+                </summary>
+                <ul class="req-facts">{facts}</ul>
+              </details>""")
         blocks.append(f"""
-          <details>
-            <summary><span>{escape(ch['code'])}</span>{escape(ch['title'])}<b>{len(ch['sections'])}</b></summary>
-            <ol>
-              {''.join(
-                  f'<li><a href="../Nuclear%20Medicine%20-%20The%20Requisites/{quote(item["file"])}"><span>{escape(item["code"])}</span>{escape(item["title"])}</a></li>'
-                  for item in ch['sections']
-              )}
-            </ol>
-          </details>""")
+          <article class="req-chapter">
+            <div class="req-chapter-head">
+              <span class="chapter-badge">Chapter {escape(chapter_number)}</span>
+              <h3>{escape(ch["title"])}</h3>
+              <span class="section-total">{len(ch["sections"])} sections</span>
+            </div>
+            <div class="req-section-list">{''.join(sections)}</div>
+          </article>""")
     return "".join(blocks)
 
 
@@ -315,7 +611,8 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       --radius: 8px;
     }}
     * {{ box-sizing: border-box; }}
-    html {{ background: var(--bg); }}
+    header, .panel, .section-card, .metric, .quiz-card, .req-chapter, .req-section, .button, button {{ min-width: 0; }}
+    html {{ background: var(--bg); overflow-x: hidden; }}
     body {{
       margin: 0;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -323,9 +620,12 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       color: var(--text);
       line-height: 1.45;
       padding: max(14px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+      width: 100vw;
+      overflow-x: hidden;
     }}
     a {{ color: inherit; text-decoration: none; }}
-    .page {{ width: min(1120px, 100%); margin: 0 auto; display: grid; gap: 14px; }}
+    code {{ overflow-wrap: anywhere; word-break: break-word; }}
+    .page {{ width: min(1120px, calc(100vw - 40px)); max-width: 100%; margin: 0 auto; display: grid; gap: 14px; overflow-x: hidden; }}
     header, .panel, .section-card, details {{
       background: var(--panel);
       border: 1px solid var(--border);
@@ -336,7 +636,7 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
     h1 {{ margin: 0; font-size: clamp(1.65rem, 7vw, 3rem); line-height: 1.04; letter-spacing: 0; }}
     h2 {{ margin: 0 0 10px; font-size: 1.05rem; }}
     h3 {{ margin: 0; font-size: 1rem; }}
-    p {{ margin: 0; color: var(--muted); }}
+    p {{ margin: 0; color: var(--muted); overflow-wrap: anywhere; }}
     .top-grid {{ display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }}
     .metric {{ background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; min-height: 86px; }}
     .metric strong {{ display: block; font-size: 1.5rem; color: var(--text); }}
@@ -351,6 +651,7 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       color: var(--text);
       background: #21262d;
       cursor: pointer;
+      white-space: normal;
     }}
     .button.primary, button.active {{ background: var(--accent); color: #07101d; border-color: var(--accent); }}
     .button.good {{ color: #06140f; background: var(--accent2); border-color: var(--accent2); }}
@@ -376,6 +677,32 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
     .quiz-card b {{ color: var(--accent); font-size: .82rem; }}
     .quiz-card:hover {{ border-color: var(--accent); }}
     .note {{ border-left: 3px solid var(--warn); padding: 10px 12px; background: rgba(210,153,34,.08); color: var(--text); border-radius: 6px; }}
+    .req-atlas {{ display: grid; gap: 12px; margin-top: 12px; }}
+    .req-chapter {{ background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }}
+    .req-chapter-head {{
+      display: grid;
+      grid-template-columns: minmax(92px, auto) minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 13px;
+      border-bottom: 1px solid var(--border);
+    }}
+    .req-chapter-head h3 {{ min-width: 0; font-size: .98rem; line-height: 1.25; }}
+    .chapter-badge {{ color: var(--accent); font-weight: 850; font-size: .82rem; white-space: nowrap; }}
+    .section-total, .req-count {{ color: var(--muted); font-size: .78rem; white-space: nowrap; }}
+    .req-section-list {{ display: grid; gap: 8px; padding: 10px; }}
+    .req-section {{ background: #171d26; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }}
+    .req-section summary {{
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 11px;
+    }}
+    .req-code {{ color: var(--accent); font-weight: 850; }}
+    .req-title {{ color: var(--text); font-weight: 720; min-width: 0; overflow-wrap: anywhere; }}
+    .req-facts {{ margin: 0; padding: 10px 14px 12px 30px; color: var(--text); background: rgba(13,17,23,.42); }}
+    .req-facts li {{ margin: 7px 0; }}
     details {{ padding: 0; overflow: hidden; }}
     summary {{ list-style: none; cursor: pointer; padding: 11px 12px; display: grid; grid-template-columns: 52px 1fr auto; gap: 8px; align-items: center; }}
     summary::-webkit-details-marker {{ display: none; }}
@@ -390,14 +717,18 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       .layout {{ grid-template-columns: 1fr; }}
       nav.panel {{ position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
       .top-grid, .quiz-grid, .quiz-links {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
+      .req-chapter-head {{ grid-template-columns: 1fr; gap: 4px; }}
       .heading-list {{ columns: 1; }}
     }}
     @media (max-width: 520px) {{
       body {{ padding-left: 10px; padding-right: 10px; }}
       header {{ padding: 14px; }}
       .top-grid, .quiz-grid, .quiz-links, nav.panel {{ grid-template-columns: 1fr; }}
+      .actions {{ display: grid; grid-template-columns: 1fr; }}
       .metric {{ min-height: auto; }}
       summary {{ grid-template-columns: 46px 1fr auto; }}
+      .req-section summary {{ grid-template-columns: 1fr; gap: 4px; }}
+      .req-count {{ justify-self: start; }}
     }}
   </style>
 </head>
@@ -407,7 +738,7 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       <div>
         <div class="kicker">Study week command center</div>
         <h1>Nuclear Medicine</h1>
-        <p>Three passes through Core Radiology Chapter 06, with the deeper Nuclear Medicine Requisites outline parked underneath for review-textbook coverage.</p>
+        <p>Core review, key facts, quizzes, PDF.</p>
       </div>
       <div class="top-grid">
         <div class="metric"><strong>{len(core_sections)}</strong><span>Core Radiology sections</span></div>
@@ -419,7 +750,7 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
         <a class="button primary" href="{pdf_name}">Open spliced PDF</a>
         <a class="button" href="#passes">Start three-pass review</a>
         <a class="button" href="#quizzes">Quiz inventory</a>
-        <a class="button good" href="#requisites">Deep reference outline</a>
+        <a class="button good" href="#requisites">Requisites key facts</a>
       </div>
     </header>
 
@@ -452,9 +783,10 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
         </section>
 
         <section class="panel" id="requisites">
-          <h2>Nuclear Medicine Requisites Links</h2>
-          <p>Use this as the deeper review-textbook map after the Core Radiology passes. Each row opens the extracted text for that section.</p>
-          {req_html}
+          <h2>Nuclear Medicine Requisites Key Facts</h2>
+          <p>Use this as the deeper review-textbook map after the Core Radiology passes. Each section expands into cleaned high-yield facts instead of sending you to raw extracted textbook text.</p>
+          <input class="search" id="reqSearch" placeholder="Filter Requisites chapters, sections, and facts..." />
+          <div class="req-atlas">{req_html}</div>
         </section>
 
         <section class="panel">
@@ -478,6 +810,19 @@ def make_html(core_sections: list[dict], req_outline: list[dict], quiz: dict, pd
       const q = search.value.trim().toLowerCase();
       document.querySelectorAll('.section-card').forEach(card => {{
         card.style.display = !q || card.textContent.toLowerCase().includes(q) ? '' : 'none';
+      }});
+    }});
+    const reqSearch = document.getElementById('reqSearch');
+    reqSearch.addEventListener('input', () => {{
+      const q = reqSearch.value.trim().toLowerCase();
+      document.querySelectorAll('.req-section').forEach(section => {{
+        const matched = !q || section.textContent.toLowerCase().includes(q);
+        section.style.display = matched ? '' : 'none';
+        if (q && matched) section.open = true;
+      }});
+      document.querySelectorAll('.req-chapter').forEach(chapter => {{
+        const hasVisibleSection = [...chapter.querySelectorAll('.req-section')].some(section => section.style.display !== 'none');
+        chapter.style.display = hasVisibleSection || (!q && chapter.textContent.toLowerCase().includes(q)) ? '' : 'none';
       }});
     }});
   </script>
