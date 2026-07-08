@@ -1,5 +1,28 @@
 # Repository Instructions for Bots and Contributors
 
+## Anki card work
+
+Before creating, editing, packaging, exporting, or reviewing Anki cards, read these files first and treat them as the source of truth:
+
+1. `apps/anki-card-creation-codex-helper/CARD_STYLE_GUIDE.md`
+2. `apps/anki-card-creation-codex-helper/APKG_PACKAGING.md`
+3. `apps/anki-card-creation-codex-helper/BOARDVITALS_WORKFLOW.md` when the source is BoardVitals or quiz capture/review
+4. `apps/anki-card-creation-codex-helper/CORE_RADIOLOGY_WORKFLOW.md` and `apps/anki-card-creation-codex-helper/CORE_RADIOLOGY_ANKI_WORKFLOW.md` when the source is Core Radiology
+
+Do not infer the user's desired card type from an old script, a generated manifest, or a previous package. The default is always the user's existing `saCloze++` note type unless the user explicitly says otherwise.
+
+Packaging rules that must not drift:
+
+- Use `saCloze++`, not Basic, not `saCloze+`, and not a look-alike note type.
+- Reuse the canonical `MODEL` from `apps/radiographics-review/scripts/build_anki_package.py` for APKG builds.
+- Use fields named `Text` and `Extra`.
+- Use cloze syntax in `Text`: `{{cN::answer}}` or `{{cN::answer::hint}}`.
+- Put generated packaged cards in `Saved Cards` unless the user explicitly asks for a different deck.
+- Use tags for organization instead of creating topic-specific decks.
+- Validate cloze syntax, tags, note keys, and local media references before claiming an APKG is ready.
+
+When card quality or packaging behavior needs to change, update the canonical guide files above first, then update scripts to follow them. Do not patch a one-off package script in a way that conflicts with those files.
+
 ## When adding a temporary app
 If you create or modify an app under `apps/temporary-apps/library/`, you **must** do all of the following in the same change:
 
