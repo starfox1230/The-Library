@@ -255,3 +255,24 @@ For each Anki batch:
 6. Implement media-aware APKG export.
 7. Connect visual-feed interactions to the pending-event ledger.
 8. Add external examples, Image Multitude, and optional automated occlusion only after the core pipeline is reliable.
+
+## Near-Term Reuse Modes
+
+The visual-feed generator must become a reusable pipeline, not a one-off MSK implementation.
+
+### Scheduled Study-Plan Mode
+
+- A study plan owns an ordered sequence of assignments across dates.
+- Each assignment may point to a different chapter or even a different source PDF.
+- Changing rotations or starting Neuro should create or activate another saved plan; it must not erase the MSK plan or its feed history.
+- Codex should be able to build a new plan from a concise request plus a source/range, or import the existing Core Study plan JSON when the user wants its exact dates and chunking.
+- The same extraction, explanation, storage, review, and Anki pathways are reused after only the source mapping and schedule change.
+
+### Standalone Collection Mode
+
+- A Radiographics article, conference handout, or miscellaneous PDF can produce one named visual collection without joining the daily calendar.
+- Standalone collections use the same figure-story format, saved-panel events, and Anki media rules as scheduled feeds.
+- Collections remain in a browsable history instead of replacing one another.
+- A future Visuals library should separate `Daily plans` from `Collections` while allowing a direct link to any feed or collection.
+
+The immediate interface may expose only daily feeds. Preserve plan, source, date, and collection identifiers now so these reuse modes can be added without rebuilding the pipeline.
