@@ -226,6 +226,15 @@ For each tomorrow visual packet:
 9. GET-verify the feed, item count, image count, and failure manifest.
 10. Preserve the prior valid feed if regeneration fails.
 
+### Early completion and rerun policy
+
+- Before extraction or upload, GET the target date and compare the active assignment, stable feed id, expected panel count, and panel ids.
+- If a matching feed is already complete and its images verify, reuse it and skip generation, extraction, TTS-adjacent work, and upload for that visual packet.
+- If the matching feed is incomplete, repair only the missing or invalid work and verify it again.
+- If the active assignment or source range changed, create the newly identified feed while preserving the prior feed in history.
+- Rebuild an otherwise complete matching feed only when the user explicitly requests regeneration or a correction requires `--force`.
+- Never replace a verified feed with a failed or partial rerun.
+
 For each Anki batch:
 
 1. Read all canonical card and visual specifications plus editable Study OS preferences.
