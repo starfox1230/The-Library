@@ -4,6 +4,8 @@ Use this as the source of truth for writing Anki cards for this user. If card qu
 
 For BoardVitals-specific quiz capture, Anki generation, and local HTML quiz review behavior, use `BOARDVITALS_WORKFLOW.md` together with this guide.
 
+For the Radiology Study OS visual feed, textbook figure extraction, reviewer image behavior, and image-aware export, also use `VISUAL_STUDY_AND_ANKI_SPEC.md`.
+
 ## Default Style
 
 - Default to cloze notes, not basic cards.

@@ -8,6 +8,7 @@ When card behavior needs to change, edit the smallest relevant canonical file he
 - `APKG_PACKAGING.md` for package, media, manifest, and build rules.
 - `CORE_RADIOLOGY_WORKFLOW.md` for Core Radiology textbook-specific behavior.
 - `BOARDVITALS_WORKFLOW.md` for BoardVitals quiz capture, card generation, and local HTML quiz review behavior.
+- `VISUAL_STUDY_AND_ANKI_SPEC.md` for visual feeds, PDF figure handling, image-backed card candidates, reviewer image behavior, and media-aware APKG requirements.
 
 Other automations, apps, and workflow notes should point here instead of duplicating the rules.
 
@@ -18,6 +19,7 @@ C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-cod
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CORE_RADIOLOGY_WORKFLOW.md
 C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\BOARDVITALS_WORKFLOW.md
+C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\VISUAL_STUDY_AND_ANKI_SPEC.md
 ```
 
 ## Prior Art
