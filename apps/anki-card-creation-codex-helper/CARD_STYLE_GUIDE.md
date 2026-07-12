@@ -26,6 +26,17 @@ For the Radiology Study OS visual feed, textbook figure extraction, reviewer ima
 - Split overloaded comparisons into separate cards unless the comparison itself is the tested concept.
 - Do not create cards just because text exists. Skip low-yield filler.
 
+## Saved Items and User-Selected Key Points
+
+Treat a save or highlight as an explicit signal of what the user wants to retrieve later, not merely as background context.
+
+- Every active highlighted key point must produce a distinct candidate that directly tests the highlighted target. A broader card about the same question does not satisfy this requirement.
+- If the selected text is `MRI` in an explanation of a Segond fracture, create a card that tests that a Segond fracture prompts MRI evaluation; do not substitute a general ACL-association card.
+- A saved item may yield an additional general high-yield card when useful, but the targeted highlight card must remain separate.
+- For a saved question without a highlight, identify and test the shortest source-grounded discriminator needed to answer it correctly.
+- Preserve stable source-event and candidate IDs so reruns do not generate duplicates. Do not mark an event processed until its candidate—and any required image media—has been stored and verified.
+- Continue to apply every other rule in this guide: default to clean sentence clozes, keep `Extra` concise and contextual, and avoid generic question-answer wrappers.
+
 ## Text-First Cloze Cards
 
 Use text-first cards for conceptual facts, mechanisms, criteria, associations, thresholds, and management pearls.
