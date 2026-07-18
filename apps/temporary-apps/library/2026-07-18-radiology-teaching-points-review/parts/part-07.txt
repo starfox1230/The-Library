@@ -1,0 +1,187 @@
+replace(/`(.*?)`/g, "$1")
+        .trim();
+    }
+
+    function inlineMarkdown(text) {
+      return escapeHtml(text).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+    }
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      })[ch]);
+    }
+
+    function makeId(section, subsection, text, index) {
+      const raw = `${section}|${subsection}|${text}|${index}`;
+      let hash = 2166136261;
+      for (let i = 0; i < raw.length; i++) {
+        hash ^= raw.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return "p-" + (hash >>> 0).toString(36);
+    }
+
+    function parseOutline(source) {
+      const lines = source.split(/\r?\n/);
+      const sections = [];
+      let section = null;
+      let subsection = null;
+      let itemIndex = 0;
+
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        if (!line.trim()) continue;
+        if (line.startsWith("# ")) continue;
+
+        if (line.startsWith("## ")) {
+          section = { title: stripMarkdown(line.slice(3)), subsections: [] };
+          sections.push(section);
+          subsection = null;
+          continue;
+        }
+
+        if (line.startsWith("### ")) {
+          if (!section) continue;
+          subsection = { title: stripMarkdown(line.slice(4)), items: [] };
+          section.subsections.push(subsection);
+          continue;
+        }
+
+        const numbered = line.match(/^\s*(\d+)\.\s+(.*)$/);
+        const bullet = line.match(/^\s*-\s+(.*)$/);
+        if (!numbered && !bullet) continue;
+        if (!section) continue;
+
+        if (!subsection) {
+          subsection = { title: "", items: [] };
+          section.subsections.push(subsection);
+        }
+
+        const leadingSpaces = rawLine.match(/^\s*/)[0].length;
+        const depth = bullet ? Math.min(3, Math.max(1, Math.round(leadingSpaces / 3))) : 0;
+        const text = numbered ? numbered[2] : bullet[1];
+        const cleanText = stripMarkdown(text);
+        const id = makeId(section.title, subsection.title, cleanText, itemIndex++);
+        subsection.items.push({
+          id,
+          html: inlineMarkdown(text),
+          text: cleanText,
+          section: section.title,
+          subsection: subsection.title,
+          depth
+        });
+      }
+      return sections;
+    }
+
+    const sections = parseOutline(OUTLINE);
+    const allItems = sections.flatMap(section =>
+      section.subsections.flatMap(subsection => subsection.items)
+    );
+
+    function saveFavorites() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...state.favorites]));
+    }
+
+    function highlight(html, query) {
+      if (!query) return html;
+      const plain = stripMarkdown(query).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!plain) return html;
+      return html.replace(new RegExp(`(${plain})`, "ig"), "<mark>$1</mark>");
+    }
+
+    function itemVisible(item) {
+      const matchesFilter = state.filter === "all" || state.favorites.has(item.id);
+      if (!matchesFilter) return false;
+      if (!state.query) return true;
+      const haystack = `${item.section} ${item.subsection} ${item.text}`.toLowerCase();
+      return haystack.includes(state.query.toLowerCase());
+    }
+
+    function render() {
+      contentEl.innerHTML = "";
+      let visibleCount = 0;
+
+      for (const section of sections) {
+        const sectionEl = document.createElement("section");
+        sectionEl.className = "section";
+
+        const sectionTitle = document.createElement("h2");
+        sectionTitle.className = "section-title";
+        sectionTitle.textContent = section.title;
+        sectionEl.appendChild(sectionTitle);
+
+        let sectionHasItems = false;
+
+        for (const subsection of section.subsections) {
+          const visibleItems = subsection.items.filter(itemVisible);
+          if (!visibleItems.length) continue;
+
+          sectionHasItems = true;
+          visibleCount += visibleItems.length;
+
+          if (subsection.title) {
+            const subTitle = document.createElement("h3");
+            subTitle.className = "subsection-title";
+            subTitle.textContent = subsection.title;
+            sectionEl.appendChild(subTitle);
+          }
+
+          const itemsEl = document.createElement("div");
+          itemsEl.className = "items";
+
+          for (const item of visibleItems) {
+            const button = document.createElement("button");
+            const isFavorite = state.favorites.has(item.id);
+            button.type = "button";
+            button.className = `item depth-${item.depth}${isFavorite ? " favorite" : ""}`;
+            button.setAttribute("aria-pressed", String(isFavorite));
+            button.setAttribute("aria-label", `${isFavorite ? "Remove from" : "Add to"} favorites: ${item.text}`);
+            button.innerHTML = `
+              <span class="star" aria-hidden="true">${isFavorite ? "★" : "☆"}</span>
+              <span class="item-copy">${highlight(item.html, state.query)}</span>
+            `;
+            button.addEventListener("click", () => toggleFavorite(item));
+            itemsEl.appendChild(button);
+          }
+
+          sectionEl.appendChild(itemsEl);
+        }
+
+        if (sectionHasItems) contentEl.appendChild(sectionEl);
+      }
+
+      emptyEl.style.display = visibleCount ? "none" : "block";
+      const favoriteCount = state.favorites.size;
+      statusEl.textContent = `${visibleCount} shown · ${favoriteCount} favorite${favoriteCount === 1 ? "" : "s"} · ${allItems.length} total`;
+      allBtn.classList.toggle("active", state.filter === "all");
+      favoritesBtn.classList.toggle("active", state.filter === "favorites");
+    }
+
+    function toggleFavorite(item) {
+      if (state.favorites.has(item.id)) {
+        state.favorites.delete(item.id);
+      } else {
+        state.favorites.add(item.id);
+      }
+      saveFavorites();
+      render();
+    }
+
+    function favoriteText() {
+      const favorites = allItems.filter(item => state.favorites.has(item.id));
+      if (!favorites.length) return "";
+
+      const grouped = new Map();
+      for (const item of favorites) {
+        const key = `${item.section}|||${item.subsection}`;
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(item);
+      }
+
+      const lines = [];
+      let currentSection = "";
+      for (const [key, items] of grouped) {
+        const [section, subsection] = key.split("|||");
+        if (section !== cu
