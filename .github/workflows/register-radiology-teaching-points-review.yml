@@ -1,17 +1,16 @@
 name: Register Radiology Teaching Points Review
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/register-radiology-teaching-points-review.yml
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   register-app:
+    if: github.event.issue.title == 'Register Radiology Teaching Points Review App'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -48,6 +47,9 @@ jobs:
 
       - name: Commit registry update and remove one-time workflow
         shell: bash
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -55,3 +57,4 @@ jobs:
           git rm .github/workflows/register-radiology-teaching-points-review.yml
           git commit -m "Register radiology teaching points review app"
           git push
+          gh issue close "$ISSUE_NUMBER" --comment "Registered the app in the Temporary Apps Library and verified the index."
