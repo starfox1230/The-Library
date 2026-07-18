@@ -1,0 +1,63 @@
+rrentSection) {
+          if (lines.length) lines.push("");
+          lines.push(section);
+          currentSection = section;
+        }
+        if (subsection) lines.push(subsection);
+        for (const item of items) lines.push(`- ${item.text}`);
+      }
+      return lines.join("\n");
+    }
+
+    async function copyFavorites() {
+      const text = favoriteText();
+      if (!text) {
+        showToast("No favorites selected.");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(`Copied ${state.favorites.size} favorite${state.favorites.size === 1 ? "" : "s"}.`);
+      } catch {
+        const area = document.createElement("textarea");
+        area.value = text;
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+        showToast(`Copied ${state.favorites.size} favorite${state.favorites.size === 1 ? "" : "s"}.`);
+      }
+    }
+
+    let toastTimer;
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1800);
+    }
+
+    searchEl.addEventListener("input", event => {
+      state.query = event.target.value.trim();
+      render();
+    });
+
+    allBtn.addEventListener("click", () => {
+      state.filter = "all";
+      render();
+    });
+
+    favoritesBtn.addEventListener("click", () => {
+      state.filter = "favorites";
+      render();
+    });
+
+    copyBtn.addEventListener("click", copyFavorites);
+
+    render();
+  </script>
+</body>
+</html>
