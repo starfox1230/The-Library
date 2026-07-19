@@ -157,6 +157,7 @@
   function updateSearchFromNumberPad(key) {
     const start = elements.search.selectionStart ?? elements.search.value.length;
     const end = elements.search.selectionEnd ?? start;
+    elements.search.blur();
 
     if (key === "clear") {
       elements.search.value = "";
@@ -171,7 +172,6 @@
     }
 
     renderResults(elements.search.value);
-    elements.search.focus({ preventScroll: true });
   }
 
   function createResultCard(hymn, query, numeric) {
@@ -422,7 +422,14 @@
   }
 
   function bindEvents() {
-    elements.search.addEventListener("input", event => renderResults(event.target.value));
+    elements.search.addEventListener("input", event => {
+      if (event.target.value) {
+        hideNumberPad();
+      } else {
+        showNumberPad();
+      }
+      renderResults(event.target.value);
+    });
     elements.search.addEventListener("focus", showNumberPad);
     elements.search.addEventListener("click", showNumberPad);
     elements.search.addEventListener("keydown", event => {
