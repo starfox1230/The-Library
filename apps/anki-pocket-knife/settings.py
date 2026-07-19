@@ -51,6 +51,8 @@ DEFAULT_SETTINGS = {
     "king_answer_button_height": 47,
     "king_answer_feedback_defaults_v2": False,
     "due_today_source_deck_ids": [],
+    "due_day_include_added_cards": True,
+    "due_day_date_preset": "today",
     "due_day_audio_deck_id": 0,
     "due_day_visual_deck_id": 0,
     "due_day_combined_deck_id": 0,

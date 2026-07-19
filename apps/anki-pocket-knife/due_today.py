@@ -8,6 +8,7 @@ from typing import Any
 from aqt import gui_hooks, mw
 from aqt.qt import (
     QAbstractItemView,
+    QCheckBox,
     QDialog,
     QDate,
     QDateEdit,
@@ -31,6 +32,7 @@ from .common import (
     inject_shared_deck_action_html,
 )
 from .due_today_core import (
+    added_card_id_bounds,
     days_ago_for_date,
     deck_date_range_label,
     expand_deck_selection,
@@ -49,6 +51,8 @@ VISUAL_DECK_NAME = "..Due Today Visual"
 COMBINED_DECK_NAME = "..Due Today Combined"
 OPEN_MESSAGE = "anki_pocket_knife_open_due_today"
 SOURCE_DECKS_SETTING = "due_today_source_deck_ids"
+INCLUDE_ADDED_CARDS_SETTING = "due_day_include_added_cards"
+DATE_PRESET_SETTING = "due_day_date_preset"
 AUDIO_DECK_ID_SETTING = "due_day_audio_deck_id"
 VISUAL_DECK_ID_SETTING = "due_day_visual_deck_id"
 COMBINED_DECK_ID_SETTING = "due_day_combined_deck_id"
@@ -146,6 +150,10 @@ def _stored_target_deck_id(kind: str) -> int | None:
 
 def _target_names_for_range(start_date: date, end_date: date) -> dict[str, str]:
     return target_deck_names_for_range(start_date, end_date, _today_calendar_date())
+
+
+def _include_added_cards_enabled() -> bool:
+    return bool(get_setting(INCLUDE_ADDED_CARDS_SETTING))
 
 
 def _rename_target_deck(kind: str, deck_id: int, name: str) -> None:
@@ -293,16 +301,34 @@ def _day_cutoff() -> int:
     return int(cutoff)
 
 
-def qualifying_card_ids(source_deck_ids: list[int], days_ago: int = 0) -> list[int]:
+def qualifying_card_ids(
+    source_deck_ids: list[int],
+    days_ago: int = 0,
+    *,
+    include_added_cards: bool | None = None,
+) -> list[int]:
     selected_date = _today_calendar_date() - timedelta(days=max(0, int(days_ago)))
-    return qualifying_card_ids_for_range(source_deck_ids, selected_date, selected_date)
+    return qualifying_card_ids_for_range(
+        source_deck_ids,
+        selected_date,
+        selected_date,
+        include_added_cards=include_added_cards,
+    )
 
 
-def qualifying_card_ids_for_range(source_deck_ids: list[int], start_date: date, end_date: date) -> list[int]:
+def qualifying_card_ids_for_range(
+    source_deck_ids: list[int],
+    start_date: date,
+    end_date: date,
+    *,
+    include_added_cards: bool | None = None,
+) -> list[int]:
     if not source_deck_ids:
         return []
     if start_date > end_date:
         start_date, end_date = end_date, start_date
+    if include_added_cards is None:
+        include_added_cards = _include_added_cards_enabled()
     placeholders = ", ".join("?" for _ in source_deck_ids)
     today = _scheduler_today()
     today_date = _today_calendar_date()
@@ -317,6 +343,7 @@ def qualifying_card_ids_for_range(source_deck_ids: list[int], start_date: date, 
     _, timestamp_end = rollover_boundaries(cutoff, end_days_ago)
     if end_days_ago == 0:
         timestamp_end = min(int(time.time()) + 1, timestamp_end)
+    added_start, added_end = added_card_id_bounds(timestamp_start, timestamp_end)
     rows = mw.col.db.all(
         f"""
         SELECT c.id
@@ -331,6 +358,8 @@ def qualifying_card_ids_for_range(source_deck_ids: list[int], start_date: date, 
             OR
             (c.queue = 3 AND COALESCE(NULLIF(c.odue, 0), c.due) >= ?
              AND COALESCE(NULLIF(c.odue, 0), c.due) <= ?)
+            OR
+            (? AND c.type = 0 AND c.queue = 0 AND c.id >= ? AND c.id < ?)
           )
         ORDER BY c.due, c.id
         """,
@@ -341,6 +370,9 @@ def qualifying_card_ids_for_range(source_deck_ids: list[int], start_date: date, 
         timestamp_end - 1,
         start_day,
         end_day,
+        1 if include_added_cards else 0,
+        added_start,
+        added_end,
     )
     return [int(row[0]) for row in rows]
 
@@ -421,16 +453,30 @@ def build_due_day(kind: str, source_ids: list[int], selected_date: date) -> DueT
     return build_due_day_range(kind, source_ids, selected_date, selected_date)
 
 
-def build_due_day_range(kind: str, source_ids: list[int], start_date: date, end_date: date) -> DueTodayResult:
+def build_due_day_range(
+    kind: str,
+    source_ids: list[int],
+    start_date: date,
+    end_date: date,
+    *,
+    include_added_cards: bool | None = None,
+) -> DueTodayResult:
     if start_date > end_date:
         start_date, end_date = end_date, start_date
+    if include_added_cards is None:
+        include_added_cards = _include_added_cards_enabled()
     deck_names = _normal_decks()
     names = _target_names_for_range(start_date, end_date)
     normalized = normalize_deck_selection(source_ids, deck_names)
     set_setting(SOURCE_DECKS_SETTING, normalized)
     expanded = expand_deck_selection(normalized, deck_names)
     prior_assignments = _empty_target_decks(kind)
-    card_ids = qualifying_card_ids_for_range(expanded, start_date, end_date)
+    card_ids = qualifying_card_ids_for_range(
+        expanded,
+        start_date,
+        end_date,
+        include_added_cards=include_added_cards,
+    )
     audio_ids, visual_ids = _classify(card_ids)
     selected_ids = (
         audio_ids
@@ -505,24 +551,26 @@ class DueTodayDialog(QDialog):
         layout = QVBoxLayout(self)
         intro = QLabel(
             "Choose scheduling dates and source decks. Cards are included only in their exact stored due-day "
-            "bucket; new, suspended, and buried cards are excluded. Parent decks include their subdecks."
+            "bucket, with still-new added cards optionally included by creation date. Suspended, buried, "
+            "and already-reviewed added cards are excluded. Parent decks include their subdecks."
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
         date_row = QHBoxLayout()
-        for label, days, end_days_ago in (
-            ("Today", 1, 0),
-            ("Yesterday", 1, 1),
-            ("Last 3 Days", 3, 0),
-            ("Last 7 Days", 7, 0),
+        self.date_preset_buttons: dict[str, QPushButton] = {}
+        for preset, label, days, end_days_ago in (
+            ("today", "Today", 1, 0),
+            ("yesterday", "Yesterday", 1, 1),
+            ("last_3_days", "Last 3 Days", 3, 0),
+            ("last_7_days", "Last 7 Days", 7, 0),
         ):
             button = QPushButton(label)
+            button.setCheckable(True)
             button.clicked.connect(
-                lambda _checked=False, day_count=days, end_offset=end_days_ago: self._set_recent_range(
-                    day_count,
-                    end_offset,
-                )
+                lambda _checked=False, preset=preset, day_count=days, end_offset=end_days_ago:
+                self._select_preset(preset, day_count, end_offset)
             )
+            self.date_preset_buttons[preset] = button
             date_row.addWidget(button)
         today_qdate = QDate(self.today_date.year, self.today_date.month, self.today_date.day)
         date_row.addWidget(QLabel("From"))
@@ -537,9 +585,21 @@ class DueTodayDialog(QDialog):
         self.end_picker.setMaximumDate(today_qdate)
         self.end_picker.setDate(today_qdate)
         date_row.addWidget(self.end_picker)
+        saved_preset = str(get_setting(DATE_PRESET_SETTING) or "today")
+        if saved_preset not in self.date_preset_buttons:
+            saved_preset = "today"
+        self._select_preset(saved_preset, *(dict(
+            today=(1, 0), yesterday=(1, 1), last_3_days=(3, 0), last_7_days=(7, 0)
+        )[saved_preset]))
         layout.addLayout(date_row)
         self.summary = QLabel()
         layout.addWidget(self.summary)
+        self.include_added_checkbox = QCheckBox("Include added cards")
+        self.include_added_checkbox.setToolTip(
+            "Include only still-new cards created during the selected date range, even if they are not due yet."
+        )
+        self.include_added_checkbox.setChecked(_include_added_cards_enabled())
+        layout.addWidget(self.include_added_checkbox)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Search decks...")
         layout.addWidget(self.search)
@@ -569,6 +629,9 @@ class DueTodayDialog(QDialog):
         self.search.textChanged.connect(self._filter)
         self.start_picker.dateChanged.connect(self._refresh_summary)
         self.end_picker.dateChanged.connect(self._refresh_summary)
+        self.start_picker.dateChanged.connect(lambda *_args: self._clear_preset())
+        self.end_picker.dateChanged.connect(lambda *_args: self._clear_preset())
+        self.include_added_checkbox.stateChanged.connect(self._include_added_cards_changed)
         self.deck_list.itemSelectionChanged.connect(self._refresh_summary)
         self.audio_button.clicked.connect(lambda: self._build("audio"))
         self.visual_button.clicked.connect(lambda: self._build("visual"))
@@ -577,6 +640,7 @@ class DueTodayDialog(QDialog):
         self.previous_button.clicked.connect(self._previous_day)
         close_button.clicked.connect(self.close)
         self._refresh_summary()
+        self._focus_selected_preset()
 
     def _selected_ids(self) -> list[int]:
         return [int(item.data(Qt.ItemDataRole.UserRole)) for item in self.deck_list.selectedItems()]
@@ -609,6 +673,31 @@ class DueTodayDialog(QDialog):
         self.start_picker.setDate(QDate(start_date.year, start_date.month, start_date.day))
         self.end_picker.setDate(QDate(end_date.year, end_date.month, end_date.day))
 
+    def _clear_preset(self) -> None:
+        if getattr(self, "_applying_preset", False) or not hasattr(self, "date_preset_buttons"):
+            return
+        if any(button.isChecked() for button in self.date_preset_buttons.values()):
+            for button in self.date_preset_buttons.values():
+                button.setChecked(False)
+            set_setting(DATE_PRESET_SETTING, "today")
+
+    def _select_preset(self, preset: str, days: int, end_days_ago: int = 0) -> None:
+        self._applying_preset = True
+        try:
+            for name, button in self.date_preset_buttons.items():
+                button.setChecked(name == preset)
+            set_setting(DATE_PRESET_SETTING, preset)
+            self._set_recent_range(days, end_days_ago)
+        finally:
+            self._applying_preset = False
+        self._focus_selected_preset()
+
+    def _focus_selected_preset(self) -> None:
+        for button in self.date_preset_buttons.values():
+            if button.isChecked():
+                button.setFocus()
+                return
+
     def _previous_day(self) -> None:
         start_date, end_date = self._selected_range()
         start_date -= timedelta(days=1)
@@ -622,6 +711,10 @@ class DueTodayDialog(QDialog):
             item = self.deck_list.item(row)
             item.setHidden(not all(term in item.text().casefold() for term in terms))
 
+    def _include_added_cards_changed(self, *_args: Any) -> None:
+        set_setting(INCLUDE_ADDED_CARDS_SETTING, self.include_added_checkbox.isChecked())
+        self._refresh_summary()
+
     def _refresh_summary(self) -> None:
         normalized = normalize_deck_selection(self._selected_ids(), self.deck_names)
         expanded = expand_deck_selection(normalized, self.deck_names)
@@ -629,7 +722,12 @@ class DueTodayDialog(QDialog):
         start_days_ago = days_ago_for_date(start_date, self.today_date)
         end_days_ago = days_ago_for_date(end_date, self.today_date)
         try:
-            card_ids = qualifying_card_ids_for_range(expanded, start_date, end_date)
+            card_ids = qualifying_card_ids_for_range(
+                expanded,
+                start_date,
+                end_date,
+                include_added_cards=self.include_added_checkbox.isChecked(),
+            )
             audio_ids, visual_ids = _classify(card_ids)
             label = deck_date_range_label(start_date, end_date, self.today_date)
             if start_date == end_date:
@@ -639,7 +737,8 @@ class DueTodayDialog(QDialog):
             self.summary.setText(
                 f"{label} ({age_label}): "
                 f"{len(audio_ids)} audio, {len(visual_ids)} visual; "
-                f"{len(normalized)} source selection(s)."
+                f"{len(normalized)} source selection(s); "
+                f"added cards {'included' if self.include_added_checkbox.isChecked() else 'excluded'}."
             )
         except Exception:
             self.summary.setText(f"{len(normalized)} source selection(s).")
@@ -649,8 +748,16 @@ class DueTodayDialog(QDialog):
 
     def _build(self, kind: str) -> None:
         start_date, end_date = self._selected_range()
+        include_added = self.include_added_checkbox.isChecked()
+        set_setting(INCLUDE_ADDED_CARDS_SETTING, include_added)
         try:
-            result = build_due_day_range(kind, self._selected_ids(), start_date, end_date)
+            result = build_due_day_range(
+                kind,
+                self._selected_ids(),
+                start_date,
+                end_date,
+                include_added_cards=include_added,
+            )
         except Exception as exc:
             showWarning(f"Could not build Due Today decks.\n\n{exc}")
             return

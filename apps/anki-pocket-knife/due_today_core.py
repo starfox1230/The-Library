@@ -82,6 +82,10 @@ def rollover_boundaries(day_cutoff: int, days_ago: int) -> tuple[int, int]:
     return local_timestamp(start_date), local_timestamp(end_date)
 
 
+def added_card_id_bounds(timestamp_start: int, timestamp_end: int) -> tuple[int, int]:
+    return int(timestamp_start) * 1000, int(timestamp_end) * 1000
+
+
 def deck_date_label(days_ago: int, selected_date: date) -> str:
     offset = max(0, int(days_ago))
     if offset == 0:

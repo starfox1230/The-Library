@@ -10,6 +10,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULE_PATH = ROOT / "apps" / "anki-pocket-knife" / "due_today_core.py"
+DUE_TODAY_PATH = ROOT / "apps" / "anki-pocket-knife" / "due_today.py"
 
 
 def _load_module():
@@ -84,3 +85,14 @@ def test_rollover_boundaries_preserve_dst_day_length():
         else:
             os.environ["TZ"] = previous_tz
         time.tzset()
+
+
+def test_added_card_id_bounds_use_anki_card_millisecond_ids():
+    module = _load_module()
+    assert module.added_card_id_bounds(100, 105) == (100000, 105000)
+
+
+def test_due_day_added_card_sql_requires_still_new_cards():
+    source = DUE_TODAY_PATH.read_text(encoding="utf-8")
+    assert "? AND c.type = 0 AND c.queue = 0 AND c.id >= ? AND c.id < ?" in source
+    assert "? AND c.queue >= 0 AND c.id >= ? AND c.id < ?" not in source

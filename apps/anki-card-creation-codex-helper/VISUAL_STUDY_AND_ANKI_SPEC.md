@@ -51,13 +51,17 @@ External image search is a later phase. Do not silently substitute online images
 
 ## PDF Figure and Panel Handling
 
-- Preserve the complete figure or composite first.
-- When a figure contains multiple educational panels, the feed may then present the panels in source order with panel-specific explanations.
+- Treat a textbook figure and its individual image panels as different things. The daily feed must present each diagnostic radiograph, CT image, MR image, ultrasound image, photograph, or independently interpretable schematic panel as its own tightly cropped feed item in stable caption order. A shared figure number or caption is not permission to combine panels.
+- Do not add a redundant complete composite to the feed when its component diagnostic panels have been extracted. Preserve the complete source figure privately for provenance and source-page reconstruction.
+- A combined feed item is permitted only when the source is genuinely one coherent visual whose meaning depends on the side-by-side relationship, such as a single comparative schematic with shared labels. Record that exception explicitly as `kind: comparison diagram`; do not use the exception for multi-view diagnostic imaging.
 - Keep panels together on one Anki card only when the complete set is needed to answer the prompt, such as paired modalities, pre/post comparison, or a multi-view diagnosis.
-- Otherwise, separate panels may become separate feed items or card candidates when each independently tests a useful visual concept.
+- Panel grouping on a later Anki card never changes the feed rule: the source panels remain separate feed items and may be assembled into one card only downstream.
 - Never crop away anatomy, distribution, multiplicity, comparison information, or another panel required for diagnosis.
-- Never include caption text in a front-side diagnostic image.
+- Crop to the visual boundary. Never include page headings, body prose, bullets, captions, page numbers, neighboring images, or decorative page whitespace in a diagnostic image. Text that explains the image belongs in the item's `Caption`, `What to notice`, or provenance metadata—not in the crop.
+- Embedded labels or annotations that are part of a diagram or image are allowed only when they are integral to that source panel. This exception must be declared; it never permits surrounding textbook prose.
 - Annotated or answer-revealing versions belong in `Extra` unless the prompt explicitly asks about the indicated structure or finding.
+
+Every extraction manifest must identify `sourceFigureId`, `sourcePanelIndex`, and `sourcePanelCount` for every item and must attest `qa.singleSourcePanel: true` and `qa.noSurroundingPageText: true`. For a figure with N diagnostic panels, the manifest must contain N corresponding feed items. Missing or duplicate panel indices are a failed extraction, not an acceptable partial feed.
 
 The Study OS reviewer does not need a panel-segmentation, zoom, or crop editor. Panel extraction and initial grouping occur upstream. If advanced editing is needed, the user may do it outside Study OS and paste or upload the finished image.
 
@@ -69,12 +73,7 @@ The feed should be mobile-first, dark, vertically scrollable, and image dominant
 
 ### Figure story format
 
-A multi-panel figure may appear as a short sequence:
-
-1. Complete figure or composite.
-2. First useful panel and what to notice.
-3. Subsequent panels in source order.
-4. A concise synthesis or comparison when valuable.
+A multi-panel figure appears as a short sequence of individually cropped panels in source order. The feed can repeat shared figure context in each item's metadata or add a concise text-only synthesis, but it must not use a combined page crop as a shortcut.
 
 ### Feed item content
 
@@ -84,6 +83,7 @@ Each item should support:
 - Pinch-to-zoom or full-screen viewing in the feed itself.
 - Modality and anatomy.
 - A short `What to notice` explanation.
+- The exact source-figure caption, stored for every feed item and exposed behind a collapsed `Caption` disclosure so it remains available without cluttering the default feed. Preserve arrow colors, singular/plural wording, panel references, sequence names, and all finding-to-arrow mappings exactly. If the source has no separate prose caption, record that explicitly rather than inventing one.
 - Optional tap-to-reveal diagnosis or finding.
 - Figure number, PDF page, and section.
 - Full-figure or panel position when applicable.
@@ -108,7 +108,7 @@ Saved state, notes, reveal state, and Anki-source links must synchronize across 
 
 Use actual imaging on the front with a direct prompt such as:
 
-- `Most likely diagnosis?`
+- `What is the most likely diagnosis?`
 - `What named fracture is shown?`
 - `What imaging finding is shown?`
 - `What device is shown?`
@@ -117,11 +117,20 @@ Use actual imaging on the front with a direct prompt such as:
 
 Use the minimum clinical, anatomic, tracer, or modality context needed to make the answer unambiguous. Use one answer cloze. Follow all image-front rules in `CARD_STYLE_GUIDE.md`.
 
+For pathology imaging, default to one of the user's two established card forms:
+
+1. A diagnosis card using `What is the most likely diagnosis?`, optionally preceded by one brief locking-context sentence.
+2. An arrow card using `What is indicated by the [color] arrow(s)?`, with the complete arrow phrase colored to visually match the arrow in the image.
+
+Both forms use prompt, two HTML line breaks, one answer cloze, two HTML line breaks, and then the image area.
+
 ### Required multi-image case
 
 - Put all required images on the front in a stable order.
 - Put `1/N` immediately above the first image when more than one image is present.
-- Use this only when the images jointly provide the diagnostic task.
+- Put each image on its own following line after the fraction.
+- For the same patient shown with complementary views, modalities, sequences, or panels, normally include the full set required to understand the pathology.
+- Use this only when the images jointly provide the diagnostic task. Arrow cards normally use one image unless the indicated finding truly requires more than one.
 
 ### Separate representative-image cards
 
@@ -133,7 +142,13 @@ The user's legacy Image Multitude card can cycle among interchangeable examples,
 
 ### Arrow or label card
 
-Create only when the user explicitly requests it, marks an image for it, or the learning task is genuinely structure/marker identification. Use a concrete prompt naming the marker and modality. Do not generate arbitrary caption-trivia cards.
+Arrow-indicated pathology cards are a default supported type, not an exceptional type. Use the exact stem `What is indicated by the [color] arrow(s)?` when an arrow identifies a useful finding, structure, or manifestation. Color the complete arrow phrase with inline HTML to visually match the arrow. Do not generate arbitrary caption-trivia cards.
+
+The original source caption is authoritative for what each arrow indicates. Whenever a saved pathology image supports a diagnosis and also contains at least one meaningful arrow whose target can be established from the caption or source context, candidate generation is mandatory and exhaustive: create one separate diagnosis candidate and one separate focused arrow candidate for every separately identifiable arrow target. Do this regardless of apparent redundancy, predicted card quality, or whether the generator believes the user will keep every candidate; the user decides which candidates to save or discard in the reviewer. Never substitute a single combined card for this required set. Multiple arrowheads that clearly function together as one plural annotation of the same target count as one arrow target and use `arrow(s)` appropriately; arrows that identify different targets, even on the same image or in the same color, require separate candidates. Do not create an arrow card only when the source does not establish what the arrow indicates or the mark is not a meaningful annotation.
+
+### PDF source-page context in Extra
+
+For every card derived from a textbook or article PDF, include the correct full screenshot of the source PDF page in `Extra`, after a concise explanation and source citation. This also applies to text-first and auto-generated-quiz cards, not only visual-feed cards. Preserve exact source-page mapping upstream; if multiple pages are genuinely required, include them in source order. If a page cannot be identified, captured, or stored, record the exception instead of guessing or silently omitting it.
 
 ### Supporting-image text card
 
@@ -190,6 +205,11 @@ The exporter must:
 ## Interaction-to-Anki Rules
 
 - A saved/loved image is a strong signal, not an automatic command to create a card.
+- When only one image from a complementary same-patient set is saved and that image independently supports a fair card, respect the saved subset and make the single-image candidate; do not automatically add every neighboring panel.
+- When the saved image would be ambiguous or diagnostically incomplete alone, add only the necessary unsaved companion image(s) from the same verified source set, or report why no fair candidate could be made.
+- When all complementary images in a same-patient set are saved, normally create one deduplicated multi-image diagnosis candidate using the canonical `1/N` format rather than redundant diagnosis cards.
+- When multiple saved images independently test distinct appearances or indicated findings, create separate focused candidates. Saving multiple near-duplicates must not produce redundant cards.
+- Apply the mandatory caption-driven arrow-card rule independently of diagnosis grouping: if an image supports a diagnosis and contains established arrow targets, create one diagnosis candidate plus one focused candidate for every separately identifiable arrow target. These candidates must coexist even when they appear redundant; the user, not the generator, decides which to keep.
 - A user note or `Difficult` mark increases priority and should guide the tested point.
 - If the user explicitly selects `Use for Anki`, generate at least one candidate unless the image is unusable or ambiguous; report the reason when skipped.
 - Deduplicate against existing candidates and previously exported source links.
@@ -222,9 +242,11 @@ For each tomorrow visual packet:
 5. Analyze actual image content and panel relationships.
 6. Generate concise, source-grounded feed explanations.
 7. Hash and deduplicate assets.
-8. Upload private media and upsert the date's feed.
-9. GET-verify the feed, item count, image count, and failure manifest.
-10. Preserve the prior valid feed if regeneration fails.
+8. Render a contact sheet and visually inspect every crop at useful size. Confirm one source panel per item, complete anatomy, correct panel order, and zero surrounding page text. This is a required 100% review, not a spot check.
+9. Run automated crop validation. Non-diagram crops must have zero intersecting extractable PDF text; integral diagram labels require an explicit `allowEmbeddedText` exception. Any uncertain crop fails closed and is not uploaded.
+10. Upload private media and upsert the date's feed only after both reviews pass.
+11. GET-verify the exact feed id, expected count, complete panel-id set, and successful nonzero-byte retrieval of every image.
+12. Preserve the prior valid feed if regeneration fails.
 
 ### Early completion and rerun policy
 
@@ -233,6 +255,7 @@ For each tomorrow visual packet:
 - If the matching feed is incomplete, repair only the missing or invalid work and verify it again.
 - If the active assignment or source range changed, create the newly identified feed while preserving the prior feed in history.
 - Rebuild an otherwise complete matching feed only when the user explicitly requests regeneration or a correction requires `--force`.
+- When correcting a live feed and the storage API cannot prune obsolete panels, publish a new revision feed id, verify that it is the active newest feed for the date, and leave the prior feed only as inactive history. Never reuse an id if that would leave stale panels mixed into the corrected feed.
 - Never replace a verified feed with a failed or partial rerun.
 
 For each Anki batch:
@@ -252,6 +275,8 @@ For each Anki batch:
 - Never expose copyrighted textbook images through a public unauthenticated repository or URL.
 - Never silently replace a failed textbook extraction with a generic online image.
 - Keep corrections durable so regeneration does not undo the user's decisions.
+- The builder must reject missing/duplicate ids, absent source-panel metadata, false QA attestations, and disallowed PDF-text intersections. The uploader must reject count or panel-id mismatch, failed QA, duplicate ids, and any media retrieval failure.
+- A successful upload response is insufficient. Completion requires authenticated readback of the exact revision and every expected image.
 - Every visual card must still pass the Smart Student Test and all canonical card-style validation.
 
 ## Initial Implementation Order

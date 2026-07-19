@@ -3,6 +3,7 @@ from .ai_tools import install as install_ai_tools
 from .card_safety import install as install_card_safety
 from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
+from .coaching_export import install as install_coaching_export
 from .ctrl_click_links import install as install_ctrl_click_links
 from .draw_on_image import install as install_draw_on_image
 from .due_today import install as install_due_today
@@ -31,6 +32,7 @@ install_ai_tools()
 install_card_safety()
 install_card_tracker()
 install_clipboard_json_cards()
+install_coaching_export()
 install_ctrl_click_links()
 install_draw_on_image()
 install_due_today()

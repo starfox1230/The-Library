@@ -33,9 +33,16 @@ Before beginning quiz, audio, or visual generation, process the bedtime-sensitiv
 
 - unprocessed saved questions and key points from any date;
 - unprocessed visual saves from any date;
-- newly eligible Notion Radiology entries whose `Anki Card` property is `Needed`.
+- newly eligible Notion Radiology entries whose `Created time`, interpreted in `America/Chicago`, falls on the current study date or one of the preceding six local calendar dates and whose `Anki Card` property is `Needed`;
+- previously admitted Notion page ids that remain unresolved in the run ledger, even if they have since aged beyond that seven-date window.
 
 Generate candidates under the canonical card instructions, upload required media, GET-verify candidates and media, and publish the usable candidates to the Study OS reviewer as soon as this phase is complete. Mark incorporated study-event ids processed only after verification.
+
+Notion-derived candidates belong in the Cards Reviewer. For each Notion page, update `Anki Card` from `Needed` to `Created` only after all candidates and required media for that page have passed destination readback; then read the Notion page back and verify `Created`. A query count or prose report is not completion. Leave failed pages `Needed` and in the retry ledger. Do not silently expand this nightly scope to the older historical `Needed` backlog.
+
+Use a distinct stable `(sourceType, sourceId)` pair for every generated candidate. For a Notion page that produces multiple cards, use a compound source id containing the page id and candidate ordinal; never reuse the raw page id for every candidate. After upsert, compare the entire expected candidate-id set and expected per-page count with the destination. The API accepting the request is not proof that every row survived uniqueness constraints. Missing candidates block only their source page and must be repaired before that page can become `Created`.
+
+For every saved pathology image, audit the source caption and image annotations before completing its event. If the image supports a diagnosis and contains established arrow targets, Phase 1 is incomplete until the reviewer contains one diagnosis candidate and one separate candidate for every separately identifiable arrow target, with all required Front and Extra media verified. Do not suppress this mandatory set as redundant; the user makes the keep/discard decision.
 
 Resolve textbook pages from the known Core Radiology PDF and the stored assignment/page provenance. Do not describe the PDF or screenshots as unavailable until the canonical `G:` path has been checked directly. A page-resolution or media problem for one event blocks only that event: publish and process every other independently valid candidate, and leave only the unresolved event pending with a specific reason.
 
@@ -52,6 +59,10 @@ This gate controls ordering, not global success. Once the bounded card attempt i
 
 Generate the coaching report from Notion, Speed Streak Review Later, and Pocket Knife Study Repair according to `ANKI_COACHING_WORKFLOW.md`. Publish and read back the report. This phase may reuse the verified Notion candidates from Phase 1 and must not duplicate them.
 
+This phase is complete only when its eligible Review Later and Study Repair items receive actual concept teaching and contextualization. Operational status, source counts, and Phase 1 card summaries may be included as secondary metadata but cannot replace the teaching. If the required local Anki snapshot is missing or stale, record coaching as `partial` or `failed` with the exact reason; never upload a pipeline report under the Anki Coaching title and mark the phase complete.
+
+Filter Review Later by absolute `addedAt` timestamps converted to the report date in `America/Chicago`, then deduplicate overlap with Study Repair for teaching while preserving each cohort's independent source count. Record both the unique-card count and the two source counts. Verify that the published `contentText` contains actual card-specific teaching rather than only a status summary.
+
 ## Phase 3 — Tomorrow's packet
 
 Resolve tomorrow's active assignment, then independently prepare and verify its quiz, audio, and visual feed. Each artifact remains idempotent: reuse a complete matching artifact and repair only missing, incomplete, changed, or explicitly forced work. A failure in one artifact must not prevent attempts on the others.
@@ -61,6 +72,8 @@ Treat the full quiz, quick quiz, audio, and visual feed as four independent subp
 For TTS shell execution, allow at least 10 minutes (`timeout_ms >= 600000`) because multiple API chunks routinely exceed 60 seconds. Reuse already generated valid parts on repair when possible. A one-minute shell timeout is a workflow defect, not an audio-generation failure.
 
 For visual verification, first GET the feed and every media URL with the SIWC bypass header. Panel `imageUrl` values may be relative paths such as `/api/visual-media/<id>`; resolve them against `https://radiology-study-os.glut4.chatgpt.site` before requesting them. An invalid-URI result from treating a relative path as a complete URL is a verifier bug, not missing media. Do not force-reupload a complete matching feed merely because an unauthenticated or malformed media request failed. Reupload only panels that remain missing or corrupt after correctly resolved, authenticated retrieval.
+
+Visual extraction fails closed. Split every diagnostic panel into its own tightly cropped feed item, even when several panels share one figure number or caption. Do not upload combined radiograph/CT/MR/ultrasound panels, captions, headings, page prose, page numbers, neighboring figures, or excess page whitespace. A combined item is allowed only for a genuinely inseparable comparative schematic with shared labels, and it must be declared as `kind: comparison diagram`. Every item requires source figure/panel metadata and affirmative single-panel/no-page-text QA. Before upload, build and inspect a contact sheet containing 100% of the proposed items and run PDF-text-intersection validation; any questionable crop blocks the upload. After upload, verify the exact revision id, the entire expected panel-id set, expected count, and authenticated nonzero-byte retrieval of every image. If the API cannot delete stale panels from an existing feed, use a new revision feed id and verify that it is the active feed for the date rather than mixing corrected and stale panels.
 
 For quiz questions, stems, answer choices, and explanations, present the medical content directly. Do not say `according to the source`, `in the source`, `based on the reading`, `the text states`, or use equivalent source-framing language. It is already understood that the quiz is constrained to the supplied material. This rule does not relax source-only generation: do not add outside knowledge or unsupported claims.
 

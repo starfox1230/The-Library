@@ -20,6 +20,7 @@ For the Radiology Study OS visual feed, textbook figure extraction, reviewer ima
 - Keep the minimum context needed to answer accurately. Preserve key modifiers such as recent chemotherapy, relevant age, symptom, modality, lab, or timing; remove boilerplate such as `a radiologist is reading`, routine source workflow text, and irrelevant demographics.
 - Do not make cards by mechanically truncating a long source stem and adding a question mark. Rewrite the front as a complete, grammatical, short prompt. No generated card front may end mid-sentence.
 - Do not put source labels, app names, article names, quiz names, question numbers, or batch identifiers in the front-side card substance. Card fronts should stand on their own as study facts or image prompts without making the reviewer read provenance text every time.
+- State the medical fact or question directly. Do not write framing such as `according to the source`, `in the source`, `based on the reading`, `the text states`, or equivalent wording on a card front. Source fidelity is already assumed; provenance belongs in `Extra`, not in the retrieval prompt.
 - Do not include answer-choice letters such as `A.`, `B.`, `C.`, `D.`, or `E.` in the card answer. Test the actual diagnosis, structure, device, threshold, management step, or fact.
 - Do not use generic lazy prompts such as `What is the key answer or diagnosis?` when the source gives enough information to write a targeted prompt. Write the shortest prompt that gives enough context to answer accurately.
 - Do not use `Answer:` or `Key answer:` as a fallback card pattern. If a card cannot be written as a real cloze fact or a direct image prompt, skip it or rewrite it after identifying the tested concept.
@@ -64,23 +65,24 @@ Use image-backed cards when the image is diagnostically important.
 Preferred patterns:
 
 ```json
-{"content":"Most likely diagnosis?<br><br>{{c1::Hepatic steatosis}}<br><br><img src=\"image-001.jpg\">","tags":["#AnkiChat::YYYY.MM.DD_Subject"],"id":"note-004"}
-{"content":"Most likely diagnosis in the pancreas?<br><br>{{c1::Mucinous cystic neoplasm}}<br><br><img src=\"image-002.jpg\">","tags":["#AnkiChat::YYYY.MM.DD_Subject"],"id":"note-005"}
+{"content":"What is the most likely diagnosis?<br><br>{{c1::Hepatic steatosis}}<br><br><img src=\"image-001.jpg\">","tags":["#AnkiChat::YYYY.MM.DD_Subject"],"id":"note-004"}
+{"content":"Brief locking context when needed. What is the most likely diagnosis?<br><br>{{c1::Mucinous cystic neoplasm}}<br><br>1/3<br><img src=\"image-002.jpg\"><br><img src=\"image-003.jpg\"><br><img src=\"image-004.jpg\">","tags":["#AnkiChat::YYYY.MM.DD_Subject"],"id":"note-005"}
 ```
 
 Rules:
 
 - Only create image-front cards when the card can reasonably be a diagnosis-style prompt.
-- Use `Most likely diagnosis?` when the image is the main prompt.
+- For pathology diagnosis cards, use the exact default question `What is the most likely diagnosis?`
 - Add anatomical or clinical locking context when needed.
+- When context is necessary because imaging alone would be too ambiguous, put one brief natural sentence before `What is the most likely diagnosis?`; do not overload the stem.
 - Convert long quiz stems into brief test-style prompts. Keep only the minimal age, symptom, modality, lab, or clinical clue needed to make the image answer unambiguous.
-- Match the prompt to the task: `Most likely diagnosis?`, `What structure is indicated?`, `What device is shown?`, `What artifact is shown?`, `What BI-RADS kinetic curve is shown?`, or similarly specific wording.
+- Match the prompt to the task: `What is the most likely diagnosis?`, `What is indicated by the [color] arrow(s)?`, `What device is shown?`, `What artifact is shown?`, `What BI-RADS kinetic curve is shown?`, or similarly specific wording.
 - Image-front cards should almost always test visual diagnosis, device/artifact recognition, or labeled structure identification. Do not use image-front cards for multi-step next-best-management questions. If a quiz asks for management after recognizing an image, make the image card test the diagnosis and make a separate text cloze only if the management rule itself is worth memorizing.
-- `Most likely diagnosis?` is the preferred fallback image prompt. Use a more specific wording only when it is clearly better, such as `What named fracture is shown?`.
+- `What is the most likely diagnosis?` is the preferred pathology-image prompt. Use a more specific wording only when the task is genuinely not diagnosis retrieval, such as a named fracture, device, artifact, or labeled finding.
 - Use one diagnosis cloze.
-- Append the image or images below the prompt and answer.
+- Preserve this exact vertical structure: prompt, `<br><br>`, one answer cloze, `<br><br>`, then either the single image or the `1/N` marker followed by the images.
 - Include the complete diagnostic image or panel set needed to make the diagnosis. Do not crop so tightly that only one small finding remains when the intended diagnosis depends on distribution, multiplicity, anatomy, or comparison.
-- Include multiple panels when they belong to the same figure and are needed for the diagnosis.
+- When the source depicts the same patient's pathology with multiple complementary images, usually include all images needed to provide the full diagnostic picture rather than choosing only one representative image.
 - If an image-front card contains more than one image, place a simple image count marker immediately above the first image in the format `1/N`, where `N` is the total number of images on that card.
 - Never include the figure caption in the front-side image crop.
 - Never include caption text in the `Text` field for an image-front diagnosis card.
@@ -90,21 +92,29 @@ Rules:
 - For quiz-derived cards, start `Extra` with the source question number in the format `Q<number>`. It is acceptable to include whether the user got the question correct/incorrect and the difficulty, but do not include peer-comparison percentages such as `correct answer chosen by X%` or `selected answer chosen by Y%`; those are low-yield review noise.
 - For every quiz-derived card, include at least one concise teaching sentence in `Extra` after the question number/result metadata. This sentence should explain the specific tested point or discriminator in plain language. It should identify the device, structure, diagnosis clue, threshold, mechanism, or management rule being tested when that context is not already obvious from the front. Example: `Q3. Incorrect; difficulty: hard. This is a radiation survey meter; accuracy is tested yearly, while constancy is checked daily and linearity quarterly.`
 - If a quiz question includes a `Vital Concept` or similarly labeled key concept, include that concept word-for-word in `Extra` whenever technically possible. Place it after the question number/result metadata and before any appended images. Do not paraphrase, shorten, or convert it into peer-style metadata; preserve the source wording so the reviewer can see the official tested concept.
-- Include a screenshot of the full source page in `Extra` whenever feasible so the reviewer can see the source context.
-- A `Most likely diagnosis?` card must include an image.
-- Do not create image-front cards for labels, arrows, or caption trivia unless the user explicitly asks for that style.
+- For every card derived from a textbook or other PDF source, include a screenshot of the full source PDF page in `Extra`. This applies to visual cards, text-first cards, saved-fact cards, and cards derived from auto-generated quizzes. Treat the screenshot as required source context, not as an optional visual-card enhancement.
+- Preserve the exact source PDF page mapping while generating quizzes and card candidates so the later Anki pass can attach the correct page screenshot without guessing. If a card genuinely draws from multiple pages, include the necessary page screenshots in source order.
+- Omit a required page screenshot only when the page cannot be identified, captured, or stored. Never substitute a guessed page; record the exception in the build report and candidate metadata.
+- A `What is the most likely diagnosis?` card must include an image.
+- Arrow-indicated pathology cards are a standard visual-card type when the arrow marks a useful finding. Do not create cards from arbitrary labels or caption trivia.
 
-## Image-Label Cards
+## Arrow-Indicated Pathology Cards
 
-This style is not the default. Do not create image-label cards unless the user explicitly asks for them.
+Arrow cards are one of the user's two main pathology-image card types. Use them when the source image contains arrows that identify a specific finding, structure, or manifestation worth retrieving. They usually need only the single image that contains the relevant arrow because the target is narrower than a diagnosis card.
 
-If explicitly requested, use concrete stems for arrows, arrowheads, labels, and marked findings.
+Preferred exact structure:
 
-Preferred stems:
+```html
+What is indicated by the <span style="color: #ff3b30;">red arrows</span>?<br><br>{{c1::The indicated finding}}<br><br><img src="image-005.jpg">
+```
 
-- `What does the arrow indicate on this CT?`
-- `What do the arrowheads indicate on this MRI?`
-- `What finding is shown by the solid arrow on this angiogram?`
+Rules:
+
+- Use `What is indicated by the [color] arrow?` or `What is indicated by the [color] arrows?`, matching singular or plural to the image.
+- Color the complete `[color] arrow` or `[color] arrows` phrase with inline HTML so its displayed text color visually matches the arrow color in the image. Use an appropriate hex color rather than leaving the phrase unstyled.
+- Preserve the same vertical structure as diagnosis cards: prompt, `<br><br>`, cloze answer, `<br><br>`, then the image.
+- Usually use one image. If multiple images are genuinely needed, use the same `1/N` marker and one-image-per-line ordering required for multi-image diagnosis cards.
+- Ask about the specific indicated imaging finding, structure, or manifestation; do not mine incidental caption trivia.
 
 Avoid vague stems:
 
@@ -216,8 +226,9 @@ Final validation checklist:
 - No mid-sentence colon outside cloze syntax.
 - No semicolon gluing unrelated ideas.
 - No generic question stems.
+- No source-framing language such as `according to the source` or `in the source` in the card front.
 - No long raw prose clozes.
 - No duplicate or near-duplicate notes.
 - Image references point to packaged local media filenames, not remote URLs.
 - Image-front diagnosis cards do not include captions in `Text` or in the front-side crop.
-- A full source-page screenshot is present in `Extra` when feasible.
+- Every textbook/PDF-derived card has the correct full source-page screenshot in `Extra`, including cards derived from auto-generated quizzes, or the build report records why it was technically unavailable.

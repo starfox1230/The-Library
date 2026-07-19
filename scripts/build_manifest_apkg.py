@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import html
+import importlib.util
 import json
 import shutil
 import tempfile
@@ -75,23 +76,27 @@ TEXT_MODEL = genanki.Model(
 )
 
 
-VISUAL_MODEL = genanki.Model(
-    1065123402,
-    "saCloze++",
-    fields=[
-        {"name": "Text"},
-        {"name": "Extra"},
-    ],
-    templates=[
-        {
-            "name": "Cloze",
-            "qfmt": "<div id='kard'>{{cloze:Text}}</div>",
-            "afmt": "<div id='kard'>{{cloze:Text}}<div>&nbsp;</div><div id='extra'>{{Extra}}</div></div>",
-        }
-    ],
-    css=BASE_CSS,
-    model_type=genanki.Model.CLOZE,
-)
+def _load_canonical_visual_model() -> genanki.Model:
+    """Load the user's real saCloze++ model instead of approximating it here."""
+    builder_path = (
+        Path(__file__).resolve().parent.parent
+        / "apps"
+        / "radiographics-review"
+        / "scripts"
+        / "build_anki_package.py"
+    )
+    spec = importlib.util.spec_from_file_location("radiographics_build_anki_package", builder_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Unable to load canonical Anki builder: {builder_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    model = module.MODEL
+    if model.name != "saCloze++":
+        raise RuntimeError(f"Canonical visual model has unexpected name: {model.name}")
+    return model
+
+
+VISUAL_MODEL = _load_canonical_visual_model()
 
 
 MODEL_BY_STYLE = {
