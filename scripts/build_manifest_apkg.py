@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import html
 import importlib.util
 import json
 import shutil
@@ -19,91 +18,22 @@ except ImportError as exc:  # pragma: no cover - dependency guard
     ) from exc
 
 
-BASE_CSS = """
-html { overflow: scroll; overflow-x: hidden; }
-.card {
-  font-family: helvetica;
-  font-size: 20px;
-  text-align: center;
-  color: #D7DEE9;
-  line-height: 1.6em;
-  background-color: #2F2F31;
-}
-#kard {
-  max-width: 700px;
-  margin: 0 auto;
-  word-wrap: break-word;
-  padding: 0;
-}
-.cloze, .cloze b, .cloze u, .cloze i {
-  font-weight: bold;
-  color: MediumSeaGreen !important;
-}
-#extra, #extra i {
-  font-size: 15px;
-  color: #D7DEE9;
-  font-style: italic;
-}
-img {
-  display: block;
-  max-width: 100%;
-  max-height: none;
-  margin: 12px auto;
-}
-a {
-  color: LightBlue !important;
-  text-decoration: none;
-}
-""".strip()
+ROOT = Path(__file__).resolve().parents[1]
+CANONICAL_BUILDER = ROOT / "apps" / "radiographics-review" / "scripts" / "build_anki_package.py"
+CANONICAL_NOTE_TYPE = "saCloze++"
+LEGACY_STYLE_ALIASES = {"sacloze+", "cloze"}
 
 
-TEXT_MODEL = genanki.Model(
-    1065123401,
-    "saCloze+",
-    fields=[
-        {"name": "Text"},
-        {"name": "Extra"},
-    ],
-    templates=[
-        {
-            "name": "Cloze",
-            "qfmt": "<div id='kard'>{{cloze:Text}}</div>",
-            "afmt": "<div id='kard'>{{cloze:Text}}<div>&nbsp;</div><div id='extra'>{{Extra}}</div></div>",
-        }
-    ],
-    css=BASE_CSS,
-    model_type=genanki.Model.CLOZE,
-)
-
-
-def _load_canonical_visual_model() -> genanki.Model:
-    """Load the user's real saCloze++ model instead of approximating it here."""
-    builder_path = (
-        Path(__file__).resolve().parent.parent
-        / "apps"
-        / "radiographics-review"
-        / "scripts"
-        / "build_anki_package.py"
-    )
-    spec = importlib.util.spec_from_file_location("radiographics_build_anki_package", builder_path)
+def load_canonical_model() -> genanki.Model:
+    spec = importlib.util.spec_from_file_location("radiographics_anki_builder", CANONICAL_BUILDER)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f"Unable to load canonical Anki builder: {builder_path}")
+        raise RuntimeError(f"Unable to import canonical Anki model from {CANONICAL_BUILDER}.")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    model = module.MODEL
-    if model.name != "saCloze++":
-        raise RuntimeError(f"Canonical visual model has unexpected name: {model.name}")
-    return model
+    return module.MODEL
 
 
-VISUAL_MODEL = _load_canonical_visual_model()
-
-
-MODEL_BY_STYLE = {
-    "sacloze+": TEXT_MODEL,
-    "sacloze++": VISUAL_MODEL,
-    "cloze": TEXT_MODEL,
-}
+MODEL = load_canonical_model()
 
 
 def parse_args() -> argparse.Namespace:
@@ -152,17 +82,18 @@ def _normalize_tags(raw_tags: object) -> list[str]:
 
 def _normalize_style(raw_style: object) -> str:
     if raw_style is None:
-        return "saCloze+"
+        return CANONICAL_NOTE_TYPE
     style = str(raw_style).strip()
     if not style:
-        return "saCloze+"
+        return CANONICAL_NOTE_TYPE
     key = style.casefold()
-    if key not in MODEL_BY_STYLE:
-        raise ValueError(
-            f"Unsupported note_type_style '{style}'. "
-            "Expected saCloze+, saCloze++, or cloze."
-        )
-    return style
+    if key == CANONICAL_NOTE_TYPE.casefold() or key in LEGACY_STYLE_ALIASES:
+        return CANONICAL_NOTE_TYPE
+    raise ValueError(
+        f"Unsupported note_type_style '{style}'. "
+        f"Expected {CANONICAL_NOTE_TYPE}; legacy aliases saCloze+ and cloze are accepted "
+        f"only so old manifests are normalized to {CANONICAL_NOTE_TYPE}."
+    )
 
 
 def _normalize_media(raw_media: object) -> list[dict[str, str]]:
@@ -260,7 +191,10 @@ def prepare_media_files(cards: list[dict[str, object]]) -> list[str]:
 
 
 def model_for_style(style: str) -> genanki.Model:
-    return MODEL_BY_STYLE[str(style).casefold()]
+    normalized = _normalize_style(style)
+    if normalized != CANONICAL_NOTE_TYPE:
+        raise ValueError(f"Expected normalized note type {CANONICAL_NOTE_TYPE}.")
+    return MODEL
 
 
 def guid_for_card(card: dict[str, object]) -> str:
@@ -321,6 +255,7 @@ def main() -> int:
         "cards": len(cards),
         "decks": len(decks),
         "media_files": len(media_files),
+        "note_type": CANONICAL_NOTE_TYPE,
     }
     print(json.dumps(summary, indent=2))
     return 0
