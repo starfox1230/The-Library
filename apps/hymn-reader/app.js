@@ -238,7 +238,14 @@
         lineElement.classList.add("stanza-break");
         lineElement.setAttribute("aria-hidden", "true");
       } else {
-        const tokens = line.split(/([\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*)/gu);
+        const versePrefix = line.match(/^(\s*\d+\.\s*)/u);
+        const lyricText = versePrefix ? line.slice(versePrefix[0].length) : line;
+
+        if (versePrefix) {
+          lineElement.appendChild(document.createTextNode(versePrefix[0]));
+        }
+
+        const tokens = lyricText.split(/([\p{L}\p{N}]+(?:[’'\-][\p{L}\p{N}]+)*)/gu);
         tokens.forEach(token => {
           if (!token) return;
           if (/^[\p{L}\p{N}]/u.test(token)) {
