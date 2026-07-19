@@ -26,6 +26,7 @@
     readerView: document.getElementById("readerView"),
     search: document.getElementById("hymnSearch"),
     clearSearch: document.getElementById("clearSearch"),
+    numberPad: document.getElementById("numberPad"),
     resultSummary: document.getElementById("resultSummary"),
     results: document.getElementById("hymnResults"),
     emptyLibrary: document.getElementById("emptyLibrary"),
@@ -141,6 +142,36 @@
     const fragment = document.createDocumentFragment();
     results.forEach(hymn => fragment.appendChild(createResultCard(hymn, query, numeric)));
     elements.results.appendChild(fragment);
+  }
+
+  function showNumberPad() {
+    elements.numberPad.hidden = false;
+    elements.search.setAttribute("aria-expanded", "true");
+  }
+
+  function hideNumberPad() {
+    elements.numberPad.hidden = true;
+    elements.search.setAttribute("aria-expanded", "false");
+  }
+
+  function updateSearchFromNumberPad(key) {
+    const start = elements.search.selectionStart ?? elements.search.value.length;
+    const end = elements.search.selectionEnd ?? start;
+
+    if (key === "clear") {
+      elements.search.value = "";
+    } else if (key === "delete") {
+      if (start !== end) {
+        elements.search.setRangeText("", start, end, "end");
+      } else if (start > 0) {
+        elements.search.setRangeText("", start - 1, start, "end");
+      }
+    } else {
+      elements.search.setRangeText(key, start, end, "end");
+    }
+
+    renderResults(elements.search.value);
+    elements.search.focus({ preventScroll: true });
   }
 
   function createResultCard(hymn, query, numeric) {
@@ -392,6 +423,18 @@
 
   function bindEvents() {
     elements.search.addEventListener("input", event => renderResults(event.target.value));
+    elements.search.addEventListener("focus", showNumberPad);
+    elements.search.addEventListener("click", showNumberPad);
+    elements.search.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      hideNumberPad();
+      elements.search.blur();
+    });
+    elements.numberPad.addEventListener("click", event => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      updateSearchFromNumberPad(button.dataset.numberPadKey || button.dataset.numberPadAction);
+    });
     elements.clearSearch.addEventListener("click", () => {
       elements.search.value = "";
       renderResults("");
@@ -458,6 +501,7 @@
     elements.readerView.addEventListener("dragstart", event => event.preventDefault());
 
     document.addEventListener("click", event => {
+      if (!event.target.closest(".search-area")) hideNumberPad();
       if (elements.settings.hidden || event.target.closest("#readerSettings") || event.target.closest("#readerSettingsButton")) return;
       elements.settings.hidden = true;
       elements.settingsButton.setAttribute("aria-expanded", "false");
