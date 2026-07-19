@@ -2,6 +2,8 @@
   "use strict";
 
   const STORAGE_KEY = "hymn-reader-preferences-v1";
+  const LONG_PRESS_MS = 475;
+  const POINTER_MOVE_TOLERANCE = 12;
   const SIZE_STEPS = [
     { label: "Small", value: "1.22rem" },
     { label: "Medium", value: "1.55rem" },
@@ -51,7 +53,9 @@
     wordIndex: 0,
     mode: "glow",
     sizeIndex: 1,
-    pointerStart: null
+    pointerStart: null,
+    longPressTimer: null,
+    longPressTriggered: false
   };
 
   loadPreferences();
@@ -243,6 +247,7 @@
             word.textContent = token;
             word.dataset.wordIndex = state.words.length;
             word.dataset.lineIndex = lineIndex;
+            word.draggable = false;
             state.words.push(word);
             lineElement.appendChild(word);
           } else {
@@ -287,6 +292,30 @@
     if (nextIndex === state.wordIndex) return;
     state.wordIndex = nextIndex;
     updateReader();
+  }
+
+  function jumpToWord(word) {
+    const wordIndex = Number(word?.dataset.wordIndex);
+    if (!state.hymn || !Number.isInteger(wordIndex) || !state.words[wordIndex]) return;
+    state.wordIndex = wordIndex;
+    if (state.mode !== "glow") {
+      setMode("glow");
+    } else {
+      updateReader({ scroll: false });
+    }
+  }
+
+  function clearLongPressTimer() {
+    if (state.longPressTimer !== null) {
+      window.clearTimeout(state.longPressTimer);
+      state.longPressTimer = null;
+    }
+  }
+
+  function resetPointerInteraction() {
+    clearLongPressTimer();
+    state.pointerStart = null;
+    state.longPressTriggered = false;
   }
 
   function closeReader(updateHistory) {
@@ -379,28 +408,51 @@
     elements.readerView.addEventListener("pointerdown", event => {
       if (event.target.closest("[data-reader-control], button")) return;
       if (event.pointerType === "mouse" && event.button !== 0) return;
-      state.pointerStart = { x: event.clientX, y: event.clientY };
+      clearLongPressTimer();
+      state.longPressTriggered = false;
+      const pressedWord = event.target.closest(".lyric-word");
+      state.pointerStart = { x: event.clientX, y: event.clientY, pressedWord };
+      if (pressedWord) {
+        state.longPressTimer = window.setTimeout(() => {
+          state.longPressTimer = null;
+          state.longPressTriggered = true;
+          jumpToWord(pressedWord);
+        }, LONG_PRESS_MS);
+      }
+    });
+
+    elements.readerView.addEventListener("pointermove", event => {
+      if (!state.pointerStart || state.longPressTriggered) return;
+      const moved = Math.hypot(event.clientX - state.pointerStart.x, event.clientY - state.pointerStart.y);
+      if (moved > POINTER_MOVE_TOLERANCE) clearLongPressTimer();
     });
 
     elements.readerView.addEventListener("pointerup", event => {
       if (!state.pointerStart) return;
+      clearLongPressTimer();
+      if (state.longPressTriggered) {
+        event.preventDefault();
+        resetPointerInteraction();
+        return;
+      }
       if (state.mode !== "glow") {
-        state.pointerStart = null;
+        resetPointerInteraction();
         return;
       }
       if (event.target.closest("[data-reader-control], button")) {
-        state.pointerStart = null;
+        resetPointerInteraction();
         return;
       }
       const moved = Math.hypot(event.clientX - state.pointerStart.x, event.clientY - state.pointerStart.y);
-      state.pointerStart = null;
-      if (moved > 12) return;
+      resetPointerInteraction();
+      if (moved > POINTER_MOVE_TOLERANCE) return;
       moveWord(event.clientX < window.innerWidth / 2 ? -1 : 1);
     });
 
-    elements.readerView.addEventListener("pointercancel", () => {
-      state.pointerStart = null;
-    });
+    elements.readerView.addEventListener("pointercancel", resetPointerInteraction);
+    elements.readerView.addEventListener("contextmenu", event => event.preventDefault());
+    elements.readerView.addEventListener("selectstart", event => event.preventDefault());
+    elements.readerView.addEventListener("dragstart", event => event.preventDefault());
 
     document.addEventListener("click", event => {
       if (elements.settings.hidden || event.target.closest("#readerSettings") || event.target.closest("#readerSettingsButton")) return;
