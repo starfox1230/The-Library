@@ -56,7 +56,26 @@
       .then(chunks => {
         const binary = atob(chunks.join(""));
         const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-        const html = new TextDecoder("utf-8").decode(bytes);
+        let html = new TextDecoder("utf-8").decode(bytes);
+
+        // Repair the original generated page, whose outline was inserted with
+        // literal newlines inside a quoted JavaScript string. That syntax error
+        // prevented all teaching points and controls from initializing.
+        const startMarker = 'const OUTLINE = "';
+        const endMarker = '";\n    const STORAGE_KEY';
+        const start = html.indexOf(startMarker);
+        const end = start >= 0 ? html.indexOf(endMarker, start + startMarker.length) : -1;
+
+        if (start >= 0 && end > start) {
+          const rawOutline = html.slice(start + startMarker.length, end);
+          if (rawOutline.includes("\n")) {
+            html =
+              html.slice(0, start) +
+              "const OUTLINE = " + JSON.stringify(rawOutline) + ";\n    const STORAGE_KEY" +
+              html.slice(end + endMarker.length);
+          }
+        }
+
         document.open();
         document.write(html);
         document.close();
