@@ -285,13 +285,13 @@
     const progress = total ? ((state.wordIndex + 1) / total) * 100 : 0;
     elements.progress.style.width = state.mode === "glow" ? `${progress}%` : "100%";
     elements.wordCounter.textContent = state.mode === "glow" && total ? `${state.wordIndex + 1} / ${total}` : "";
-    elements.tapHint.textContent = state.mode === "glow" ? "Tap left or right to move through the hymn" : "Full hymn text";
+    elements.tapHint.textContent = state.mode === "glow" ? "Tap anywhere to advance · Hold a word to jump" : "Full hymn text";
 
   }
 
-  function moveWord(direction) {
+  function advanceWord() {
     if (!state.hymn || state.mode !== "glow" || state.words.length === 0) return;
-    const nextIndex = Math.max(0, Math.min(state.wordIndex + direction, state.words.length - 1));
+    const nextIndex = Math.min(state.wordIndex + 1, state.words.length - 1);
     if (nextIndex === state.wordIndex) return;
     state.wordIndex = nextIndex;
     updateReader();
@@ -449,7 +449,7 @@
       const moved = Math.hypot(event.clientX - state.pointerStart.x, event.clientY - state.pointerStart.y);
       resetPointerInteraction();
       if (moved > POINTER_MOVE_TOLERANCE) return;
-      moveWord(event.clientX < window.innerWidth / 2 ? -1 : 1);
+      advanceWord();
     });
 
     elements.readerView.addEventListener("pointercancel", resetPointerInteraction);
@@ -465,12 +465,9 @@
 
     document.addEventListener("keydown", event => {
       if (!state.hymn || event.target.matches("input, button")) return;
-      if (event.key === "ArrowRight" || event.key === " ") {
+      if (event.key === "ArrowRight" || event.key === "ArrowLeft" || event.key === " ") {
         event.preventDefault();
-        moveWord(1);
-      } else if (event.key === "ArrowLeft") {
-        event.preventDefault();
-        moveWord(-1);
+        advanceWord();
       } else if (event.key === "Escape") {
         if (!elements.settings.hidden) {
           elements.settings.hidden = true;
