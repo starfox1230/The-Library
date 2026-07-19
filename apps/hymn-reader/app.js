@@ -262,7 +262,7 @@
     elements.lyrics.appendChild(fragment);
   }
 
-  function updateReader(options = {}) {
+  function updateReader() {
     const total = state.words.length;
     state.wordIndex = Math.max(0, Math.min(state.wordIndex, Math.max(0, total - 1)));
     const activeWord = total ? state.words[state.wordIndex] : null;
@@ -280,10 +280,6 @@
     elements.wordCounter.textContent = state.mode === "glow" && total ? `${state.wordIndex + 1} / ${total}` : "";
     elements.tapHint.textContent = state.mode === "glow" ? "Tap left or right to move through the hymn" : "Full hymn text";
 
-    if (activeWord && options.scroll !== false && state.mode === "glow") {
-      const activeLine = activeWord.closest(".lyric-line");
-      activeLine.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   }
 
   function moveWord(direction) {
@@ -301,7 +297,7 @@
     if (state.mode !== "glow") {
       setMode("glow");
     } else {
-      updateReader({ scroll: false });
+      updateReader();
     }
   }
 
@@ -338,7 +334,7 @@
     elements.textMode.classList.toggle("active", state.mode === "text");
     elements.glowMode.setAttribute("aria-pressed", String(state.mode === "glow"));
     elements.textMode.setAttribute("aria-pressed", String(state.mode === "text"));
-    updateReader({ scroll: state.mode === "glow" });
+    updateReader();
     savePreferences();
   }
 
