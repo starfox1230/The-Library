@@ -3157,7 +3157,7 @@ class SettingsDialog(QDialog):
         )
         layout.addWidget(self.sphere_settings_group)
         self.crystal_mode_note = QLabel(
-            "Crystal Reactor uses its own full-rate WebGL renderer. Every rated card becomes a colored crystal fragment, while the central reactor evolves at larger streak milestones.",
+            "Crystal Reactor starts with only the streak number, then adds one iridescent component per streak card in the original golden-angle rosette. The preferred early-streak appearance remains exact through 50; after that, each set of 50 grows into a spacious concentric era so late streaks become an expanding crystal mandala instead of one packed mass. Click the star in the side pane to choose rotating or still mode.",
             frame,
         )
         self.crystal_mode_note.setWordWrap(True)
@@ -4165,7 +4165,8 @@ class SettingsDialog(QDialog):
                 f"Orb animation {'on' if getattr(self.controller.engine.state, 'orbit_animation_enabled', True) else 'off'}"
             )
         elif visual_mode == VISUAL_MODE_CRYSTAL_REACTOR:
-            visual_detail = "Crystal Reactor: full-rate WebGL crystal core and one rating-colored fragment per streak card."
+            crystal_motion = "rotating" if getattr(self.controller, "crystal_rotation_enabled", True) else "still / lower resource"
+            visual_detail = f"Crystal Reactor ({crystal_motion}): golden-angle rosette with spacious 50-card growth eras after streak 50."
         else:
             visual_detail = "Brick layout: built-in ultra-low-resource mode."
         self.color_value.setText(

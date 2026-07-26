@@ -61,17 +61,38 @@ def expand_deck_selection(
 
 
 def selected_scheduler_day(today: int, days_ago: int) -> int:
-    return int(today) - max(0, int(days_ago))
+    return int(today) - int(days_ago)
 
 
 def days_ago_for_date(selected_date: date, today_date: date) -> int:
-    return max(0, int((today_date - selected_date).days))
+    """Return a signed scheduler offset; future dates are negative."""
+    return int((today_date - selected_date).days)
+
+
+def relative_day_offsets(start_date: date, end_date: date, today_date: date) -> tuple[int, int]:
+    """Return an ordered date range as signed offsets from today."""
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return (start_date - today_date).days, (end_date - today_date).days
+
+
+def date_range_from_relative_offsets(
+    today_date: date,
+    start_offset: int,
+    end_offset: int,
+) -> tuple[date, date]:
+    """Recreate a rolling date range from offsets saved on an earlier day."""
+    start_date = today_date + timedelta(days=int(start_offset))
+    end_date = today_date + timedelta(days=int(end_offset))
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+    return start_date, end_date
 
 
 def rollover_boundaries(day_cutoff: int, days_ago: int) -> tuple[int, int]:
     """Return local-time rollover boundaries, preserving DST-short/long days."""
     cutoff_local = datetime.fromtimestamp(int(day_cutoff))
-    end_date = cutoff_local.date() - timedelta(days=max(0, int(days_ago)))
+    end_date = cutoff_local.date() - timedelta(days=int(days_ago))
     start_date = end_date - timedelta(days=1)
     clock = cutoff_local.time().replace(tzinfo=None)
 
@@ -87,11 +108,13 @@ def added_card_id_bounds(timestamp_start: int, timestamp_end: int) -> tuple[int,
 
 
 def deck_date_label(days_ago: int, selected_date: date) -> str:
-    offset = max(0, int(days_ago))
+    offset = int(days_ago)
     if offset == 0:
         return f"Today {selected_date.isoformat()}"
     if offset == 1:
         return f"Yesterday {selected_date.isoformat()}"
+    if offset == -1:
+        return f"Tomorrow {selected_date.isoformat()}"
     return selected_date.isoformat()
 
 

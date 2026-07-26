@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import sys
-from datetime import date
+from datetime import date, datetime
 import os
 import time
 
@@ -51,8 +51,11 @@ def test_scheduler_day_and_labels():
     selected = date(2026, 6, 18)
     assert module.selected_scheduler_day(500, 3) == 497
     assert module.days_ago_for_date(selected, date(2026, 6, 21)) == 3
+    assert module.days_ago_for_date(date(2026, 6, 24), date(2026, 6, 21)) == -3
+    assert module.selected_scheduler_day(500, -3) == 503
     assert module.deck_date_label(0, date(2026, 6, 21)) == "Today 2026-06-21"
     assert module.deck_date_label(1, date(2026, 6, 20)) == "Yesterday 2026-06-20"
+    assert module.deck_date_label(-1, date(2026, 6, 22)) == "Tomorrow 2026-06-22"
     assert module.deck_date_label(3, selected) == "2026-06-18"
     assert module.deck_date_range_label(date(2026, 6, 19), date(2026, 6, 21), date(2026, 6, 21)) == "2026-06-19 to 2026-06-21"
     assert module.deck_date_range_label(date(2026, 6, 21), date(2026, 6, 21), date(2026, 6, 21)) == "Today 2026-06-21"
@@ -68,6 +71,21 @@ def test_scheduler_day_and_labels():
     }
 
 
+def test_relative_date_range_rolls_forward_with_today():
+    module = _load_module()
+    original_today = date(2026, 6, 21)
+    offsets = module.relative_day_offsets(
+        date(2026, 6, 15),
+        date(2026, 6, 22),
+        original_today,
+    )
+    assert offsets == (-6, 1)
+    assert module.date_range_from_relative_offsets(date(2026, 6, 22), *offsets) == (
+        date(2026, 6, 16),
+        date(2026, 6, 23),
+    )
+
+
 def test_rollover_boundaries_preserve_dst_day_length():
     module = _load_module()
     if not hasattr(time, "tzset"):
@@ -79,6 +97,9 @@ def test_rollover_boundaries_preserve_dst_day_length():
         cutoff = int(time.mktime((2026, 3, 9, 4, 0, 0, 0, 0, -1)))
         start, end = module.rollover_boundaries(cutoff, 0)
         assert end - start == 23 * 60 * 60
+        future_start, future_end = module.rollover_boundaries(cutoff, -1)
+        assert datetime.fromtimestamp(future_start).date() == date(2026, 3, 9)
+        assert datetime.fromtimestamp(future_end).date() == date(2026, 3, 10)
     finally:
         if previous_tz is None:
             os.environ.pop("TZ", None)
@@ -96,3 +117,11 @@ def test_due_day_added_card_sql_requires_still_new_cards():
     source = DUE_TODAY_PATH.read_text(encoding="utf-8")
     assert "? AND c.type = 0 AND c.queue = 0 AND c.id >= ? AND c.id < ?" in source
     assert "? AND c.queue >= 0 AND c.id >= ? AND c.id < ?" not in source
+
+
+def test_due_day_date_pickers_allow_future_dates():
+    source = DUE_TODAY_PATH.read_text(encoding="utf-8")
+    assert "setMaximumDate(today_qdate)" not in source
+    assert "selected_date = _today_calendar_date() - timedelta(days=int(days_ago))" in source
+    assert 'self.next_button = QPushButton("Next Range")' in source
+    assert 'CUSTOM_RELATIVE_PRESET = "custom_relative"' in source

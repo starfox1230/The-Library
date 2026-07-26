@@ -53,6 +53,8 @@ DEFAULT_SETTINGS = {
     "due_today_source_deck_ids": [],
     "due_day_include_added_cards": True,
     "due_day_date_preset": "today",
+    "due_day_date_start_offset": 0,
+    "due_day_date_end_offset": 0,
     "due_day_audio_deck_id": 0,
     "due_day_visual_deck_id": 0,
     "due_day_combined_deck_id": 0,

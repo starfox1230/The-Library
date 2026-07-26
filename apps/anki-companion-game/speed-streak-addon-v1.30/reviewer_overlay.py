@@ -319,6 +319,7 @@ class ReviewerOverlayController:
         self.visual_mode = VISUAL_MODE_SPHERE
         self.sphere_mode = SPHERE_MODE_CLASSIC
         self.render_mode = RENDER_MODE_WEBGL
+        self.crystal_rotation_enabled = True
         self._last_nonce_sent = -1
         self._wrapped = False
         self._timer = None
@@ -1076,6 +1077,9 @@ class ReviewerOverlayController:
                 visual_mode = normalize_visual_mode(data.get("visualMode", self.visual_mode))
                 sphere_mode = normalize_sphere_mode(data.get("sphereMode", self.sphere_mode))
                 render_mode = normalize_render_mode(data.get("renderMode", self.render_mode))
+                crystal_rotation_enabled = bool(
+                    data.get("crystalRotationEnabled", self.crystal_rotation_enabled)
+                )
                 if visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
                     render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
                     reduced_motion_enabled = True
@@ -1113,6 +1117,7 @@ class ReviewerOverlayController:
             self.visual_mode = visual_mode
             self.sphere_mode = sphere_mode
             self.render_mode = render_mode
+            self.crystal_rotation_enabled = crystal_rotation_enabled
             self.resume_run_after_restart_enabled = resume_run_after_restart
             if (
                 previous_time_drain_flag != int(self.engine.state.time_drain_flag or 0)
@@ -1874,6 +1879,7 @@ class ReviewerOverlayController:
                 "visualMode": self.visual_mode,
                 "sphereMode": self.sphere_mode,
                 "renderMode": self.render_mode,
+                "crystalRotationEnabled": int(self.crystal_rotation_enabled),
                 "shortcutBindings": self.current_shortcut_bindings(),
                 "pauseShortcut": self.pause_shortcut_display(),
                 "unpauseShortcut": self.unpause_shortcut_display(),
@@ -2568,6 +2574,7 @@ class ReviewerOverlayController:
                 self.visual_mode = VISUAL_MODE_SPHERE
             self.sphere_mode = normalize_sphere_mode(config.get("sphere_mode", SPHERE_MODE_CLASSIC))
             self.render_mode = normalize_render_mode(raw_render_mode)
+            self.crystal_rotation_enabled = bool(config.get("crystal_rotation_enabled", True))
             if self.visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
                 self.render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
             elif self.visual_mode == VISUAL_MODE_CRYSTAL_REACTOR:
@@ -2796,6 +2803,7 @@ class ReviewerOverlayController:
             "visual_mode": self.visual_mode,
             "sphere_mode": self.sphere_mode,
             "render_mode": self.render_mode,
+            "crystal_rotation_enabled": bool(self.crystal_rotation_enabled),
             "display_mode_prompted": not self._display_mode_prompt_pending,
             "floating_geometry": self._floating_geometry,
             "compatibility_layout_version": COMPATIBILITY_LAYOUT_VERSION,

@@ -18,12 +18,20 @@ It does not modify the original standalone files in the parent folder.
 ### v1.30 (from v1.28)
 
 - Adds a star button to the side-pane visual selector for the new **Crystal Reactor**.
-- Represents every successful card as a deterministic, rating-colored WebGL crystal fragment, arranged in expanding layers that remain exact through streak 1000.
-- Grows a rotating faceted reactor core through eight named tiers: Seed, Ignition, Prism, Crown, Reactor, Ascendant, Singularity, and Transcendent.
-- Pulses the reactor on each answer, gives major streak milestones a stronger ignition flash, and fractures the full assembly when time expires.
+- Clicking the star reveals **rotating** and **still** motion choices; still mode stops its WebGL animation loop after growth and reaction effects settle.
+- Starts at streak zero with only the number, so every visible crystal component represents an earned streak card.
+- Preserves the preferred **golden-angle rosette** exactly through streak 50, including its original crystal size, placement, and sheen.
+- After streak 50, gives each set of 50 cards a spacious concentric growth era, turning late streaks into a layered crystal mandala instead of one packed mass.
+- Keeps the newest late-streak component slightly larger and lightly haloed so each addition remains perceptible in the 400-1000 range.
+- Gives every 10 cards a lock-in pulse, every 50 cards a stronger double-ring era ignition, and 100/250/500/1000 milestones the full reactor celebration.
+- Adds one connected, multi-facet crystal component for every successful card, using a fixed ice/cyan/lavender sheen rather than answer-rating colors.
+- Retains the original individual golden-angle placement inside every growth era instead of creating spokes, branches, or local snowflakes.
+- Uses era-aware camera framing so new layers expand the formation while remaining on-screen through streak 1000.
+- Removes the rotating containment rings and named tier word so the growing crystal remains the visual focus.
+- Pulses the reactor on each answer and fractures the full assembly when time expires.
 - Keeps the smooth full-frame behavior of v1.28 rather than the v1.29 frame-throttling experiment.
 - Reuses the proven satellite renderer's WebGL canvas, context, and compatible dynamic point pipeline so selecting the star does not request a fragile second graphics context.
-- Adds a faceted CSS core fallback so the selected visual still looks complete if WebGL is unavailable.
+- Leaves the streak number visible if WebGL is unavailable instead of showing an unearned starter crystal.
 
 ### v1.28 (from v1.27)
 

@@ -406,20 +406,13 @@
             </div>
             <div id="acgCrystalScene" class="acg-crystal-scene">
               <div class="acg-crystal-grid"></div>
-              <div class="acg-crystal-reactor-rings" aria-hidden="true">
-                <span class="acg-crystal-reactor-ring ring-a"></span>
-                <span class="acg-crystal-reactor-ring ring-b"></span>
-                <span class="acg-crystal-reactor-ring ring-c"></span>
-              </div>
-              <div class="acg-crystal-core-fallback" aria-hidden="true">
-                <span class="acg-crystal-facet facet-left"></span>
-                <span class="acg-crystal-facet facet-center"></span>
-                <span class="acg-crystal-facet facet-right"></span>
-              </div>
               <div id="acgCrystalFlash" class="acg-crystal-flash"></div>
+              <div class="acg-crystal-milestone-rings" aria-hidden="true">
+                <span class="acg-crystal-milestone-ring ring-inner"></span>
+                <span class="acg-crystal-milestone-ring ring-outer"></span>
+              </div>
               <div class="acg-crystal-readout">
                 <div id="acgCrystalStreak" class="acg-crystal-streak">0</div>
-                <div id="acgCrystalTier" class="acg-crystal-tier">SEED</div>
               </div>
             </div>
           </div>
@@ -448,6 +441,10 @@
               </div>
               <div class="acg-mode-column acg-mode-column-crystal">
                 <button id="acgLayoutCrystal" class="acg-action acg-icon-toggle acg-mode-primary acg-crystal-mode-button" type="button" title="Crystal Reactor" aria-label="Crystal Reactor">★</button>
+                <div id="acgCrystalMotionControls" class="acg-resource-stack acg-crystal-motion-stack" role="group" aria-label="Crystal motion">
+                  <button id="acgCrystalRotateToggle" class="acg-action acg-icon-toggle acg-resource-toggle acg-crystal-motion-toggle" type="button" title="Rotating crystal" aria-label="Rotating crystal">↻</button>
+                  <button id="acgCrystalStillToggle" class="acg-action acg-icon-toggle acg-resource-toggle acg-crystal-motion-toggle" type="button" title="Still crystal (lower resource)" aria-label="Still crystal (lower resource)">Ⅱ</button>
+                </div>
               </div>
               <div class="acg-mode-column acg-mode-column-brick">
                 <button id="acgLayoutBrick" class="acg-action acg-icon-toggle acg-mode-primary acg-leaf-toggle" type="button" title="Brick layout (ultra-low resource)" aria-label="Brick layout (ultra-low resource)">
@@ -706,11 +703,42 @@
 
     const layoutCrystalButton = document.getElementById("acgLayoutCrystal");
     if (layoutCrystalButton) {
-      layoutCrystalButton.addEventListener("click", () => saveSettings({
-        visualMode: "crystal_reactor",
-        sphereMode: "classic",
-        renderMode: "webgl",
-      }));
+      layoutCrystalButton.addEventListener("click", () => {
+        document.querySelector(".acg-mode-column-crystal")?.classList.toggle("motion-open");
+        saveSettings({
+          visualMode: "crystal_reactor",
+          sphereMode: "classic",
+          renderMode: "webgl",
+        });
+      });
+    }
+
+    const crystalRotateToggle = document.getElementById("acgCrystalRotateToggle");
+    if (crystalRotateToggle) {
+      crystalRotateToggle.addEventListener("click", () => {
+        saveSettings({
+          visualMode: "crystal_reactor",
+          sphereMode: "classic",
+          renderMode: "webgl",
+          crystalRotationEnabled: true,
+        });
+        document.querySelector(".acg-mode-column-crystal")?.classList.remove("motion-open");
+        crystalRotateToggle.blur();
+      });
+    }
+
+    const crystalStillToggle = document.getElementById("acgCrystalStillToggle");
+    if (crystalStillToggle) {
+      crystalStillToggle.addEventListener("click", () => {
+        saveSettings({
+          visualMode: "crystal_reactor",
+          sphereMode: "classic",
+          renderMode: "webgl",
+          crystalRotationEnabled: false,
+        });
+        document.querySelector(".acg-mode-column-crystal")?.classList.remove("motion-open");
+        crystalStillToggle.blur();
+      });
     }
 
     const layoutBrickButton = document.getElementById("acgLayoutBrick");
@@ -1249,6 +1277,10 @@
     return getVisualMode(data) === "crystal_reactor";
   }
 
+  function isCrystalRotationEnabled(data) {
+    return Boolean(data?.crystalRotationEnabled ?? true);
+  }
+
   function getTimerStepMs(data) {
     const explicit = Math.max(0, Number(data?.timerDisplayStepMs || 0));
     if (explicit) {
@@ -1449,6 +1481,9 @@
     const renderMode = Object.prototype.hasOwnProperty.call(overrides, "renderMode")
       ? String(overrides.renderMode || getRenderMode(state.data || {}))
       : getRenderMode(state.data || {});
+    const crystalRotationEnabled = Object.prototype.hasOwnProperty.call(overrides, "crystalRotationEnabled")
+      ? Boolean(overrides.crystalRotationEnabled)
+      : isCrystalRotationEnabled(state.data || {});
     const reducedMotion = Boolean(state.data?.reducedMotion);
     const audioEnabled = Object.prototype.hasOwnProperty.call(overrides, "audioEnabled")
       ? Boolean(overrides.audioEnabled)
@@ -1486,6 +1521,7 @@
           visualMode,
           sphereMode,
           renderMode,
+          crystalRotationEnabled,
           reducedMotion,
           customTimerColors,
           customTimerColorLevel,
@@ -1588,6 +1624,8 @@
     const audioToggle = $("acgAudioToggle");
     const sphereButton = $("acgLayoutSphere");
     const crystalButton = $("acgLayoutCrystal");
+    const crystalRotateToggle = $("acgCrystalRotateToggle");
+    const crystalStillToggle = $("acgCrystalStillToggle");
     const brickButton = $("acgLayoutBrick");
     const sphereConsolidateToggle = $("acgSphereConsolidateToggle");
     const sphereUltraToggle = $("acgSphereUltraToggle");
@@ -1598,12 +1636,25 @@
     const sphereUltraActive = visualMode === "sphere" && renderMode === "ultra_low_resource";
     const sphereResourceActive = sphereConsolidateActive || sphereUltraActive;
     const brickResourceActive = visualMode === "lightweight_rows";
+    const crystalActive = visualMode === "crystal_reactor";
+    const crystalRotating = isCrystalRotationEnabled(data);
 
     syncQuickControl(sphereButton, visualMode === "sphere", sphereResourceActive ? "Satellite view with reduced resources" : "Satellite view");
-    syncQuickControl(crystalButton, visualMode === "crystal_reactor", "Crystal Reactor");
+    syncQuickControl(crystalButton, crystalActive, `Crystal Reactor — ${crystalRotating ? "rotating" : "still"}`);
     syncQuickControl(brickButton, visualMode === "lightweight_rows", "Brick layout (ultra-low resource)");
     sphereButton?.classList.toggle("is-resource-active", sphereResourceActive);
     brickButton?.classList.toggle("is-resource-active", brickResourceActive);
+    crystalButton?.classList.toggle("is-resource-active", crystalActive && !crystalRotating);
+    syncQuickControl(
+      crystalRotateToggle,
+      crystalActive && crystalRotating,
+      crystalActive && crystalRotating ? "Rotating crystal on" : "Rotating crystal"
+    );
+    syncQuickControl(
+      crystalStillToggle,
+      crystalActive && !crystalRotating,
+      crystalActive && !crystalRotating ? "Still crystal (lower resource) on" : "Still crystal (lower resource)"
+    );
     syncQuickControl(
       sphereConsolidateToggle,
       sphereConsolidateActive,
@@ -1990,6 +2041,7 @@
 
   function createWebglProgram(gl) {
     const vertex = createShader(gl, gl.VERTEX_SHADER, `
+      precision mediump float;
       attribute vec2 a_position;
       attribute vec4 a_color;
       attribute float a_size;
@@ -2440,33 +2492,54 @@
 
   function createCrystalShardProgram(gl) {
     const vertex = createShader(gl, gl.VERTEX_SHADER, `
+      precision mediump float;
       attribute vec2 a_position;
+      attribute vec2 a_center;
       attribute vec4 a_color;
-      attribute float a_size;
+      attribute float a_seed;
+      attribute float a_fresh;
       uniform vec2 u_resolution;
-      uniform float u_pixel_ratio;
+      uniform float u_time;
+      uniform float u_rotation;
+      uniform float u_pulse;
+      uniform float u_decade_lock;
+      uniform float u_era_ignition;
+      uniform float u_growth;
+      uniform float u_failure;
       varying vec4 v_color;
+      varying float v_sheen;
       void main() {
-        vec2 clip = a_position / (u_resolution * 0.5);
+        float localGrowth = mix(1.0, u_growth, a_fresh);
+        vec2 position = a_center + ((a_position - a_center) * localGrowth);
+        position *= 1.0 + (u_pulse * 0.025) + (u_decade_lock * 0.018) + (u_era_ignition * 0.055);
+        float rotationCos = cos(u_rotation);
+        float rotationSin = sin(u_rotation);
+        mat2 sceneRotation = mat2(rotationCos, -rotationSin, rotationSin, rotationCos);
+        position = sceneRotation * position;
+        vec2 rotatedCenter = sceneRotation * a_center;
+        vec2 escape = normalize(rotatedCenter + vec2((a_seed - 0.5) * 24.0, (0.5 - a_seed) * 18.0));
+        position += escape * u_failure * (28.0 + (a_seed * 92.0));
+        position.y += u_failure * u_failure * ((a_seed - 0.34) * 110.0);
+        vec2 clip = position / (u_resolution * 0.5);
         gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
-        gl_PointSize = a_size * u_pixel_ratio;
         v_color = a_color;
+        v_sheen = 0.5 + (0.5 * sin((u_time * 0.72) + (a_seed * 19.0)));
       }
     `);
     const fragment = createShader(gl, gl.FRAGMENT_SHADER, `
       precision mediump float;
       varying vec4 v_color;
+      varying float v_sheen;
+      uniform float u_pulse;
+      uniform float u_decade_lock;
+      uniform float u_era_ignition;
+      uniform float u_failure;
       void main() {
-        vec2 point = (gl_PointCoord * 2.0) - vec2(1.0);
-        float diamond = abs(point.x) + abs(point.y);
-        float alpha = 1.0 - smoothstep(0.72, 1.0, diamond);
-        if (alpha <= 0.01) discard;
-        float sideLight = mix(0.72, 1.12, step(0.0, point.x));
-        float topLight = mix(0.68, 1.0, 1.0 - smoothstep(-0.7, 0.55, point.y));
-        float ridge = 1.0 - smoothstep(0.0, 0.16, abs(abs(point.x) - abs(point.y)));
-        vec3 color = v_color.rgb * sideLight * topLight;
-        color = mix(color, vec3(1.0), ridge * 0.28);
-        gl_FragColor = vec4(color, alpha * v_color.a);
+        float shimmer = 0.88 + (v_sheen * 0.16);
+        vec3 color = v_color.rgb * shimmer;
+        float celebration = (u_pulse * 0.16) + (u_decade_lock * 0.18) + (u_era_ignition * 0.32);
+        color = mix(color, vec3(0.96, 0.99, 1.0), (v_sheen * 0.11) + celebration);
+        gl_FragColor = vec4(color, v_color.a * (1.0 - u_failure));
       }
     `);
     const program = gl.createProgram();
@@ -2578,20 +2651,33 @@
         program,
         buffer: gl.createBuffer(),
         positionLocation: gl.getAttribLocation(program, "a_position"),
+        centerLocation: gl.getAttribLocation(program, "a_center"),
         colorLocation: gl.getAttribLocation(program, "a_color"),
-        sizeLocation: gl.getAttribLocation(program, "a_size"),
+        seedLocation: gl.getAttribLocation(program, "a_seed"),
+        freshLocation: gl.getAttribLocation(program, "a_fresh"),
         resolutionLocation: gl.getUniformLocation(program, "u_resolution"),
-        pixelRatioLocation: gl.getUniformLocation(program, "u_pixel_ratio"),
-        shards: [],
+        timeLocation: gl.getUniformLocation(program, "u_time"),
+        rotationLocation: gl.getUniformLocation(program, "u_rotation"),
+        pulseLocation: gl.getUniformLocation(program, "u_pulse"),
+        decadeLockLocation: gl.getUniformLocation(program, "u_decade_lock"),
+        eraIgnitionLocation: gl.getUniformLocation(program, "u_era_ignition"),
+        growthLocation: gl.getUniformLocation(program, "u_growth"),
+        failureLocation: gl.getUniformLocation(program, "u_failure"),
+        vertexCount: 0,
+        componentCount: 0,
         sceneSignature: "",
         lastEventNonce: -1,
         lastStreak: 0,
         pulseStartedAt: 0,
+        growthStartedAt: 0,
+        decadeLockStartedAt: 0,
+        eraIgnitionStartedAt: 0,
         milestoneStartedAt: 0,
         failureStartedAt: 0,
         pendingScene: null,
         frameId: 0,
         running: false,
+        needsDraw: true,
       };
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -2603,31 +2689,129 @@
     }
   }
 
-  function buildCrystalShards(colors, data) {
-    const palette = crystalPalette(data);
-    const milestones = new Set([10, 25, 50, 100, 250, 500, 1000]);
-    return colors.map((color, index) => {
-      const layer = Math.floor(index / 125);
-      const radius = 74 + (Math.min(7, layer) * 6.4);
-      const vertical = (crystalHash(index * 5.17) * 2) - 1;
-      const theta = (crystalHash(index * 9.73 + 4.1) * Math.PI * 2) + (layer * 0.53);
-      const horizontalRadius = Math.sqrt(Math.max(0, 1 - (vertical * vertical)));
-      const positionX = Math.cos(theta) * horizontalRadius * radius;
-      const positionY = vertical * radius * 0.72;
-      const positionZ = Math.sin(theta) * horizontalRadius * radius;
-      const rgb = crystalRatingRgb(color, palette);
-      const recentBoost = index >= Math.max(0, colors.length - 10) ? 2.3 : 0;
-      const milestoneBoost = milestones.has(index + 1) ? 4.8 : 0;
-      const size = clamp(10.8 - (layer * 0.48) + (crystalHash(index * 2.9) * 2.2) + recentBoost + milestoneBoost, 5.8, 17);
-      return {
-        x: positionX,
-        y: positionY,
-        z: positionZ,
-        color: rgb,
-        size,
-        seed: crystalHash(index * 17.31 + 8.2),
-      };
+  function crystalCameraForCount(count) {
+    const value = Math.max(0, Number(count || 0));
+    const ringIndex = value > 50 ? Math.floor((value - 1) / 50) : 0;
+    const naturalRadius = value <= 50
+      ? 50 + (5.8 * Math.sqrt(value))
+      : 126 + (ringIndex * 23);
+    const targetRadius = 91 + (42 * (1 - Math.exp(-value / 260)));
+    return {
+      scale: clamp(targetRadius / Math.max(targetRadius, naturalRadius), 0.22, 1),
+      naturalRadius,
+      targetRadius,
+    };
+  }
+
+  function crystalRosetteBaselineGeometry(ordinal) {
+    const value = Math.max(1, Math.floor(Number(ordinal || 1)));
+    const seed = crystalHash((value * 13.71) + 2.4);
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    return {
+      seed,
+      angle: (value * goldenAngle) - (Math.PI / 2) + ((seed - 0.5) * 0.16),
+      radialDistance: 20 + (5.8 * Math.sqrt(value)),
+      length: 30 + (seed * 17),
+      width: 11 + (crystalHash(value * 7.31) * 8),
+    };
+  }
+
+  function crystalMandalaRadius(ordinal, baseline) {
+    const value = Math.max(1, Math.floor(Number(ordinal || 1)));
+    if (value <= 50) {
+      return baseline.radialDistance;
+    }
+    const ringIndex = Math.floor((value - 1) / 50);
+    const ringTexture = (crystalHash((value * 3.17) + 8.2) - 0.5) * 6;
+    return 74 + (ringIndex * 23) + ringTexture;
+  }
+
+  function fixedCrystalSheenPalette(data) {
+    const theme = crystalPalette(data);
+    return [
+      mixCrystalRgb(theme.core, [0.94, 0.99, 1.0, 1], 0.78),
+      mixCrystalRgb(theme.core, [0.57, 0.88, 0.96, 1], 0.72),
+      mixCrystalRgb(theme.core, [0.67, 0.61, 1.0, 1], 0.76),
+      mixCrystalRgb(theme.core, [0.38, 0.30, 0.78, 1], 0.72),
+      mixCrystalRgb(theme.core, [0.16, 0.12, 0.39, 1], 0.66),
+    ];
+  }
+
+  function appendCrystalMeshTriangle(values, points, center, color, seed, fresh) {
+    points.forEach((point) => {
+      values.push(
+        point[0], point[1],
+        center[0], center[1],
+        color[0], color[1], color[2], color[3],
+        seed,
+        fresh,
+      );
     });
+  }
+
+  function buildCrystalClusterVertices(count, data) {
+    const value = Math.max(0, Math.floor(Number(count || 0)));
+    const camera = crystalCameraForCount(value);
+    const palette = fixedCrystalSheenPalette(data);
+    const values = [];
+
+    for (let index = 0; index < value; index += 1) {
+      const ordinal = index + 1;
+      const baseline = crystalRosetteBaselineGeometry(ordinal);
+      const seed = baseline.seed;
+      const angle = baseline.angle;
+      const radialDistance = crystalMandalaRadius(ordinal, baseline);
+      const radialX = Math.cos(angle);
+      const radialY = Math.sin(angle);
+      const tangentX = -radialY;
+      const tangentY = radialX;
+      const newestBeyondBaseline = value > 50 && index === value - 1;
+      const emphasisScale = newestBeyondBaseline ? 1.22 : 1;
+      const center = [
+        radialX * radialDistance * camera.scale,
+        radialY * radialDistance * 0.88 * camera.scale,
+      ];
+      const length = baseline.length * emphasisScale * camera.scale;
+      const width = baseline.width * emphasisScale * camera.scale;
+      const root = [center[0] - (radialX * length * 0.48), center[1] - (radialY * length * 0.48)];
+      const tip = [center[0] + (radialX * length * 0.52), center[1] + (radialY * length * 0.52)];
+      const left = [center[0] + (tangentX * width * 0.5), center[1] + (tangentY * width * 0.5)];
+      const right = [center[0] - (tangentX * width * 0.5), center[1] - (tangentY * width * 0.5)];
+      const ridge = [center[0] + (radialX * length * 0.07), center[1] + (radialY * length * 0.07)];
+      const ringIndex = ordinal > 50 ? Math.floor((ordinal - 1) / 50) : 0;
+      const paletteOffset = (ordinal + (ringIndex * 2)) % palette.length;
+      const fresh = index === value - 1 ? 1 : 0;
+
+      if (newestBeyondBaseline) {
+        const glowScale = 1.62;
+        const glowPoint = (point) => [
+          center[0] + ((point[0] - center[0]) * glowScale),
+          center[1] + ((point[1] - center[1]) * glowScale),
+        ];
+        const glowColor = [0.55, 0.78, 1, 0.16];
+        const glowRoot = glowPoint(root);
+        const glowTip = glowPoint(tip);
+        const glowLeft = glowPoint(left);
+        const glowRight = glowPoint(right);
+        const glowRidge = glowPoint(ridge);
+        appendCrystalMeshTriangle(values, [glowRoot, glowLeft, glowRidge], center, glowColor, seed, fresh);
+        appendCrystalMeshTriangle(values, [glowRoot, glowRidge, glowRight], center, glowColor, seed + 0.07, fresh);
+        appendCrystalMeshTriangle(values, [glowLeft, glowTip, glowRidge], center, glowColor, seed + 0.13, fresh);
+        appendCrystalMeshTriangle(values, [glowRidge, glowTip, glowRight], center, glowColor, seed + 0.19, fresh);
+      }
+
+      appendCrystalMeshTriangle(values, [root, left, ridge], center, palette[(paletteOffset + 4) % palette.length], seed, fresh);
+      appendCrystalMeshTriangle(values, [root, ridge, right], center, palette[(paletteOffset + 3) % palette.length], seed + 0.07, fresh);
+      appendCrystalMeshTriangle(values, [left, tip, ridge], center, palette[paletteOffset], seed + 0.13, fresh);
+      appendCrystalMeshTriangle(values, [ridge, tip, right], center, palette[(paletteOffset + 1) % palette.length], seed + 0.19, fresh);
+    }
+
+    return {
+      values: new Float32Array(values),
+      vertexCount: values.length / 10,
+      camera,
+      ringCount: value > 50 ? Math.floor((value - 1) / 50) + 1 : 1,
+    };
   }
 
   function crystalTriangleNormal(a, b, c) {
@@ -2682,9 +2866,17 @@
   }
 
   function uploadCrystalScene(renderer, colors, data, signature) {
-    renderer.shards = buildCrystalShards(colors, data);
+    const componentCount = Math.max(0, Number(data?.streak || colors.length));
+    const cluster = buildCrystalClusterVertices(componentCount, data);
+    renderer.gl.bindBuffer(renderer.gl.ARRAY_BUFFER, renderer.buffer);
+    renderer.gl.bufferData(renderer.gl.ARRAY_BUFFER, cluster.values, renderer.gl.STATIC_DRAW);
+    renderer.vertexCount = cluster.vertexCount;
+    renderer.componentCount = componentCount;
+    renderer.camera = cluster.camera;
+    renderer.ringCount = cluster.ringCount;
     renderer.sceneSignature = signature;
-    renderer.lastStreak = colors.length;
+    renderer.lastStreak = componentCount;
+    renderer.needsDraw = true;
   }
 
   function restartCrystalSceneClass(className, duration) {
@@ -2700,27 +2892,27 @@
     const scene = $("acgCrystalScene");
     const colors = Array.isArray(data?.satelliteColors) ? data.satelliteColors : [];
     const streak = Math.max(0, Number(data?.streak || colors.length));
-    const tier = crystalTierForStreak(streak);
+    const rotationEnabled = isCrystalRotationEnabled(data);
     setText("acgCrystalStreak", String(streak));
-    setText("acgCrystalTier", tier.label);
     if (scene) {
-      scene.dataset.tier = String(tier.index);
-      const continuousScale = clamp(0.76 + (Math.log2(streak + 1) * 0.055), 0.76, 1.3);
-      scene.style.setProperty("--acg-crystal-tier-scale", String(continuousScale));
+      scene.dataset.motion = rotationEnabled ? "rotating" : "still";
+      scene.dataset.growthEra = String(streak > 50 ? Math.floor((streak - 1) / 50) : 0);
+      scene.dataset.eraProgress = String(streak > 50 ? ((streak - 1) % 50) + 1 : streak);
     }
 
     const renderer = ensureCrystalRenderer();
     scene?.classList.toggle("no-webgl", !renderer);
     scene?.classList.toggle("webgl-ready", Boolean(renderer));
     if (!renderer) return;
-    const signature = `${colors.join("|")}|${data?.appearanceMode || "midnight"}|${JSON.stringify(data?.customColors || {})}`;
+    const signature = `${streak}|${data?.appearanceMode || "midnight"}|${JSON.stringify(data?.customColors || {})}`;
     const nonce = Number(data?.eventNonce ?? -1);
     const newEvent = nonce !== renderer.lastEventNonce;
     const eventType = String(data?.lastEventType || "");
     const now = performance.now();
 
-    if (newEvent && eventType === "timeout" && renderer.shards.length > 0) {
+    if (newEvent && eventType === "timeout" && renderer.componentCount > 0) {
       renderer.failureStartedAt = now;
+      renderer.needsDraw = true;
       renderer.pendingScene = { colors: colors.slice(), data, signature };
       restartCrystalSceneClass("fracturing", 860);
     } else if (!renderer.failureStartedAt && signature !== renderer.sceneSignature) {
@@ -2729,26 +2921,53 @@
 
     if (newEvent && ["again", "hard", "good", "easy"].includes(eventType)) {
       renderer.pulseStartedAt = now;
+      renderer.growthStartedAt = now;
+      renderer.needsDraw = true;
       restartCrystalSceneClass("reacting", 700);
-      if ([10, 25, 50, 100, 250, 500, 1000].includes(streak)) {
+      if (streak > 0 && streak % 10 === 0) {
+        renderer.decadeLockStartedAt = now;
+        restartCrystalSceneClass("decade-complete", 820);
+      }
+      if (streak > 0 && streak % 50 === 0) {
+        renderer.eraIgnitionStartedAt = now;
+        restartCrystalSceneClass("era-complete", 1320);
+      }
+      if ([100, 250, 500, 1000].includes(streak)) {
         renderer.milestoneStartedAt = now;
-        restartCrystalSceneClass("milestone", 1240);
+        restartCrystalSceneClass("milestone", 1540);
       }
     }
     renderer.lastEventNonce = nonce;
 
-    if (!renderer.running) {
+    const expectedWidth = Math.max(1, Math.round(renderer.canvas.offsetWidth * clamp(window.devicePixelRatio || 1, 1, 2)));
+    const expectedHeight = Math.max(1, Math.round(renderer.canvas.offsetHeight * clamp(window.devicePixelRatio || 1, 1, 2)));
+    if (renderer.canvas.width !== expectedWidth || renderer.canvas.height !== expectedHeight) {
+      renderer.needsDraw = true;
+    }
+
+    if (!renderer.running && (rotationEnabled || renderer.needsDraw)) {
       renderer.running = true;
       renderer.frameId = window.requestAnimationFrame((timestamp) => drawCrystalFrame(renderer, timestamp));
     }
   }
 
   function drawCrystalFrame(renderer, timestamp = performance.now()) {
-    if (!renderer.running || !isCrystalReactorMode(state.data)) return;
-    const { width, height, dpr, bufferWidth, bufferHeight } = resizeWebglCanvas(renderer);
+    if (!renderer.running || !isCrystalReactorMode(state.data)) {
+      renderer.running = false;
+      renderer.frameId = 0;
+      return;
+    }
+    const { width, height, bufferWidth, bufferHeight } = resizeWebglCanvas(renderer);
     const gl = renderer.gl;
     const pulse = clamp(1 - ((timestamp - renderer.pulseStartedAt) / 700), 0, 1);
-    const milestone = clamp(1 - ((timestamp - renderer.milestoneStartedAt) / 1200), 0, 1);
+    const decadeLock = clamp(1 - ((timestamp - renderer.decadeLockStartedAt) / 760), 0, 1);
+    const eraIgnition = clamp(1 - ((timestamp - renderer.eraIgnitionStartedAt) / 1260), 0, 1);
+    const milestone = clamp(1 - ((timestamp - renderer.milestoneStartedAt) / 1480), 0, 1);
+    const growthProgress = clamp((timestamp - renderer.growthStartedAt) / 520, 0, 1);
+    const growth = 1 - Math.pow(1 - growthProgress, 3);
+    const visualPulse = clamp(pulse + (decadeLock * 0.18) + (eraIgnition * 0.3) + (milestone * 0.46), 0, 1);
+    const rotationEnabled = isCrystalRotationEnabled(state.data);
+    const rotation = rotationEnabled ? (timestamp / 1000) * 0.16 : 0;
     let failure = renderer.failureStartedAt
       ? clamp((timestamp - renderer.failureStartedAt) / 820, 0, 1)
       : 0;
@@ -2757,61 +2976,31 @@
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    const shards = renderer.shards || [];
-    if (shards.length > 0) {
-      const nowSeconds = timestamp / 1000;
-      const spin = (nowSeconds * 0.19) + (Math.sin(nowSeconds * 0.31) * 0.08);
-      const spinCos = Math.cos(spin);
-      const spinSin = Math.sin(spin);
-      const tilt = Math.sin(nowSeconds * 0.23) * 0.12;
-      const tiltCos = Math.cos(tilt);
-      const tiltSin = Math.sin(tilt);
-      const values = new Float32Array(shards.length * 7);
-      shards.forEach((shard, index) => {
-        let x = (shard.x * spinCos) - (shard.z * spinSin);
-        let z = (shard.x * spinSin) + (shard.z * spinCos);
-        let y = (shard.y * tiltCos) - (z * tiltSin);
-        z = (shard.y * tiltSin) + (z * tiltCos);
-        y += Math.sin((nowSeconds * 0.82) + (shard.seed * 18)) * 1.8;
-
-        if (failure > 0) {
-          const escapeX = x + ((shard.seed - 0.5) * 38);
-          const escapeY = y + ((0.5 - shard.seed) * 24);
-          const escapeZ = z + 4;
-          const escapeLength = Math.max(1, Math.sqrt((escapeX * escapeX) + (escapeY * escapeY) + (escapeZ * escapeZ)));
-          const escapeDistance = failure * (38 + (shard.seed * 92));
-          x += (escapeX / escapeLength) * escapeDistance;
-          y += (escapeY / escapeLength) * escapeDistance;
-          z += (escapeZ / escapeLength) * escapeDistance;
-          y += failure * failure * ((shard.seed - 0.34) * 118);
-        }
-
-        const perspective = 330 / Math.max(170, 330 + z);
-        const depthLight = clamp(0.64 + (z / 360), 0.28, 1);
-        const offset = index * 7;
-        values[offset] = x * perspective;
-        values[offset + 1] = y * perspective;
-        values[offset + 2] = shard.size * perspective * (1 + (pulse * 0.36) + (milestone * 0.18));
-        values[offset + 3] = shard.color[0] * depthLight;
-        values[offset + 4] = shard.color[1] * depthLight;
-        values[offset + 5] = shard.color[2] * depthLight;
-        values[offset + 6] = 0.94 * (1 - failure);
-      });
-
+    if (renderer.vertexCount > 0) {
       gl.useProgram(renderer.program);
       gl.bindBuffer(gl.ARRAY_BUFFER, renderer.buffer);
-      gl.bufferData(gl.ARRAY_BUFFER, values, gl.DYNAMIC_DRAW);
-      const stride = 7 * 4;
+      const stride = 10 * 4;
       gl.enableVertexAttribArray(renderer.positionLocation);
       gl.vertexAttribPointer(renderer.positionLocation, 2, gl.FLOAT, false, stride, 0);
-      gl.enableVertexAttribArray(renderer.sizeLocation);
-      gl.vertexAttribPointer(renderer.sizeLocation, 1, gl.FLOAT, false, stride, 2 * 4);
+      gl.enableVertexAttribArray(renderer.centerLocation);
+      gl.vertexAttribPointer(renderer.centerLocation, 2, gl.FLOAT, false, stride, 2 * 4);
       gl.enableVertexAttribArray(renderer.colorLocation);
-      gl.vertexAttribPointer(renderer.colorLocation, 4, gl.FLOAT, false, stride, 3 * 4);
+      gl.vertexAttribPointer(renderer.colorLocation, 4, gl.FLOAT, false, stride, 4 * 4);
+      gl.enableVertexAttribArray(renderer.seedLocation);
+      gl.vertexAttribPointer(renderer.seedLocation, 1, gl.FLOAT, false, stride, 8 * 4);
+      gl.enableVertexAttribArray(renderer.freshLocation);
+      gl.vertexAttribPointer(renderer.freshLocation, 1, gl.FLOAT, false, stride, 9 * 4);
       gl.uniform2f(renderer.resolutionLocation, width, height);
-      gl.uniform1f(renderer.pixelRatioLocation, dpr);
-      gl.drawArrays(gl.POINTS, 0, shards.length);
+      gl.uniform1f(renderer.timeLocation, rotationEnabled ? timestamp / 1000 : 0);
+      gl.uniform1f(renderer.rotationLocation, rotation);
+      gl.uniform1f(renderer.pulseLocation, visualPulse);
+      gl.uniform1f(renderer.decadeLockLocation, decadeLock);
+      gl.uniform1f(renderer.eraIgnitionLocation, eraIgnition);
+      gl.uniform1f(renderer.growthLocation, growth);
+      gl.uniform1f(renderer.failureLocation, failure);
+      gl.drawArrays(gl.TRIANGLES, 0, renderer.vertexCount);
     }
+    renderer.needsDraw = false;
 
     if (renderer.failureStartedAt && failure >= 1) {
       const pending = renderer.pendingScene;
@@ -2822,7 +3011,13 @@
         uploadCrystalScene(renderer, pending.colors, pending.data, pending.signature);
       }
     }
-    renderer.frameId = window.requestAnimationFrame((nextTimestamp) => drawCrystalFrame(renderer, nextTimestamp));
+    const reactionActive = pulse > 0 || decadeLock > 0 || eraIgnition > 0 || milestone > 0 || growthProgress < 1 || failure > 0 || Boolean(renderer.failureStartedAt);
+    if (rotationEnabled || reactionActive || renderer.needsDraw) {
+      renderer.frameId = window.requestAnimationFrame((nextTimestamp) => drawCrystalFrame(renderer, nextTimestamp));
+    } else {
+      renderer.running = false;
+      renderer.frameId = 0;
+    }
   }
 
   function stopCrystalReactor() {

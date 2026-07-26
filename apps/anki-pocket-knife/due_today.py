@@ -33,10 +33,12 @@ from .common import (
 )
 from .due_today_core import (
     added_card_id_bounds,
+    date_range_from_relative_offsets,
     days_ago_for_date,
     deck_date_range_label,
     expand_deck_selection,
     normalize_deck_selection,
+    relative_day_offsets,
     rendered_question_has_image,
     rollover_boundaries,
     selected_scheduler_day,
@@ -53,6 +55,9 @@ OPEN_MESSAGE = "anki_pocket_knife_open_due_today"
 SOURCE_DECKS_SETTING = "due_today_source_deck_ids"
 INCLUDE_ADDED_CARDS_SETTING = "due_day_include_added_cards"
 DATE_PRESET_SETTING = "due_day_date_preset"
+DATE_START_OFFSET_SETTING = "due_day_date_start_offset"
+DATE_END_OFFSET_SETTING = "due_day_date_end_offset"
+CUSTOM_RELATIVE_PRESET = "custom_relative"
 AUDIO_DECK_ID_SETTING = "due_day_audio_deck_id"
 VISUAL_DECK_ID_SETTING = "due_day_visual_deck_id"
 COMBINED_DECK_ID_SETTING = "due_day_combined_deck_id"
@@ -307,7 +312,7 @@ def qualifying_card_ids(
     *,
     include_added_cards: bool | None = None,
 ) -> list[int]:
-    selected_date = _today_calendar_date() - timedelta(days=max(0, int(days_ago)))
+    selected_date = _today_calendar_date() - timedelta(days=int(days_ago))
     return qualifying_card_ids_for_range(
         source_deck_ids,
         selected_date,
@@ -576,21 +581,22 @@ class DueTodayDialog(QDialog):
         date_row.addWidget(QLabel("From"))
         self.start_picker = QDateEdit()
         self.start_picker.setCalendarPopup(True)
-        self.start_picker.setMaximumDate(today_qdate)
         self.start_picker.setDate(today_qdate)
         date_row.addWidget(self.start_picker)
         date_row.addWidget(QLabel("To"))
         self.end_picker = QDateEdit()
         self.end_picker.setCalendarPopup(True)
-        self.end_picker.setMaximumDate(today_qdate)
         self.end_picker.setDate(today_qdate)
         date_row.addWidget(self.end_picker)
         saved_preset = str(get_setting(DATE_PRESET_SETTING) or "today")
-        if saved_preset not in self.date_preset_buttons:
-            saved_preset = "today"
-        self._select_preset(saved_preset, *(dict(
-            today=(1, 0), yesterday=(1, 1), last_3_days=(3, 0), last_7_days=(7, 0)
-        )[saved_preset]))
+        if saved_preset == CUSTOM_RELATIVE_PRESET:
+            self._restore_relative_range()
+        else:
+            if saved_preset not in self.date_preset_buttons:
+                saved_preset = "today"
+            self._select_preset(saved_preset, *(dict(
+                today=(1, 0), yesterday=(1, 1), last_3_days=(3, 0), last_7_days=(7, 0)
+            )[saved_preset]))
         layout.addLayout(date_row)
         self.summary = QLabel()
         layout.addWidget(self.summary)
@@ -619,18 +625,20 @@ class DueTodayDialog(QDialog):
         self.combined_button = QPushButton("Build Combined")
         self.combined_button.setDefault(True)
         self.previous_button = QPushButton("Previous Range")
+        self.next_button = QPushButton("Next Range")
         close_button = QPushButton("Close")
         for button in (self.audio_button, self.visual_button, self.both_button, self.combined_button):
             row.addWidget(button)
         row.addWidget(self.previous_button)
+        row.addWidget(self.next_button)
         row.addStretch(1)
         row.addWidget(close_button)
         layout.addLayout(row)
         self.search.textChanged.connect(self._filter)
         self.start_picker.dateChanged.connect(self._refresh_summary)
         self.end_picker.dateChanged.connect(self._refresh_summary)
-        self.start_picker.dateChanged.connect(lambda *_args: self._clear_preset())
-        self.end_picker.dateChanged.connect(lambda *_args: self._clear_preset())
+        self.start_picker.dateChanged.connect(lambda *_args: self._save_relative_range())
+        self.end_picker.dateChanged.connect(lambda *_args: self._save_relative_range())
         self.include_added_checkbox.stateChanged.connect(self._include_added_cards_changed)
         self.deck_list.itemSelectionChanged.connect(self._refresh_summary)
         self.audio_button.clicked.connect(lambda: self._build("audio"))
@@ -638,6 +646,7 @@ class DueTodayDialog(QDialog):
         self.both_button.clicked.connect(lambda: self._build("both"))
         self.combined_button.clicked.connect(lambda: self._build("combined"))
         self.previous_button.clicked.connect(self._previous_day)
+        self.next_button.clicked.connect(self._next_day)
         close_button.clicked.connect(self.close)
         self._refresh_summary()
         self._focus_selected_preset()
@@ -673,13 +682,34 @@ class DueTodayDialog(QDialog):
         self.start_picker.setDate(QDate(start_date.year, start_date.month, start_date.day))
         self.end_picker.setDate(QDate(end_date.year, end_date.month, end_date.day))
 
-    def _clear_preset(self) -> None:
+    def _save_relative_range(self) -> None:
         if getattr(self, "_applying_preset", False) or not hasattr(self, "date_preset_buttons"):
             return
-        if any(button.isChecked() for button in self.date_preset_buttons.values()):
+        for button in self.date_preset_buttons.values():
+            button.setChecked(False)
+        start_offset, end_offset = relative_day_offsets(
+            self._selected_start_date(),
+            self._selected_end_date(),
+            self.today_date,
+        )
+        set_setting(DATE_PRESET_SETTING, CUSTOM_RELATIVE_PRESET)
+        set_setting(DATE_START_OFFSET_SETTING, start_offset)
+        set_setting(DATE_END_OFFSET_SETTING, end_offset)
+
+    def _restore_relative_range(self) -> None:
+        start_date, end_date = date_range_from_relative_offsets(
+            self.today_date,
+            int(get_setting(DATE_START_OFFSET_SETTING) or 0),
+            int(get_setting(DATE_END_OFFSET_SETTING) or 0),
+        )
+        self._applying_preset = True
+        try:
             for button in self.date_preset_buttons.values():
                 button.setChecked(False)
-            set_setting(DATE_PRESET_SETTING, "today")
+            self.start_picker.setDate(QDate(start_date.year, start_date.month, start_date.day))
+            self.end_picker.setDate(QDate(end_date.year, end_date.month, end_date.day))
+        finally:
+            self._applying_preset = False
 
     def _select_preset(self, preset: str, days: int, end_days_ago: int = 0) -> None:
         self._applying_preset = True
@@ -702,6 +732,13 @@ class DueTodayDialog(QDialog):
         start_date, end_date = self._selected_range()
         start_date -= timedelta(days=1)
         end_date -= timedelta(days=1)
+        self.start_picker.setDate(QDate(start_date.year, start_date.month, start_date.day))
+        self.end_picker.setDate(QDate(end_date.year, end_date.month, end_date.day))
+
+    def _next_day(self) -> None:
+        start_date, end_date = self._selected_range()
+        start_date += timedelta(days=1)
+        end_date += timedelta(days=1)
         self.start_picker.setDate(QDate(start_date.year, start_date.month, start_date.day))
         self.end_picker.setDate(QDate(end_date.year, end_date.month, end_date.day))
 
@@ -731,9 +768,19 @@ class DueTodayDialog(QDialog):
             audio_ids, visual_ids = _classify(card_ids)
             label = deck_date_range_label(start_date, end_date, self.today_date)
             if start_date == end_date:
-                age_label = f"{start_days_ago} day(s) ago"
+                if start_days_ago < 0:
+                    age_label = f"in {-start_days_ago} day(s)"
+                else:
+                    age_label = f"{start_days_ago} day(s) ago"
             else:
-                age_label = f"{min(start_days_ago, end_days_ago)}-{max(start_days_ago, end_days_ago)} day(s) ago"
+                offsets = sorted((-start_days_ago, -end_days_ago))
+                if offsets[0] >= 0:
+                    age_label = f"in {offsets[0]}-{offsets[1]} day(s)"
+                elif offsets[1] <= 0:
+                    ages = sorted((start_days_ago, end_days_ago))
+                    age_label = f"{ages[0]}-{ages[1]} day(s) ago"
+                else:
+                    age_label = f"{abs(offsets[0])} day(s) ago to {offsets[1]} day(s) ahead"
             self.summary.setText(
                 f"{label} ({age_label}): "
                 f"{len(audio_ids)} audio, {len(visual_ids)} visual; "
