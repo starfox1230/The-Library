@@ -97,6 +97,8 @@ class SessionManifest:
     transcription_model: str = ""
     estimated_cost_usd: float | None = None
     actual_cost_usd: float | None = None
+    playback_toggle_x: int | None = None
+    playback_toggle_y: int | None = None
 
     @property
     def manifest_path(self) -> Path:

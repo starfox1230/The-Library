@@ -259,6 +259,41 @@ def test_review_links_images_to_video_timestamp(tmp_path) -> None:
     assert 'src="recording.mp4"' in html
     assert "localStorage.setItem" in html
     assert "playback position is remembered" in html
+    assert 'class="expand"' in html
+    assert 'id="lightbox"' in html
+    assert "height: clamp(190px, 34vh, 340px)" in html
+    assert "object-fit: contain" in html
+    assert "overflow-wrap: anywhere" in html
+    assert 'lightbox.addEventListener("click", closeLightbox)' in html
+    assert 'src="anatomy-review-version.js"' in html
+    assert "checkForReviewUpdate" in html
+    assert (session.folder / "anatomy-review-version.js").is_file()
+
+
+def test_review_regeneration_updates_edits_badges_and_live_version(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    session = _session_with_capture(tmp_path)
+    session.playback_path.write_bytes(b"video")
+
+    review_path = build_anatomy_review(session)
+    first_version = (session.folder / "anatomy-review-version.js").read_text(
+        encoding="utf-8"
+    )
+    assert "Anki card" in review_path.read_text(encoding="utf-8")
+
+    capture = session.anatomy_captures[0]
+    capture.label = "Median nerve"
+    capture.create_anki_card = False
+    session.save()
+    build_anatomy_review(session)
+
+    regenerated = review_path.read_text(encoding="utf-8")
+    second_version = (session.folder / "anatomy-review-version.js").read_text(
+        encoding="utf-8"
+    )
+    assert "Median nerve" in regenerated
+    assert "<span class='badge'>Anki card</span>" not in regenerated
+    assert second_version != first_version
 
 
 def test_anki_export_uses_canonical_sacloze_model(tmp_path) -> None:

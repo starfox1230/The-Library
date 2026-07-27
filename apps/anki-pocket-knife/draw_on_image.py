@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import math
+from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
@@ -11,6 +13,7 @@ from aqt.qt import (
     QColor,
     QColorDialog,
     QDialog,
+    QFrame,
     QGuiApplication,
     QHBoxLayout,
     QImage,
@@ -18,8 +21,10 @@ from aqt.qt import (
     QPainter,
     QPainterPath,
     QPen,
-    QPixmap,
+    QPointF,
+    QPolygonF,
     QPushButton,
+    QRectF,
     QSizePolicy,
     QSlider,
     Qt,
@@ -102,154 +107,220 @@ def _source_image_path(payload: dict) -> Path | None:
     return None
 
 
+@dataclass
+class Stroke:
+    tool: str
+    color: str
+    width: float
+    points: list[QPointF] = field(default_factory=list)
+
+
 class DrawingCanvas(QWidget):
     def __init__(self, image: QImage, parent=None) -> None:
         super().__init__(parent)
-        self.image = image.convertToFormat(QImage.Format.Format_ARGB32)
+        self._image = image.convertToFormat(QImage.Format.Format_ARGB32)
+        self.tool = "arrow"
         self.pen_color = QColor(DEFAULT_COLOR)
-        self.pen_size = 8
-        self._current_path: QPainterPath | None = None
-        self._current_points: list[tuple[int, int]] = []
-        self._undo_stack: list[QImage] = []
-        self._redo_stack: list[QImage] = []
+        self.pen_size = 8.0
+        self._strokes: list[Stroke] = []
+        self._redo: list[Stroke] = []
+        self._active: Stroke | None = None
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(320, 240)
+        self.setMouseTracking(True)
+        self.setCursor(Qt.CursorShape.CrossCursor)
 
     def set_pen_color(self, color: QColor) -> None:
         if color.isValid():
             self.pen_color = QColor(color)
 
     def set_pen_size(self, size: int) -> None:
-        self.pen_size = max(1, min(80, int(size)))
+        self.pen_size = float(max(2, min(30, int(size))))
 
-    def _image_rect(self):
-        pixmap_size = self.image.size()
-        pixmap_size.scale(self.size(), Qt.AspectRatioMode.KeepAspectRatio)
-        left = int((self.width() - pixmap_size.width()) / 2)
-        top = int((self.height() - pixmap_size.height()) / 2)
-        return left, top, int(pixmap_size.width()), int(pixmap_size.height())
+    def set_tool(self, tool: str) -> None:
+        if tool not in {"arrow", "pen"}:
+            raise ValueError(f"Unknown drawing tool: {tool}")
+        self.tool = tool
 
-    def _image_point(self, pos):
-        left, top, width, height = self._image_rect()
-        if width <= 0 or height <= 0:
-            return None
-        x = pos.x() - left
-        y = pos.y() - top
-        if x < 0 or y < 0 or x > width or y > height:
-            return None
-        return (
-            int(x * self.image.width() / width),
-            int(y * self.image.height() / height),
+    def _target_rect(self) -> QRectF:
+        available = QRectF(self.rect()).adjusted(8, 8, -8, -8)
+        if (
+            available.width() <= 0
+            or available.height() <= 0
+            or self._image.width() <= 0
+            or self._image.height() <= 0
+        ):
+            return QRectF()
+        scale = min(
+            available.width() / self._image.width(),
+            available.height() / self._image.height(),
         )
+        width = self._image.width() * scale
+        height = self._image.height() * scale
+        return QRectF(
+            available.center().x() - width / 2,
+            available.center().y() - height / 2,
+            width,
+            height,
+        )
+
+    def _image_point(self, pos: QPointF) -> QPointF | None:
+        target = self._target_rect()
+        if target.isEmpty() or not target.contains(pos):
+            return None
+        return QPointF(
+            (pos.x() - target.left()) * self._image.width() / target.width(),
+            (pos.y() - target.top()) * self._image.height() / target.height(),
+        )
+
+    def undo(self) -> None:
+        if self._strokes:
+            self._redo.append(self._strokes.pop())
+            self.update()
+
+    def redo(self) -> None:
+        if self._redo:
+            self._strokes.append(self._redo.pop())
+            self.update()
+
+    def clear(self) -> None:
+        if not self._strokes:
+            return
+        self._redo.extend(reversed(self._strokes))
+        self._strokes.clear()
+        self.update()
+
+    @staticmethod
+    def _draw_stroke(painter: QPainter, stroke: Stroke) -> None:
+        if len(stroke.points) < 2:
+            return
+
+        painter.save()
+        pen = QPen(QColor(stroke.color), stroke.width)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(QColor(stroke.color))
+
+        if stroke.tool == "arrow":
+            start, end = stroke.points[0], stroke.points[-1]
+            painter.drawLine(start, end)
+            angle = math.atan2(end.y() - start.y(), end.x() - start.x())
+            head_length = max(18.0, stroke.width * 4.2)
+            wing = math.radians(28)
+            left = QPointF(
+                end.x() - head_length * math.cos(angle - wing),
+                end.y() - head_length * math.sin(angle - wing),
+            )
+            right = QPointF(
+                end.x() - head_length * math.cos(angle + wing),
+                end.y() - head_length * math.sin(angle + wing),
+            )
+            painter.drawPolygon(QPolygonF([end, left, right]))
+            painter.restore()
+            return
+
+        path = QPainterPath(stroke.points[0])
+        if len(stroke.points) == 2:
+            path.lineTo(stroke.points[1])
+        else:
+            for index in range(1, len(stroke.points) - 1):
+                point = stroke.points[index]
+                following = stroke.points[index + 1]
+                midpoint = QPointF(
+                    (point.x() + following.x()) / 2,
+                    (point.y() + following.y()) / 2,
+                )
+                path.quadTo(point, midpoint)
+            path.lineTo(stroke.points[-1])
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(path)
+        painter.restore()
+
+    def _paint_image_contents(self, painter: QPainter, include_active: bool) -> None:
+        painter.drawImage(QPointF(0, 0), self._image)
+        for stroke in self._strokes:
+            self._draw_stroke(painter, stroke)
+        if include_active and self._active is not None:
+            self._draw_stroke(painter, self._active)
 
     def paintEvent(self, _event) -> None:
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        painter.fillRect(self.rect(), QColor("#111111"))
-        pixmap = QPixmap.fromImage(self.image)
-        left, top, width, height = self._image_rect()
-        painter.drawPixmap(left, top, width, height, pixmap)
-        if self._current_path is not None:
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-            painter.translate(left, top)
-            scale_x = width / max(1, self.image.width())
-            scale_y = height / max(1, self.image.height())
-            painter.scale(scale_x, scale_y)
-            painter.setPen(self._pen())
-            painter.drawPath(self._current_path)
-
-    def _pen(self) -> QPen:
-        return QPen(
-            self.pen_color,
-            self.pen_size,
-            Qt.PenStyle.SolidLine,
-            Qt.PenCapStyle.RoundCap,
-            Qt.PenJoinStyle.RoundJoin,
+        painter.fillRect(self.rect(), QColor("#05080D"))
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        target = self._target_rect()
+        if target.isEmpty():
+            return
+        painter.translate(target.left(), target.top())
+        painter.scale(
+            target.width() / self._image.width(),
+            target.height() / self._image.height(),
         )
+        self._paint_image_contents(painter, include_active=True)
 
-    def _push_undo_snapshot(self) -> None:
-        self._undo_stack.append(self.image.copy())
-        if len(self._undo_stack) > 80:
-            self._undo_stack.pop(0)
-        self._redo_stack.clear()
-
-    def undo(self) -> None:
-        if not self._undo_stack:
-            return
-        self._redo_stack.append(self.image.copy())
-        self.image = self._undo_stack.pop()
-        self._current_path = None
-        self._current_points = []
-        self.update()
-
-    def redo(self) -> None:
-        if not self._redo_stack:
-            return
-        self._undo_stack.append(self.image.copy())
-        self.image = self._redo_stack.pop()
-        self._current_path = None
-        self._current_points = []
-        self.update()
-
-    def _smooth_path(self, points: list[tuple[int, int]]) -> QPainterPath:
-        path = QPainterPath()
-        if not points:
-            return path
-        path.moveTo(points[0][0], points[0][1])
-        if len(points) == 1:
-            path.lineTo(points[0][0] + 0.1, points[0][1] + 0.1)
-            return path
-        for index in range(1, len(points)):
-            previous = points[index - 1]
-            current = points[index]
-            mid_x = (previous[0] + current[0]) / 2
-            mid_y = (previous[1] + current[1]) / 2
-            path.quadTo(previous[0], previous[1], mid_x, mid_y)
-        path.lineTo(points[-1][0], points[-1][1])
-        return path
-
-    def _commit_current_path(self) -> None:
-        if self._current_path is None:
-            return
-        painter = QPainter(self.image)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        painter.setPen(self._pen())
-        painter.drawPath(self._current_path)
+    def rendered_image(self) -> QImage:
+        rendered = self._image.copy()
+        painter = QPainter(rendered)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        for stroke in self._strokes:
+            self._draw_stroke(painter, stroke)
         painter.end()
-        self._current_path = None
-        self._current_points = []
-        self.update()
+        return rendered
 
     def mousePressEvent(self, event) -> None:
         if event.button() != Qt.MouseButton.LeftButton:
             return
-        point = self._image_point(event.position().toPoint())
+        point = self._image_point(event.position())
         if point is None:
             return
-        self._push_undo_snapshot()
-        self._current_points = [point]
-        self._current_path = self._smooth_path(self._current_points)
+        self._active = Stroke(
+            self.tool,
+            self.pen_color.name().upper(),
+            self.pen_size,
+            [point],
+        )
+        self._redo.clear()
         self.update()
 
     def mouseMoveEvent(self, event) -> None:
         if not (event.buttons() & Qt.MouseButton.LeftButton):
             return
-        current = self._image_point(event.position().toPoint())
-        if current is None or self._current_path is None:
+        point = self._image_point(event.position())
+        if point is None or self._active is None:
             return
-        self._current_points.append(current)
-        self._current_path = self._smooth_path(self._current_points)
+        if self._active.tool == "arrow":
+            if len(self._active.points) == 1:
+                self._active.points.append(point)
+            else:
+                self._active.points[-1] = point
+        else:
+            self._active.points.append(point)
         self.update()
 
-    def mouseReleaseEvent(self, _event) -> None:
-        self._commit_current_path()
+    def mouseReleaseEvent(self, event) -> None:
+        if event.button() != Qt.MouseButton.LeftButton or self._active is None:
+            return
+        point = self._image_point(event.position())
+        if point is not None:
+            if self._active.tool == "arrow":
+                if len(self._active.points) == 1:
+                    self._active.points.append(point)
+                else:
+                    self._active.points[-1] = point
+            elif len(self._active.points) == 1:
+                self._active.points.append(point)
+        if len(self._active.points) >= 2:
+            self._strokes.append(self._active)
+        self._active = None
+        self.update()
 
 
 class DrawOnImageDialog(QDialog):
     def __init__(self, image_path: Path, parent=None) -> None:
         super().__init__(parent or mw)
-        self.setWindowTitle("Draw on Image")
+        self.setWindowTitle("Annotate Image")
         self.setWindowState(self.windowState() | Qt.WindowState.WindowFullScreen)
         image = QImage(str(image_path))
         if image.isNull():
@@ -273,32 +344,94 @@ class DrawOnImageDialog(QDialog):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
 
-        toolbar = QHBoxLayout()
+        toolbar_frame = QFrame()
+        toolbar = QHBoxLayout(toolbar_frame)
+        toolbar.setContentsMargins(8, 6, 8, 6)
+
+        self.arrow_button = QPushButton("Arrow")
+        self.draw_button = QPushButton("Draw")
+        self.arrow_button.setCheckable(True)
+        self.draw_button.setCheckable(True)
+        self.arrow_button.setChecked(True)
+
         self.color_button = QPushButton(DEFAULT_COLOR)
-        self.color_button.setStyleSheet(f"background: {DEFAULT_COLOR}; color: #111; font-weight: 600;")
-        self.size_label = QLabel("Pen: 8")
+        self.color_button.setStyleSheet(
+            f"background: {DEFAULT_COLOR}; color: #111; font-weight: 600;"
+        )
+        self.size_label = QLabel("Width: 8")
         self.size_slider = QSlider(Qt.Orientation.Horizontal)
-        self.size_slider.setRange(1, 80)
+        self.size_slider.setRange(2, 30)
         self.size_slider.setValue(8)
-        self.size_slider.setFixedWidth(220)
+        self.size_slider.setFixedWidth(140)
+
+        undo_button = QPushButton("Undo")
+        redo_button = QPushButton("Redo")
+        clear_button = QPushButton("Clear Drawing")
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
 
+        toolbar.addWidget(self.arrow_button)
+        toolbar.addWidget(self.draw_button)
+        toolbar.addSpacing(12)
         toolbar.addWidget(QLabel("Color:"))
         toolbar.addWidget(self.color_button)
-        toolbar.addSpacing(18)
+        toolbar.addSpacing(12)
         toolbar.addWidget(self.size_label)
         toolbar.addWidget(self.size_slider)
+        toolbar.addSpacing(12)
+        toolbar.addWidget(undo_button)
+        toolbar.addWidget(redo_button)
+        toolbar.addWidget(clear_button)
         toolbar.addStretch(1)
         toolbar.addWidget(ok_button)
         toolbar.addWidget(cancel_button)
-        layout.addLayout(toolbar)
+        layout.addWidget(toolbar_frame)
         layout.addWidget(self.canvas, 1)
 
+        self.arrow_button.clicked.connect(lambda: self._set_tool("arrow"))
+        self.draw_button.clicked.connect(lambda: self._set_tool("pen"))
         self.color_button.clicked.connect(self._choose_color)
         self.size_slider.valueChanged.connect(self._set_pen_size)
+        undo_button.clicked.connect(self.canvas.undo)
+        redo_button.clicked.connect(self.canvas.redo)
+        clear_button.clicked.connect(self.canvas.clear)
         ok_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
+
+        self.setStyleSheet(
+            """
+            QDialog, QWidget {
+                background: #09101C;
+                color: #EEF4FC;
+                font-family: "Segoe UI";
+                font-size: 10pt;
+            }
+            QFrame {
+                background: #101B2B;
+                border: 1px solid #26364D;
+                border-radius: 8px;
+            }
+            QPushButton {
+                background: #17273A;
+                border: 1px solid #36516F;
+                border-radius: 6px;
+                padding: 8px 12px;
+            }
+            QPushButton:hover {
+                background: #203752;
+                border-color: #4D7097;
+            }
+            QPushButton:checked {
+                background: #9B6800;
+                border-color: #FFAA00;
+            }
+            """
+        )
+
+    def _set_tool(self, tool: str) -> None:
+        self.canvas.set_tool(tool)
+        self.arrow_button.setChecked(tool == "arrow")
+        self.draw_button.setChecked(tool == "pen")
 
     def _choose_color(self) -> None:
         color = QColorDialog.getColor(self.canvas.pen_color, self, "Choose Pen Color")
@@ -312,13 +445,13 @@ class DrawOnImageDialog(QDialog):
 
     def _set_pen_size(self, value: int) -> None:
         self.canvas.set_pen_size(int(value))
-        self.size_label.setText(f"Pen: {int(value)}")
+        self.size_label.setText(f"Width: {int(value)}")
 
     def copy_to_clipboard(self) -> None:
         clipboard = QGuiApplication.clipboard()
         if clipboard is None:
             raise RuntimeError("The system clipboard is not available.")
-        clipboard.setImage(self.canvas.image)
+        clipboard.setImage(self.canvas.rendered_image())
 
     def copy_to_clipboard_and_close(self) -> None:
         self.copy_to_clipboard()

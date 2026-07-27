@@ -28,7 +28,9 @@ and resumable, so a failed API request cannot destroy the local recording.
 
 Press **Past Sessions** at the top of the app to search and sort previous recordings.
 The library shows each session's date, title, duration, anatomy-capture count,
-transcript availability, and processing state.
+total on-disk size, transcript availability, and processing state. The selected
+session's size is repeated in the detail panel, and the footer shows the combined
+size of the currently visible sessions.
 
 The detail panel provides direct actions:
 
@@ -42,11 +44,23 @@ The detail panel provides direct actions:
   transcript, duration, and model in the recorder UI.
 - **Open Folder in Explorer** remains available when raw files are needed, but is not
   required for normal review.
+- **Delete Session…** asks for explicit confirmation, then permanently deletes the
+  entire session folder, including its video, audio, transcript, screenshots, edits,
+  review page, metadata, and local APKG. Cards that were already imported into Anki
+  remain in Anki's separate collection and media folder.
 
 The anatomy review page remembers video position in browser local storage, so reopening
 the same review continues where it was last stopped. Loading is intentionally
 read-only: starting a recording afterward creates a new session rather than silently
 overwriting the old final video or invalidating its transcript.
+
+Review thumbnails always fit their cards and use a viewport-limited height, so an entire
+capture remains visible even when the source screenshot is large. Clicking a thumbnail
+still seeks the video to that timestamp. Its separate **Expand** button opens a
+full-window, aspect-ratio-preserving view; clicking anywhere or pressing `Esc` closes it.
+Accepted post-session screenshot edits immediately regenerate the review page and its
+Anki-card badges. If the review is already open, returning to its browser tab checks for
+the regenerated page and reloads it while preserving the saved video position.
 
 ## Setup
 
@@ -154,14 +168,38 @@ picked up on Resume.
 
 ## Anatomy pause and annotation
 
-A thin red, click-through border remains visible just outside the selected recording
-area for the entire time capture is active. Because the strips sit outside the selected
-pixels, they identify the boundary without being burned into the recorded image.
+A three-pixel cyan-blue, click-through border traces the exact selected recording area
+for the entire time capture is active. It is painted as one continuous square-cornered
+rectangle matching the region-selection outline, while the interior remains completely
+unobstructed. Windows capture exclusion prevents the outline from being burned into the
+saved video.
 
-Ctrl+left-click is intentionally passive: the original click still reaches the web
-page or desktop player, while the recorder notices it globally. Click the normal
-play/pause surface inside the selected capture area. Avoid using it on hyperlinks,
-because some sites assign a special meaning to Ctrl+click.
+A compact icon-only control panel hugs the lower-right perimeter with crisp vector
+camera, pause/resume, and stop icons. Its physical size follows the selected monitor's
+Windows display scaling so the complete tray remains visible instead of clipping.
+While paused, the boundary changes from blue to amber and the pause icon becomes play.
+Pausing closes the current media segment cleanly; resuming starts the next segment, so
+paused time is omitted from the final joined recording. The topmost boundary remains
+visible while paused or while another window is in front, and the panel uses the same
+capture exclusion as the outline.
+
+Before each new recording, the app covers the selected area and asks for one stable
+play/pause point. Click the middle of the video surface when the player supports
+click-anywhere toggling; this is more reliable than a control that hides until hover.
+The setup click is blocked from the webpage, a yellow marker confirms the chosen point,
+and **Use This Point** starts the synchronized workflow.
+
+The recorder starts its segment before clicking the selected point to play. Pause,
+anatomy screenshot, `.`, F10, Ctrl+left-click, stop, and resume all reuse that same point.
+For a pause or screenshot, the player is clicked first and the recording segment is
+then closed; for resume, the new recording segment starts before the player is clicked.
+Ctrl+left-clicks inside the selected recording area are suppressed before reaching the
+webpage, preventing an accidental double toggle while still opening anatomy annotation.
+
+While actively recording, `.` is a global shortcut for the same action as the border's
+camera button: it pauses the selected player, closes the current recording segment, and
+opens the screenshot editor. The shortcut is disabled as soon as recording pauses, so
+inside the screenshot editor `.` retains its motion-crop behavior.
 
 `F10` is the universal fallback for players that do not respond normally to a modified
 click. Pause that player with its own control, press `F10`, annotate, then press its

@@ -163,6 +163,7 @@ class RegionSelector(QWidget):
 
     def __init__(self) -> None:
         super().__init__(None)
+        self.setWindowTitle("Select recording area")
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
             | Qt.WindowType.Tool

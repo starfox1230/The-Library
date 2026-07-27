@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import time
 import traceback
+from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QThread, QTimer, Qt, QUrl, Signal
@@ -34,7 +35,12 @@ from .audio import AudioDevice, LoopbackRecorder, list_loopback_devices
 from .capture_border import CaptureBorderOverlay
 from .codex_prompt import build_codex_anki_prompt, save_codex_anki_prompt
 from .config import APP_DIR, AppConfig, ENV_PATH
-from .hotkeys import GlobalHotkeys, replay_left_click
+from .hotkeys import (
+    GlobalHotkeys,
+    control_key_is_down,
+    move_pointer,
+    replay_left_click,
+)
 from .media import (
     MediaError,
     ScreenRecorder,
@@ -47,6 +53,7 @@ from .media import (
 )
 from .models import CaptureRegion, CaptureSegment, SessionManifest, format_duration
 from .post_editor import AnatomyPostEditorDialog
+from .playback_point_selector import PlaybackPointSelector
 from .region_selector import RegionSelector
 from .review import build_anatomy_review, write_anatomy_manifest
 from .session_library import SessionLibraryDialog
@@ -75,10 +82,10 @@ class StopSegmentWorker(QThread):
     def __init__(
         self,
         session: SessionManifest,
-        segment: CaptureSegment,
+        segment: CaptureSegment | None,
         purpose: str,
-        screen_recorder: ScreenRecorder,
-        audio_recorder: LoopbackRecorder,
+        screen_recorder: ScreenRecorder | None,
+        audio_recorder: LoopbackRecorder | None,
         ffmpeg_path: Path,
         ffprobe_path: Path,
         bitrate_kbps: int,
@@ -95,44 +102,49 @@ class StopSegmentWorker(QThread):
 
     def run(self) -> None:
         try:
-            self.progress.emit("Finalizing screen capture…")
-            screen_path = self._screen_recorder.stop()
-            self.progress.emit("Finalizing system audio…")
-            raw_audio_path = self._audio_recorder.stop()
-            self._session.warnings.extend(self._audio_recorder.warnings)
-
             paused_frame: Path | None = None
-            if self._purpose == "anatomy":
-                capture_index = len(self._session.anatomy_captures) + 1
-                paused_frame = self._session.anatomy_original_path(capture_index)
-                self.progress.emit("Capturing the paused frame…")
-                extract_last_frame(self._ffmpeg_path, screen_path, paused_frame)
-                estimated_timestamp = (
-                    self._session.duration_seconds
-                    + probe_duration(self._ffprobe_path, screen_path)
+            if self._segment is not None:
+                if self._screen_recorder is None or self._audio_recorder is None:
+                    raise RuntimeError("Active recording devices are unavailable.")
+                self.progress.emit("Finalizing screen capture…")
+                screen_path = self._screen_recorder.stop()
+                self.progress.emit("Finalizing system audio…")
+                raw_audio_path = self._audio_recorder.stop()
+                self._session.warnings.extend(self._audio_recorder.warnings)
+
+                if self._purpose == "anatomy":
+                    capture_index = len(self._session.anatomy_captures) + 1
+                    paused_frame = self._session.anatomy_original_path(capture_index)
+                    self.progress.emit("Capturing the paused frame…")
+                    extract_last_frame(self._ffmpeg_path, screen_path, paused_frame)
+                    estimated_timestamp = (
+                        self._session.duration_seconds
+                        + probe_duration(self._ffprobe_path, screen_path)
+                    )
+                    self.frame_ready.emit(paused_frame, estimated_timestamp)
+
+                result = process_recording(
+                    self._ffmpeg_path,
+                    self._ffprobe_path,
+                    screen_path,
+                    raw_audio_path,
+                    self._session.folder / self._segment.recording_file,
+                    self._session.folder / self._segment.audio_file,
+                    self._segment.video_start_monotonic
+                    - self._segment.audio_start_monotonic,
+                    self._bitrate_kbps,
+                    self.progress.emit,
                 )
-                self.frame_ready.emit(paused_frame, estimated_timestamp)
+                self._segment.duration_seconds = result.duration_seconds
+                self._segment.state = "ready"
+                self._session.duration_seconds = sum(
+                    segment.duration_seconds for segment in self._session.segments
+                )
 
-            result = process_recording(
-                self._ffmpeg_path,
-                self._ffprobe_path,
-                screen_path,
-                raw_audio_path,
-                self._session.folder / self._segment.recording_file,
-                self._session.folder / self._segment.audio_file,
-                self._segment.video_start_monotonic
-                - self._segment.audio_start_monotonic,
-                self._bitrate_kbps,
-                self.progress.emit,
-            )
-            self._segment.duration_seconds = result.duration_seconds
-            self._segment.state = "ready"
-            self._session.duration_seconds = sum(
-                segment.duration_seconds for segment in self._session.segments
-            )
-
-            if self._purpose == "anatomy":
-                self._session.state = "study_paused"
+            if self._purpose in {"anatomy", "pause"}:
+                self._session.state = (
+                    "study_paused" if self._purpose == "anatomy" else "paused"
+                )
             else:
                 recording_segments = [
                     self._session.folder / item.recording_file
@@ -171,9 +183,12 @@ class StopSegmentWorker(QThread):
                 }
             )
         except Exception as exc:
-            self._screen_recorder.abort()
-            self._audio_recorder.abort()
-            self._segment.state = "processing_failed"
+            if self._screen_recorder is not None:
+                self._screen_recorder.abort()
+            if self._audio_recorder is not None:
+                self._audio_recorder.abort()
+            if self._segment is not None:
+                self._segment.state = "processing_failed"
             self._session.state = "processing_failed"
             self._session.warnings.append(str(exc))
             self._session.save()
@@ -265,11 +280,15 @@ class MainWindow(QMainWindow):
         self._transcription_worker: TranscriptionWorker | None = None
         self._recording_started = 0.0
         self._is_recording = False
+        self._is_paused = False
         self._is_busy = False
         self._is_transcribing = False
         self._transcription_started = 0.0
         self._transcription_phase = ""
         self._study_paused = False
+        self._playback_point: tuple[int, int] | None = None
+        self._selecting_playback_point = False
+        self._player_transition_pending = False
         self._pending_source_click: tuple[int, int] | None = None
         self._pending_paused_frame: Path | None = None
         self._pending_annotation: dict[str, object] | None = None
@@ -280,6 +299,9 @@ class MainWindow(QMainWindow):
         self._ffmpeg_path: Path | None = None
         self._ffprobe_path: Path | None = None
         self._capture_border = CaptureBorderOverlay()
+        self._capture_border.screenshot_requested.connect(self._anatomy_pause)
+        self._capture_border.pause_requested.connect(self._toggle_pause_recording)
+        self._capture_border.stop_requested.connect(self._stop_recording)
 
         self.setWindowTitle("Screen Capture Transcriber")
         self.resize(1080, 760)
@@ -294,6 +316,13 @@ class MainWindow(QMainWindow):
         self._selector.cancelled.connect(
             lambda: self._set_status("Region selection cancelled.", "neutral")
         )
+        self._playback_selector = PlaybackPointSelector()
+        self._playback_selector.selected.connect(
+            self._on_playback_point_selected
+        )
+        self._playback_selector.cancelled.connect(
+            self._on_playback_point_cancelled
+        )
 
         self._hotkeys = GlobalHotkeys(
             config.toggle_recording_hotkey,
@@ -303,6 +332,7 @@ class MainWindow(QMainWindow):
         self._hotkeys.toggle_recording.connect(self._toggle_recording)
         self._hotkeys.add_chapter.connect(self._add_chapter)
         self._hotkeys.anatomy_capture.connect(self._anatomy_pause)
+        self._hotkeys.period_capture.connect(self._anatomy_pause)
         self._hotkeys.ctrl_click.connect(self._on_ctrl_click)
         self._hotkeys.error.connect(
             lambda message: self._set_status(f"Global hotkeys unavailable: {message}", "warning")
@@ -388,7 +418,8 @@ class MainWindow(QMainWindow):
 
         setup_grid.addWidget(QLabel("Anatomy mode"), 4, 0)
         self.anatomy_mode_checkbox = QCheckBox(
-            "Ctrl+click inside the capture area pauses, annotates, then resumes the player"
+            "Ctrl+click anywhere in the capture area uses the chosen player point, "
+            "then annotates"
         )
         self.anatomy_mode_checkbox.setChecked(True)
         setup_grid.addWidget(self.anatomy_mode_checkbox, 4, 1, 1, 3)
@@ -670,6 +701,7 @@ class MainWindow(QMainWindow):
 
     def _on_region_selected(self, region: CaptureRegion) -> None:
         self._region = region
+        self._playback_point = None
         self.region_label.setText(region.label())
         self.show()
         self.raise_()
@@ -686,10 +718,16 @@ class MainWindow(QMainWindow):
         self._on_region_selected(_physical_region(screen, screen.geometry()))
 
     def _toggle_recording(self) -> None:
-        if self._is_busy:
+        if (
+            self._is_busy
+            or self._selecting_playback_point
+            or self._player_transition_pending
+        ):
             return
         if self._is_recording:
             self._stop_recording()
+        elif self._is_paused:
+            self._resume_recording()
         else:
             self._start_recording()
 
@@ -703,6 +741,45 @@ class MainWindow(QMainWindow):
             if self._ffmpeg_path is None:
                 return
 
+        self._playback_point = None
+        self._selecting_playback_point = True
+        self._set_status("Choose player control", "warning")
+        self.detail_label.setText(
+            "Choose one stable point on the video surface for synchronized "
+            "play and pause."
+        )
+        region = self._region
+        self.hide()
+        QTimer.singleShot(100, lambda: self._playback_selector.begin(region))
+
+    def _on_playback_point_selected(self, point: object) -> None:
+        if (
+            not isinstance(point, tuple)
+            or len(point) != 2
+            or self._region is None
+        ):
+            self._on_playback_point_cancelled()
+            return
+        self._selecting_playback_point = False
+        self._playback_point = (int(point[0]), int(point[1]))
+        self._begin_recording_after_playback_selection()
+
+    def _on_playback_point_cancelled(self) -> None:
+        self._selecting_playback_point = False
+        self._playback_point = None
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+        self._set_status("Recording start cancelled", "neutral")
+        self.detail_label.setText(
+            "No play/pause point was selected. Press Start Recording to try again."
+        )
+        self._sync_controls()
+
+    def _begin_recording_after_playback_selection(self) -> None:
+        if self._region is None or self._playback_point is None:
+            self._on_playback_point_cancelled()
+            return
         title = self.title_edit.text().strip() or "Untitled recording"
         self._selected_device_index = self.audio_combo.currentData()
         session = SessionManifest.create(
@@ -714,6 +791,9 @@ class MainWindow(QMainWindow):
             0.0,
             0.0,
         )
+        session.playback_toggle_x = self._playback_point[0]
+        session.playback_toggle_y = self._playback_point[1]
+        session.save()
         self._session = session
         if not self._start_session_segment():
             return
@@ -721,10 +801,11 @@ class MainWindow(QMainWindow):
         self._fill_anatomy_list()
         self._set_status("Recording", "recording")
         self._sync_controls()
+        self._schedule_player_toggle()
         if self.anatomy_mode_checkbox.isChecked():
             self.detail_label.setText(
-                "Recorder minimized. Ctrl+click the player to pause and annotate; "
-                "press F8 to finish."
+                "Recorder minimized. Ctrl+click anywhere inside the selected area "
+                "to pause the player and annotate; press F8 to finish."
             )
             QTimer.singleShot(250, self.showMinimized)
 
@@ -775,14 +856,165 @@ class MainWindow(QMainWindow):
         self._screen_recorder = screen_recorder
         self._recording_started = video_info.started_monotonic
         self._is_recording = True
+        self._is_paused = False
         self._capture_border.show(self._region)
+        self._sync_ctrl_click_capture()
         self._set_status("Recording", "recording")
         self.detail_label.setText(f"Capturing system audio from {audio_info.device.name}")
         self._sync_controls()
         return True
 
+    def _sync_ctrl_click_capture(self) -> None:
+        self._hotkeys.set_period_capture_enabled(
+            self._is_recording
+            and not self._is_busy
+            and not self._player_transition_pending
+        )
+        region = self._region
+        if (
+            self._is_recording
+            and self.anatomy_mode_checkbox.isChecked()
+            and region is not None
+        ):
+            self._hotkeys.set_ctrl_click_capture_region(
+                (region.x, region.y, region.width, region.height)
+            )
+        else:
+            self._hotkeys.set_ctrl_click_capture_region(None)
+
+    def _schedule_player_toggle(
+        self,
+        after_click: Callable[[], None] | None = None,
+    ) -> None:
+        point = self._playback_point
+        if point is None:
+            if callable(after_click):
+                after_click()
+            return
+        self._player_transition_pending = True
+        self._sync_ctrl_click_capture()
+        self._capture_border.set_busy(True)
+        self._sync_controls()
+        x, y = point
+        QTimer.singleShot(60, lambda: move_pointer(x, y))
+        QTimer.singleShot(
+            220,
+            lambda: self._click_player_and_continue(x, y, after_click),
+        )
+
+    def _click_player_and_continue(
+        self,
+        x: int,
+        y: int,
+        after_click: Callable[[], None] | None,
+    ) -> None:
+        if not self._player_transition_pending:
+            return
+        if control_key_is_down():
+            QTimer.singleShot(
+                50,
+                lambda: self._click_player_and_continue(
+                    x,
+                    y,
+                    after_click,
+                ),
+            )
+            return
+        try:
+            replay_left_click(x, y)
+        except Exception as exc:
+            if self._session is not None:
+                self._session.warnings.append(f"Player toggle click: {exc}")
+                self._session.save()
+        QTimer.singleShot(
+            90,
+            lambda: self._finish_player_toggle(after_click),
+        )
+
+    def _finish_player_toggle(
+        self,
+        after_click: Callable[[], None] | None,
+    ) -> None:
+        if not self._player_transition_pending:
+            return
+        self._player_transition_pending = False
+        if callable(after_click):
+            after_click()
+            return
+        self._sync_ctrl_click_capture()
+        if self._is_recording or self._is_paused:
+            self._capture_border.set_busy(False)
+        self._sync_controls()
+
+    def _request_segment_stop(self, purpose: str) -> None:
+        if (
+            not self._is_recording
+            or self._is_busy
+            or self._player_transition_pending
+        ):
+            return
+        self._hotkeys.set_period_capture_enabled(False)
+        self._hotkeys.set_ctrl_click_capture_region(None)
+        self._schedule_player_toggle(
+            lambda: self._stop_current_segment(purpose)
+        )
+
     def _stop_recording(self) -> None:
-        self._stop_current_segment("final")
+        if self._is_paused:
+            self._finalize_paused_recording()
+        else:
+            self._request_segment_stop("final")
+
+    def _toggle_pause_recording(self) -> None:
+        if self._is_busy:
+            return
+        if self._is_recording:
+            self._request_segment_stop("pause")
+        elif self._is_paused:
+            self._resume_recording()
+
+    def _resume_recording(self) -> None:
+        if not self._is_paused or self._is_busy:
+            return
+        if self._start_session_segment():
+            self._set_status("Recording", "recording")
+            self.detail_label.setText("Recording resumed.")
+            self._schedule_player_toggle()
+            if self.anatomy_mode_checkbox.isChecked():
+                self.showMinimized()
+
+    def _finalize_paused_recording(self) -> None:
+        if (
+            not self._is_paused
+            or self._session is None
+            or self._ffmpeg_path is None
+            or self._ffprobe_path is None
+        ):
+            return
+        self._is_paused = False
+        self._is_busy = True
+        self._player_transition_pending = False
+        self._hotkeys.set_period_capture_enabled(False)
+        self._hotkeys.set_ctrl_click_capture_region(None)
+        self._capture_border.hide()
+        self._set_status("Finalizing", "busy")
+        self._sync_controls()
+        worker = StopSegmentWorker(
+            self._session,
+            None,
+            "final",
+            None,
+            None,
+            self._ffmpeg_path,
+            self._ffprobe_path,
+            self._config.transcription_audio_bitrate_kbps,
+        )
+        worker.progress.connect(self.detail_label.setText)
+        worker.completed.connect(self._on_processing_complete)
+        worker.failed.connect(self._on_processing_failed)
+        worker.finished.connect(worker.deleteLater)
+        self._stop_worker = worker
+        worker.start()
 
     def _stop_current_segment(self, purpose: str) -> None:
         if (
@@ -795,11 +1027,23 @@ class MainWindow(QMainWindow):
             or self._ffprobe_path is None
         ):
             return
+        self._player_transition_pending = False
+        self._hotkeys.set_period_capture_enabled(False)
+        self._hotkeys.set_ctrl_click_capture_region(None)
         self._is_recording = False
-        self._capture_border.hide()
+        if purpose == "final":
+            self._capture_border.hide()
+        else:
+            self._capture_border.set_paused(True)
+            self._capture_border.set_busy(True)
+        self._is_paused = purpose == "pause"
         self._is_busy = True
         self._set_status(
-            "Preparing annotation" if purpose == "anatomy" else "Finalizing",
+            (
+                "Preparing annotation"
+                if purpose == "anatomy"
+                else ("Pausing" if purpose == "pause" else "Finalizing")
+            ),
             "busy",
         )
         self._sync_controls()
@@ -829,6 +1073,17 @@ class MainWindow(QMainWindow):
         session = payload["session"]
         self._session = session
         self.timer_label.setText(format_duration(session.duration_seconds))
+        if payload.get("purpose") == "pause":
+            self._is_busy = False
+            self._is_paused = True
+            self._capture_border.set_paused(True)
+            self._capture_border.set_busy(False)
+            self._set_status("Paused", "warning")
+            self.detail_label.setText(
+                "Recording is paused. Use ▶ on the boundary to resume or ■ to save."
+            )
+            self._sync_controls()
+            return
         if payload.get("purpose") == "anatomy":
             paused_frame = payload.get("paused_frame")
             if not isinstance(paused_frame, Path):
@@ -841,6 +1096,7 @@ class MainWindow(QMainWindow):
             return
 
         self._is_busy = False
+        self._is_paused = False
         self.showNormal()
         self.raise_()
         self.activateWindow()
@@ -855,6 +1111,10 @@ class MainWindow(QMainWindow):
 
     def _on_processing_failed(self, message: str) -> None:
         self._is_busy = False
+        self._is_paused = False
+        self._player_transition_pending = False
+        self._hotkeys.set_period_capture_enabled(False)
+        self._hotkeys.set_ctrl_click_capture_region(None)
         self._study_paused = False
         self._capture_border.hide()
         if self._annotation_dialog.isVisible():
@@ -871,6 +1131,7 @@ class MainWindow(QMainWindow):
             not self.anatomy_mode_checkbox.isChecked()
             or not self._is_recording
             or self._is_busy
+            or self._player_transition_pending
             or region is None
             or not (
                 region.x <= x < region.x + region.width
@@ -884,7 +1145,11 @@ class MainWindow(QMainWindow):
         self,
         source_click: tuple[int, int] | None = None,
     ) -> None:
-        if not self._is_recording or self._is_busy:
+        if (
+            not self._is_recording
+            or self._is_busy
+            or self._player_transition_pending
+        ):
             return
         self._pending_source_click = source_click
         self._pending_paused_frame = None
@@ -892,7 +1157,7 @@ class MainWindow(QMainWindow):
         self._anatomy_segment_ready = False
         self._annotation_finished = False
         self._study_paused = True
-        self._stop_current_segment("anatomy")
+        self._request_segment_stop("anatomy")
 
     def _on_anatomy_frame_ready(
         self,
@@ -966,18 +1231,13 @@ class MainWindow(QMainWindow):
         self._resume_after_annotation()
 
     def _resume_after_annotation(self) -> None:
-        source_click = self._pending_source_click
         self._pending_source_click = None
         self._study_paused = False
         if not self._start_session_segment():
             return
         if self.anatomy_mode_checkbox.isChecked():
             self.showMinimized()
-        if source_click is not None:
-            QTimer.singleShot(
-                350,
-                lambda: replay_left_click(source_click[0], source_click[1]),
-            )
+        self._schedule_player_toggle()
 
     def _add_chapter(self) -> None:
         if not self._is_recording or self._session is None:
@@ -1221,7 +1481,23 @@ class MainWindow(QMainWindow):
             return
         roots = [self._config.recordings_dir, APP_DIR / "recordings"]
         dialog = SessionLibraryDialog(roots, self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        result = dialog.exec()
+        if (
+            self._session is not None
+            and self._session.folder.resolve() in dialog.deleted_folders
+        ):
+            self._session = None
+            self.chapter_list.clear()
+            self.anatomy_list.clear()
+            self.transcript_edit.clear()
+            self.timer_label.setText("00:00")
+            self.detail_label.setText(
+                "The loaded past session was permanently deleted."
+            )
+            self._set_status("Session deleted", "ready")
+            self._update_cost_label()
+            self._sync_controls()
+        if result != QDialog.DialogCode.Accepted:
             return
         session = dialog.selected_session
         if session is not None:
@@ -1321,30 +1597,35 @@ class MainWindow(QMainWindow):
 
     def _sync_controls(self) -> None:
         media_available = self._ffmpeg_path is not None
-        self.select_region_button.setEnabled(not self._is_recording and not self._is_busy)
-        self.full_screen_button.setEnabled(not self._is_recording and not self._is_busy)
-        self.refresh_audio_button.setEnabled(not self._is_recording and not self._is_busy)
-        self.audio_combo.setEnabled(not self._is_recording and not self._is_busy)
-        self.title_edit.setEnabled(not self._is_recording and not self._is_busy)
+        session_active = self._is_recording or self._is_paused
+        interaction_busy = self._is_busy or self._player_transition_pending
+        self.select_region_button.setEnabled(not session_active and not interaction_busy)
+        self.full_screen_button.setEnabled(not session_active and not interaction_busy)
+        self.refresh_audio_button.setEnabled(not session_active and not interaction_busy)
+        self.audio_combo.setEnabled(not session_active and not interaction_busy)
+        self.title_edit.setEnabled(not session_active and not interaction_busy)
         self.anatomy_mode_checkbox.setEnabled(
-            not self._is_recording and not self._is_busy and not self._study_paused
+            not session_active and not interaction_busy and not self._study_paused
         )
-        self.record_button.setEnabled(not self._is_busy and media_available)
-        self.record_button.setText(
-            "■  Stop Recording" if self._is_recording else "●  Start Recording"
-        )
-        self.chapter_button.setEnabled(self._is_recording and not self._is_busy)
-        self.anatomy_button.setEnabled(self._is_recording and not self._is_busy)
+        self.record_button.setEnabled(not interaction_busy and media_available)
+        if self._is_recording:
+            self.record_button.setText("■  Stop Recording")
+        elif self._is_paused:
+            self.record_button.setText("▶  Resume Recording")
+        else:
+            self.record_button.setText("●  Start Recording")
+        self.chapter_button.setEnabled(self._is_recording and not interaction_busy)
+        self.anatomy_button.setEnabled(self._is_recording and not interaction_busy)
         self.edit_anatomy_button.setEnabled(
             self._session is not None
             and bool(self._session.anatomy_captures)
-            and not self._is_recording
+            and not session_active
             and not self._is_busy
         )
         self.copy_codex_anki_button.setEnabled(
             self._session is not None
             and bool(self._session.anatomy_captures)
-            and not self._is_recording
+            and not session_active
             and not self._is_busy
         )
         transcript_ready = bool(
@@ -1356,7 +1637,7 @@ class MainWindow(QMainWindow):
             self._session is not None
             and self._session.audio_path.is_file()
             and not transcript_ready
-            and not self._is_recording
+            and not session_active
             and not self._is_busy
         )
         self.transcribe_button.setEnabled(ready_to_transcribe)
@@ -1365,20 +1646,20 @@ class MainWindow(QMainWindow):
             if self._is_transcribing
             else ("Transcript Ready" if transcript_ready else "Transcribe")
         )
-        self.model_combo.setEnabled(not self._is_busy and not self._is_recording)
+        self.model_combo.setEnabled(not self._is_busy and not session_active)
         self.copy_button.setEnabled(bool(self.transcript_edit.toPlainText().strip()))
-        self.open_folder_button.setEnabled(not self._is_recording)
+        self.open_folder_button.setEnabled(not session_active)
         self.open_review_button.setEnabled(
             self._session is not None
             and self._session.review_path.is_file()
             and not self._is_busy
         )
         self.past_sessions_button.setEnabled(
-            not self._is_recording and not self._is_busy
+            not session_active and not self._is_busy
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        if self._is_recording:
+        if self._is_recording or self._is_paused:
             QMessageBox.warning(
                 self,
                 "Recording is active",

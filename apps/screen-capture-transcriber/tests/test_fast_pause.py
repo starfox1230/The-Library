@@ -95,3 +95,104 @@ def test_paused_frame_is_emitted_before_segment_conversion(
 
     assert events.index("extract-frame") < events.index("convert-segment")
     assert events.index("frame-ready-signal") < events.index("convert-segment")
+
+
+def test_regular_pause_processes_segment_without_finalizing_session(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    session = SessionManifest.create(
+        tmp_path,
+        "Pause and resume",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    segment = session.begin_segment(1.0, 1.1)
+    events: list[str] = []
+
+    def fake_process(
+        _ffmpeg,
+        _ffprobe,
+        _screen,
+        _audio,
+        recording,
+        audio_output,
+        *_args,
+    ):
+        events.append("convert-segment")
+        recording.write_bytes(b"recording")
+        audio_output.write_bytes(b"mp3")
+        return SimpleNamespace(duration_seconds=2.0)
+
+    monkeypatch.setattr(main_window, "process_recording", fake_process)
+    monkeypatch.setattr(
+        main_window,
+        "concatenate_segments",
+        lambda *_args: (_ for _ in ()).throw(
+            AssertionError("Pause must not finalize the session")
+        ),
+    )
+    worker = StopSegmentWorker(
+        session,
+        segment,
+        "pause",
+        _FakeScreenRecorder(session.segment_screen_path(1), events),
+        _FakeAudioRecorder(session.segment_raw_audio_path(1), events),
+        Path("ffmpeg"),
+        Path("ffprobe"),
+        48,
+    )
+
+    worker.run()
+
+    assert session.state == "paused"
+    assert segment.state == "ready"
+    assert events == ["stop-screen", "stop-audio", "convert-segment"]
+
+
+def test_stopping_while_paused_finalizes_ready_segments_without_recorders(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    session = SessionManifest.create(
+        tmp_path,
+        "Stop while paused",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    segment = session.begin_segment(1.0, 1.1)
+    segment.state = "ready"
+    segment.duration_seconds = 2.0
+    session.segment_recording_path(1).write_bytes(b"recording")
+    session.segment_audio_path(1).write_bytes(b"audio")
+    finalized = []
+
+    def fake_concatenate(*_args):
+        finalized.append(True)
+        return SimpleNamespace(duration_seconds=2.0)
+
+    monkeypatch.setattr(main_window, "concatenate_segments", fake_concatenate)
+    monkeypatch.setattr(main_window, "write_anatomy_manifest", lambda value: value)
+    monkeypatch.setattr(main_window, "build_anatomy_review", lambda value: value)
+    monkeypatch.setattr(main_window, "build_anatomy_apkg", lambda value: value)
+    worker = StopSegmentWorker(
+        session,
+        None,
+        "final",
+        None,
+        None,
+        Path("ffmpeg"),
+        Path("ffprobe"),
+        48,
+    )
+
+    worker.run()
+
+    assert finalized == [True]
+    assert session.state == "ready"

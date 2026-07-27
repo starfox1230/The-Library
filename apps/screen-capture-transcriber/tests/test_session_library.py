@@ -4,12 +4,16 @@ import os
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
+import pytest
 from PySide6.QtWidgets import QApplication
 
 from screen_capture_transcriber.models import CaptureRegion, SessionManifest
 from screen_capture_transcriber.session_library import (
     SessionLibraryDialog,
+    delete_session_folder,
     discover_sessions,
+    format_file_size,
+    session_folder_size,
 )
 
 
@@ -64,6 +68,42 @@ def test_duplicate_roots_do_not_duplicate_sessions(tmp_path) -> None:
     assert errors == []
 
 
+def test_session_size_includes_all_nested_files_and_formats_cleanly(tmp_path) -> None:
+    folder = tmp_path / "session"
+    screenshots = folder / "screenshots"
+    screenshots.mkdir(parents=True)
+    (folder / "recording.mp4").write_bytes(b"x" * 1024)
+    (screenshots / "capture.png").write_bytes(b"x" * 512)
+
+    assert session_folder_size(folder) == 1536
+    assert format_file_size(1536) == "1.5 KB"
+    assert format_file_size(3 * 1024 * 1024) == "3.0 MB"
+
+
+def test_past_sessions_shows_total_size_in_table_and_details(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    session = SessionManifest.create(
+        tmp_path,
+        "Sized lecture",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    (session.folder / "recording.mp4").write_bytes(b"x" * 2048)
+
+    dialog = SessionLibraryDialog([tmp_path])
+    app.processEvents()
+    entry = dialog._entries[0]
+    expected = format_file_size(entry.total_size_bytes)
+
+    assert dialog.tree.headerItem().text(3) == "Size"
+    assert dialog.tree.topLevelItem(0).text(3) == expected
+    assert expected in dialog.detail_meta.text()
+    assert expected in dialog.count_label.text()
+
+
 def test_past_sessions_button_copies_and_saves_codex_prompt(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     session = SessionManifest.create(
@@ -97,3 +137,90 @@ def test_past_sessions_button_copies_and_saves_codex_prompt(tmp_path) -> None:
     assert (session.folder / "codex-anki-prompt.txt").read_text(
         encoding="utf-8"
     ) == copied
+
+
+def test_delete_session_folder_removes_every_associated_file(tmp_path) -> None:
+    recordings = tmp_path / "recordings"
+    recordings.mkdir()
+    session = SessionManifest.create(
+        recordings,
+        "Delete me",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    (session.folder / "video.mp4").write_bytes(b"video")
+    (session.folder / "audio.wav").write_bytes(b"audio")
+    screenshots = session.folder / "screenshots"
+    screenshots.mkdir()
+    (screenshots / "anatomy.png").write_bytes(b"image")
+
+    delete_session_folder(session.folder, [recordings])
+
+    assert not session.folder.exists()
+
+
+def test_delete_session_folder_rejects_folder_outside_recording_roots(
+    tmp_path,
+) -> None:
+    recordings = tmp_path / "recordings"
+    recordings.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "session.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="direct child"):
+        delete_session_folder(outside, [recordings])
+
+    assert outside.is_dir()
+
+
+def test_delete_button_removes_session_from_disk_and_library(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    session = SessionManifest.create(
+        tmp_path,
+        "Old lecture",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    (session.folder / "recording.mp4").write_bytes(b"video")
+    dialog = SessionLibraryDialog([tmp_path])
+    monkeypatch.setattr(dialog, "_confirm_delete", lambda _session: True)
+
+    dialog.delete_button.click()
+    app.processEvents()
+
+    assert not session.folder.exists()
+    assert dialog.tree.topLevelItemCount() == 0
+    assert session.folder.resolve() in dialog.deleted_folders
+    assert not dialog.delete_button.isEnabled()
+
+
+def test_delete_button_cancellation_preserves_session(tmp_path, monkeypatch) -> None:
+    app = QApplication.instance() or QApplication([])
+    session = SessionManifest.create(
+        tmp_path,
+        "Keep me",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    dialog = SessionLibraryDialog([tmp_path])
+    monkeypatch.setattr(dialog, "_confirm_delete", lambda _session: False)
+
+    dialog.delete_button.click()
+    app.processEvents()
+
+    assert session.folder.is_dir()
+    assert dialog.tree.topLevelItemCount() == 1
+    assert not dialog.deleted_folders

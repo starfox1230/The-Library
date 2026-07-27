@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import os
 from pathlib import Path
+import shutil
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QDesktopServices
@@ -13,6 +15,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
@@ -31,6 +34,59 @@ class SessionEntry:
     manifest_path: Path
     session: SessionManifest
     modified_at: float
+    total_size_bytes: int
+
+
+def session_folder_size(folder: Path) -> int:
+    """Return the combined size of all regular files below a session folder."""
+    total = 0
+    pending = [Path(folder)]
+    while pending:
+        current = pending.pop()
+        try:
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    try:
+                        if entry.is_file(follow_symlinks=False):
+                            total += entry.stat(follow_symlinks=False).st_size
+                        elif entry.is_dir(follow_symlinks=False):
+                            pending.append(Path(entry.path))
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+    return total
+
+
+def format_file_size(size_bytes: int) -> str:
+    size = float(max(0, size_bytes))
+    if size < 1024:
+        return f"{int(size)} B"
+    for unit in ("KB", "MB", "GB", "TB"):
+        size /= 1024
+        if size < 1024 or unit == "TB":
+            return f"{size:.1f} {unit}"
+    return f"{size:.1f} TB"
+
+
+def delete_session_folder(session_folder: Path, allowed_roots: list[Path]) -> None:
+    """Permanently remove one validated session folder and all of its contents."""
+    candidate = Path(session_folder)
+    if candidate.is_symlink():
+        raise ValueError("Refusing to delete a session through a symbolic link.")
+
+    folder = candidate.resolve(strict=True)
+    roots = {Path(root).resolve() for root in allowed_roots}
+    if folder.parent not in roots:
+        raise ValueError(
+            "The selected folder is not a direct child of a configured recordings folder."
+        )
+    if not folder.is_dir():
+        raise ValueError("The selected session folder is not a directory.")
+    if not (folder / "session.json").is_file():
+        raise ValueError("The selected folder does not contain a session manifest.")
+
+    shutil.rmtree(folder)
 
 
 def discover_sessions(roots: list[Path]) -> tuple[list[SessionEntry], list[str]]:
@@ -52,6 +108,7 @@ def discover_sessions(roots: list[Path]) -> tuple[list[SessionEntry], list[str]]
                         manifest_path=manifest_path,
                         session=session,
                         modified_at=manifest_path.stat().st_mtime,
+                        total_size_bytes=session_folder_size(manifest_path.parent),
                     )
                 )
             except Exception as exc:
@@ -64,8 +121,10 @@ class SessionLibraryDialog(QDialog):
     def __init__(self, roots: list[Path], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Past Sessions")
-        self.resize(1040, 650)
-        self.setMinimumSize(850, 520)
+        self.resize(1180, 650)
+        self.setMinimumSize(940, 520)
+        self._roots = list(dict.fromkeys(Path(root).resolve() for root in roots))
+        self._deleted_folders: set[Path] = set()
         self._entries, self._errors = discover_sessions(roots)
         self._selected: SessionEntry | None = None
         self._items: list[tuple[QTreeWidgetItem, SessionEntry]] = []
@@ -75,6 +134,10 @@ class SessionLibraryDialog(QDialog):
     @property
     def selected_session(self) -> SessionManifest | None:
         return self._selected.session if self._selected else None
+
+    @property
+    def deleted_folders(self) -> frozenset[Path]:
+        return frozenset(self._deleted_folders)
 
     def _build_ui(self) -> None:
         layout = QVBoxLayout(self)
@@ -101,9 +164,9 @@ class SessionLibraryDialog(QDialog):
 
         body = QHBoxLayout()
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(6)
+        self.tree.setColumnCount(7)
         self.tree.setHeaderLabels(
-            ["Date", "Title", "Duration", "Anatomy", "Transcript", "State"]
+            ["Date", "Title", "Duration", "Size", "Anatomy", "Transcript", "State"]
         )
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
@@ -113,11 +176,11 @@ class SessionLibraryDialog(QDialog):
         self.tree.setColumnWidth(0, 130)
         self.tree.setColumnWidth(1, 175)
         self.tree.setColumnWidth(2, 72)
-        self.tree.setColumnWidth(3, 65)
-        self.tree.setColumnWidth(4, 78)
-        self.tree.setColumnWidth(5, 88)
-        self.tree.setColumnWidth(4, 90)
-        body.addWidget(self.tree, 3)
+        self.tree.setColumnWidth(3, 76)
+        self.tree.setColumnWidth(4, 65)
+        self.tree.setColumnWidth(5, 90)
+        self.tree.setColumnWidth(6, 88)
+        body.addWidget(self.tree, 4)
 
         details = QFrame()
         details.setObjectName("LibraryDetails")
@@ -144,6 +207,8 @@ class SessionLibraryDialog(QDialog):
         self.play_button = QPushButton("Play Recording")
         self.transcript_button = QPushButton("Open Transcript")
         self.folder_button = QPushButton("Open Folder in Explorer")
+        self.delete_button = QPushButton("Delete Session…")
+        self.delete_button.setObjectName("DangerButton")
         self.load_button = QPushButton("Load in Main Window")
         self.load_button.setObjectName("PrimaryButton")
         self.review_button.clicked.connect(self._open_review)
@@ -152,6 +217,7 @@ class SessionLibraryDialog(QDialog):
         self.play_button.clicked.connect(self._play_recording)
         self.transcript_button.clicked.connect(self._open_transcript)
         self.folder_button.clicked.connect(self._open_folder)
+        self.delete_button.clicked.connect(self._delete_selected)
         self.load_button.clicked.connect(self._load_selected)
         for button in (
             self.review_button,
@@ -160,6 +226,7 @@ class SessionLibraryDialog(QDialog):
             self.play_button,
             self.transcript_button,
             self.folder_button,
+            self.delete_button,
             self.load_button,
         ):
             details_layout.addWidget(button)
@@ -170,7 +237,11 @@ class SessionLibraryDialog(QDialog):
         error_suffix = (
             f" • {len(self._errors)} unreadable session(s)" if self._errors else ""
         )
-        self.count_label = QLabel(f"{len(self._entries)} sessions{error_suffix}")
+        total_size = sum(entry.total_size_bytes for entry in self._entries)
+        self.count_label = QLabel(
+            f"{len(self._entries)} sessions • {format_file_size(total_size)} total"
+            f"{error_suffix}"
+        )
         self.count_label.setObjectName("Muted")
         footer.addWidget(self.count_label)
         footer.addStretch()
@@ -200,6 +271,10 @@ class SessionLibraryDialog(QDialog):
             QPushButton:disabled { color:#65758B; background:#111A27; }
             QPushButton#PrimaryButton { background:#1A7390; border-color:#58D7FF;
                                         font-weight:700; }
+            QPushButton#DangerButton { background:#3A1B24; border-color:#9D4255;
+                                       color:#FFD8DF; }
+            QPushButton#DangerButton:hover { background:#542431;
+                                             border-color:#E0667E; }
             """
         )
         self._sync_buttons()
@@ -218,12 +293,14 @@ class SessionLibraryDialog(QDialog):
                     date_label,
                     session.title,
                     format_duration(session.duration_seconds),
+                    format_file_size(entry.total_size_bytes),
                     str(len(session.anatomy_captures)),
                     transcript,
                     session.state.replace("_", " ").title(),
                 ]
             )
             item.setData(0, Qt.ItemDataRole.UserRole, str(entry.manifest_path))
+            item.setData(3, Qt.ItemDataRole.UserRole, entry.total_size_bytes)
             self.tree.addTopLevelItem(item)
             self._items.append((item, entry))
         if self.tree.topLevelItemCount():
@@ -232,6 +309,7 @@ class SessionLibraryDialog(QDialog):
     def _apply_filter(self, text: str) -> None:
         query = text.strip().casefold()
         visible = 0
+        visible_size = 0
         for item, entry in self._items:
             session = entry.session
             haystack = " ".join(
@@ -246,8 +324,11 @@ class SessionLibraryDialog(QDialog):
             hidden = bool(query and query not in haystack)
             item.setHidden(hidden)
             visible += not hidden
+            if not hidden:
+                visible_size += entry.total_size_bytes
         self.count_label.setText(
-            f"{visible} of {len(self._entries)} sessions"
+            f"{visible} of {len(self._entries)} sessions • "
+            f"{format_file_size(visible_size)} shown"
             + (f" • {len(self._errors)} unreadable" if self._errors else "")
         )
 
@@ -268,7 +349,8 @@ class SessionLibraryDialog(QDialog):
         session = self._selected.session
         self.detail_title.setText(session.title)
         self.detail_meta.setText(
-            f"{format_duration(session.duration_seconds)} recording\n"
+            f"{format_duration(session.duration_seconds)} recording • "
+            f"{format_file_size(self._selected.total_size_bytes)} total size\n"
             f"{len(session.chapters)} chapter(s) • "
             f"{len(session.anatomy_captures)} anatomy capture(s)\n"
             f"Status: {session.state.replace('_', ' ')}"
@@ -308,6 +390,7 @@ class SessionLibraryDialog(QDialog):
             bool(session and session.transcript_markdown_path.is_file())
         )
         self.folder_button.setEnabled(bool(session and session.folder.is_dir()))
+        self.delete_button.setEnabled(bool(session and session.folder.is_dir()))
         self.load_button.setEnabled(session is not None)
 
     def _open_review(self) -> None:
@@ -359,6 +442,81 @@ class SessionLibraryDialog(QDialog):
             QDesktopServices.openUrl(
                 QUrl.fromLocalFile(str(self._selected.session.folder.resolve()))
             )
+
+    def _confirm_delete(self, session: SessionManifest) -> bool:
+        message = QMessageBox(self)
+        message.setWindowTitle("Delete past session?")
+        message.setIcon(QMessageBox.Icon.Critical)
+        message.setText(f'Permanently delete “{session.title}”?')
+        message.setInformativeText(
+            "This deletes the entire session folder, including every video, audio "
+            "file, transcript, screenshot, anatomy edit, review page, and metadata "
+            "file. This action cannot be undone.\n\n"
+            "Cards already imported into Anki are stored separately in Anki and "
+            "will not be deleted. The local .apkg source file will be deleted."
+        )
+        message.setDetailedText(str(session.folder))
+        delete_button = message.addButton(
+            "Delete Permanently",
+            QMessageBox.ButtonRole.DestructiveRole,
+        )
+        message.addButton(QMessageBox.StandardButton.Cancel)
+        message.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        message.exec()
+        return message.clickedButton() is delete_button
+
+    def _delete_selected(self) -> None:
+        if self._selected is None:
+            return
+        entry = self._selected
+        session = entry.session
+        if not self._confirm_delete(session):
+            return
+
+        try:
+            folder = session.folder.resolve(strict=True)
+            delete_session_folder(folder, self._roots)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Could not delete session",
+                f"The session was not deleted.\n\n{exc}",
+            )
+            return
+
+        current_item = self.tree.currentItem()
+        current_index = self.tree.indexOfTopLevelItem(current_item)
+        self._items = [
+            (item, candidate)
+            for item, candidate in self._items
+            if candidate is not entry
+        ]
+        self._entries = [candidate for candidate in self._entries if candidate is not entry]
+        self._deleted_folders.add(folder)
+        self._selected = None
+        if current_index >= 0:
+            self.tree.takeTopLevelItem(current_index)
+
+        self.detail_title.setText("Select a session")
+        self.detail_meta.clear()
+        self.detail_summary.setText(
+            "Session deleted. Its videos and all associated files were removed."
+        )
+        self._apply_filter(self.search_edit.text())
+        next_item = next(
+            (
+                self.tree.topLevelItem(index)
+                for index in range(self.tree.topLevelItemCount())
+                if not self.tree.topLevelItem(index).isHidden()
+            ),
+            None,
+        )
+        if next_item is not None:
+            self.tree.setCurrentItem(next_item)
+        else:
+            self.tree.setCurrentItem(None)
+            self._selected = None
+            self._sync_buttons()
 
     def _load_selected(self) -> None:
         if self._selected:
