@@ -5,7 +5,8 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from screen_capture_transcriber.models import CaptureRegion, SessionManifest
 from screen_capture_transcriber.session_library import (
@@ -137,6 +138,66 @@ def test_past_sessions_button_copies_and_saves_codex_prompt(tmp_path) -> None:
     assert (session.folder / "codex-anki-prompt.txt").read_text(
         encoding="utf-8"
     ) == copied
+
+
+def test_past_sessions_edits_copies_and_deletes_timestamped_notes(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    session = SessionManifest.create(
+        tmp_path,
+        "Learning notes lecture",
+        CaptureRegion(0, 0, 640, 360),
+        "Loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    note = session.add_learning_note(
+        12.0,
+        "Initial user learning point.",
+        24.0,
+    )
+    session.transcript_markdown_path.write_text(
+        "# Transcript\n\nThe original spoken transcript.",
+        encoding="utf-8",
+    )
+    dialog = SessionLibraryDialog([tmp_path])
+    app.processEvents()
+
+    assert dialog.tree.headerItem().text(5) == "Notes"
+    assert dialog.tree.topLevelItem(0).text(5) == "1"
+    assert (
+        dialog.notes_list.currentItem().data(Qt.ItemDataRole.UserRole)
+        == note.id
+    )
+
+    dialog.note_edit.setPlainText("Edited intentional learning point.")
+    dialog.save_note_button.click()
+    app.processEvents()
+    assert (
+        SessionManifest.load(session.manifest_path).learning_notes[0].text
+        == "Edited intentional learning point."
+    )
+
+    dialog.copy_transcript_notes_button.click()
+    app.processEvents()
+    copied = QApplication.clipboard().text()
+    assert "The original spoken transcript." in copied
+    assert "[USER LEARNING NOTE — 00:24]" in copied
+    assert "Edited intentional learning point." in copied
+
+    monkeypatch.setattr(
+        QMessageBox,
+        "question",
+        lambda *_args, **_kwargs: QMessageBox.StandardButton.Yes,
+    )
+    dialog.delete_note_button.click()
+    app.processEvents()
+
+    assert SessionManifest.load(session.manifest_path).learning_notes == []
+    assert dialog.tree.topLevelItem(0).text(5) == "0"
 
 
 def test_delete_session_folder_removes_every_associated_file(tmp_path) -> None:

@@ -58,6 +58,10 @@ DEFAULT_SETTINGS = {
     "due_day_audio_deck_id": 0,
     "due_day_visual_deck_id": 0,
     "due_day_combined_deck_id": 0,
+    "draw_on_image_color": "#FFAA00",
+    "draw_on_image_tool": "arrow",
+    "draw_on_image_arrow_width": 8,
+    "draw_on_image_pen_width": 8,
 }
 
 

@@ -34,10 +34,13 @@ from aqt.qt import (
 from aqt.utils import showWarning
 
 from .common import collection_media_dir
+from .settings import load_settings, save_settings
 
 
 COMMAND_PREFIX = "pocket_knife_draw_on_image:"
 DEFAULT_COLOR = "#FFAA00"
+DEFAULT_TOOL = "arrow"
+DEFAULT_WIDTH = 8
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
 _dialog: "DrawOnImageDialog | None" = None
@@ -115,13 +118,64 @@ class Stroke:
     points: list[QPointF] = field(default_factory=list)
 
 
+@dataclass
+class AnnotationPreferences:
+    color: str = DEFAULT_COLOR
+    tool: str = DEFAULT_TOOL
+    arrow_width: int = DEFAULT_WIDTH
+    pen_width: int = DEFAULT_WIDTH
+
+    def width_for(self, tool: str) -> int:
+        return self.pen_width if tool == "pen" else self.arrow_width
+
+    def set_width_for(self, tool: str, width: int) -> None:
+        if tool == "pen":
+            self.pen_width = width
+        else:
+            self.arrow_width = width
+
+
+def _valid_width(value) -> int:
+    try:
+        return max(2, min(30, int(value)))
+    except Exception:
+        return DEFAULT_WIDTH
+
+
+def _load_annotation_preferences() -> AnnotationPreferences:
+    settings = load_settings()
+    color = QColor(str(settings.get("draw_on_image_color", DEFAULT_COLOR)))
+    tool = str(settings.get("draw_on_image_tool", DEFAULT_TOOL))
+    return AnnotationPreferences(
+        color=color.name().upper() if color.isValid() else DEFAULT_COLOR,
+        tool=tool if tool in {"arrow", "pen"} else DEFAULT_TOOL,
+        arrow_width=_valid_width(
+            settings.get("draw_on_image_arrow_width", DEFAULT_WIDTH)
+        ),
+        pen_width=_valid_width(settings.get("draw_on_image_pen_width", DEFAULT_WIDTH)),
+    )
+
+
+def _save_annotation_preferences(preferences: AnnotationPreferences) -> None:
+    settings = load_settings()
+    settings.update(
+        {
+            "draw_on_image_color": preferences.color,
+            "draw_on_image_tool": preferences.tool,
+            "draw_on_image_arrow_width": preferences.arrow_width,
+            "draw_on_image_pen_width": preferences.pen_width,
+        }
+    )
+    save_settings(settings)
+
+
 class DrawingCanvas(QWidget):
     def __init__(self, image: QImage, parent=None) -> None:
         super().__init__(parent)
         self._image = image.convertToFormat(QImage.Format.Format_ARGB32)
-        self.tool = "arrow"
+        self.tool = DEFAULT_TOOL
         self.pen_color = QColor(DEFAULT_COLOR)
-        self.pen_size = 8.0
+        self.pen_size = float(DEFAULT_WIDTH)
         self._strokes: list[Stroke] = []
         self._redo: list[Stroke] = []
         self._active: Stroke | None = None
@@ -326,7 +380,10 @@ class DrawOnImageDialog(QDialog):
         if image.isNull():
             raise RuntimeError("Anki Pocket Knife could not open that image.")
         self.canvas = DrawingCanvas(image, self)
+        self._preferences = _load_annotation_preferences()
+        self._applying_preferences = False
         self._build_ui()
+        self._apply_preferences()
         self._fill_available_screen()
 
     def _fill_available_screen(self) -> None:
@@ -367,6 +424,7 @@ class DrawOnImageDialog(QDialog):
         undo_button = QPushButton("Undo")
         redo_button = QPushButton("Redo")
         clear_button = QPushButton("Clear Drawing")
+        reset_defaults_button = QPushButton("Reset Defaults")
         ok_button = QPushButton("OK")
         cancel_button = QPushButton("Cancel")
 
@@ -382,6 +440,7 @@ class DrawOnImageDialog(QDialog):
         toolbar.addWidget(undo_button)
         toolbar.addWidget(redo_button)
         toolbar.addWidget(clear_button)
+        toolbar.addWidget(reset_defaults_button)
         toolbar.addStretch(1)
         toolbar.addWidget(ok_button)
         toolbar.addWidget(cancel_button)
@@ -395,6 +454,7 @@ class DrawOnImageDialog(QDialog):
         undo_button.clicked.connect(self.canvas.undo)
         redo_button.clicked.connect(self.canvas.redo)
         clear_button.clicked.connect(self.canvas.clear)
+        reset_defaults_button.clicked.connect(self._reset_preferences)
         ok_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
 
@@ -430,22 +490,64 @@ class DrawOnImageDialog(QDialog):
 
     def _set_tool(self, tool: str) -> None:
         self.canvas.set_tool(tool)
+        self._preferences.tool = tool
         self.arrow_button.setChecked(tool == "arrow")
         self.draw_button.setChecked(tool == "pen")
+        width = self._preferences.width_for(tool)
+        self._applying_preferences = True
+        try:
+            self.size_slider.setValue(width)
+            self.canvas.set_pen_size(width)
+            self.size_label.setText(f"Width: {width}")
+        finally:
+            self._applying_preferences = False
+        _save_annotation_preferences(self._preferences)
+
+    def _set_color_button(self, color: QColor) -> None:
+        color_name = color.name().upper()
+        self.color_button.setText(color_name)
+        text_color = "#111" if color.lightness() > 140 else "#fff"
+        self.color_button.setStyleSheet(
+            f"background: {color_name}; color: {text_color}; font-weight: 600;"
+        )
+
+    def _apply_preferences(self) -> None:
+        self._applying_preferences = True
+        try:
+            color = QColor(self._preferences.color)
+            self.canvas.set_pen_color(color)
+            self._set_color_button(color)
+            self.canvas.set_tool(self._preferences.tool)
+            self.arrow_button.setChecked(self._preferences.tool == "arrow")
+            self.draw_button.setChecked(self._preferences.tool == "pen")
+            width = self._preferences.width_for(self._preferences.tool)
+            self.size_slider.setValue(width)
+            self.canvas.set_pen_size(width)
+            self.size_label.setText(f"Width: {width}")
+        finally:
+            self._applying_preferences = False
+
+    def _reset_preferences(self) -> None:
+        self._preferences = AnnotationPreferences()
+        self._apply_preferences()
+        _save_annotation_preferences(self._preferences)
 
     def _choose_color(self) -> None:
         color = QColorDialog.getColor(self.canvas.pen_color, self, "Choose Pen Color")
         if not color.isValid():
             return
         self.canvas.set_pen_color(color)
-        color_name = color.name().upper()
-        self.color_button.setText(color_name)
-        text_color = "#111" if color.lightness() > 140 else "#fff"
-        self.color_button.setStyleSheet(f"background: {color_name}; color: {text_color}; font-weight: 600;")
+        self._set_color_button(color)
+        self._preferences.color = color.name().upper()
+        _save_annotation_preferences(self._preferences)
 
     def _set_pen_size(self, value: int) -> None:
         self.canvas.set_pen_size(int(value))
         self.size_label.setText(f"Width: {int(value)}")
+        if self._applying_preferences:
+            return
+        self._preferences.set_width_for(self.canvas.tool, int(value))
+        _save_annotation_preferences(self._preferences)
 
     def copy_to_clipboard(self) -> None:
         clipboard = QGuiApplication.clipboard()

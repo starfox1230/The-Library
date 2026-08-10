@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -48,6 +49,7 @@ class Chapter:
     start_seconds: float
     title: str
     transcript: str = ""
+    source_timestamp_seconds: float | None = None
 
 
 @dataclass
@@ -64,6 +66,41 @@ class CaptureSegment:
 
 
 @dataclass
+class SourceMediaSpan:
+    index: int
+    segment_index: int
+    source_start_seconds: float
+    source_end_seconds: float
+    recording_start_seconds: float
+    recording_end_seconds: float
+    playback_rate: float = 1.0
+    close_reason: str = ""
+
+
+@dataclass
+class CoverageGap:
+    start_seconds: float
+    end_seconds: float
+
+
+@dataclass
+class TranscriptCue:
+    timestamp: str
+    seconds: float
+    text: str
+
+
+@dataclass
+class LearningNote:
+    id: str
+    timestamp_seconds: float
+    text: str
+    created_at: str = field(default_factory=utc_now_iso)
+    updated_at: str = field(default_factory=utc_now_iso)
+    source_timestamp_seconds: float | None = None
+
+
+@dataclass
 class AnatomyCapture:
     index: int
     timestamp_seconds: float
@@ -76,6 +113,7 @@ class AnatomyCapture:
     source_click_y: int | None = None
     created_at: str = field(default_factory=utc_now_iso)
     edit_file: str = ""
+    source_timestamp_seconds: float | None = None
 
 
 @dataclass
@@ -99,6 +137,18 @@ class SessionManifest:
     actual_cost_usd: float | None = None
     playback_toggle_x: int | None = None
     playback_toggle_y: int | None = None
+    video_link_mode: str = "fallback"
+    video_link_provider: str = ""
+    video_link_error: str = ""
+    source_url: str = ""
+    source_title: str = ""
+    source_duration_seconds: float = 0.0
+    source_spans: list[SourceMediaSpan] = field(default_factory=list)
+    coverage_gaps: list[CoverageGap] = field(default_factory=list)
+    coverage_percent: float = 0.0
+    transcript_source: str = ""
+    source_transcript_cues: list[TranscriptCue] = field(default_factory=list)
+    learning_notes: list[LearningNote] = field(default_factory=list)
 
     @property
     def manifest_path(self) -> Path:
@@ -202,6 +252,8 @@ class SessionManifest:
         create_anki_card: bool,
         source_click: tuple[int, int] | None = None,
         edit_path: Path | None = None,
+        source_timestamp_seconds: float | None = None,
+        color: str = "#FFAA00",
     ) -> AnatomyCapture:
         capture = AnatomyCapture(
             index=len(self.anatomy_captures) + 1,
@@ -210,15 +262,68 @@ class SessionManifest:
             annotated_image=str(annotated_path.relative_to(self.folder)),
             label=label.strip(),
             create_anki_card=create_anki_card and bool(label.strip()),
+            color=color,
             source_click_x=source_click[0] if source_click else None,
             source_click_y=source_click[1] if source_click else None,
             edit_file=(
                 str(edit_path.relative_to(self.folder)) if edit_path is not None else ""
             ),
+            source_timestamp_seconds=source_timestamp_seconds,
         )
         self.anatomy_captures.append(capture)
         self.save()
         return capture
+
+    def add_learning_note(
+        self,
+        timestamp_seconds: float,
+        text: str,
+        source_timestamp_seconds: float | None = None,
+    ) -> LearningNote:
+        cleaned = text.strip()
+        if not cleaned:
+            raise ValueError("A learning note cannot be empty.")
+        note = LearningNote(
+            id=f"learning-note-{uuid.uuid4().hex}",
+            timestamp_seconds=max(0.0, float(timestamp_seconds)),
+            text=cleaned,
+            source_timestamp_seconds=(
+                max(0.0, float(source_timestamp_seconds))
+                if source_timestamp_seconds is not None
+                else None
+            ),
+        )
+        self.learning_notes.append(note)
+        self.learning_notes.sort(
+            key=lambda item: (item.timestamp_seconds, item.created_at, item.id)
+        )
+        self.save()
+        return note
+
+    def update_learning_note(self, note_id: str, text: str) -> LearningNote:
+        cleaned = text.strip()
+        if not cleaned:
+            raise ValueError("A learning note cannot be empty.")
+        note = next(
+            (item for item in self.learning_notes if item.id == note_id),
+            None,
+        )
+        if note is None:
+            raise KeyError(f"Unknown learning note: {note_id}")
+        note.text = cleaned
+        note.updated_at = utc_now_iso()
+        self.save()
+        return note
+
+    def delete_learning_note(self, note_id: str) -> bool:
+        original_count = len(self.learning_notes)
+        self.learning_notes = [
+            note for note in self.learning_notes if note.id != note_id
+        ]
+        if len(self.learning_notes) == original_count:
+            return False
+        self.save()
+        return True
 
     def save(self) -> None:
         self.folder.mkdir(parents=True, exist_ok=True)
@@ -239,6 +344,20 @@ class SessionManifest:
         ]
         payload["segments"] = [
             CaptureSegment(**segment) for segment in payload.get("segments", [])
+        ]
+        payload["source_spans"] = [
+            SourceMediaSpan(**span) for span in payload.get("source_spans", [])
+        ]
+        payload["coverage_gaps"] = [
+            CoverageGap(**gap) for gap in payload.get("coverage_gaps", [])
+        ]
+        payload["source_transcript_cues"] = [
+            TranscriptCue(**cue)
+            for cue in payload.get("source_transcript_cues", [])
+        ]
+        payload["learning_notes"] = [
+            LearningNote(**note)
+            for note in payload.get("learning_notes", [])
         ]
         payload["anatomy_captures"] = [
             AnatomyCapture(**capture)
@@ -281,12 +400,18 @@ class SessionManifest:
         session.save()
         return session
 
-    def add_chapter(self, start_seconds: float, title: str | None = None) -> Chapter:
+    def add_chapter(
+        self,
+        start_seconds: float,
+        title: str | None = None,
+        source_timestamp_seconds: float | None = None,
+    ) -> Chapter:
         index = len(self.chapters) + 1
         chapter = Chapter(
             index=index,
             start_seconds=max(0.0, start_seconds),
             title=title or f"Chapter {index}",
+            source_timestamp_seconds=source_timestamp_seconds,
         )
         self.chapters.append(chapter)
         self.save()

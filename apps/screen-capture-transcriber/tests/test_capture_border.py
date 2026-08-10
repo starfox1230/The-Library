@@ -24,7 +24,7 @@ def test_boundary_is_one_full_square_region_instead_of_four_strips() -> None:
     )
 
 
-def test_recording_controls_stay_at_the_bottom_right_perimeter() -> None:
+def test_recording_controls_stay_at_the_top_right_perimeter() -> None:
     region = CaptureRegion(100, 200, 800, 600)
 
     controls = CaptureBorderOverlay.control_geometry_for(
@@ -34,9 +34,9 @@ def test_recording_controls_stay_at_the_bottom_right_perimeter() -> None:
         2,
     )
 
-    assert controls == (702, 754, 190, 38)
+    assert controls == (702, 208, 190, 38)
     assert controls[0] + controls[2] < region.x + region.width
-    assert controls[1] + controls[3] < region.y + region.height
+    assert controls[1] > region.y
 
 
 def test_full_screen_controls_fall_back_inside_desktop_bounds() -> None:
@@ -49,7 +49,7 @@ def test_full_screen_controls_fall_back_inside_desktop_bounds() -> None:
         2,
     )
 
-    assert controls == (1722, 1034, 190, 38)
+    assert controls == (1722, 8, 190, 38)
 
 
 def test_controls_shrink_to_fit_a_small_recording_region() -> None:

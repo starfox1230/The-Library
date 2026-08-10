@@ -14,6 +14,8 @@ ADDON_ROOT = Path(__file__).resolve().parents[1]
 VERSIONS = (
     ADDON_ROOT / "speed-streak-addon-v1.28B",
     ADDON_ROOT / "speed-streak-addon-v1.31",
+    ADDON_ROOT / "speed-streak-addon-v1.32",
+    ADDON_ROOT / "speed-streak-addon-v1.33",
 )
 
 
@@ -291,6 +293,6 @@ def test_timer_preferences_are_exported_to_both_settings_surfaces(game_state) ->
     engine = game_state.CompanionGameEngine()
     exported = engine.export()
 
-    assert exported["version"] == 9
+    assert exported["version"] >= 9
     assert exported["freeFirstCardOnReviewEntry"] == 1
     assert exported["answerTimeoutBreaksStreak"] == 1

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import audioop
+import math
 import threading
 import time
 import wave
@@ -215,7 +216,21 @@ class LoopbackRecorder:
 
         self._last_callback_monotonic = now
         if self._level_callback and in_data:
-            rms = audioop.rms(in_data, 2)
-            self._level_callback(min(1.0, rms / 10000.0))
+            self._level_callback(pcm16_activity_level(in_data))
         return in_data, pyaudio.paContinue
 
+
+def pcm16_activity_level(in_data: bytes) -> float:
+    """Map PCM16 RMS to a clearly visible 0..1 meter level.
+
+    System loopback audio is commonly around -40 dBFS. A linear meter made
+    that signal appear stuck at only a few pixels, so use a conventional
+    decibel scale with a -60 dBFS floor and -12 dBFS at full scale.
+    """
+    if not in_data:
+        return 0.0
+    rms = audioop.rms(in_data, 2)
+    if rms <= 0:
+        return 0.0
+    dbfs = 20.0 * math.log10(rms / 32768.0)
+    return min(1.0, max(0.0, (dbfs + 60.0) / 48.0))

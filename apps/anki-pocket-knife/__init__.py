@@ -19,6 +19,7 @@ from .review_image_overlay import install as install_review_image_overlay
 from .return_non_new import install as install_return_non_new
 from .restore_tracker import install as install_restore_tracker
 from .saved_cards_audio import install as install_saved_cards_audio
+from .selected_card_export import install as install_selected_card_export
 from .send_non_new_media import install as install_send_non_new_media
 from .suspended_browser import install as install_suspended_browser
 from .tts_audio import install as install_tts_audio
@@ -47,6 +48,7 @@ install_review_image_overlay()
 install_return_non_new()
 install_restore_tracker()
 install_saved_cards_audio()
+install_selected_card_export()
 install_send_non_new_media()
 install_suspended_browser()
 install_tts_audio()

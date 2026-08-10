@@ -6,6 +6,11 @@ from pathlib import Path
 import time
 from urllib.parse import quote
 
+from .learning_notes import (
+    note_display_timestamp,
+    read_transcript,
+    render_transcript_with_notes,
+)
 from .models import SessionManifest, format_duration
 
 
@@ -40,7 +45,12 @@ def build_anatomy_review(session: SessionManifest) -> Path:
         )
 
     title = html.escape(session.title)
-    video_url = quote(session.playback_path.name)
+    video_path = (
+        session.playback_path
+        if session.playback_path.is_file()
+        else session.recording_path
+    )
+    video_url = quote(video_path.name)
     resume_key = json.dumps(f"screen-capture-transcriber:{session.created_at}")
     review_version = str(time.time_ns())
     (session.folder / "anatomy-review-version.js").write_text(
@@ -50,13 +60,48 @@ def build_anatomy_review(session: SessionManifest) -> Path:
     captures_html = "\n".join(cards) or (
         "<p class='empty'>No anatomy captures were saved in this session.</p>"
     )
+    note_cards: list[str] = []
+    for note in sorted(
+        session.learning_notes,
+        key=lambda item: (item.timestamp_seconds, item.created_at, item.id),
+    ):
+        timestamp = format_duration(note_display_timestamp(note))
+        note_cards.append(
+            f"""
+            <article class="learning-note" id="{html.escape(note.id)}">
+              <div class="note-heading">
+                <button class="seek" data-time="{note.timestamp_seconds:.3f}">
+                  ▶ {html.escape(timestamp)}
+                </button>
+                <button class="copy-note" type="button"
+                        data-copy="{html.escape(note.text, quote=True)}">
+                  Copy note
+                </button>
+              </div>
+              <p>{html.escape(note.text)}</p>
+            </article>"""
+        )
+    notes_html = "\n".join(note_cards) or (
+        "<p class='empty'>No timestamped learning notes were saved.</p>"
+    )
+    transcript_text = read_transcript(session)
+    transcript_html = (
+        f"<pre>{html.escape(transcript_text)}</pre>"
+        if transcript_text
+        else "<p class='empty'>No transcript is available for this session.</p>"
+    )
+    transcript_json = json.dumps(transcript_text, ensure_ascii=False)
+    transcript_notes_json = json.dumps(
+        render_transcript_with_notes(session),
+        ensure_ascii=False,
+    )
     session.review_path.write_text(
         f"""<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{title} — Anatomy review</title>
+  <title>{title} — Session review</title>
   <style>
     :root {{ color-scheme: dark; font-family: "Segoe UI", system-ui, sans-serif; }}
     * {{ box-sizing: border-box; }}
@@ -66,8 +111,14 @@ def build_anatomy_review(session: SessionManifest) -> Path:
     h1 {{ margin: 0 0 12px; font-size: clamp(1.25rem, 3vw, 2rem); }}
     video {{ display: block; width: min(100%, 960px); max-height: 48vh;
              background: #000; border-radius: 10px; }}
-    main {{ padding: 24px; display: grid; gap: 18px; align-items: start;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }}
+    main {{ padding: 24px; display: grid; gap: 22px; }}
+    .review-section {{ min-width: 0; }}
+    .section-heading {{ display: flex; flex-wrap: wrap; align-items: center;
+                        gap: 10px; margin: 0 0 12px; }}
+    .section-heading h2 {{ margin: 0; font-size: 1.3rem; }}
+    .capture-grid {{ display: grid; gap: 18px; align-items: start;
+                     grid-template-columns:
+                     repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }}
     .capture {{ display: flex; flex-direction: column; min-width: 0; overflow: hidden;
                 background: #101b2b; border: 1px solid #26364d;
                 border-radius: 12px; }}
@@ -94,6 +145,22 @@ def build_anatomy_review(session: SessionManifest) -> Path:
              white-space: nowrap; }}
     .badge {{ color: #ffd47b; }}
     .empty {{ color: #9eb0c8; }}
+    .learning-notes {{ display: grid; gap: 10px; }}
+    .learning-note {{ scroll-margin-top: 58vh; padding: 14px;
+                      background: #101b2b; border: 1px solid #26364d;
+                      border-radius: 10px; }}
+    .learning-note:target {{ border-color: #58d7ff;
+                             box-shadow: 0 0 0 2px rgba(88,215,255,.18); }}
+    .learning-note p {{ margin: 10px 0 0; white-space: pre-wrap;
+                        line-height: 1.5; }}
+    .note-heading {{ display: flex; align-items: center; gap: 10px; }}
+    .copy-note, .copy-action {{ color: #eef4fc; background: #17273a;
+                               border: 1px solid #36516f; border-radius: 7px;
+                               padding: 8px 12px; cursor: pointer; }}
+    .transcript pre {{ margin: 0; padding: 16px; max-height: 60vh;
+                       overflow: auto; white-space: pre-wrap; line-height: 1.5;
+                       background: #07101b; border: 1px solid #26364d;
+                       border-radius: 10px; }}
     #lightbox[hidden] {{ display: none; }}
     #lightbox {{ position: fixed; inset: 0; z-index: 20; display: grid;
                  place-items: center; padding: 24px; cursor: zoom-out;
@@ -116,11 +183,32 @@ def build_anatomy_review(session: SessionManifest) -> Path:
 </head>
 <body>
   <header>
-    <h1>{title} — Anatomy review</h1>
+    <h1>{title} — Session review</h1>
     <p>Your playback position is remembered automatically on this computer.</p>
     <video id="recording" controls preload="metadata" src="{video_url}"></video>
   </header>
-  <main>{captures_html}</main>
+  <main>
+    <section class="review-section">
+      <div class="section-heading"><h2>Timestamped Learning Notes</h2></div>
+      <div class="learning-notes">{notes_html}</div>
+    </section>
+    <section class="review-section">
+      <div class="section-heading"><h2>Anatomy Captures</h2></div>
+      <div class="capture-grid">{captures_html}</div>
+    </section>
+    <section class="review-section transcript">
+      <div class="section-heading">
+        <h2>Transcript</h2>
+        <button id="copy-transcript" class="copy-action" type="button">
+          Copy Transcript
+        </button>
+        <button id="copy-transcript-notes" class="copy-action" type="button">
+          Copy Transcript + Notes
+        </button>
+      </div>
+      {transcript_html}
+    </section>
+  </main>
   <div id="lightbox" role="dialog" aria-modal="true" aria-label="Expanded anatomy image"
        hidden>
     <button class="close" type="button" aria-label="Close expanded image">✕ Close</button>
@@ -131,8 +219,15 @@ def build_anatomy_review(session: SessionManifest) -> Path:
     const lightbox = document.getElementById("lightbox");
     const lightboxImage = document.getElementById("lightbox-image");
     const resumeKey = {resume_key};
+    const transcriptText = {transcript_json};
+    const transcriptAndNotesText = {transcript_notes_json};
     const loadedReviewVersion = window.__ANATOMY_REVIEW_VERSION__;
     video.addEventListener("loadedmetadata", () => {{
+      const requested = Number(new URLSearchParams(window.location.search).get("t"));
+      if (Number.isFinite(requested) && requested >= 0 && requested < video.duration) {{
+        video.currentTime = requested;
+        return;
+      }}
       const saved = Number(localStorage.getItem(resumeKey));
       if (Number.isFinite(saved) && saved > 0 && saved < video.duration - 2) {{
         video.currentTime = saved;
@@ -182,6 +277,34 @@ def build_anatomy_review(session: SessionManifest) -> Path:
         window.scrollTo({{top: 0, behavior: "smooth"}});
       }});
     }});
+    async function copyText(text) {{
+      if (!text) return;
+      try {{
+        await navigator.clipboard.writeText(text);
+      }} catch (_error) {{
+        const area = document.createElement("textarea");
+        area.value = text;
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+      }}
+    }}
+    document.querySelectorAll(".copy-note").forEach((button) => {{
+      button.addEventListener("click", () => {{
+        const article = button.closest(".learning-note");
+        const timestamp = article?.querySelector(".seek")?.textContent?.trim() || "";
+        copyText(`[USER LEARNING NOTE — ${{timestamp.replace("▶", "").trim()}}] ${{button.dataset.copy || ""}}`);
+      }});
+    }});
+    document.getElementById("copy-transcript").addEventListener(
+      "click", () => copyText(transcriptText)
+    );
+    document.getElementById("copy-transcript-notes").addEventListener(
+      "click", () => copyText(transcriptAndNotesText)
+    );
     function closeLightbox() {{
       lightbox.hidden = true;
       lightboxImage.src = "";

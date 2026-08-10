@@ -85,7 +85,7 @@ def load_config() -> AppConfig:
 
     return AppConfig(
         api_key=_get_required_env("OPENAI_API_KEY"),
-        model=os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-transcribe").strip() or "gpt-4o-transcribe",
+        model=os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-transcribe").strip() or "gpt-transcribe",
         transcription_prompt=os.getenv("OPENAI_TRANSCRIBE_PROMPT", "").strip() or None,
         toggle_hotkey=toggle_hotkey,
         toggle_hotkey_label=hotkey_to_label(toggle_hotkey),

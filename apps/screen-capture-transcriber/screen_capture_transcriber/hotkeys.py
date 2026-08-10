@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+from ctypes import wintypes
 
 from PySide6.QtCore import QObject, Signal
 from pynput import keyboard, mouse
@@ -13,39 +14,70 @@ def control_key_is_down() -> bool:
     )
 
 
+def foreground_native_text_input_active() -> bool:
+    """Best-effort guard for native editors in the foreground application."""
+    if not hasattr(ctypes, "windll"):
+        return False
+
+    class GuiThreadInfo(ctypes.Structure):
+        _fields_ = [
+            ("cbSize", wintypes.DWORD),
+            ("flags", wintypes.DWORD),
+            ("hwndActive", wintypes.HWND),
+            ("hwndFocus", wintypes.HWND),
+            ("hwndCapture", wintypes.HWND),
+            ("hwndMenuOwner", wintypes.HWND),
+            ("hwndMoveSize", wintypes.HWND),
+            ("hwndCaret", wintypes.HWND),
+            ("rcCaret", wintypes.RECT),
+        ]
+
+    try:
+        info = GuiThreadInfo()
+        info.cbSize = ctypes.sizeof(GuiThreadInfo)
+        if not ctypes.windll.user32.GetGUIThreadInfo(0, ctypes.byref(info)):
+            return False
+        focused = info.hwndFocus
+        if not focused:
+            return False
+        buffer = ctypes.create_unicode_buffer(256)
+        ctypes.windll.user32.GetClassNameW(focused, buffer, len(buffer))
+        class_name = buffer.value.casefold()
+    except Exception:
+        return False
+    return any(
+        marker in class_name
+        for marker in (
+            "edit",
+            "richedit",
+            "scintilla",
+            "textbox",
+            "textinput",
+        )
+    )
+
+
 class GlobalHotkeys(QObject):
     toggle_recording = Signal()
-    add_chapter = Signal()
-    anatomy_capture = Signal()
     period_capture = Signal()
-    ctrl_click = Signal(int, int)
+    learning_note = Signal()
     error = Signal(str)
 
-    def __init__(
-        self,
-        toggle_hotkey: str,
-        chapter_hotkey: str,
-        anatomy_hotkey: str,
-    ) -> None:
+    def __init__(self, toggle_hotkey: str) -> None:
         super().__init__()
         self._toggle_hotkey = toggle_hotkey
-        self._chapter_hotkey = chapter_hotkey
-        self._anatomy_hotkey = anatomy_hotkey
         self._listener: keyboard.GlobalHotKeys | None = None
         self._period_listener: keyboard.Listener | None = None
-        self._mouse_listener: mouse.Listener | None = None
         self._period_capture_enabled = False
         self._suppressing_period = False
-        self._ctrl_click_capture_region: tuple[int, int, int, int] | None = None
-        self._suppressing_ctrl_left_click = False
+        self._learning_note_capture_enabled = False
+        self._suppressing_backspace = False
 
     def start(self) -> None:
         try:
             self._listener = keyboard.GlobalHotKeys(
                 {
                     self._toggle_hotkey: lambda: self.toggle_recording.emit(),
-                    self._chapter_hotkey: lambda: self.add_chapter.emit(),
-                    self._anatomy_hotkey: lambda: self.anatomy_capture.emit(),
                 }
             )
             self._listener.start()
@@ -58,22 +90,26 @@ class GlobalHotkeys(QObject):
                 )
             self._period_listener = keyboard.Listener(**period_options)
             self._period_listener.start()
-            mouse_options: dict[str, object] = {"on_click": self._on_click}
-            if hasattr(ctypes, "windll"):
-                mouse_options["win32_event_filter"] = self._win32_event_filter
-            self._mouse_listener = mouse.Listener(**mouse_options)
-            self._mouse_listener.start()
         except Exception as exc:
             self.error.emit(str(exc))
 
     def set_period_capture_enabled(self, enabled: bool) -> None:
         self._period_capture_enabled = bool(enabled)
 
+    def set_learning_note_capture_enabled(self, enabled: bool) -> None:
+        self._learning_note_capture_enabled = bool(enabled)
+
     def _on_period_press(self, key: keyboard.Key | keyboard.KeyCode) -> None:
-        if hasattr(ctypes, "windll") or not self._period_capture_enabled:
+        if hasattr(ctypes, "windll"):
             return
-        if getattr(key, "char", None) == ".":
+        if self._period_capture_enabled and getattr(key, "char", None) == ".":
             self.period_capture.emit()
+        elif (
+            self._learning_note_capture_enabled
+            and key == keyboard.Key.backspace
+            and not control_key_is_down()
+        ):
+            self.learning_note.emit()
 
     def _period_win32_event_filter(self, message: int, data: object) -> bool:
         WM_KEYDOWN = 0x0100
@@ -81,10 +117,26 @@ class GlobalHotkeys(QObject):
         WM_SYSKEYDOWN = 0x0104
         WM_SYSKEYUP = 0x0105
         VK_OEM_PERIOD = 0xBE
+        VK_BACK = 0x08
         try:
             virtual_key = int(data.vkCode)
         except (AttributeError, TypeError, ValueError):
             return True
+        if virtual_key == VK_BACK:
+            if message in (WM_KEYUP, WM_SYSKEYUP) and self._suppressing_backspace:
+                self._suppressing_backspace = False
+                return False
+            if (
+                message not in (WM_KEYDOWN, WM_SYSKEYDOWN)
+                or not self._learning_note_capture_enabled
+                or control_key_is_down()
+                or foreground_native_text_input_active()
+            ):
+                return True
+            if not self._suppressing_backspace:
+                self._suppressing_backspace = True
+                self.learning_note.emit()
+            return False
         if virtual_key != VK_OEM_PERIOD:
             return True
         if message in (WM_KEYUP, WM_SYSKEYUP) and self._suppressing_period:
@@ -100,61 +152,6 @@ class GlobalHotkeys(QObject):
             self.period_capture.emit()
         return False
 
-    def _on_click(
-        self,
-        x: int,
-        y: int,
-        button: mouse.Button,
-        pressed: bool,
-    ) -> None:
-        if self._inside_ctrl_click_capture_region(int(x), int(y)):
-            # The Windows event filter emits this click and suppresses it before
-            # it can accidentally toggle the underlying player a second time.
-            return
-        if (
-            pressed
-            and button == mouse.Button.left
-            and control_key_is_down()
-        ):
-            self.ctrl_click.emit(int(x), int(y))
-
-    def set_ctrl_click_capture_region(
-        self,
-        region: tuple[int, int, int, int] | None,
-    ) -> None:
-        self._ctrl_click_capture_region = region
-
-    def _inside_ctrl_click_capture_region(self, x: int, y: int) -> bool:
-        region = self._ctrl_click_capture_region
-        if region is None:
-            return False
-        region_x, region_y, width, height = region
-        return (
-            region_x <= x < region_x + width
-            and region_y <= y < region_y + height
-        )
-
-    def _win32_event_filter(self, message: int, data: object) -> bool:
-        WM_LBUTTONDOWN = 0x0201
-        WM_LBUTTONUP = 0x0202
-        if message == WM_LBUTTONUP and self._suppressing_ctrl_left_click:
-            self._suppressing_ctrl_left_click = False
-            return False
-        if message != WM_LBUTTONDOWN or not hasattr(ctypes, "windll"):
-            return True
-        if not control_key_is_down():
-            return True
-        try:
-            x = int(data.pt.x)
-            y = int(data.pt.y)
-        except (AttributeError, TypeError, ValueError):
-            return True
-        if not self._inside_ctrl_click_capture_region(x, y):
-            return True
-        self._suppressing_ctrl_left_click = True
-        self.ctrl_click.emit(x, y)
-        return False
-
     def stop(self) -> None:
         if self._listener is not None:
             self._listener.stop()
@@ -162,9 +159,6 @@ class GlobalHotkeys(QObject):
         if self._period_listener is not None:
             self._period_listener.stop()
             self._period_listener = None
-        if self._mouse_listener is not None:
-            self._mouse_listener.stop()
-            self._mouse_listener = None
 
 
 def replay_left_click(x: int, y: int) -> None:

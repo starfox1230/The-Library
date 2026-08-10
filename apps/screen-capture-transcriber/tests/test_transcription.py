@@ -26,6 +26,7 @@ def test_merge_overlapping_text_removes_repeated_overlap() -> None:
 
 
 def test_estimate_cost_uses_duration() -> None:
+    assert estimate_cost("gpt-transcribe", 3600) == pytest.approx(0.27)
     assert estimate_cost("gpt-4o-mini-transcribe", 3600) == pytest.approx(0.18)
     assert estimate_cost("whisper-1", 3600) == pytest.approx(0.36)
 
@@ -38,7 +39,8 @@ def test_actual_token_cost() -> None:
     assert cost == pytest.approx(0.0175)
 
 
-def test_whisper_duration_cost() -> None:
+def test_duration_priced_model_cost() -> None:
+    assert actual_cost("gpt-transcribe", {"seconds": 600}) == pytest.approx(0.045)
     assert actual_cost("whisper-1", {"seconds": 600}) == pytest.approx(0.06)
 
 
@@ -56,11 +58,11 @@ def test_single_chapter_transcription_creates_its_work_directory(
         1.1,
     )
     session.duration_seconds = 10.0
-    session.transcription_model = "gpt-4o-mini-transcribe"
+    session.transcription_model = "gpt-transcribe"
     session.audio_path.write_bytes(b"small audio placeholder")
     transcriber = SessionTranscriber(
         "test-key",
-        "gpt-4o-mini-transcribe",
+        "gpt-transcribe",
         Path("ffmpeg"),
         Path("ffprobe"),
         48,
@@ -95,7 +97,7 @@ def test_recover_completed_transcript_avoids_a_second_api_request(tmp_path) -> N
         1.1,
     )
     session.duration_seconds = 20
-    session.transcription_model = "gpt-4o-mini-transcribe"
+    session.transcription_model = "gpt-transcribe"
     session.chapters[0].transcript = "Already returned by the API."
 
     result = recover_completed_transcript(session)

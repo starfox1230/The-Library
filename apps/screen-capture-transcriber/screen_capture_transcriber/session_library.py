@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import shutil
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QUrlQuery
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -15,7 +15,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
     QTreeWidget,
     QTreeWidgetItem,
@@ -24,6 +27,11 @@ from PySide6.QtWidgets import (
 )
 
 from .codex_prompt import build_codex_anki_prompt, save_codex_anki_prompt
+from .learning_notes import (
+    note_display_timestamp,
+    read_transcript,
+    render_transcript_with_notes,
+)
 from .models import SessionManifest, format_duration
 from .post_editor import AnatomyPostEditorDialog
 from .review import build_anatomy_review
@@ -121,8 +129,8 @@ class SessionLibraryDialog(QDialog):
     def __init__(self, roots: list[Path], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Past Sessions")
-        self.resize(1180, 650)
-        self.setMinimumSize(940, 520)
+        self.resize(1260, 820)
+        self.setMinimumSize(1000, 680)
         self._roots = list(dict.fromkeys(Path(root).resolve() for root in roots))
         self._deleted_folders: set[Path] = set()
         self._entries, self._errors = discover_sessions(roots)
@@ -164,9 +172,18 @@ class SessionLibraryDialog(QDialog):
 
         body = QHBoxLayout()
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(7)
+        self.tree.setColumnCount(8)
         self.tree.setHeaderLabels(
-            ["Date", "Title", "Duration", "Size", "Anatomy", "Transcript", "State"]
+            [
+                "Date",
+                "Title",
+                "Duration",
+                "Size",
+                "Anatomy",
+                "Notes",
+                "Transcript",
+                "State",
+            ]
         )
         self.tree.setRootIsDecorated(False)
         self.tree.setAlternatingRowColors(True)
@@ -178,8 +195,9 @@ class SessionLibraryDialog(QDialog):
         self.tree.setColumnWidth(2, 72)
         self.tree.setColumnWidth(3, 76)
         self.tree.setColumnWidth(4, 65)
-        self.tree.setColumnWidth(5, 90)
-        self.tree.setColumnWidth(6, 88)
+        self.tree.setColumnWidth(5, 60)
+        self.tree.setColumnWidth(6, 90)
+        self.tree.setColumnWidth(7, 88)
         body.addWidget(self.tree, 4)
 
         details = QFrame()
@@ -201,7 +219,7 @@ class SessionLibraryDialog(QDialog):
         details_layout.addWidget(self.detail_summary)
         details_layout.addStretch()
 
-        self.review_button = QPushButton("Review Anatomy")
+        self.review_button = QPushButton("Review Session")
         self.edit_anatomy_button = QPushButton("Edit Anatomy Screenshots")
         self.copy_codex_anki_button = QPushButton("Copy Codex Anki Prompt")
         self.play_button = QPushButton("Play Recording")
@@ -233,6 +251,56 @@ class SessionLibraryDialog(QDialog):
         body.addWidget(details, 2)
         layout.addLayout(body, 1)
 
+        notes_frame = QFrame()
+        notes_frame.setObjectName("LibraryDetails")
+        notes_layout = QHBoxLayout(notes_frame)
+        notes_layout.setContentsMargins(14, 12, 14, 12)
+        notes_layout.setSpacing(12)
+
+        notes_list_column = QVBoxLayout()
+        notes_list_column.addWidget(QLabel("Timestamped Learning Notes"))
+        self.notes_list = QListWidget()
+        self.notes_list.currentItemChanged.connect(self._on_note_selected)
+        notes_list_column.addWidget(self.notes_list, 1)
+        notes_layout.addLayout(notes_list_column, 2)
+
+        note_editor_column = QVBoxLayout()
+        self.note_edit = QPlainTextEdit()
+        self.note_edit.setPlaceholderText("Select a learning note to edit it.")
+        note_editor_column.addWidget(self.note_edit, 1)
+        note_actions = QHBoxLayout()
+        self.save_note_button = QPushButton("Save Edit")
+        self.delete_note_button = QPushButton("Delete Note…")
+        self.copy_note_button = QPushButton("Copy Note")
+        self.open_note_button = QPushButton("Open at Timestamp")
+        self.save_note_button.clicked.connect(self._save_note_edit)
+        self.delete_note_button.clicked.connect(self._delete_note)
+        self.copy_note_button.clicked.connect(self._copy_note)
+        self.open_note_button.clicked.connect(self._open_note_timestamp)
+        for button in (
+            self.save_note_button,
+            self.delete_note_button,
+            self.copy_note_button,
+            self.open_note_button,
+        ):
+            note_actions.addWidget(button)
+        note_editor_column.addLayout(note_actions)
+        copy_actions = QHBoxLayout()
+        self.copy_transcript_button = QPushButton("Copy Transcript")
+        self.copy_transcript_notes_button = QPushButton(
+            "Copy Transcript + Notes"
+        )
+        self.copy_transcript_button.clicked.connect(self._copy_transcript)
+        self.copy_transcript_notes_button.clicked.connect(
+            self._copy_transcript_and_notes
+        )
+        copy_actions.addWidget(self.copy_transcript_button)
+        copy_actions.addWidget(self.copy_transcript_notes_button)
+        copy_actions.addStretch()
+        note_editor_column.addLayout(copy_actions)
+        notes_layout.addLayout(note_editor_column, 3)
+        layout.addWidget(notes_frame)
+
         footer = QHBoxLayout()
         error_suffix = (
             f" • {len(self._errors)} unreadable session(s)" if self._errors else ""
@@ -259,7 +327,8 @@ class SessionLibraryDialog(QDialog):
             QLabel#Muted { color:#9EB0C8; }
             QFrame#LibraryDetails { background:#101B2B; border:1px solid #26364D;
                                     border-radius:10px; }
-            QLineEdit, QTreeWidget { background:#0B1421; border:1px solid #293A52;
+            QLineEdit, QPlainTextEdit, QListWidget, QTreeWidget {
+                                     background:#0B1421; border:1px solid #293A52;
                                      border-radius:7px; padding:7px; }
             QTreeWidget::item { padding:7px 4px; }
             QTreeWidget::item:selected { background:#216F8B; }
@@ -295,6 +364,7 @@ class SessionLibraryDialog(QDialog):
                     format_duration(session.duration_seconds),
                     format_file_size(entry.total_size_bytes),
                     str(len(session.anatomy_captures)),
+                    str(len(session.learning_notes)),
                     transcript,
                     session.state.replace("_", " ").title(),
                 ]
@@ -319,6 +389,7 @@ class SessionLibraryDialog(QDialog):
                     session.state,
                     "transcript" if session.transcript_markdown_path.is_file() else "",
                     "anatomy" if session.anatomy_captures else "",
+                    " ".join(note.text for note in session.learning_notes),
                 ]
             ).casefold()
             hidden = bool(query and query not in haystack)
@@ -344,6 +415,7 @@ class SessionLibraryDialog(QDialog):
         if self._selected is None:
             self.detail_title.setText("Select a session")
             self.detail_meta.clear()
+            self._populate_notes()
             self._sync_buttons()
             return
         session = self._selected.session
@@ -351,8 +423,8 @@ class SessionLibraryDialog(QDialog):
         self.detail_meta.setText(
             f"{format_duration(session.duration_seconds)} recording • "
             f"{format_file_size(self._selected.total_size_bytes)} total size\n"
-            f"{len(session.chapters)} chapter(s) • "
-            f"{len(session.anatomy_captures)} anatomy capture(s)\n"
+            f"{len(session.anatomy_captures)} anatomy capture(s) • "
+            f"{len(session.learning_notes)} learning note(s)\n"
             f"Status: {session.state.replace('_', ' ')}"
         )
         transcript = (
@@ -365,17 +437,39 @@ class SessionLibraryDialog(QDialog):
             if session.review_path.is_file()
             else "No anatomy review is available."
         )
-        self.detail_summary.setText(f"{review}\n\n{transcript}")
+        notes = (
+            f"{len(session.learning_notes)} timestamped learning note(s) are ready "
+            "for review and non-visual card export."
+            if session.learning_notes
+            else "No timestamped learning notes were saved."
+        )
+        self.detail_summary.setText(f"{review}\n\n{transcript}\n\n{notes}")
+        self._populate_notes()
         self._sync_buttons()
 
     def _sync_buttons(self) -> None:
         session = self._selected.session if self._selected else None
-        self.review_button.setEnabled(bool(session and session.review_path.is_file()))
+        self.review_button.setEnabled(
+            bool(
+                session
+                and (
+                    session.review_path.is_file()
+                    or session.playback_path.is_file()
+                    or session.recording_path.is_file()
+                    or session.anatomy_captures
+                    or session.learning_notes
+                    or session.transcript_markdown_path.is_file()
+                )
+            )
+        )
         self.edit_anatomy_button.setEnabled(
             bool(session and session.anatomy_captures)
         )
         self.copy_codex_anki_button.setEnabled(
-            bool(session and session.anatomy_captures)
+            bool(
+                session
+                and (session.anatomy_captures or session.learning_notes)
+            )
         )
         self.play_button.setEnabled(
             bool(
@@ -389,9 +483,193 @@ class SessionLibraryDialog(QDialog):
         self.transcript_button.setEnabled(
             bool(session and session.transcript_markdown_path.is_file())
         )
+        note = self._selected_note()
+        has_note = note is not None
+        self.note_edit.setEnabled(has_note)
+        self.save_note_button.setEnabled(has_note)
+        self.delete_note_button.setEnabled(has_note)
+        self.copy_note_button.setEnabled(has_note)
+        self.open_note_button.setEnabled(
+            bool(
+                has_note
+                and session
+                and (
+                    session.playback_path.is_file()
+                    or session.recording_path.is_file()
+                )
+            )
+        )
+        self.copy_transcript_button.setEnabled(
+            bool(session and session.transcript_markdown_path.is_file())
+        )
+        self.copy_transcript_notes_button.setEnabled(
+            bool(
+                session
+                and (
+                    session.transcript_markdown_path.is_file()
+                    or session.learning_notes
+                )
+            )
+        )
         self.folder_button.setEnabled(bool(session and session.folder.is_dir()))
         self.delete_button.setEnabled(bool(session and session.folder.is_dir()))
         self.load_button.setEnabled(session is not None)
+
+    def _populate_notes(self) -> None:
+        self.notes_list.blockSignals(True)
+        self.notes_list.clear()
+        session = self._selected.session if self._selected else None
+        if session is not None:
+            for note in sorted(
+                session.learning_notes,
+                key=lambda item: (
+                    item.timestamp_seconds,
+                    item.created_at,
+                    item.id,
+                ),
+            ):
+                summary = " ".join(note.text.split())
+                if len(summary) > 105:
+                    summary = summary[:102].rstrip() + "…"
+                item = QListWidgetItem(
+                    f"{format_duration(note_display_timestamp(note))}  •  {summary}"
+                )
+                item.setData(Qt.ItemDataRole.UserRole, note.id)
+                self.notes_list.addItem(item)
+        self.notes_list.blockSignals(False)
+        if self.notes_list.count():
+            self.notes_list.setCurrentRow(0)
+        else:
+            self.note_edit.clear()
+
+    def _selected_note(self):
+        session = self._selected.session if self._selected else None
+        item = self.notes_list.currentItem()
+        if session is None or item is None:
+            return None
+        note_id = str(item.data(Qt.ItemDataRole.UserRole) or "")
+        return next(
+            (note for note in session.learning_notes if note.id == note_id),
+            None,
+        )
+
+    def _on_note_selected(
+        self,
+        _current: QListWidgetItem | None,
+        _previous: QListWidgetItem | None,
+    ) -> None:
+        note = self._selected_note()
+        self.note_edit.setPlainText(note.text if note is not None else "")
+        self._sync_buttons()
+
+    def _save_note_edit(self) -> None:
+        if self._selected is None:
+            return
+        note = self._selected_note()
+        text = self.note_edit.toPlainText().strip()
+        if note is None or not text:
+            return
+        self._selected.session.update_learning_note(note.id, text)
+        self._refresh_notes_after_change(note.id)
+        self.detail_summary.setText("Learning note updated.")
+
+    def _delete_note(self) -> None:
+        if self._selected is None:
+            return
+        note = self._selected_note()
+        if note is None:
+            return
+        result = QMessageBox.question(
+            self,
+            "Delete learning note?",
+            (
+                f"Delete the learning note at "
+                f"{format_duration(note_display_timestamp(note))}?\n\n"
+                "The recording and transcript will not be changed."
+            ),
+            QMessageBox.StandardButton.Yes
+            | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if result != QMessageBox.StandardButton.Yes:
+            return
+        self._selected.session.delete_learning_note(note.id)
+        self._refresh_notes_after_change()
+        self.detail_summary.setText("Learning note deleted.")
+
+    def _copy_note(self) -> None:
+        note = self._selected_note()
+        if note is None:
+            return
+        QApplication.clipboard().setText(
+            f"[USER LEARNING NOTE — "
+            f"{format_duration(note_display_timestamp(note))}] "
+            f"{note.text.strip()}"
+        )
+        self.detail_summary.setText("Learning note copied to the clipboard.")
+
+    def _copy_transcript(self) -> None:
+        if self._selected is None:
+            return
+        transcript = read_transcript(self._selected.session)
+        if not transcript:
+            return
+        QApplication.clipboard().setText(transcript)
+        self.detail_summary.setText(
+            "Transcript copied without user learning notes."
+        )
+
+    def _copy_transcript_and_notes(self) -> None:
+        if self._selected is None:
+            return
+        QApplication.clipboard().setText(
+            render_transcript_with_notes(self._selected.session)
+        )
+        self.detail_summary.setText(
+            "Transcript and clearly labeled learning notes copied."
+        )
+
+    def _open_note_timestamp(self) -> None:
+        if self._selected is None:
+            return
+        note = self._selected_note()
+        if note is None:
+            return
+        session = self._selected.session
+        build_anatomy_review(session)
+        url = QUrl.fromLocalFile(str(session.review_path.resolve()))
+        query = QUrlQuery()
+        query.addQueryItem("t", f"{note.timestamp_seconds:.3f}")
+        url.setQuery(query)
+        url.setFragment(note.id)
+        QDesktopServices.openUrl(url)
+
+    def _refresh_notes_after_change(self, selected_note_id: str = "") -> None:
+        if self._selected is None:
+            return
+        session = self._selected.session
+        build_anatomy_review(session)
+        current_item = self.tree.currentItem()
+        if current_item is not None:
+            current_item.setText(5, str(len(session.learning_notes)))
+        self.detail_meta.setText(
+            f"{format_duration(session.duration_seconds)} recording • "
+            f"{format_file_size(self._selected.total_size_bytes)} total size\n"
+            f"{len(session.anatomy_captures)} anatomy capture(s) • "
+            f"{len(session.learning_notes)} learning note(s)\n"
+            f"Status: {session.state.replace('_', ' ')}"
+        )
+        self._populate_notes()
+        if selected_note_id:
+            for index in range(self.notes_list.count()):
+                item = self.notes_list.item(index)
+                if (
+                    str(item.data(Qt.ItemDataRole.UserRole) or "")
+                    == selected_note_id
+                ):
+                    self.notes_list.setCurrentItem(item)
+                    break
+        self._sync_buttons()
 
     def _open_review(self) -> None:
         if self._selected:

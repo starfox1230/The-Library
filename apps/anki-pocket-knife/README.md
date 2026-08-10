@@ -8,6 +8,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Create Due-Day Decks`: builds audio, visual, separate, or combined filtered decks for an exact date or date range. The calendar supports past, current, and future scheduling dates, with Previous Range and Next Range controls for quick navigation. Named presets persist as rolling presets; custom selections persist as offsets from today, so a range such as six days ago through tomorrow advances by one day the next time the dialog opens.
 - `Study Repair`: adds a button above the main deck list and a launcher/menu action that ranks cards reviewed in the last configurable hours by recent instability, shows why each card ranked highly, opens that exact set in the Browser, and copies clean note-field content for a separate tutor workflow without changing scheduling.
 - `Clipboard -> New saCloze++ Cards`: adds `Make New Cards From Clipboard` to the deck-browser right-click menu and the Pocket Knife Tools menu, reads either a clipboard JSON array of objects with `html` or `content` plus optional `tags` or one cloze card per non-empty line, and imports each entry into the exact `Saved Cards` deck as a new `saCloze++` note with the card text placed directly into `Text`.
+- `Browser -> Export Selected Cards`: adds a submenu at the bottom of the Browser card-row right-click menu. Export the exact selected cards as an `.apkg` package with referenced media (without scheduling history), or as a readable `.txt` file containing each card's rendered front, rendered back, metadata, tags, and every named note field.
 - `Missed Today -> Copy Text`: copies the front/back text of every card you missed in the current Anki day.
 - `Missed Today -> Save Text File`: writes that same export to a local text file inside `user_files`.
 - `Missed Today -> Open HTML Viewer`: creates a local HTML page of cards missed today and rewrites image/media paths to local collection-media file URLs so images render outside Anki.
@@ -64,6 +65,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Remember Reviewer Image Position On Close`
 - `Tools -> Anki Pocket Knife -> Play Audio From TTS-Enabled Cards`
 - Deck-browser right click: `Make New Cards From Clipboard`
+- Browser selected-card right click: `Pocket Knife: Export Selected Cards`
 - Default launcher shortcut: `Ctrl+Shift+Q` if Anki has not already claimed it
 - Default early-review shortcut inside this add-on: `Ctrl+Alt+F`
 

@@ -2,24 +2,27 @@
 
 A Windows-first personal recorder for study videos and lectures. It records a selected
 screen region plus the audio Windows is sending to the active output device, creates a
-separate transcription-ready MP3, stores chapter markers, and can send the audio to
-OpenAI for transcription. Anatomy study mode also captures timestamped stills, provides
+separate transcription-ready MP3, and can send the audio to OpenAI for transcription.
+Anatomy study mode also captures timestamped stills, provides
 a native-resolution arrow/drawing editor, builds a clickable video review, and can
 package labeled structures as `saCloze++` Anki cards.
 
 ## The fast workflow
 
-1. Select an area, or use the primary screen.
+1. Select the area to record.
 2. Confirm the system-audio row shows the expected output, such as `TOSHIBA-TV`.
 3. Press **Start Recording** or `F8`.
-4. Press **Add Chapter** or `F9` whenever the topic changes.
-5. For anatomy, Ctrl+left-click the video player. That click pauses the player and the
-   recorder, then opens the paused frame for arrows, drawing, and an optional label.
+4. For anatomy, press `.` or the camera icon on the recording boundary. The app pauses
+   the player and recorder together, then opens the paused frame for arrows, drawing,
+   and an optional label.
+5. For a non-visual concept you want to remember, press `Backspace`. The app captures
+   the source-video timestamp, pauses video and recording together, and focuses a
+   learning-note editor with nearby transcript context. Save or cancel to resume.
 6. Press **Save & Resume**. Recording restarts and the app replays a normal click at the
    same player location, so paused study time is omitted from the final recording.
 7. Press `F8` to finish.
-8. Open **Anatomy Review**, or choose a transcription model and press **Transcribe**.
-9. Press **Copy All** to move the Markdown transcript into ChatGPT or another workflow.
+8. Open **Session Review**, or choose a transcription model and press **Transcribe**.
+9. Copy the transcript alone or the transcript with clearly labeled learning notes.
 
 Recording never requires an API key or internet connection. Transcription is separate
 and resumable, so a failed API request cannot destroy the local recording.
@@ -28,19 +31,26 @@ and resumable, so a failed API request cannot destroy the local recording.
 
 Press **Past Sessions** at the top of the app to search and sort previous recordings.
 The library shows each session's date, title, duration, anatomy-capture count,
+learning-note count,
 total on-disk size, transcript availability, and processing state. The selected
 session's size is repeated in the detail panel, and the footer shows the combined
 size of the currently visible sessions.
 
 The detail panel provides direct actions:
 
-- **Review Anatomy** opens the timestamped image gallery and video.
+- **Review Session** opens the video, timestamped learning notes, anatomy gallery,
+  and transcript together.
 - **Edit Anatomy Screenshots** opens the non-destructive post-session editor.
 - **Copy Codex Anki Prompt** copies a complete local-file-aware build request and
   saves the same prompt as `codex-anki-prompt.txt` in the session folder.
 - **Play Recording** opens the final video without opening File Explorer.
 - **Open Transcript** opens the saved Markdown transcript directly.
-- **Load in Main Window** restores the session title, region, chapters, anatomy list,
+- The learning-notes panel supports timestamp-ordered review, editing, deletion,
+  individual copying, and opening the final recording at the associated moment.
+- **Copy Transcript** preserves the original transcript-only behavior.
+- **Copy Transcript + Notes** appends a clearly labeled `User Learning Notes` section;
+  user text is never presented as spoken transcript.
+- **Load in Main Window** restores the session title, region, anatomy list,
   transcript, duration, and model in the recorder UI.
 - **Open Folder in Explorer** remains available when raw files are needed, but is not
   required for normal review.
@@ -139,13 +149,13 @@ Every capture gets its own folder under `recordings`:
 - `recording.mkv` is the combined video and system audio.
 - `recording.mp4` is the browser-friendly copy used by anatomy review.
 - `audio.mp3` is mono 16 kHz audio optimized for transcription and easy listening.
-- `anatomy-review.html` contains a gallery whose images jump the video to their exact
-  recording timestamps.
+- `anatomy-review.html` is the combined session review; learning notes and anatomy
+  images jump the video to their associated recording timestamps.
 - The optional `.apkg` uses the repository's canonical `saCloze++` note model, `Text`
   and `Extra` fields, the `Saved Cards` deck, and a dated `#AnkiChat` tag.
-- `session.json` preserves region, device, segments, chapters, anatomy captures, state,
-  estimates, and warnings.
-- `transcript.md` is the copy-friendly chaptered transcript.
+- `session.json` preserves region, device, segments, anatomy captures,
+  stable timestamped learning-note objects, state, estimates, and warnings.
+- `transcript.md` is the copy-friendly timestamped transcript.
 - Raw capture files are retained so a failed post-processing step can be recovered.
 
 ## Audio-device behavior
@@ -166,6 +176,69 @@ Each resumed anatomy segment reopens the selected output. When **Follow Windows
 default** is selected, an output change made while the annotation editor is open is
 picked up on Resume.
 
+## Browser-linked Medality and YouTube mode
+
+The bundled private Chrome extension is the preferred path for Medality and also
+detects YouTube. It does not require the Chrome Web Store:
+
+1. Start the desktop app.
+2. Open `chrome://extensions`.
+3. Enable **Developer mode** and choose **Load unpacked**.
+4. Select the app's `chrome-extension` folder.
+5. Reload any Medality or YouTube lesson that was already open.
+
+When several supported videos are open, use the **Browser video** selector in the
+desktop app to choose the exact tab. Starting a recording locks that tab as the source.
+Other Medality and YouTube tabs cannot consume play/pause commands, pause the recorder,
+replace the title, or contribute a transcript to that session.
+
+Medality uses a Vimeo video element inside a `player.vimeo.com` frame. The extension
+reads the real element's `currentTime`, `duration`, `paused`, `seeking`, and
+`playbackRate` values. This also detects Medality's stale-speed condition in which a
+new lesson retains a saved 2× preference but actually starts at 1×. When a linked
+recording begins, the app applies that saved rate to the real video before playing.
+
+In linked mode:
+
+- starting the recorder arms the capture before the extension plays the lesson;
+- a webpage pause stops the active recording segment;
+- a webpage play while paused is briefly intercepted until the recorder is armed;
+- seeking and playback-rate changes close one source-time span and open another;
+- screenshot, `.`, boundary pause, resume, and stop use direct video commands
+  instead of approximated mouse clicks;
+- anatomy captures retain the source-video timestamp;
+- `Backspace` captures an intentional learning note at the current source timestamp,
+  including immediately after using the video seek/scrubber control;
+  `Ctrl+Enter` saves it from the note editor,
+- the note editor's **-** and **+** controls resize both the note and nearby
+  transcript text, and the selected size is remembered across app restarts,
+  unless focus is already in a webpage text field; `Ctrl+Backspace` is untouched;
+- finalization builds a newest-take-wins timeline, so rewatching 03:35–03:50 replaces
+  only that source interval instead of adding a duplicate passage;
+- unwatched source intervals are preserved as an explicit gap list and coverage
+  percentage in `session.json`.
+
+When Medality provides its transcript drawer, the extension temporarily opens it if
+needed, imports its timestamp/text cue pairs, and returns the drawer to its prior state.
+YouTube's built-in transcript panel is handled the same way. The selected source
+transcript is saved as `transcript.md` and `transcript.json` and becomes the default
+text shown in the app. No OpenAI request is needed. After recording, the transcription
+button reads **Replace with AI Transcript** so an API-generated version remains
+available as an explicit override.
+
+Raw segments remain non-destructive. The clean `recording.mkv`, `recording.mp4`, and
+`audio.mp3` are rebuilt from the chosen source-time intervals, while the original
+segment files remain available for recovery.
+
+The extension communicates only with the desktop app's loopback endpoint at
+`127.0.0.1:43129`. It sends playback metadata—not cookies, credentials, lesson media,
+or page contents.
+
+If no supported player heartbeat is available when Start Recording is pressed, the
+app clearly labels the session **Fallback** and explains whether the extension was
+missing or the current player was unsupported. It then opens the existing
+play/pause-point selector and retains the previous workflow.
+
 ## Anatomy pause and annotation
 
 A three-pixel cyan-blue, click-through border traces the exact selected recording area
@@ -174,7 +247,7 @@ rectangle matching the region-selection outline, while the interior remains comp
 unobstructed. Windows capture exclusion prevents the outline from being burned into the
 saved video.
 
-A compact icon-only control panel hugs the lower-right perimeter with crisp vector
+A compact icon-only control panel hugs the upper-right perimeter with crisp vector
 camera, pause/resume, and stop icons. Its physical size follows the selected monitor's
 Windows display scaling so the complete tray remains visible instead of clipping.
 While paused, the boundary changes from blue to amber and the pause icon becomes play.
@@ -190,20 +263,14 @@ The setup click is blocked from the webpage, a yellow marker confirms the chosen
 and **Use This Point** starts the synchronized workflow.
 
 The recorder starts its segment before clicking the selected point to play. Pause,
-anatomy screenshot, `.`, F10, Ctrl+left-click, stop, and resume all reuse that same point.
+anatomy screenshot, `.`, stop, and resume all reuse that same point.
 For a pause or screenshot, the player is clicked first and the recording segment is
 then closed; for resume, the new recording segment starts before the player is clicked.
-Ctrl+left-clicks inside the selected recording area are suppressed before reaching the
-webpage, preventing an accidental double toggle while still opening anatomy annotation.
 
 While actively recording, `.` is a global shortcut for the same action as the border's
 camera button: it pauses the selected player, closes the current recording segment, and
 opens the screenshot editor. The shortcut is disabled as soon as recording pauses, so
 inside the screenshot editor `.` retains its motion-crop behavior.
-
-`F10` is the universal fallback for players that do not respond normally to a modified
-click. Pause that player with its own control, press `F10`, annotate, then press its
-play control after the recorder resumes.
 
 The editor defaults to the same `#FFAA00` yellow-orange used by Anki Pocket Knife. Pen
 strokes are smoothed, arrows use rounded geometry, and all marks remain as drawing
@@ -261,29 +328,30 @@ frame and redraw from scratch.
 
 Press **Copy Codex Anki Prompt** beneath the current anatomy list or from
 **Past Sessions**. The copied prompt includes absolute paths to the session manifest,
-every annotated screenshot, the canonical card-style and packaging guides, and the
-canonical `saCloze++` model builder. It asks Codex to make one card for each labeled
-capture marked for Anki with this `Text` layout:
+transcript, every annotated screenshot, the canonical card-style and packaging guides,
+and the canonical `saCloze++` model builder. It clearly separates intentional visual
+captures from intentional non-visual learning notes. Visual targets retain this layout:
 
 ```html
 What is indicated by the <span style="color: #FFAA00;">yellow arrow</span>?<br><br>{{c1::ANSWER}}<br><br><img src="ANNOTATED_IMAGE_BASENAME.png">
 ```
 
-The requested answer is the capture name. The prompt also requires `Saved Cards`,
-fields named `Text` and `Extra`, the canonical dated tag, stable GUIDs, packaged local
-media, a machine-readable manifest, and validation before Codex reports the APKG as
-ready. A durable copy is saved beside the recording so it can be reused later even
-after the clipboard changes.
+The requested visual answer is the capture name. Every timestamped learning note must
+also yield a text-first non-visual `saCloze++` candidate for the point the user selected;
+the copied prompt embeds the full timestamped transcript as well as the note timestamp
+and nearby context. The full transcript is supporting context, not permission to mine
+unrelated facts.
+The prompt requires `Saved Cards`, fields named `Text` and `Extra`, the canonical dated
+tag, stable GUIDs based on capture indices or note IDs, packaged local media, a
+machine-readable manifest, and validation before Codex reports the APKG as ready. It
+also requires Codex to return clickable links for both the APKG and its containing
+folder instead of a bare path. A durable copy is saved beside the recording.
 
-## Chapters and long recordings
-
-Chapter markers are timestamps in `session.json`; the video is not destructively cut.
-You can double-click chapter titles to rename them. During transcription, the app
-extracts each chapter independently, so the resulting Markdown keeps exact manual
-chapter boundaries.
+## Long recordings
 
 OpenAI file uploads are limited to 25 MB. The app keeps normal lecture audio compact,
-and automatically divides any chapter over 24 MB into overlapping 20-minute requests.
+and automatically divides any oversized transcription section into overlapping
+20-minute requests.
 It passes preceding transcript context and removes repeated overlap when combining the
 parts.
 
@@ -302,12 +370,12 @@ token cost in `session.json` and `transcript.json`.
 ## Transcription progress and recovery
 
 While a request is running, the Transcript panel shows a prominent animated progress
-bar, the current chapter/request, and elapsed time. The Transcribe button and top
+bar, the current request, and elapsed time. The Transcribe button and top
 status indicator also remain in a busy state until the result is saved.
 
 Every successful API response is written immediately under
 `transcription/chapter-NNN/response-NNN.txt` before the app performs later merging or
-formatting. If local post-processing fails after every chapter has already returned,
+formatting. If local post-processing fails after every request has already returned,
 the app automatically reconstructs `transcript.md` and `transcript.json` without
 sending or charging for another API request and records the original issue in
 `transcription-recovery.txt`. A real failure creates `transcription-error.txt` with
@@ -335,8 +403,7 @@ the model, exception, and traceback for diagnosis.
 ## API references
 
 - [OpenAI speech-to-text guide](https://developers.openai.com/api/docs/guides/speech-to-text)
-- [GPT-4o mini Transcribe](https://developers.openai.com/api/docs/models/gpt-4o-mini-transcribe)
-- [GPT-4o Transcribe](https://developers.openai.com/api/docs/models/gpt-4o-transcribe)
+- [GPT Transcribe](https://developers.openai.com/api/docs/models/gpt-transcribe)
 - [Microsoft WASAPI loopback recording](https://learn.microsoft.com/en-us/windows/win32/coreaudio/loopback-recording)
 - [PyAudioWPatch WASAPI loopback](https://github.com/s0d3s/PyAudioWPatch)
 - [FFmpeg gdigrab options](https://ffmpeg.org/doxygen/7.1/gdigrab_8c.html)

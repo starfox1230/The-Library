@@ -4,6 +4,41 @@ This changelog tracks the versioned Speed Streak add-on folders in this reposito
 
 It is written as a repository-level record so the older frozen version folders can stay unchanged.
 
+## `speed-streak-addon-v1.33`
+
+Consolidated interaction and layout release.
+
+- Created from the frozen `speed-streak-addon-v1.32` folder without modifying v1.32.
+- Moves the hover-revealed No Pause, No Undo, and Boost shortcut controls below the charge earn meter so bolts no longer move before a click lands.
+- Makes every filled bolt, empty bolt, and gap open Charge Bank Capacity, while the progress bar and `Next charge` text open Cards Required to Earn a Charge.
+- Replaces the separate Orbit, Crystal, and Brick buttons with one bottom-left selector using purpose-drawn inline SVG icons.
+- Adds snapped resource levels and descriptions for Full/Balanced/Ultra Orbit, Animated/Still Crystal, and the fixed ultra-light Brick mode.
+- Opens the visual selector when the center visualization is clicked and collapses it when the pointer leaves the selector/sidebar.
+- Replaces the window-preset glyph with a recognizable window-layout icon and lets Default or saved setups be marked to apply automatically on external-mode entry.
+- Adds a persisted arrow below Settings in inline mode for moving the pane between the left and right sides of the review card.
+
+## `speed-streak-addon-v1.32`
+
+Time Boost gameplay release.
+
+- Created from the frozen `speed-streak-addon-v1.31` folder.
+- Keeps the existing points and multiplier system as the default `Legacy Points` gameplay mode.
+- Adds opt-in `Time Boost` mode with configurable starting charges, bank capacity, cards-per-charge accrual, and seconds added per boost.
+- Adds a responsive lightning-bolt charge bank and compact configurable shortcut keycap, with a fraction fallback in narrow panels.
+- Integrates charges with run reset, optional restart restoration, settings persistence, and Anki review undo.
+- Adds independent `No Pause mode` for blocking deliberate pauses while retaining safety pauses outside the active review surface.
+- Adds `No Undo mode`, interactive focus-rule toggles above the charge bank, and an option to hide those toggles while inactive.
+- Hardens Time Boost shortcut ownership against conflicts introduced by other review shortcuts or add-ons.
+- Extends Developer Preferences with the requested Time Boost test preset: No Pause/No Undo on, visible focus toggles, 10-second boosts, three-charge capacity, one starting charge, one charge per 10 cards, and backtick as the Boost shortcut.
+- Rebinds shortcut edits immediately in Review and fixes the No Undo guard incorrectly replacing a configured `U` pause/unpause binding.
+- Moves focus-rule toggles and the shortcut keycap into a single expanding charge-bank hover/focus row; it occupies normal layout space instead of overlapping the timer, and clicking the keycap opens and focuses its native shortcut setting.
+- Restores mouse input on the charge-bank hover target so the expanding controls actually appear in the otherwise click-through sidebar.
+- Clears pointer-created button focus after activation so the row collapses when the mouse leaves the charge area.
+- Matches the shortcut keycap to the focus-toggle height and removes its upward offset so it is no longer clipped.
+- Makes the charge bank and earn-progress area open Settings directly at the Time Boost configuration controls while clearing their mouse-created focus on activation.
+- Changes the standard Use Time Boost shortcut default from `B` to `R`; Developer Preferences continues to use its backtick testing override.
+- Adds visible No Undo feedback for the platform Undo shortcut (`Ctrl+Z` on Windows) instead of leaving the disabled command silent.
+
 ## `speed-streak-addon`
 
 Base Speed Streak release line before the numbered version forks.

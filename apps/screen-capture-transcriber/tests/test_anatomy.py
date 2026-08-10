@@ -1,26 +1,35 @@
 from __future__ import annotations
 
 import json
+import inspect
 import os
 import sqlite3
+import time
 import zipfile
 
 import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPointF, QRectF, Qt
-from PySide6.QtGui import QImage
+from PySide6.QtCore import QPoint, QPointF, QRectF, Qt
+from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from screen_capture_transcriber.anki_export import build_anatomy_apkg
+import screen_capture_transcriber.annotation as annotation_module
 from screen_capture_transcriber.annotation import (
     AnatomyAnnotationDialog,
     AnnotationCanvas,
     Stroke,
 )
+from screen_capture_transcriber.anatomy_suggestions import SuggestedAnatomyTerm
+from screen_capture_transcriber.annotation_preferences import (
+    DEFAULT_ANNOTATION_COLOR,
+    load_annotation_preferences,
+)
 from screen_capture_transcriber.models import CaptureRegion, SessionManifest
+from screen_capture_transcriber.models import TranscriptCue
 from screen_capture_transcriber.review import build_anatomy_review
 
 
@@ -50,6 +59,68 @@ def _session_with_capture(tmp_path) -> SessionManifest:
     return session
 
 
+def _representative_opaque_screenshot(
+    width: int = 1600,
+    height: int = 900,
+) -> QImage:
+    texture_width = max(1, width // 4)
+    texture_height = max(1, height // 4)
+    texture = QImage(
+        texture_width,
+        texture_height,
+        QImage.Format.Format_RGB32,
+    )
+    random_state = 0x12345678
+    for y in range(texture_height):
+        for x in range(texture_width):
+            random_state = (
+                1664525 * random_state + 1013904223
+            ) & 0xFFFFFFFF
+            noise = (random_state >> 24) & 0xFF
+            distance = (
+                (x - texture_width / 2) ** 2
+                + (y - texture_height / 2) ** 2
+            ) ** 0.5
+            base = max(20, min(210, round(185 - distance * 0.45)))
+            shade = max(0, min(255, base + (noise - 128) // 5))
+            texture.setPixelColor(
+                x,
+                y,
+                QColor(
+                    shade,
+                    shade + min(5, 255 - shade),
+                    shade + min(10, 255 - shade),
+                ),
+            )
+    image = texture.scaled(
+        width,
+        height,
+        Qt.AspectRatioMode.IgnoreAspectRatio,
+        Qt.TransformationMode.SmoothTransformation,
+    ).convertToFormat(QImage.Format.Format_ARGB32)
+    painter = QPainter(image)
+    painter.setPen(QColor("#BCC7D4"))
+    painter.setBrush(QColor("#4A5664"))
+    for index in range(18):
+        x = 60 + (index % 6) * 255
+        y = 90 + (index // 6) * 270
+        painter.drawEllipse(x, y, 190, 130)
+    painter.end()
+    return image
+
+
+def _render_canvas_before_encoding(canvas: AnnotationCanvas) -> QImage:
+    rendered = canvas._base_image().copy()
+    painter = QPainter(rendered)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+    for stroke in canvas._strokes:
+        canvas._draw_stroke(painter, stroke)
+    painter.end()
+    if canvas._crop_rect is not None:
+        rendered = rendered.copy(canvas._crop_rect.toAlignedRect())
+    return rendered
+
+
 def test_annotation_canvas_renders_at_native_resolution(tmp_path) -> None:
     app = QApplication.instance() or QApplication([])
     source = tmp_path / "source.png"
@@ -73,6 +144,55 @@ def test_annotation_canvas_renders_at_native_resolution(tmp_path) -> None:
     assert rendered.width() == 800
     assert rendered.height() == 450
     assert app is not None
+
+
+def test_annotation_png_is_lossless_opaque_rgb_and_normally_compressed(
+    tmp_path,
+) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "representative-source.png"
+    legacy = tmp_path / "legacy-quality-100.png"
+    output = tmp_path / "capture-001-annotated.png"
+    image = _representative_opaque_screenshot()
+    assert image.save(str(source), "PNG")
+
+    canvas = AnnotationCanvas(source)
+    canvas._strokes.append(
+        Stroke(
+            "arrow",
+            "#FFCC00",
+            12.0,
+            [QPointF(200, 300), QPointF(1200, 600)],
+        )
+    )
+    before_encoding = _render_canvas_before_encoding(canvas)
+    assert before_encoding.save(str(legacy), "PNG", 100)
+
+    saved_path = canvas.save(output)
+    reloaded = QImage(str(output))
+    legacy_reloaded = QImage(str(legacy))
+
+    assert saved_path == output
+    assert output.name == "capture-001-annotated.png"
+    assert reloaded.size() == before_encoding.size()
+    assert (
+        reloaded.convertToFormat(QImage.Format.Format_RGB888)
+        == legacy_reloaded.convertToFormat(QImage.Format.Format_RGB888)
+    )
+    assert not reloaded.hasAlphaChannel()
+    assert reloaded.pixelColor(700, 450).name().upper() == "#FFCC00"
+
+    uncompressed_rgba_bytes = reloaded.width() * reloaded.height() * 4
+    assert output.stat().st_size < uncompressed_rgba_bytes // 2
+    assert output.stat().st_size < legacy.stat().st_size // 4
+
+
+def test_production_annotation_save_does_not_use_png_quality_100() -> None:
+    source = inspect.getsource(AnnotationCanvas.save)
+
+    assert 'save(str(output_path), "PNG", 100)' not in source
+    assert "QImage.Format.Format_RGB888" in source
+    assert 'save(str(output_path), "PNG")' in source
 
 
 def test_crop_and_vector_state_round_trip(tmp_path) -> None:
@@ -106,6 +226,68 @@ def test_crop_and_vector_state_round_trip(tmp_path) -> None:
     reloaded.load_image(source, state)
     assert len(reloaded._strokes) == 1
     assert reloaded.crop_rect == QRectF(100, 75, 400, 250)
+
+
+def test_resave_keeps_session_manifest_image_and_edit_paths(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    session = SessionManifest.create(
+        tmp_path,
+        "Optimized annotation paths",
+        CaptureRegion(0, 0, 800, 450),
+        "Demo loopback",
+        1,
+        1.0,
+        1.1,
+    )
+    original = session.anatomy_original_path(1)
+    annotated = session.anatomy_annotated_path(1)
+    edit = session.anatomy_edit_path(1)
+    image = _representative_opaque_screenshot(800, 450)
+    assert image.save(str(original), "PNG")
+
+    canvas = AnnotationCanvas(original)
+    canvas._strokes.append(
+        Stroke(
+            "arrow",
+            "#FFAA00",
+            8.0,
+            [QPointF(100, 100), QPointF(500, 250)],
+        )
+    )
+    canvas._crop_rect = QRectF(50, 25, 700, 400)
+    canvas.save(annotated)
+    canvas.save_state(edit)
+    capture = session.add_anatomy_capture(
+        12.0,
+        original,
+        annotated,
+        "Test structure",
+        True,
+        edit_path=edit,
+    )
+    manifest_paths_before = (
+        capture.original_image,
+        capture.annotated_image,
+        capture.edit_file,
+    )
+
+    reeditor = AnnotationCanvas()
+    reeditor.load_image(original, edit)
+    assert len(reeditor._strokes) == 1
+    assert reeditor.crop_rect == QRectF(50, 25, 700, 400)
+    reeditor.save(annotated)
+    reeditor.save_state(edit)
+
+    loaded = SessionManifest.load(session.manifest_path)
+    loaded_capture = loaded.anatomy_captures[0]
+    assert annotated.name == "capture-001-annotated.png"
+    assert edit.name == "capture-001-edit.json"
+    assert (
+        loaded_capture.original_image,
+        loaded_capture.annotated_image,
+        loaded_capture.edit_file,
+    ) == manifest_paths_before
+    assert not QImage(str(annotated)).hasAlphaChannel()
 
 
 def test_legacy_annotation_survives_crop_until_clear_drawing(tmp_path) -> None:
@@ -174,6 +356,76 @@ def test_motion_crop_resize_and_control_move(tmp_path) -> None:
     assert moved.topLeft() != before
 
 
+def test_new_motion_crop_is_smaller_square_centered_on_cursor(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    canvas = AnnotationCanvas(source)
+    monkeypatch.setattr(
+        canvas,
+        "_cursor_image_point",
+        lambda: QPointF(450, 250),
+    )
+
+    canvas.begin_crop("motion")
+
+    crop = canvas.crop_rect
+    assert crop is not None
+    assert crop.width() == pytest.approx(450 * 0.5)
+    assert crop.height() == pytest.approx(450 * 0.5)
+    assert crop.center().x() == pytest.approx(450)
+    assert crop.center().y() == pytest.approx(250)
+
+
+def test_standard_crop_keeps_large_rectangular_default(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    canvas = AnnotationCanvas(source)
+
+    canvas.begin_crop("standard")
+
+    crop = canvas.crop_rect
+    assert crop is not None
+    assert crop.width() == pytest.approx(800 * 0.84)
+    assert crop.height() == pytest.approx(450 * 0.84)
+    assert crop.center().x() == pytest.approx(400)
+    assert crop.center().y() == pytest.approx(225)
+
+
+def test_cursor_centered_motion_crop_is_clamped_inside_image(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    canvas = AnnotationCanvas(source)
+    monkeypatch.setattr(
+        canvas,
+        "_cursor_image_point",
+        lambda: QPointF(790, 440),
+    )
+
+    canvas.begin_crop("motion")
+
+    crop = canvas.crop_rect
+    assert crop is not None
+    assert crop.right() == pytest.approx(800)
+    assert crop.bottom() == pytest.approx(450)
+    assert crop.left() >= 0
+    assert crop.top() >= 0
+
+
 def test_motion_crop_uses_recentered_relative_pointer_deltas(tmp_path, monkeypatch) -> None:
     QApplication.instance() or QApplication([])
     source = tmp_path / "source.png"
@@ -227,6 +479,20 @@ def test_annotation_keyboard_shortcuts(tmp_path) -> None:
     dialog.show()
     app.processEvents()
 
+    stroke = Stroke(
+        "arrow",
+        "#FFAA00",
+        8,
+        [QPointF(100, 100), QPointF(300, 200)],
+    )
+    dialog.canvas._strokes.append(stroke)
+    QTest.keyClick(
+        dialog.label_edit,
+        Qt.Key.Key_Z,
+        Qt.KeyboardModifier.ControlModifier,
+    )
+    assert dialog.canvas._strokes == []
+
     QTest.keyClick(dialog.label_edit, Qt.Key.Key_Period)
     assert dialog.canvas.crop_mode == "motion"
     QTest.keyClick(dialog.label_edit, Qt.Key.Key_Backspace)
@@ -244,6 +510,171 @@ def test_annotation_keyboard_shortcuts(tmp_path) -> None:
     app.processEvents()
     QTest.keyClick(dialog.label_edit, Qt.Key.Key_Return)
     assert dialog.result() == int(dialog.DialogCode.Accepted)
+
+
+def test_right_mouse_hold_shows_and_releases_magnifier(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    canvas = AnnotationCanvas(source)
+    canvas.resize(900, 560)
+    canvas.show()
+    app.processEvents()
+
+    center = canvas.rect().center()
+    QTest.mousePress(canvas, Qt.MouseButton.RightButton, pos=center)
+    assert canvas.magnifier_active
+    assert not canvas.grab().toImage().isNull()
+    QTest.mouseRelease(canvas, Qt.MouseButton.RightButton, pos=center)
+    assert not canvas.magnifier_active
+
+
+def test_arrow_keeps_dragging_while_right_button_magnifier_is_held(
+    tmp_path,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(1200, 800, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    canvas = AnnotationCanvas(source)
+    canvas.resize(1000, 700)
+    canvas.show()
+    app.processEvents()
+
+    start = canvas.rect().center()
+    end = start + QPoint(140, 90)
+    QTest.mousePress(canvas, Qt.MouseButton.LeftButton, pos=start)
+    QTest.mousePress(canvas, Qt.MouseButton.RightButton, pos=start)
+    QTest.mouseMove(canvas, end, delay=5)
+
+    assert canvas.magnifier_active
+    assert canvas._active is not None
+    assert len(canvas._active.points) == 2
+    expected = canvas._to_image(QPointF(end))
+    assert expected is not None
+    assert abs(canvas._active.points[-1].x() - expected.x()) < 2
+    assert abs(canvas._active.points[-1].y() - expected.y()) < 2
+    assert annotation_module.MAGNIFIER_WIDTH == 720.0
+    assert annotation_module.MAGNIFIER_HEIGHT == 480.0
+
+    QTest.mouseRelease(canvas, Qt.MouseButton.RightButton, pos=end)
+    QTest.mouseRelease(canvas, Qt.MouseButton.LeftButton, pos=end)
+
+
+def test_color_selection_persists_but_recent_requires_saved_use(tmp_path) -> None:
+    QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    output = tmp_path / "annotated.png"
+    preferences_path = tmp_path / "annotation-settings.json"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+
+    dialog = AnatomyAnnotationDialog(
+        source,
+        preferences_path=preferences_path,
+    )
+    dialog._apply_annotation_color("#33AAEE")
+    selected_only = load_annotation_preferences(preferences_path)
+    assert selected_only.selected_color == "#33AAEE"
+    assert selected_only.recent_colors == []
+
+    stroke = Stroke(
+        "arrow",
+        "#33AAEE",
+        8,
+        [QPointF(100, 100), QPointF(300, 200)],
+    )
+    dialog.canvas._strokes.append(stroke)
+    dialog.canvas._new_stroke_ids.add(id(stroke))
+    dialog.save_annotation(output)
+    used = load_annotation_preferences(preferences_path)
+    assert used.recent_colors == ["#33AAEE"]
+
+    dialog._reset_annotation_color()
+    reset = load_annotation_preferences(preferences_path)
+    assert reset.selected_color == DEFAULT_ANNOTATION_COLOR
+    assert reset.recent_colors == ["#33AAEE"]
+
+
+def test_suggested_term_chip_populates_editable_label_and_scrolls(tmp_path) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+    dialog = AnatomyAnnotationDialog(
+        source,
+        preferences_path=tmp_path / "annotation-settings.json",
+    )
+    dialog.resize(700, 600)
+    dialog.show()
+    app.processEvents()
+    suggestions = [
+        SuggestedAnatomyTerm(f"Structure {index}", float(index))
+        for index in range(20)
+    ]
+    dialog._on_suggestions_ready(dialog._suggestion_request_id, suggestions)
+    app.processEvents()
+
+    first = dialog.suggestion_content.findChildren(QPushButton)[0]
+    first.click()
+    assert dialog.label_edit.text() == "Structure 0"
+    dialog.label_edit.insert(" edited")
+    assert dialog.label_edit.text() == "Structure 0 edited"
+
+    dialog.suggestion_scroll.hovered = True
+    before = dialog.suggestion_scroll.horizontalScrollBar().value()
+    QTest.keyClick(dialog.label_edit, Qt.Key.Key_Right)
+    after = dialog.suggestion_scroll.horizontalScrollBar().value()
+    assert after > before
+
+
+def test_transcript_suggestions_never_block_dialog_preparation(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    app = QApplication.instance() or QApplication([])
+    source = tmp_path / "source.png"
+    image = QImage(800, 450, QImage.Format.Format_RGB32)
+    image.fill("#102030")
+    assert image.save(str(source))
+
+    def delayed_suggestions(*_args, **_kwargs):
+        time.sleep(0.4)
+        return [SuggestedAnatomyTerm("Median nerve", 10.0)]
+
+    monkeypatch.setattr(
+        annotation_module,
+        "suggest_anatomy_terms",
+        delayed_suggestions,
+    )
+    dialog = AnatomyAnnotationDialog(
+        preferences_path=tmp_path / "annotation-settings.json"
+    )
+    started = time.perf_counter()
+    dialog.prepare(
+        source,
+        "00:10",
+        transcript_cues=[TranscriptCue("00:10", 10.0, "Median nerve")],
+        capture_timestamp_seconds=10.0,
+        api_key="test-key",
+    )
+    elapsed = time.perf_counter() - started
+    assert elapsed < 0.2
+
+    deadline = time.perf_counter() + 2.0
+    while dialog._suggestion_workers and time.perf_counter() < deadline:
+        app.processEvents()
+        QTest.qWait(20)
+    app.processEvents()
+    assert [
+        button.text()
+        for button in dialog.suggestion_content.findChildren(QPushButton)
+    ] == ["Median nerve"]
 
 
 def test_review_links_images_to_video_timestamp(tmp_path) -> None:

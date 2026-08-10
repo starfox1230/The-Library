@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable, Sequence
 
 from .models import CaptureRegion
+from .source_timeline import TimelinePiece
 
 
 class MediaError(RuntimeError):
@@ -368,6 +369,127 @@ def concatenate_segments(
         probe_duration(ffprobe_path, audio_path),
     )
     return ProcessedMedia(recording_path, audio_path, duration)
+
+
+def render_source_timeline(
+    ffmpeg_path: Path,
+    ffprobe_path: Path,
+    pieces: Sequence[TimelinePiece],
+    recording_segments: dict[int, Path],
+    audio_segments: dict[int, Path],
+    recording_path: Path,
+    audio_path: Path,
+    playback_path: Path,
+    video_crf: int,
+    audio_bitrate_kbps: int,
+    progress_callback: Callable[[str], None] | None = None,
+) -> ProcessedMedia:
+    if not pieces:
+        raise MediaError("No browser-linked source coverage is available to render.")
+    clips_dir = recording_path.parent / ".source-timeline-clips"
+    if clips_dir.exists():
+        shutil.rmtree(clips_dir)
+    clips_dir.mkdir(parents=True)
+    video_clips: list[Path] = []
+    audio_clips: list[Path] = []
+    try:
+        total = len(pieces)
+        for index, piece in enumerate(pieces, start=1):
+            source_recording = recording_segments.get(piece.segment_index)
+            source_audio = audio_segments.get(piece.segment_index)
+            if (
+                source_recording is None
+                or source_audio is None
+                or not source_recording.is_file()
+                or not source_audio.is_file()
+            ):
+                raise MediaError(
+                    f"Source segment {piece.segment_index} is unavailable."
+                )
+            start = max(0.0, piece.recording_start_seconds)
+            duration = max(
+                0.04,
+                piece.recording_end_seconds - piece.recording_start_seconds,
+            )
+            video_clip = clips_dir / f"clip-{index:04d}.mkv"
+            audio_clip = clips_dir / f"clip-{index:04d}.mp3"
+            if progress_callback:
+                progress_callback(
+                    f"Building clean source timeline {index} of {total}…"
+                )
+            _run_checked(
+                [
+                    str(ffmpeg_path),
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-ss",
+                    f"{start:.6f}",
+                    "-t",
+                    f"{duration:.6f}",
+                    "-i",
+                    str(source_recording),
+                    "-map",
+                    "0:v:0",
+                    "-map",
+                    "0:a:0",
+                    "-c:v",
+                    "libx264",
+                    "-preset",
+                    "veryfast",
+                    "-crf",
+                    str(video_crf),
+                    "-pix_fmt",
+                    "yuv420p",
+                    "-c:a",
+                    "aac",
+                    "-b:a",
+                    "160k",
+                    str(video_clip),
+                ]
+            )
+            _run_checked(
+                [
+                    str(ffmpeg_path),
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-y",
+                    "-ss",
+                    f"{start:.6f}",
+                    "-t",
+                    f"{duration:.6f}",
+                    "-i",
+                    str(source_audio),
+                    "-map",
+                    "0:a:0",
+                    "-ac",
+                    "1",
+                    "-ar",
+                    "16000",
+                    "-c:a",
+                    "libmp3lame",
+                    "-b:a",
+                    f"{audio_bitrate_kbps}k",
+                    str(audio_clip),
+                ]
+            )
+            video_clips.append(video_clip)
+            audio_clips.append(audio_clip)
+        return concatenate_segments(
+            ffmpeg_path,
+            ffprobe_path,
+            video_clips,
+            audio_clips,
+            recording_path,
+            audio_path,
+            playback_path,
+            progress_callback,
+        )
+    finally:
+        if clips_dir.exists():
+            shutil.rmtree(clips_dir, ignore_errors=True)
 
 
 def process_recording(

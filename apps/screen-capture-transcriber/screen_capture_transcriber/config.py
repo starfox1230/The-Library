@@ -23,6 +23,7 @@ def _int_env(name: str, default: int) -> int:
 class AppConfig:
     api_key: str
     model: str
+    anatomy_suggestion_model: str
     transcription_prompt: str | None
     recordings_dir: Path
     ffmpeg_path: str | None
@@ -30,8 +31,6 @@ class AppConfig:
     video_crf: int
     transcription_audio_bitrate_kbps: int
     toggle_recording_hotkey: str
-    add_chapter_hotkey: str
-    anatomy_capture_hotkey: str
 
 
 def load_config() -> AppConfig:
@@ -47,8 +46,12 @@ def load_config() -> AppConfig:
     return AppConfig(
         api_key=os.getenv("OPENAI_API_KEY", "").strip(),
         model=(
-            os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-4o-mini-transcribe").strip()
-            or "gpt-4o-mini-transcribe"
+            os.getenv("OPENAI_TRANSCRIBE_MODEL", "gpt-transcribe").strip()
+            or "gpt-transcribe"
+        ),
+        anatomy_suggestion_model=(
+            os.getenv("OPENAI_ANATOMY_SUGGESTION_MODEL", "gpt-5.6-luna").strip()
+            or "gpt-5.6-luna"
         ),
         transcription_prompt=os.getenv("OPENAI_TRANSCRIBE_PROMPT", "").strip() or None,
         recordings_dir=recordings_dir,
@@ -60,11 +63,5 @@ def load_config() -> AppConfig:
         ),
         toggle_recording_hotkey=(
             os.getenv("TOGGLE_RECORDING_HOTKEY", "<f8>").strip() or "<f8>"
-        ),
-        add_chapter_hotkey=(
-            os.getenv("ADD_CHAPTER_HOTKEY", "<f9>").strip() or "<f9>"
-        ),
-        anatomy_capture_hotkey=(
-            os.getenv("ANATOMY_CAPTURE_HOTKEY", "<f10>").strip() or "<f10>"
         ),
     )

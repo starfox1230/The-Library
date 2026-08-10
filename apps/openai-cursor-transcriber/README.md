@@ -8,7 +8,7 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 - Recording starts immediately, and the loading indicator stays up only until the microphone actually starts delivering audio. By default there is no extra artificial delay.
 - After that, the recording badge appears near your cursor with the 60-second countdown.
 - Press `F3` again to stop.
-- The app sends the recording to OpenAI using `gpt-4o-transcribe`.
+- The app sends the recording to OpenAI using `gpt-transcribe`.
 - The full transcript is copied to your clipboard.
 - A preview bubble stays next to your cursor until you paste with `Ctrl+V`, `Ctrl+Shift+V`, or `Shift+Insert`.
 - Press `Ctrl+Shift+F3` to quit the app.
@@ -81,4 +81,4 @@ The full path is:
 ## OpenAI references
 
 - [Speech to text guide](https://developers.openai.com/api/docs/guides/speech-to-text)
-- [GPT-4o Transcribe model](https://developers.openai.com/api/docs/models/gpt-4o-transcribe)
+- [GPT Transcribe model](https://developers.openai.com/api/docs/models/gpt-transcribe)

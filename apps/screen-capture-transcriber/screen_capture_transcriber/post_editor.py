@@ -201,6 +201,7 @@ class AnatomyPostEditorDialog(QDialog):
         self._editor.save_annotation(annotated_path, edit_path)
         capture.label = self._editor.label
         capture.create_anki_card = self._editor.create_anki_card
+        capture.color = self._editor.annotation_color
         capture.edit_file = str(edit_path.relative_to(self._session.folder))
         self._session.save()
         write_anatomy_manifest(self._session)

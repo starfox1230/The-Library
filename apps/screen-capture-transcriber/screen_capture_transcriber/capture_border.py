@@ -306,7 +306,7 @@ class CaptureBorderOverlay:
         desktop: tuple[int, int, int, int],
         thickness: int,
     ) -> tuple[int, int, int, int]:
-        """Place the full control tray inside the selection's lower-right corner."""
+        """Place the full control tray inside the selection's upper-right corner."""
         desktop_x, desktop_y, desktop_width, desktop_height = desktop
         desktop_right = desktop_x + desktop_width
         desktop_bottom = desktop_y + desktop_height
@@ -320,7 +320,7 @@ class CaptureBorderOverlay:
         max_x = min(region_right - panel_width, desktop_right - panel_width)
         max_y = min(region_bottom - panel_height, desktop_bottom - panel_height)
         desired_x = region_right - inset - panel_width
-        desired_y = region_bottom - inset - panel_height
+        desired_y = region.y + inset
         x = min(max_x, max(min_x, desired_x))
         y = min(max_y, max(min_y, desired_y))
         return x, y, panel_width, panel_height

@@ -4,7 +4,11 @@ from screen_capture_transcriber.codex_prompt import (
     build_codex_anki_prompt,
     save_codex_anki_prompt,
 )
-from screen_capture_transcriber.models import CaptureRegion, SessionManifest
+from screen_capture_transcriber.models import (
+    CaptureRegion,
+    SessionManifest,
+    TranscriptCue,
+)
 
 
 def _session_with_captures(tmp_path) -> SessionManifest:
@@ -59,7 +63,7 @@ def test_codex_prompt_is_local_file_aware_and_uses_canonical_card_shape(
     assert "SKIP (not labeled and marked for Anki)" in prompt
     assert "do not guess missing structure names" in prompt
     assert str(
-        (session.folder / "Upper-limb-anatomy-anatomy-codex.apkg").resolve()
+        (session.folder / "Upper-limb-anatomy-study-codex.apkg").resolve()
     ) in prompt
 
 
@@ -71,3 +75,40 @@ def test_codex_prompt_is_saved_beside_session(tmp_path) -> None:
     assert output_path == session.folder / "codex-anki-prompt.txt"
     assert output_path.is_file()
     assert output_path.read_text(encoding="utf-8") == build_codex_anki_prompt(session)
+
+
+def test_codex_prompt_treats_learning_notes_as_intentional_nonvisual_targets(
+    tmp_path,
+) -> None:
+    session = _session_with_captures(tmp_path)
+    session.source_transcript_cues = [
+        TranscriptCue(
+            "0:29",
+            29.0,
+            "The anteromedial bundle limits anterior tibial translation.",
+        )
+    ]
+    note = session.add_learning_note(
+        15.0,
+        "The anteromedial ACL bundle limits anterior tibial translation.",
+        29.0,
+    )
+    session.transcript_markdown_path.write_text(
+        "# Transcript\n\n**[00:29]** The anteromedial bundle limits translation.",
+        encoding="utf-8",
+    )
+
+    prompt = build_codex_anki_prompt(session)
+
+    assert "NON-VISUAL CARD TARGETS" in prompt
+    assert note.id in prompt
+    assert "User-selected learning point" in prompt
+    assert "source video 00:29" in prompt
+    assert "Nearby transcript context" in prompt
+    assert str(session.transcript_markdown_path.resolve()) in prompt
+    assert "BEGIN FULL TRANSCRIPT" in prompt
+    assert "The anteromedial bundle limits translation." in prompt
+    assert "Do not mine the complete transcript" in prompt
+    assert "text-first cloze conventions" in prompt
+    assert "[Open generated APKG](<" in prompt
+    assert "[Open containing folder](<" in prompt

@@ -23,9 +23,15 @@ from .models import Chapter, SessionManifest, format_duration
 
 
 APPROXIMATE_COST_PER_MINUTE = {
+    "gpt-transcribe": 0.0045,
     "gpt-4o-mini-transcribe": 0.003,
     "gpt-4o-transcribe": 0.006,
     "gpt-4o-transcribe-diarize": 0.006,
+    "whisper-1": 0.006,
+}
+
+DURATION_PRICES_PER_MINUTE = {
+    "gpt-transcribe": 0.0045,
     "whisper-1": 0.006,
 }
 
@@ -63,11 +69,12 @@ def _usage_dict(response: object) -> dict[str, Any]:
 
 
 def actual_cost(model: str, usage: dict[str, Any]) -> float | None:
-    if model == "whisper-1":
+    duration_price = DURATION_PRICES_PER_MINUTE.get(model)
+    if duration_price is not None:
         seconds = usage.get("seconds") or usage.get("duration")
         if seconds is None:
             return None
-        return float(seconds) / 60.0 * 0.006
+        return float(seconds) / 60.0 * duration_price
 
     prices = TOKEN_PRICES_PER_MILLION.get(model)
     if prices is None:
