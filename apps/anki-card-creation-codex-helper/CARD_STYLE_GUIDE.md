@@ -80,10 +80,10 @@ Rules:
 - Image-front cards should almost always test visual diagnosis, device/artifact recognition, or labeled structure identification. Do not use image-front cards for multi-step next-best-management questions. If a quiz asks for management after recognizing an image, make the image card test the diagnosis and make a separate text cloze only if the management rule itself is worth memorizing.
 - `What is the most likely diagnosis?` is the preferred pathology-image prompt. Use a more specific wording only when the task is genuinely not diagnosis retrieval, such as a named fracture, device, artifact, or labeled finding.
 - Use one diagnosis cloze.
-- Preserve this exact vertical structure: prompt, `<br><br>`, one answer cloze, `<br><br>`, then either the single image or the `1/N` marker followed by the images.
+- Preserve this exact vertical structure: prompt, `<br><br>`, one answer cloze, `<br><br>`, then the image area. Attach the ordered Front media separately; do not type an image-count marker into `textHtml`.
 - Include the complete diagnostic image or panel set needed to make the diagnosis. Do not crop so tightly that only one small finding remains when the intended diagnosis depends on distribution, multiplicity, anatomy, or comparison.
 - When the source depicts the same patient's pathology with multiple complementary images, usually include all images needed to provide the full diagnostic picture rather than choosing only one representative image.
-- If an image-front card contains more than one image, place a simple image count marker immediately above the first image in the format `1/N`, where `N` is the total number of images on that card.
+- If an image-front card contains more than one image, the Cards Reviewer preview and APKG exporter derive a single `1/N` marker from the current ordered Front-media count and place it immediately above the first image. Card-generation workflows must not embed `1/N` in `textHtml`; this keeps the marker correct when the user adds, removes, or reorders images in the editor. The exporter removes a trailing legacy marker before inserting the computed one, so an Anki card must never contain the counter twice.
 - Never include the figure caption in the front-side image crop.
 - Never include caption text in the `Text` field for an image-front diagnosis card.
 - Never prefix image-front cards with source provenance such as a quiz name, source name, article name, question number, or batch label. Put source information in `Extra`, `README.md`, or `manifest.json` only.
@@ -113,7 +113,7 @@ Rules:
 - Use `What is indicated by the [color] arrow?` or `What is indicated by the [color] arrows?`, matching singular or plural to the image.
 - Color the complete `[color] arrow` or `[color] arrows` phrase with inline HTML so its displayed text color visually matches the arrow color in the image. Use an appropriate hex color rather than leaving the phrase unstyled.
 - Preserve the same vertical structure as diagnosis cards: prompt, `<br><br>`, cloze answer, `<br><br>`, then the image.
-- Usually use one image. If multiple images are genuinely needed, use the same `1/N` marker and one-image-per-line ordering required for multi-image diagnosis cards.
+- Usually use one image. If multiple images are genuinely needed, preserve their deliberate one-image-per-line order and let the Cards Reviewer/APKG exporter derive the `1/N` marker from the ordered Front media.
 - Ask about the specific indicated imaging finding, structure, or manifestation; do not mine incidental caption trivia.
 
 Avoid vague stems:

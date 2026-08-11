@@ -127,8 +127,8 @@ Both forms use prompt, two HTML line breaks, one answer cloze, two HTML line bre
 ### Required multi-image case
 
 - Put all required images on the front in a stable order.
-- Put `1/N` immediately above the first image when more than one image is present.
-- Put each image on its own following line after the fraction.
+- Put each image on its own line in stable Front-media order.
+- Do not embed `1/N` in candidate `textHtml`. The Cards Reviewer preview and APKG exporter must derive exactly one `1/N` marker from the current ordered Front-media count and place it immediately above the first image when more than one image is present. They must remove any trailing legacy marker before rendering or packaging. This keeps the count correct when images are added, removed, or reordered in the editor.
 - For the same patient shown with complementary views, modalities, sequences, or panels, normally include the full set required to understand the pathology.
 - Use this only when the images jointly provide the diagnostic task. Arrow cards normally use one image unless the indicated finding truly requires more than one.
 
@@ -207,7 +207,7 @@ The exporter must:
 - A saved/loved image is a strong signal, not an automatic command to create a card.
 - When only one image from a complementary same-patient set is saved and that image independently supports a fair card, respect the saved subset and make the single-image candidate; do not automatically add every neighboring panel.
 - When the saved image would be ambiguous or diagnostically incomplete alone, add only the necessary unsaved companion image(s) from the same verified source set, or report why no fair candidate could be made.
-- When all complementary images in a same-patient set are saved, normally create one deduplicated multi-image diagnosis candidate using the canonical `1/N` format rather than redundant diagnosis cards.
+- When all complementary images in a same-patient set are saved, normally create one deduplicated multi-image diagnosis candidate rather than redundant diagnosis cards; attach the full ordered Front-media set and let the reviewer/exporter supply the canonical `1/N` display.
 - When multiple saved images independently test distinct appearances or indicated findings, create separate focused candidates. Saving multiple near-duplicates must not produce redundant cards.
 - Apply the mandatory caption-driven arrow-card rule independently of diagnosis grouping: if an image supports a diagnosis and contains established arrow targets, create one diagnosis candidate plus one focused candidate for every separately identifiable arrow target. These candidates must coexist even when they appear redundant; the user, not the generator, decides which to keep.
 - A user note or `Difficult` mark increases priority and should guide the tested point.
