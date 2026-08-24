@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speed Streak actual UI preview</title>
+  <link rel="stylesheet" href="../speed-streak-addon-v2.0/web/overlay.css">
+  <style>
+    html, body { width: 336px; height: 760px; margin: 0; overflow: hidden; background: #08090c; }
+    .speed-streak-sidebar { inset: 10px; }
+    body.show-boost .speed-streak-sidebar .acg-boost-hover-controls {
+      max-height: 62px;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    body.show-visuals .speed-streak-sidebar .acg-visual-selector-panel {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    body.capture-hires .speed-streak-sidebar .acg-foreground-controls,
+    body.capture-hires .speed-streak-sidebar .acg-foreground-settings,
+    body.capture-hires .speed-streak-sidebar .acg-collapse-tab {
+      display: none !important;
+    }
+    body.capture-hires .speed-streak-sidebar .acg-inner {
+      grid-template-rows: 1fr;
+      gap: 0;
+      padding: 10px;
+    }
+    body.capture-hires.capture-visual .speed-streak-sidebar .acg-top,
+    body.capture-hires.capture-visual .speed-streak-sidebar .acg-bottom {
+      display: none !important;
+    }
+    body.capture-hires.capture-visual .speed-streak-sidebar .acg-stage,
+    body.capture-hires.capture-visual .speed-streak-sidebar .acg-field {
+      min-height: 0;
+      height: 100%;
+    }
+    body.capture-hires.capture-boost .speed-streak-sidebar .acg-stage,
+    body.capture-hires.capture-boost .speed-streak-sidebar .acg-bottom {
+      display: none !important;
+    }
+    body.capture-hires.capture-boost .speed-streak-sidebar .acg-top {
+      align-content: center;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <script>window.pycmd = function () {};</script>
+  <script src="../speed-streak-addon-v2.0/web/overlay.js"></script>
+  <script>
+    const query = new URLSearchParams(location.search);
+    const captureScale = Math.max(1, Math.min(3, Number(query.get("scale") || 1)));
+    if (captureScale > 1) document.documentElement.style.zoom = String(captureScale);
+    const preview = query.get("preview") || "boost";
+    if (captureScale > 1) {
+      document.body.classList.add("capture-hires", preview === "boost" ? "capture-boost" : "capture-visual");
+    }
+    if (preview === "visuals") document.body.classList.add("show-visuals");
+    if (preview === "boost") document.body.classList.add("show-boost");
+    const visualMode = query.get("visual") || (preview === "visuals" ? "singularity" : "sphere");
+    const sphereMode = query.get("sphere") || "classic";
+    const streak = Math.max(0, Math.min(2000, Number(query.get("streak") || 27)));
+    const colorSequence = ["green", "blue", "green", "yellow", "blue", "green", "red", "blue", "green", "yellow"];
+    const colors = Array.from({ length: streak }, (_, index) => colorSequence[index % colorSequence.length]);
+    const previewState = {
+      enabled: true,
+      displayMode: "compatibility",
+      visualMode,
+      sphereMode,
+      renderMode: "webgl",
+      visualsEnabled: true,
+      orbitAnimationEnabled: true,
+      paused: false,
+      appearanceMode: "midnight",
+      sidebarBackground: "#08090c",
+      satelliteColors: colors,
+      customColors: {},
+      streak,
+      score: 0,
+      streakMultiplier: 1,
+      gameplayMode: "time_boost",
+      boostCharges: 2,
+      maxBoostCharges: 3,
+      boostChargeProgress: 6,
+      cardsPerBoostCharge: 10,
+      boostSeconds: 10,
+      noPauseMode: true,
+      noUndoMode: true,
+      showFocusModeToggles: true,
+      shortcutBindings: { pause: "P", unpause: "U", boost: "C" },
+      phase: "question",
+      phaseStartEpochMs: Date.now() - 3600,
+      phaseLimitMs: 12000,
+      timerDisplayRemainingMs: 8400,
+      timerDisplayNowEpochMs: Date.now(),
+      timerPolicyMode: "normal",
+      firstCardFree: false,
+      eventNonce: 1,
+      lastEventType: "good",
+      lastEventText: `Good: streak ${streak} | Boost 6/10`,
+      lastSatelliteColor: "green",
+      audioEnabled: false,
+      hapticsEnabled: true,
+      sidePanelEnabled: true,
+      inlineSide: "left",
+      windowPositionPresets: []
+    };
+    window.SpeedStreak.receiveState(previewState);
+    const effect = query.get("effect");
+    if (effect === "earned" || effect === "spent") {
+      window.setTimeout(() => {
+        window.SpeedStreak.receiveState({
+          ...previewState,
+          eventNonce: 2,
+          boostCharges: effect === "earned" ? 3 : 1,
+          boostChargeProgress: effect === "earned" ? 0 : 6,
+          lastEventType: effect === "earned" ? "good" : "time-boost",
+          lastEventText: effect === "earned"
+            ? "Good: streak 28 | Boost earned (3/3)"
+            : "Time Boost: +10s | 1 Boost left.",
+          streak: effect === "earned" ? 28 : 27,
+        });
+      }, 700);
+    }
+    if (effect === "milestone") {
+      window.setTimeout(() => {
+        const nextStreak = Math.max(50, Math.ceil((streak + 1) / 50) * 50);
+        const nextColors = Array.from({ length: nextStreak }, (_, index) => colorSequence[index % colorSequence.length]);
+        window.SpeedStreak.receiveState({
+          ...previewState,
+          eventNonce: 2,
+          satelliteColors: nextColors,
+          streak: nextStreak,
+          lastEventType: "good",
+          lastEventText: `Good: streak ${nextStreak}`,
+          lastSatelliteColor: nextColors[nextColors.length - 1],
+        });
+      }, 700);
+    }
+  </script>
+</body>
+</html>

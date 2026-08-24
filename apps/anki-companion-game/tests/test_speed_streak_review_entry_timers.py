@@ -16,6 +16,8 @@ VERSIONS = (
     ADDON_ROOT / "speed-streak-addon-v1.31",
     ADDON_ROOT / "speed-streak-addon-v1.32",
     ADDON_ROOT / "speed-streak-addon-v1.33",
+    ADDON_ROOT / "speed-streak-addon-v1.34",
+    ADDON_ROOT / "speed-streak-addon-v1.35",
 )
 
 

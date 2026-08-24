@@ -5,21 +5,28 @@ from typing import Any, Optional
 from aqt import mw
 from aqt.qt import (
     QButtonGroup,
+    QAbstractSpinBox,
+    QApplication,
     QCheckBox,
     QBrush,
     QColor,
     QColorDialog,
     QComboBox,
     QDialog,
+    QEvent,
     QDoubleSpinBox,
+    QSpinBox,
     QFileDialog,
     QFrame,
     QIcon,
+    QKeySequence,
     QLinearGradient,
+    QLineF,
     QPainter,
     QPainterPath,
     QPen,
     QPointF,
+    QPolygonF,
     QPixmap,
     QRectF,
     QRadialGradient,
@@ -28,16 +35,21 @@ from aqt.qt import (
     QLabel,
     QLineEdit,
     QListView,
+    QListWidget,
+    QListWidgetItem,
     QMessageBox,
     QMenu,
     QPalette,
     QPushButton,
     QRadioButton,
     QSlider,
+    QStackedWidget,
     QScrollArea,
+    QShortcut,
     QSizePolicy,
-    QSpinBox,
+    QStyleFactory,
     Qt,
+    QTimer,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -47,35 +59,70 @@ from .anki_flag_colors import get_anki_flag_palette
 from .display_mode import (
     DISPLAY_MODE_INLINE,
     DISPLAY_MODE_OPTIONS,
-    display_mode_label,
+)
+from .crystal_color_mode import (
+    CRYSTAL_COLOR_MODE_ANSWER,
+    CRYSTAL_COLOR_MODE_CORE,
+    CRYSTAL_COLOR_MODE_ICE,
+    CRYSTAL_COLOR_MODE_OPTIONS,
+    normalize_crystal_color_mode,
 )
 from .feedback_catalog import (
     DEFAULT_AUDIO_ENABLED,
     DEFAULT_AUDIO_FILE,
+    HAPTIC_CONTROLLER_PROFILE_OPTIONS,
     HAPTIC_EVENT_OPTIONS,
+    HAPTIC_LAB_GROUPS,
     HAPTIC_PATTERN_OFF,
+    HAPTIC_PATTERN_LIBRARY,
     HAPTIC_PATTERN_OPTIONS,
     default_audio_event_files,
+    default_haptic_event_patterns_for_profile,
     default_haptic_event_patterns,
     haptic_pattern_label,
 )
+from .game_state import (
+    GAMEPLAY_MODE_LEGACY,
+    GAMEPLAY_MODE_TIME_BOOST,
+    TIMER_POLICY_EXTRA_TIME,
+    TIMER_POLICY_NORMAL,
+    TIMER_POLICY_NO_TIMEOUT,
+)
 from .render_mode import (
+    RENDER_MODE_LOW_RESOURCE,
     RENDER_MODE_ULTRA_LOW_RESOURCE,
     RENDER_MODE_WEBGL,
-    RENDER_MODE_OPTIONS,
-    render_mode_label,
 )
-from .shortcuts import SHORTCUT_OPTIONS, default_shortcut_bindings, normalize_shortcut_value
+from .shortcuts import (
+    PAUSE_SHORTCUT_MODE_COMBINED,
+    PAUSE_SHORTCUT_MODE_SPLIT,
+    SHORTCUT_OPTIONS,
+    default_shortcut_bindings,
+    normalize_pause_shortcut_mode,
+    normalize_shortcut_value,
+)
 from .sphere_mode import (
-    SPHERE_MODE_CLASSIC,
+    SPHERE_MODE_DEFAULT,
     SPHERE_MODE_OPTIONS,
-    sphere_mode_label,
+)
+from .settings_components import (
+    ModernButton,
+    ModernSectionToggle,
+    ModernSurface,
+    ModernToolButton,
 )
 from .visual_mode import (
+    VISUAL_MODE_CRYSTAL_REACTOR,
     VISUAL_MODE_LIGHTWEIGHT_ROWS,
+    VISUAL_MODE_NUMBER_ONLY,
     VISUAL_MODE_OPTIONS,
+    VISUAL_MODE_SINGULARITY,
     VISUAL_MODE_SPHERE,
-    visual_mode_label,
+)
+from .visual_colors import (
+    VISUAL_COLOR_KEYS,
+    normalize_color_overrides,
+    normalize_visual_color_palettes,
 )
 
 
@@ -105,6 +152,7 @@ THEMES = [
 
 DEFAULT_CUSTOM_COLORS = {
     "core": "#566ed4",
+    "crystal": "#566ed4",
     "red": "#c34f69",
     "yellow": "#c69430",
     "green": "#2b9d73",
@@ -114,6 +162,7 @@ DEFAULT_CUSTOM_COLORS = {
 THEME_CUSTOM_COLOR_DEFAULTS = {
     "classic": {
         "core": "#5b6fcf",
+        "crystal": "#5b6fcf",
         "red": "#c9546d",
         "yellow": "#c89a38",
         "green": "#2ea36f",
@@ -121,6 +170,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "cardmatch": {
         "core": "#84a6c7",
+        "crystal": "#84a6c7",
         "red": "#b26a6a",
         "yellow": "#b786ad",
         "green": "#419c5f",
@@ -128,6 +178,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "graphite": {
         "core": "#6982b8",
+        "crystal": "#6982b8",
         "red": "#b65b70",
         "yellow": "#b48c42",
         "green": "#3d9b79",
@@ -135,6 +186,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "midnight": {
         "core": "#566ed4",
+        "crystal": "#566ed4",
         "red": "#c34f69",
         "yellow": "#c69430",
         "green": "#2b9d73",
@@ -142,6 +194,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "forest": {
         "core": "#4f8f9c",
+        "crystal": "#4f8f9c",
         "red": "#b45a62",
         "yellow": "#b89a43",
         "green": "#2d9a66",
@@ -149,6 +202,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "ember": {
         "core": "#c66a4b",
+        "crystal": "#c66a4b",
         "red": "#cf5664",
         "yellow": "#c98a33",
         "green": "#4e9a72",
@@ -156,6 +210,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "violet": {
         "core": "#7761c5",
+        "crystal": "#7761c5",
         "red": "#c15a7f",
         "yellow": "#bc8f3d",
         "green": "#4b9c82",
@@ -163,6 +218,7 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
     "ocean": {
         "core": "#4d8fc2",
+        "crystal": "#4d8fc2",
         "red": "#bd5c6c",
         "yellow": "#c39932",
         "green": "#2f9a82",
@@ -170,13 +226,25 @@ THEME_CUSTOM_COLOR_DEFAULTS = {
     },
 }
 
-COLOR_FIELDS = [
-    ("core", "Central Orb", "Main color for the center orb."),
-    ("red", "Again Satellite", "Used for Again ratings and timeout effects."),
-    ("yellow", "Hard Satellite", "Used for Hard ratings."),
-    ("green", "Good Satellite", "Used for Good ratings."),
-    ("blue", "Easy Satellite", "Used for Easy ratings."),
+RATING_COLOR_FIELDS = [
+    ("red", "Again", "Again satellites plus failure and timeout accents."),
+    ("yellow", "Hard", "Hard satellites and Hard crystals in Rating Colors mode."),
+    ("green", "Good", "Good satellites and Good crystals in Rating Colors mode."),
+    ("blue", "Easy", "Easy satellites and Easy crystals in Rating Colors mode."),
 ]
+
+VISUAL_COLOR_FIELDS = [
+    ("core", "Orb / Singularity Core", "The Sphere center and Singularity event horizon, corona, grid energy, and sparks."),
+    ("crystal", "Crystal: Single Color", "The complete crystal formation when Single Crystal Color is selected."),
+]
+
+COLOR_FIELDS = [*RATING_COLOR_FIELDS, *VISUAL_COLOR_FIELDS]
+
+SPECIAL_TIMING_MODE_OPTIONS = (
+    (TIMER_POLICY_NORMAL, "Off"),
+    (TIMER_POLICY_EXTRA_TIME, "Extra time"),
+    (TIMER_POLICY_NO_TIMEOUT, "No timeout"),
+)
 
 SHORTCUT_DEFAULTS = {str(item["key"]): str(item["default"]) for item in SHORTCUT_OPTIONS}
 
@@ -185,84 +253,48 @@ VIBRATION_MODE_VIBRATION_ONLY = "vibration_only"
 
 SECTION_STYLE_TOKENS = {
     "actions": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(29, 37, 54, 0.98),
-              stop:1 rgba(20, 26, 38, 0.98))
-        """,
-        "border_color": "rgba(116, 143, 194, 0.20)",
+        "frame_background": "#141d2a",
+        "border_color": "#2d4261",
         "title_color": "#b9ccf8",
     },
     "timers": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(25, 39, 45, 0.98),
-              stop:1 rgba(18, 28, 33, 0.98))
-        """,
-        "border_color": "rgba(96, 179, 171, 0.20)",
+        "frame_background": "#132126",
+        "border_color": "#28514e",
         "title_color": "#a9e1d9",
     },
     "flags": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(44, 37, 31, 0.98),
-              stop:1 rgba(31, 25, 22, 0.98))
-        """,
-        "border_color": "rgba(203, 160, 101, 0.20)",
+        "frame_background": "#231e19",
+        "border_color": "#5a4933",
         "title_color": "#f0cd93",
     },
     "feedback": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(26, 38, 52, 0.98),
-              stop:1 rgba(18, 27, 37, 0.98))
-        """,
-        "border_color": "rgba(120, 180, 214, 0.20)",
+        "frame_background": "#14212d",
+        "border_color": "#2e4d63",
         "title_color": "#b8def1",
     },
     "display_style": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(31, 36, 59, 0.98),
-              stop:1 rgba(21, 26, 42, 0.98))
-        """,
-        "border_color": "rgba(132, 151, 231, 0.20)",
+        "frame_background": "#191d32",
+        "border_color": "#38436b",
         "title_color": "#b9c4ff",
     },
     "performance": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(40, 34, 39, 0.98),
-              stop:1 rgba(27, 23, 28, 0.98))
-        """,
-        "border_color": "rgba(195, 153, 119, 0.18)",
+        "frame_background": "#211b21",
+        "border_color": "#4c3d46",
         "title_color": "#e8c7a6",
     },
     "appearance": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(24, 39, 47, 0.98),
-              stop:1 rgba(17, 28, 35, 0.98))
-        """,
-        "border_color": "rgba(110, 177, 200, 0.20)",
+        "frame_background": "#142329",
+        "border_color": "#2d5260",
         "title_color": "#b4def0",
     },
     "help": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(28, 39, 33, 0.98),
-              stop:1 rgba(21, 29, 24, 0.98))
-        """,
-        "border_color": "rgba(111, 171, 135, 0.18)",
+        "frame_background": "#17221b",
+        "border_color": "#31533c",
         "title_color": "#b6dec1",
     },
     "shortcuts": {
-        "frame_background": """
-            qlineargradient(x1:0, y1:0, x2:0, y2:1,
-              stop:0 rgba(38, 34, 49, 0.98),
-              stop:1 rgba(27, 24, 36, 0.98))
-        """,
-        "border_color": "rgba(173, 143, 222, 0.18)",
+        "frame_background": "#1e1926",
+        "border_color": "#4c3d5f",
         "title_color": "#d8c2ff",
     },
 }
@@ -278,6 +310,393 @@ SECTION_DESCRIPTIONS = {
     "help": "A few reminders for how the review workflow fits together.",
     "shortcuts": "Change any Speed Streak shortcuts here. New shortcuts will appear in this section as they are added.",
 }
+
+SETTINGS_PAGES = (
+    ("gameplay", "Gameplay", "Choose the streak rules, Time Boost economy, and card-marking workflows."),
+    ("timers", "Timers", "Set the everyday timers and optional exceptions for particular cards."),
+    ("visuals", "Visuals", "Choose the panel layout, renderer, motion, theme, and crystal colors."),
+    ("feedback", "Audio/Haptics", "Control sounds and controller vibration without changing gameplay."),
+    ("shortcuts", "Shortcuts", "Keep every Speed Streak keyboard control in one predictable place."),
+    ("tools", "Tools", "Open statistics and managers, or reset settings and run progress."),
+)
+
+_LEGACY_SETTINGS_DIALOG_STYLESHEET = """
+QDialog#speedStreakSettingsDialog {
+  background: #0b1018;
+  color: #edf2f8;
+  font-size: 12px;
+}
+QFrame#speedStreakSettingsCard {
+  background: #0f1722;
+  border: 1px solid #263247;
+  border-radius: 16px;
+}
+QFrame#speedStreakSettingsHero {
+  background: #151f2d;
+  border: 1px solid #2d3d54;
+  border-radius: 12px;
+}
+QLabel#speedStreakSettingsTitle {
+  color: #f7f9fc;
+  font-size: 23px;
+  font-weight: 700;
+}
+QLabel#speedStreakSettingsSub, QLabel[class="sectionCopy"], QLabel[class="helpText"] {
+  color: #9cabc0;
+}
+QLabel#speedStreakSettingsNavigationTitle {
+  color: #8290a5;
+  font-size: 10px;
+  font-weight: 800;
+}
+QLabel#speedStreakSettingsLiveNote, QLabel#speedStreakSettingsPageDescription {
+  color: #95a3b8;
+  font-size: 11px;
+}
+QLabel#speedStreakSettingsPageTitle {
+  color: #f2f5fb;
+  font-size: 18px;
+  font-weight: 800;
+}
+QLabel#speedStreakHeroEyebrow {
+  color: #83adf3;
+  font-size: 11px;
+  font-weight: 700;
+}
+QLabel[class="fieldLabel"], QLabel[class="sectionTitle"], QLabel#speedStreakPreviewTitle {
+  color: #edf2f8;
+  font-weight: 700;
+}
+QLabel[class="secondsUnit"] {
+  color: #b8c3d3;
+  font-weight: 600;
+}
+QLabel[class="fieldLabel"]:disabled, QLabel[class="helpText"]:disabled,
+QLabel[class="secondsUnit"]:disabled {
+  color: #68758a;
+}
+QLabel#errorLabel {
+  color: #ff96aa;
+  font-weight: 700;
+}
+QToolButton[class="sectionToggle"] {
+  color: #e9eef6;
+  background: transparent;
+  border: none;
+  padding: 3px 0;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 700;
+}
+QToolButton[class="sectionToggle"]:hover, QToolButton[class="sectionToggle"]:checked {
+  color: #ffffff;
+}
+QToolButton[class="sectionToggle"]:disabled {
+  color: #68758a;
+}
+QFrame[class="settingRow"], QFrame[class="toggleBlock"], QFrame[class="buttonRowGroup"] {
+  background: #131d29;
+  border: 1px solid #263448;
+  border-radius: 10px;
+}
+QFrame[class="settingRow"][disabled="true"] {
+  background: #111923;
+  border-color: #202b3a;
+}
+QFrame[class="timerNotice"] {
+  background: #172b46;
+  border: 1px solid #4979b7;
+  border-radius: 8px;
+}
+QLabel[class="timerNoticeTitle"] {
+  color: #e5f0ff;
+  font-weight: 700;
+}
+QLabel[class="timerNoticeBody"] {
+  color: #c6d9f2;
+}
+QPushButton, QToolButton[class="secondaryAction"] {
+  color: #f7f9fc;
+  background: #344155;
+  border: 1px solid #526178;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+QPushButton:hover, QToolButton[class="secondaryAction"]:hover {
+  background: #405069;
+  border-color: #6c7f9c;
+}
+QPushButton:pressed, QToolButton[class="secondaryAction"]:pressed {
+  background: #293649;
+}
+QPushButton[class="primaryAction"] {
+  color: #ffffff;
+  background: #356dcc;
+  border-color: #5d8fe2;
+}
+QPushButton[class="primaryAction"]:hover {
+  background: #427bd9;
+  border-color: #76a2ea;
+}
+QPushButton[class="reviewLaterAction"] {
+  color: #ffffff;
+  background: #334f7a;
+  border-color: #587aa8;
+}
+QPushButton[class="dangerAction"] {
+  color: #fff5f7;
+  background: #7a3040;
+  border-color: #a94d60;
+}
+QPushButton[class="dangerAction"]:hover {
+  background: #8e3a4c;
+  border-color: #c66075;
+}
+QPushButton:disabled, QToolButton[class="secondaryAction"]:disabled {
+  color: #7a8799;
+  background: #222c3a;
+  border-color: #354255;
+}
+QToolButton[class="secondaryAction"] {
+  text-align: left;
+  min-width: 260px;
+}
+QToolButton[class="secondaryAction"]::menu-indicator {
+  subcontrol-origin: padding;
+  subcontrol-position: center right;
+  right: 10px;
+}
+QDoubleSpinBox, QSpinBox, QComboBox, QLineEdit {
+  min-height: 34px;
+  padding: 4px 10px;
+  color: #edf2f8;
+  background: #0d151f;
+  border: 1px solid #35445a;
+  border-radius: 8px;
+  selection-background-color: #356dcc;
+  selection-color: #ffffff;
+  font-weight: 600;
+}
+QDoubleSpinBox:hover, QSpinBox:hover, QComboBox:hover, QLineEdit:hover {
+  border-color: #506681;
+}
+QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QLineEdit:focus {
+  border-color: #6e9de8;
+}
+QDoubleSpinBox:disabled, QSpinBox:disabled, QComboBox:disabled, QLineEdit:disabled {
+  color: #6f7c8e;
+  background: #111923;
+  border-color: #263243;
+}
+QComboBox::drop-down {
+  width: 24px;
+  border: none;
+  background: #182333;
+}
+QComboBox QAbstractItemView, QListWidget {
+  color: #edf2f8;
+  background: #101924;
+  border: 1px solid #35445a;
+  selection-background-color: #356dcc;
+  selection-color: #ffffff;
+  outline: none;
+}
+QCheckBox, QRadioButton {
+  color: #edf2f8;
+  spacing: 8px;
+  font-weight: 600;
+}
+QCheckBox:disabled, QRadioButton:disabled {
+  color: #6f7c8e;
+}
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 15px;
+  height: 15px;
+  background: #0d151f;
+  border: 1px solid #526178;
+}
+QCheckBox::indicator { border-radius: 4px; }
+QRadioButton::indicator { border-radius: 8px; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+  background: #4d82dc;
+  border-color: #82aaf0;
+}
+QScrollArea, QScrollArea > QWidget > QWidget {
+  background: #0f1722;
+  border: none;
+}
+QScrollBar:vertical {
+  background: #101823;
+  width: 9px;
+  margin: 3px 0;
+}
+QScrollBar::handle:vertical {
+  background: #40506a;
+  min-height: 28px;
+  border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover { background: #526582; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+  background: none;
+  border: none;
+  height: 0;
+}
+QFrame#speedStreakAppearancePreview {
+  background: #101924;
+  border: 1px solid #263448;
+  border-radius: 10px;
+}
+QLabel#speedStreakPreviewBody { color: #9cabc0; }
+QFrame[swatch="true"] { border: 1px solid #314057; border-radius: 7px; }
+QMenu {
+  color: #edf2f8;
+  background: #111a25;
+  border: 1px solid #35445a;
+  padding: 5px;
+}
+QMenu::item { padding: 7px 12px; border-radius: 5px; }
+QMenu::item:selected { background: #356dcc; color: #ffffff; }
+"""
+
+# The rebuilt dialog deliberately keeps stylesheet work restricted to native
+# leaf controls. Cards, rows, disclosures, and actions are painted by the
+# deterministic components in settings_components.py, so styling cannot leak
+# through a nested widget hierarchy differently on Windows and macOS.
+SETTINGS_DIALOG_STYLESHEET = """
+QDialog#speedStreakSettingsDialog {
+  background: #0b1018;
+  color: #edf2f8;
+  font-size: 12px;
+}
+QLabel#speedStreakSettingsTitle {
+  color: #f7f9fc;
+  font-size: 23px;
+  font-weight: 700;
+}
+QLabel#speedStreakSettingsSub, QLabel[class="sectionCopy"], QLabel[class="helpText"] {
+  color: #9cabc0;
+}
+QLabel#speedStreakHeroEyebrow {
+  color: #83adf3;
+  font-size: 11px;
+  font-weight: 700;
+}
+QLabel[class="fieldLabel"], QLabel[class="sectionTitle"], QLabel#speedStreakPreviewTitle {
+  color: #edf2f8;
+  font-weight: 700;
+}
+QLabel[class="secondsUnit"] { color: #b8c3d3; font-weight: 600; }
+QLabel[class="fieldLabel"]:disabled, QLabel[class="helpText"]:disabled,
+QLabel[class="secondsUnit"]:disabled { color: #68758a; }
+QLabel#errorLabel { color: #ff96aa; font-weight: 700; }
+QLabel[class="timerNoticeTitle"] { color: #e5f0ff; font-weight: 700; }
+QLabel[class="timerNoticeBody"] { color: #c6d9f2; }
+QDoubleSpinBox, QSpinBox, QComboBox, QLineEdit {
+  min-height: 34px;
+  padding: 4px 10px;
+  color: #edf2f8;
+  background: #0d151f;
+  border: 1px solid #35445a;
+  border-radius: 8px;
+  selection-background-color: #356dcc;
+  selection-color: #ffffff;
+  font-weight: 600;
+}
+QDoubleSpinBox:hover, QSpinBox:hover, QComboBox:hover, QLineEdit:hover { border-color: #506681; }
+QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QLineEdit:focus { border-color: #6e9de8; }
+QDoubleSpinBox:disabled, QSpinBox:disabled, QComboBox:disabled, QLineEdit:disabled {
+  color: #6f7c8e;
+  background: #111923;
+  border-color: #263243;
+}
+QComboBox::drop-down { width: 24px; border: none; background: #182333; }
+QComboBox QAbstractItemView, QListWidget {
+  color: #edf2f8;
+  background: #101924;
+  border: 1px solid #35445a;
+  selection-background-color: #356dcc;
+  selection-color: #ffffff;
+  outline: none;
+}
+QCheckBox, QRadioButton { color: #edf2f8; spacing: 8px; font-weight: 600; }
+QCheckBox:disabled, QRadioButton:disabled { color: #6f7c8e; }
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 15px;
+  height: 15px;
+  background: #0d151f;
+  border: 1px solid #526178;
+}
+QCheckBox::indicator { border-radius: 4px; }
+QRadioButton::indicator { border-radius: 8px; }
+QCheckBox::indicator:checked, QRadioButton::indicator:checked {
+  background: #4d82dc;
+  border-color: #82aaf0;
+}
+QScrollArea, QScrollArea > QWidget > QWidget { background: #0f1722; border: none; }
+QScrollBar:vertical { background: #101823; width: 9px; margin: 3px 0; }
+QScrollBar::handle:vertical { background: #40506a; min-height: 28px; border-radius: 4px; }
+QScrollBar::handle:vertical:hover { background: #526582; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+  background: none;
+  border: none;
+  height: 0;
+}
+QMenu { color: #edf2f8; background: #111a25; border: 1px solid #35445a; padding: 5px; }
+QMenu::item { padding: 7px 12px; border-radius: 5px; }
+QMenu::item:selected { background: #356dcc; color: #ffffff; }
+"""
+
+POPUP_DIALOG_STYLESHEET = """
+QDialog {
+  color: #edf2f8;
+  background: #0f1722;
+  font-size: 12px;
+}
+QLabel { color: #edf2f8; }
+QLabel[class="helpText"] { color: #9cabc0; }
+QFrame { background: #131d29; border: 1px solid #263448; border-radius: 10px; }
+QPushButton {
+  color: #f7f9fc;
+  background: #344155;
+  border: 1px solid #526178;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+}
+QPushButton:hover { background: #405069; border-color: #6c7f9c; }
+QPushButton[class="primaryAction"] { background: #356dcc; border-color: #5d8fe2; }
+QPushButton[class="dangerAction"] { background: #7a3040; border-color: #a94d60; }
+QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox {
+  color: #edf2f8;
+  background: #0d151f;
+  border: 1px solid #35445a;
+  border-radius: 8px;
+  padding: 5px 9px;
+  min-height: 32px;
+}
+QLineEdit:focus, QComboBox:focus { border-color: #6e9de8; }
+QListWidget {
+  color: #edf2f8;
+  background: #101924;
+  border: 1px solid #35445a;
+  selection-background-color: #356dcc;
+  selection-color: #ffffff;
+  outline: none;
+}
+QCheckBox { color: #edf2f8; spacing: 8px; }
+"""
+
+
+def _apply_consistent_dialog_style(widget: QWidget) -> None:
+    try:
+        fusion = QStyleFactory.create("Fusion")
+        if fusion is not None:
+            widget.setStyle(fusion)
+    except Exception:
+        pass
 
 
 def normalize_custom_colors(colors: Optional[dict[str, str]]) -> dict[str, str]:
@@ -332,6 +751,12 @@ class OrbPreviewButton(QPushButton):
         bounds = QRectF(left, top, side, side)
         if self.kind == "core":
             self._paint_core(painter, bounds)
+        elif self.kind == "crystal":
+            self._paint_crystal(painter, bounds)
+        elif self.kind == "brick":
+            self._paint_brick(painter, bounds)
+        elif self.kind == "singularity":
+            self._paint_singularity(painter, bounds)
         else:
             self._paint_satellite(painter, bounds)
 
@@ -386,6 +811,89 @@ class OrbPreviewButton(QPushButton):
         painter.setBrush(QBrush(shell))
         painter.drawEllipse(orb)
 
+    def _paint_crystal(self, painter: QPainter, bounds: QRectF) -> None:
+        base = QColor(self.color_hex)
+        highlight = self._adjust(self.color_hex, 0.82)
+        light = self._adjust(self.color_hex, 0.38)
+        mid = self._adjust(self.color_hex, 0.05)
+        deep = self._adjust(self.color_hex, -0.58)
+
+        halo = QRadialGradient(bounds.center(), bounds.width() * 0.72)
+        halo.setColorAt(0.0, QColor(base.red(), base.green(), base.blue(), 72))
+        halo.setColorAt(0.55, QColor(base.red(), base.green(), base.blue(), 20))
+        halo.setColorAt(1.0, QColor(base.red(), base.green(), base.blue(), 0))
+        painter.setBrush(QBrush(halo))
+        painter.drawEllipse(bounds.adjusted(-5, -5, 5, 5))
+
+        cx = bounds.center().x()
+        cy = bounds.center().y()
+        top = QPointF(cx, bounds.top() + 2)
+        upper_left = QPointF(bounds.left() + 7, bounds.top() + (bounds.height() * 0.37))
+        lower_left = QPointF(bounds.left() + 12, bounds.bottom() - 7)
+        bottom = QPointF(cx, bounds.bottom() - 2)
+        lower_right = QPointF(bounds.right() - 12, bounds.bottom() - 7)
+        upper_right = QPointF(bounds.right() - 7, bounds.top() + (bounds.height() * 0.37))
+        center = QPointF(cx, cy + 2)
+        outer = QPolygonF((top, upper_right, lower_right, bottom, lower_left, upper_left))
+
+        painter.setPen(QPen(QColor(255, 255, 255, 54), 0.8))
+        painter.setBrush(QBrush(deep))
+        painter.drawPolygon(outer)
+        painter.setPen(Qt.PenStyle.NoPen)
+
+        facets = (
+            (QPolygonF((top, upper_left, center)), highlight),
+            (QPolygonF((top, center, upper_right)), light),
+            (QPolygonF((upper_right, center, bottom, lower_right)), mid),
+            (QPolygonF((upper_left, lower_left, bottom, center)), deep),
+            (QPolygonF((top, center, bottom)), QColor(255, 255, 255, 42)),
+        )
+        for polygon, color in facets:
+            painter.setBrush(QBrush(color))
+            painter.drawPolygon(polygon)
+
+        painter.setPen(QPen(QColor(255, 255, 255, 76), 0.7))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPolygon(outer)
+
+    def _paint_brick(self, painter: QPainter, bounds: QRectF) -> None:
+        base = QColor(self.color_hex)
+        light = self._adjust(self.color_hex, 0.48)
+        deep = self._adjust(self.color_hex, -0.45)
+        brick = bounds.adjusted(5, 14, -5, -14)
+        gradient = QLinearGradient(brick.topLeft(), brick.bottomRight())
+        gradient.setColorAt(0.0, light)
+        gradient.setColorAt(0.42, base)
+        gradient.setColorAt(1.0, deep)
+        painter.setPen(QPen(QColor(255, 255, 255, 64), 0.8))
+        painter.setBrush(QBrush(gradient))
+        painter.drawRoundedRect(brick, 4, 4)
+        painter.setPen(QPen(QColor(255, 255, 255, 48), 0.7))
+        painter.drawLine(
+            QLineF(
+                QPointF(brick.left() + 4, brick.top() + 5),
+                QPointF(brick.right() - 4, brick.top() + 5),
+            )
+        )
+
+    def _paint_singularity(self, painter: QPainter, bounds: QRectF) -> None:
+        base = QColor(self.color_hex)
+        halo = QRadialGradient(bounds.center(), bounds.width() * 0.48)
+        halo.setColorAt(0.0, QColor(base.red(), base.green(), base.blue(), 0))
+        halo.setColorAt(0.48, QColor(base.red(), base.green(), base.blue(), 20))
+        halo.setColorAt(0.70, QColor(base.red(), base.green(), base.blue(), 210))
+        halo.setColorAt(0.84, QColor(base.red(), base.green(), base.blue(), 36))
+        halo.setColorAt(1.0, QColor(base.red(), base.green(), base.blue(), 0))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(halo))
+        painter.drawEllipse(bounds.adjusted(1, 1, -1, -1))
+        core = bounds.adjusted(14, 14, -14, -14)
+        painter.setBrush(QColor("#020307"))
+        painter.drawEllipse(core)
+        painter.setPen(QPen(self._adjust(self.color_hex, 0.55), 1.1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(bounds.adjusted(5, 18, -5, -18))
+
 
 class _WheelGuardMixin:
     def wheelEvent(self, event: Any) -> None:
@@ -429,15 +937,25 @@ class ScrollSafeDoubleSpinBox(_WheelGuardMixin, QDoubleSpinBox):
     pass
 
 
+class ScrollSafeSpinBox(_WheelGuardMixin, QSpinBox):
+    pass
+
+
 class ScrollSafeSlider(_WheelGuardMixin, QSlider):
     pass
 
 
 class ColorCustomizerDialog(QDialog):
-    def __init__(self, owner: "SettingsDialog") -> None:
+    def __init__(self, owner: "SettingsDialog", focus_visual: str = "") -> None:
         super().__init__(owner)
         self.owner = owner
+        self.focus_visual = str(focus_visual or "").strip().lower()
         self.draft_colors = dict(owner.custom_colors)
+        self.draft_crystal_color_mode = normalize_crystal_color_mode(
+            owner.crystal_color_mode_combo.currentData()
+            if owner.crystal_color_mode_combo is not None
+            else getattr(owner.controller, "crystal_color_mode", CRYSTAL_COLOR_MODE_ICE)
+        )
         self.draft_use_custom_timer_colors = bool(owner.use_custom_timer_colors)
         self.draft_timer_color_level = float(owner.timer_color_level)
         self.rows: dict[str, tuple[OrbPreviewButton, QLineEdit]] = {}
@@ -445,11 +963,11 @@ class ColorCustomizerDialog(QDialog):
         self._picker_key = ""
         self._picker_original_color = ""
         self.setModal(True)
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setWindowFlags(Qt.WindowType.Dialog)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setObjectName("speedStreakColorPicker")
-        self.setStyleSheet(
-            """
+        _apply_consistent_dialog_style(self)
+        _legacy_color_stylesheet = """
             QDialog#speedStreakColorPicker {
               background: rgba(4, 8, 20, 168);
             }
@@ -523,54 +1041,61 @@ class ColorCustomizerDialog(QDialog):
               border: 1px solid rgba(255,255,255,0.06);
             }
             """
+        self.setStyleSheet(
+            POPUP_DIALOG_STYLESHEET
+            + """
+            QDialog#speedStreakColorPicker QLabel,
+            QDialog#speedStreakColorPicker QCheckBox,
+            QDialog#speedStreakColorPicker QScrollArea,
+            QDialog#speedStreakColorPicker QWidget#speedStreakColorCard {
+              background: transparent;
+              border: none;
+              border-radius: 0;
+            }
+            """
         )
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(42, 42, 42, 42)
-        card = QFrame(self)
+        outer.setContentsMargins(18, 18, 18, 18)
+        card = QWidget(self)
         card.setObjectName("speedStreakColorCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(12)
 
-        title = QLabel("Orb Colors", card)
+        title = QLabel("Visual Colors", card)
         title.setStyleSheet("font-size: 24px; font-weight: 900;")
-        copy = QLabel("Choose the center orb color and the four rating satellite colors. The native color chooser opens when you click a swatch.", card)
+        copy = QLabel("Rating colors are shared by satellites and Rating Colors crystals. Sphere and Crystal-specific colors are separate, so each swatch has one clear job.", card)
         copy.setWordWrap(True)
         copy.setProperty("class", "helpText")
         layout.addWidget(title)
         layout.addWidget(copy)
 
-        for key, label, help_text in COLOR_FIELDS:
-            row = QFrame(card)
-            row.setProperty("class", "colorRow")
-            row_layout = QHBoxLayout(row)
-            row_layout.setContentsMargins(12, 10, 12, 10)
-            row_layout.setSpacing(10)
-            copy_layout = QVBoxLayout()
-            copy_layout.setSpacing(2)
-            title_label = QLabel(label, row)
-            title_label.setStyleSheet("font-size: 12px; font-weight: 800;")
-            help_label = QLabel(help_text, row)
-            help_label.setWordWrap(True)
-            help_label.setProperty("class", "helpText")
-            copy_layout.addWidget(title_label)
-            copy_layout.addWidget(help_label)
-            row_layout.addLayout(copy_layout, 1)
+        self._add_color_section_header(
+            layout,
+            card,
+            "Shared Rating Colors",
+            "These four colors follow the answer rating. Sphere satellites always use them; crystals use them only in Rating Colors mode.",
+        )
+        self._add_color_rows(layout, card, RATING_COLOR_FIELDS)
 
-            swatch = OrbPreviewButton(key, row)
-            swatch.setProperty("class", "colorSwatch")
-            swatch.clicked.connect(lambda _=False, color_key=key: self.pick_color(color_key))
-            row_layout.addWidget(swatch)
+        self._add_color_section_header(
+            layout,
+            card,
+            "Visual-Specific Colors",
+            "The Sphere's center and a single-color Crystal formation no longer share one ambiguous swatch.",
+        )
+        self._add_color_rows(layout, card, [VISUAL_COLOR_FIELDS[0]])
+        self._add_crystal_mode_row(layout, card)
+        self._add_color_rows(layout, card, [VISUAL_COLOR_FIELDS[1]])
+        self.crystal_single_color_row = self.rows["crystal"][0].parentWidget()
 
-            field = QLineEdit(row)
-            field.setMaxLength(7)
-            field.setPlaceholderText(theme_default_colors(self.owner.current_theme_key)[key])
-            field.editingFinished.connect(lambda color_key=key: self.commit_hex(color_key))
-            row_layout.addWidget(field)
-
-            self.rows[key] = (swatch, field)
-            layout.addWidget(row)
+        self._add_color_section_header(
+            layout,
+            card,
+            "Timer Colors (Optional)",
+            "Timers can borrow the shared Good, Hard, and Again colors as their warning ramp.",
+        )
 
         self.timer_colors_check = QCheckBox("Use these theme/custom warning colors for both timers", card)
         self.timer_colors_check.setChecked(self.draft_use_custom_timer_colors)
@@ -581,7 +1106,7 @@ class ColorCustomizerDialog(QDialog):
         preview_title.setProperty("class", "previewLabel")
         layout.addWidget(preview_title)
 
-        self.timer_preview_track = QFrame(card)
+        self.timer_preview_track = QWidget(card)
         self.timer_preview_track.setObjectName("timerPreviewTrack")
         preview_layout = QVBoxLayout(self.timer_preview_track)
         preview_layout.setContentsMargins(10, 10, 10, 10)
@@ -632,18 +1157,123 @@ class ColorCustomizerDialog(QDialog):
         actions.addStretch(1)
         reset_button = QPushButton("Reset Colors", card)
         reset_button.setProperty("class", "secondaryAction")
+        reset_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        reset_button.setStyleSheet("border-radius: 2px;")
         reset_button.clicked.connect(self.reset_colors)
         save_button = QPushButton("Save Colors", card)
         save_button.setProperty("class", "primaryAction")
+        save_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        save_button.setStyleSheet("border-radius: 2px;")
         save_button.clicked.connect(self.save_and_close)
         actions.addWidget(reset_button)
         actions.addWidget(save_button)
         layout.addLayout(actions)
-        outer.addWidget(card)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setWidget(card)
+        self.scroll = scroll
+        outer.addWidget(scroll)
 
         self._sync_rows()
         self._sync_timer_preview()
-        self.resize(700, 620)
+        self.resize(760, 780)
+        QTimer.singleShot(0, self._focus_requested_visual)
+
+    def _focus_requested_visual(self) -> None:
+        if self.focus_visual == "crystal":
+            self.scroll.ensureWidgetVisible(self.crystal_mode_combo, 28, 80)
+            self.crystal_mode_combo.setFocus(Qt.FocusReason.OtherFocusReason)
+        elif self.focus_visual == "sphere":
+            self.scroll.verticalScrollBar().setValue(0)
+
+    def _add_color_section_header(
+        self,
+        layout: QVBoxLayout,
+        parent: QWidget,
+        title: str,
+        description: str,
+    ) -> None:
+        title_label = QLabel(title, parent)
+        title_label.setStyleSheet("font-size: 15px; font-weight: 900; margin-top: 6px;")
+        description_label = QLabel(description, parent)
+        description_label.setWordWrap(True)
+        description_label.setProperty("class", "helpText")
+        layout.addWidget(title_label)
+        layout.addWidget(description_label)
+
+    def _add_color_rows(
+        self,
+        layout: QVBoxLayout,
+        parent: QWidget,
+        fields: list[tuple[str, str, str]],
+    ) -> None:
+        for key, label, help_text in fields:
+            row = ModernSurface("row", parent)
+            row.setProperty("class", "colorRow")
+            row_layout = QHBoxLayout(row)
+            row_layout.setContentsMargins(12, 10, 12, 10)
+            row_layout.setSpacing(10)
+            copy_layout = QVBoxLayout()
+            copy_layout.setSpacing(2)
+            title_label = QLabel(label, row)
+            title_label.setStyleSheet("font-size: 12px; font-weight: 800;")
+            help_label = QLabel(help_text, row)
+            help_label.setWordWrap(True)
+            help_label.setProperty("class", "helpText")
+            copy_layout.addWidget(title_label)
+            copy_layout.addWidget(help_label)
+            row_layout.addLayout(copy_layout, 1)
+
+            swatch = OrbPreviewButton(key, row)
+            swatch.setProperty("class", "colorSwatch")
+            swatch.clicked.connect(lambda _=False, color_key=key: self.pick_color(color_key))
+            row_layout.addWidget(swatch)
+
+            field = QLineEdit(row)
+            field.setMaxLength(7)
+            field.setPlaceholderText(theme_default_colors(self.owner.current_theme_key)[key])
+            field.editingFinished.connect(lambda color_key=key: self.commit_hex(color_key))
+            row_layout.addWidget(field)
+
+            self.rows[key] = (swatch, field)
+            layout.addWidget(row)
+
+    def _add_crystal_mode_row(self, layout: QVBoxLayout, parent: QWidget) -> None:
+        row = QWidget(parent)
+        row_layout = QVBoxLayout(row)
+        row_layout.setContentsMargins(0, 4, 0, 4)
+        row_layout.setSpacing(7)
+        title = QLabel("Crystal Color Source", row)
+        title.setStyleSheet("font-size: 12px; font-weight: 800;")
+        help_text = QLabel(
+            "Ice uses its built-in sheen. Rating Colors follows the shared answer colors above. Single Crystal Color uses the dedicated crystal swatch below.",
+            row,
+        )
+        help_text.setWordWrap(True)
+        help_text.setProperty("class", "helpText")
+        self.crystal_mode_combo = ScrollSafeComboBox(row)
+        for value, label in CRYSTAL_COLOR_MODE_OPTIONS:
+            self.crystal_mode_combo.addItem(label, value)
+        self.crystal_mode_combo.setCurrentIndex(
+            max(0, self.crystal_mode_combo.findData(self.draft_crystal_color_mode))
+        )
+        self.crystal_mode_combo.setStyleSheet("border-radius: 2px;")
+        self.crystal_mode_combo.currentIndexChanged.connect(self._on_crystal_mode_changed)
+        row_layout.addWidget(title)
+        row_layout.addWidget(help_text)
+        row_layout.addWidget(self.crystal_mode_combo)
+        layout.addWidget(row)
+
+    def _on_crystal_mode_changed(self, *_args: Any) -> None:
+        self.draft_crystal_color_mode = normalize_crystal_color_mode(
+            self.crystal_mode_combo.currentData()
+        )
+        if hasattr(self, "crystal_single_color_row"):
+            # Keep the crystal actionable in every mode. Clicking or editing
+            # it promotes the source to Single Crystal Color.
+            self.crystal_single_color_row.setEnabled(True)
 
     def resolved_color(self, key: str) -> str:
         return normalize_custom_colors(self.draft_colors).get(key, theme_default_colors(self.owner.current_theme_key)[key])
@@ -658,6 +1288,7 @@ class ColorCustomizerDialog(QDialog):
             field.setPlaceholderText(defaults[key])
             if field.text() != color:
                 field.setText(color)
+        self._on_crystal_mode_changed()
         self._sync_timer_preview()
 
     def _adjust_hex(self, hex_color: str, level: float) -> str:
@@ -685,8 +1316,8 @@ class ColorCustomizerDialog(QDialog):
         if not enabled:
             return
         for (track, fill), color in zip(self.preview_segments, self._timer_preview_colors()):
-            track.setStyleSheet("background: rgba(255,255,255,0.08); border-radius: 999px; border: 1px solid rgba(255,255,255,0.06);")
-            fill.setStyleSheet(f"background: {color}; border-radius: 999px; border: none;")
+            track.setStyleSheet("background: rgba(255,255,255,0.08); border-radius: 0; border: none;")
+            fill.setStyleSheet(f"background: {color}; border-radius: 0; border: none;")
         value = self.timer_level_slider.value() / 100.0
         self.timer_level_value.setText(f"{value:+.2f}")
 
@@ -695,6 +1326,10 @@ class ColorCustomizerDialog(QDialog):
         self._sync_timer_preview()
 
     def pick_color(self, key: str) -> None:
+        if key == "crystal":
+            index = self.crystal_mode_combo.findData(CRYSTAL_COLOR_MODE_CORE)
+            if index >= 0:
+                self.crystal_mode_combo.setCurrentIndex(index)
         current = QColor(self.resolved_color(key))
         self._picker_key = key
         self._picker_original_color = self.draft_colors.get(key, "")
@@ -738,6 +1373,10 @@ class ColorCustomizerDialog(QDialog):
         self._picker_original_color = ""
 
     def commit_hex(self, key: str) -> None:
+        if key == "crystal":
+            index = self.crystal_mode_combo.findData(CRYSTAL_COLOR_MODE_CORE)
+            if index >= 0:
+                self.crystal_mode_combo.setCurrentIndex(index)
         _, field = self.rows[key]
         text = field.text().strip()
         if not text:
@@ -761,8 +1400,499 @@ class ColorCustomizerDialog(QDialog):
             normalize_custom_colors(self.draft_colors),
             bool(self.timer_colors_check.isChecked()),
             float(self.draft_timer_color_level),
+            crystal_color_mode=self.draft_crystal_color_mode,
         )
         self.close()
+
+
+VISUAL_COLOR_EDITOR_OPTIONS = (
+    (VISUAL_MODE_CRYSTAL_REACTOR, "Crystal"),
+    (VISUAL_MODE_SPHERE, "Satellite"),
+    (VISUAL_MODE_LIGHTWEIGHT_ROWS, "Brick"),
+    (VISUAL_MODE_SINGULARITY, "Singularity"),
+)
+
+VISUAL_COLOR_EDITOR_FIELDS = {
+    VISUAL_MODE_SPHERE: (
+        ("core", "Center", "The center orb."),
+        ("red", "Again", "Again satellites."),
+        ("yellow", "Hard", "Hard satellites."),
+        ("green", "Good", "Good satellites."),
+        ("blue", "Easy", "Easy satellites."),
+    ),
+    VISUAL_MODE_LIGHTWEIGHT_ROWS: (
+        ("red", "Again", "Again bricks."),
+        ("yellow", "Hard", "Hard bricks."),
+        ("green", "Good", "Good bricks."),
+        ("blue", "Easy", "Easy bricks."),
+    ),
+    VISUAL_MODE_SINGULARITY: (
+        ("core", "Core", "The event horizon, corona, grid, and sparks."),
+        ("red", "Again", "Again event energy."),
+        ("yellow", "Hard", "Hard event energy."),
+        ("green", "Good", "Good event energy."),
+        ("blue", "Easy", "Easy event energy."),
+    ),
+}
+
+
+class VisualColorCustomizerDialog(QDialog):
+    """One visual at a time color editor with independent saved palettes."""
+
+    def __init__(self, owner: "SettingsDialog", focus_visual: str = "") -> None:
+        super().__init__(owner)
+        self.owner = owner
+        self._allow_close = False
+        self._picker_dialog: Optional[QColorDialog] = None
+        self._picker_key = ""
+        self._picker_original_color = ""
+        self.rows: dict[str, tuple[OrbPreviewButton, QLineEdit]] = {}
+        self.draft_palettes = normalize_visual_color_palettes(
+            getattr(owner, "visual_color_palettes", {}),
+            legacy_colors=owner.custom_colors,
+        )
+        owner_mode = str(
+            getattr(owner.visual_mode_combo, "currentData", lambda: VISUAL_MODE_SPHERE)()
+            or VISUAL_MODE_SPHERE
+        )
+        self.selected_visual = self._normalize_editor_visual(focus_visual or owner_mode)
+        current_crystal_mode = normalize_crystal_color_mode(
+            owner.crystal_color_mode_combo.currentData()
+            if owner.crystal_color_mode_combo is not None
+            else getattr(owner.controller, "crystal_color_mode", CRYSTAL_COLOR_MODE_CORE)
+        )
+        self.draft_crystal_color_mode = (
+            CRYSTAL_COLOR_MODE_ANSWER
+            if current_crystal_mode == CRYSTAL_COLOR_MODE_ANSWER
+            else CRYSTAL_COLOR_MODE_CORE
+        )
+        self._saved_palettes = {
+            visual: dict(palette) for visual, palette in self.draft_palettes.items()
+        }
+        self._saved_crystal_color_mode = self.draft_crystal_color_mode
+
+        self.setModal(True)
+        self.setWindowTitle("Visual Colors")
+        self.setObjectName("speedStreakVisualColorEditor")
+        self.setMinimumSize(620, 560)
+        _apply_consistent_dialog_style(self)
+        self.setStyleSheet(
+            """
+            QDialog#speedStreakVisualColorEditor {
+              background: #0d141f;
+              color: #edf3ff;
+              font-size: 12px;
+            }
+            QDialog#speedStreakVisualColorEditor QLabel {
+              color: #edf3ff;
+              background: transparent;
+              border: none;
+            }
+            QScrollArea,
+            QScrollArea > QWidget > QWidget,
+            QWidget#visualColorContent {
+              background: #0d141f;
+              border: none;
+            }
+            QFrame[visualColorRow="true"] {
+              background: transparent;
+              border: none;
+              border-radius: 0;
+            }
+            QFrame[visualColorSeparator="true"] {
+              min-height: 1px;
+              max-height: 1px;
+              background: rgba(130, 153, 190, 0.16);
+              border: none;
+            }
+            QLineEdit, QComboBox {
+              min-height: 34px;
+              padding: 3px 10px;
+              background: #101a28;
+              color: #edf3ff;
+              border: 1px solid #34465e;
+              border-radius: 5px;
+              font-weight: 700;
+            }
+            QLineEdit { max-width: 112px; }
+            QLineEdit:hover, QComboBox:hover { border-color: #4d6687; }
+            QLineEdit:focus, QComboBox:focus { border-color: #6d9ce7; }
+            QComboBox::drop-down {
+              width: 24px;
+              border: none;
+              background: transparent;
+            }
+            QComboBox QAbstractItemView {
+              color: #edf3ff;
+              background: #111b29;
+              border: 1px solid #34465e;
+              selection-background-color: #315f9f;
+              selection-color: #ffffff;
+              outline: none;
+            }
+            QPushButton[visualColorSwatch="true"] {
+              background: transparent;
+              border: none;
+              padding: 0;
+            }
+            QPushButton[primaryAction="true"] {
+              background: #356dcc;
+              color: white;
+              border: 1px solid #5d8fe2;
+              border-radius: 5px;
+              padding: 8px 15px;
+              font-weight: 800;
+            }
+            QPushButton[primaryAction="true"]:hover {
+              background: #4079d5;
+            }
+            QPushButton[secondaryAction="true"] {
+              background: transparent;
+              color: #aebdd2;
+              border: none;
+              border-radius: 0;
+              padding: 8px 10px;
+              font-weight: 700;
+            }
+            QPushButton[secondaryAction="true"]:hover {
+              color: #ffffff;
+              background: transparent;
+            }
+            QScrollBar:vertical {
+              background: transparent;
+              width: 8px;
+              margin: 2px 0;
+            }
+            QScrollBar::handle:vertical {
+              background: #3b4c64;
+              min-height: 28px;
+              border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+              background: none;
+              border: none;
+              height: 0;
+            }
+            """
+        )
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(20, 18, 20, 18)
+        outer.setSpacing(10)
+        header = QHBoxLayout()
+        header.setSpacing(18)
+        title = QLabel("Visual Colors", self)
+        title.setStyleSheet("font-size: 22px; font-weight: 800;")
+        header.addWidget(title)
+        header.addStretch(1)
+        selector = QVBoxLayout()
+        selector.setSpacing(3)
+        selector_label = QLabel("EDITING", self)
+        selector_label.setStyleSheet("font-size: 10px; font-weight: 800; color: #8397b5;")
+        selector.addWidget(selector_label)
+        self.visual_combo = ScrollSafeComboBox(self)
+        self.visual_combo.setFixedWidth(180)
+        for value, label in VISUAL_COLOR_EDITOR_OPTIONS:
+            self.visual_combo.addItem(label, value)
+        self.visual_combo.setCurrentIndex(max(0, self.visual_combo.findData(self.selected_visual)))
+        self.visual_combo.currentIndexChanged.connect(self._on_visual_changed)
+        selector.addWidget(self.visual_combo)
+        header.addLayout(selector)
+        outer.addLayout(header)
+
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.content = QWidget(scroll)
+        self.content.setObjectName("visualColorContent")
+        self.content_layout = QVBoxLayout(self.content)
+        self.content_layout.setContentsMargins(0, 8, 0, 8)
+        self.content_layout.setSpacing(0)
+        scroll.setWidget(self.content)
+        outer.addWidget(scroll, 1)
+
+        actions = QHBoxLayout()
+        reset_button = QPushButton("Reset This Visual", self)
+        reset_button.setProperty("secondaryAction", "true")
+        reset_button.clicked.connect(self.reset_selected_visual)
+        actions.addWidget(reset_button)
+        actions.addStretch(1)
+        cancel_button = QPushButton("Close", self)
+        cancel_button.setProperty("secondaryAction", "true")
+        cancel_button.clicked.connect(self.close)
+        actions.addWidget(cancel_button)
+        save_button = QPushButton("Save Colors", self)
+        save_button.setProperty("primaryAction", "true")
+        save_button.clicked.connect(self.save_and_close)
+        actions.addWidget(save_button)
+        outer.addLayout(actions)
+
+        self._rebuild_content()
+        self.resize(700, 660)
+
+    def _normalize_editor_visual(self, value: str) -> str:
+        aliases = {
+            "crystal": VISUAL_MODE_CRYSTAL_REACTOR,
+            "satellite": VISUAL_MODE_SPHERE,
+            "brick": VISUAL_MODE_LIGHTWEIGHT_ROWS,
+        }
+        raw = str(value or "").strip().lower()
+        if raw in aliases:
+            return aliases[raw]
+        if raw in {item[0] for item in VISUAL_COLOR_EDITOR_OPTIONS}:
+            return raw
+        return VISUAL_MODE_SPHERE
+
+    def _on_visual_changed(self, *_args: Any) -> None:
+        self._commit_visible_hex_fields()
+        self.selected_visual = self._normalize_editor_visual(str(self.visual_combo.currentData() or ""))
+        self._rebuild_content()
+
+    def _clear_content(self) -> None:
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+        self.rows = {}
+
+    def _rebuild_content(self) -> None:
+        self._clear_content()
+        if self.selected_visual == VISUAL_MODE_CRYSTAL_REACTOR:
+            self._add_crystal_controls()
+        else:
+            for field in VISUAL_COLOR_EDITOR_FIELDS[self.selected_visual]:
+                self._add_color_row(*field)
+        self.content_layout.addStretch(1)
+        self._sync_rows()
+
+    def _preview_kind(self) -> str:
+        if self.selected_visual == VISUAL_MODE_CRYSTAL_REACTOR:
+            return "crystal"
+        if self.selected_visual == VISUAL_MODE_LIGHTWEIGHT_ROWS:
+            return "brick"
+        if self.selected_visual == VISUAL_MODE_SINGULARITY:
+            return "singularity"
+        return "satellite"
+
+    def _add_crystal_controls(self) -> None:
+        mode_row = QWidget(self.content)
+        mode_layout = QHBoxLayout(mode_row)
+        mode_layout.setContentsMargins(4, 5, 4, 11)
+        mode_layout.setSpacing(12)
+        label = QLabel("Color mode", mode_row)
+        label.setStyleSheet("font-size: 12px; font-weight: 800;")
+        mode_layout.addWidget(label)
+        mode_layout.addStretch(1)
+        self.crystal_mode_combo = ScrollSafeComboBox(mode_row)
+        self.crystal_mode_combo.setFixedWidth(180)
+        self.crystal_mode_combo.addItem("Single crystal color", CRYSTAL_COLOR_MODE_CORE)
+        self.crystal_mode_combo.addItem("Rating colors", CRYSTAL_COLOR_MODE_ANSWER)
+        self.crystal_mode_combo.setCurrentIndex(
+            max(0, self.crystal_mode_combo.findData(self.draft_crystal_color_mode))
+        )
+        self.crystal_mode_combo.currentIndexChanged.connect(self._on_crystal_mode_changed)
+        mode_layout.addWidget(self.crystal_mode_combo)
+        self.content_layout.addWidget(mode_row)
+        self._add_separator()
+        if self.draft_crystal_color_mode == CRYSTAL_COLOR_MODE_ANSWER:
+            for field in (
+                ("red", "Again", "Again crystals."),
+                ("yellow", "Hard", "Hard crystals."),
+                ("green", "Good", "Good crystals."),
+                ("blue", "Easy", "Easy crystals."),
+            ):
+                self._add_color_row(*field)
+        else:
+            self._add_color_row(
+                "crystal",
+                "Crystal color",
+                "The original Ice appearance is used until you choose a color.",
+            )
+
+    def _on_crystal_mode_changed(self, *_args: Any) -> None:
+        self._commit_visible_hex_fields()
+        self.draft_crystal_color_mode = (
+            CRYSTAL_COLOR_MODE_ANSWER
+            if self.crystal_mode_combo.currentData() == CRYSTAL_COLOR_MODE_ANSWER
+            else CRYSTAL_COLOR_MODE_CORE
+        )
+        self._rebuild_content()
+
+    def _add_color_row(self, key: str, label: str, help_text: str) -> None:
+        row = QFrame(self.content)
+        row.setProperty("visualColorRow", "true")
+        row_layout = QHBoxLayout(row)
+        row_layout.setContentsMargins(4, 11, 4, 11)
+        row_layout.setSpacing(12)
+        copy = QVBoxLayout()
+        copy.setSpacing(2)
+        title = QLabel(label, row)
+        title.setStyleSheet("font-size: 13px; font-weight: 850;")
+        help_label = QLabel(help_text, row)
+        help_label.setWordWrap(True)
+        help_label.setStyleSheet("font-size: 11px; color: #91a5c5;")
+        copy.addWidget(title)
+        copy.addWidget(help_label)
+        row_layout.addLayout(copy, 1)
+        swatch = OrbPreviewButton(self._preview_kind(), row)
+        swatch.setProperty("visualColorSwatch", "true")
+        swatch.setToolTip(f"Choose {label.lower()}")
+        swatch.clicked.connect(lambda _checked=False, color_key=key: self.pick_color(color_key))
+        row_layout.addWidget(swatch)
+        field = QLineEdit(row)
+        field.setMaxLength(7)
+        field.editingFinished.connect(lambda color_key=key: self.commit_hex(color_key))
+        row_layout.addWidget(field)
+        self.rows[key] = (swatch, field)
+        self.content_layout.addWidget(row)
+        self._add_separator()
+
+    def _add_separator(self) -> None:
+        separator = QFrame(self.content)
+        separator.setProperty("visualColorSeparator", "true")
+        separator.setFixedHeight(1)
+        self.content_layout.addWidget(separator)
+
+    def _current_palette(self) -> dict[str, str]:
+        return self.draft_palettes.setdefault(self.selected_visual, {})
+
+    def resolved_color(self, key: str) -> str:
+        defaults = theme_default_colors(self.owner.current_theme_key)
+        return normalize_color_overrides(self._current_palette()).get(key, defaults[key])
+
+    def _sync_rows(self) -> None:
+        defaults = theme_default_colors(self.owner.current_theme_key)
+        palette = normalize_color_overrides(self._current_palette())
+        for key, (swatch, field) in self.rows.items():
+            color = palette.get(key, defaults[key])
+            swatch.set_preview(color)
+            field.setPlaceholderText(defaults[key])
+            if field.text() != color:
+                field.setText(color)
+
+    def _commit_visible_hex_fields(self) -> None:
+        for key, (_swatch, field) in list(self.rows.items()):
+            if not field.isModified():
+                continue
+            text = field.text().strip()
+            if not text:
+                self._current_palette().pop(key, None)
+                continue
+            color = normalize_color_overrides({key: text}).get(key)
+            if color:
+                self._current_palette()[key] = color
+
+    def commit_hex(self, key: str) -> None:
+        row = self.rows.get(key)
+        if row is None:
+            return
+        text = row[1].text().strip()
+        if not text:
+            self._current_palette().pop(key, None)
+        else:
+            color = normalize_color_overrides({key: text}).get(key)
+            if color:
+                self._current_palette()[key] = color
+        self._sync_rows()
+
+    def pick_color(self, key: str) -> None:
+        self._commit_visible_hex_fields()
+        self._picker_key = key
+        self._picker_original_color = self._current_palette().get(key, "")
+        dialog = QColorDialog(QColor(self.resolved_color(key)), self)
+        dialog.setOption(QColorDialog.ColorDialogOption.DontUseNativeDialog, True)
+        dialog.setWindowTitle("Choose Color")
+        dialog.currentColorChanged.connect(self._preview_picker_color)
+        dialog.colorSelected.connect(self._accept_picker_color)
+        dialog.rejected.connect(self._cancel_picker_color)
+        self._picker_dialog = dialog
+        dialog.open()
+
+    def _preview_picker_color(self, color: QColor) -> None:
+        if color.isValid() and self._picker_key:
+            self._current_palette()[self._picker_key] = str(color.name())
+            self._sync_rows()
+
+    def _accept_picker_color(self, color: QColor) -> None:
+        if color.isValid() and self._picker_key:
+            self._current_palette()[self._picker_key] = str(color.name())
+            self._sync_rows()
+        self._clear_picker_state()
+
+    def _cancel_picker_color(self) -> None:
+        if self._picker_key:
+            if self._picker_original_color:
+                self._current_palette()[self._picker_key] = self._picker_original_color
+            else:
+                self._current_palette().pop(self._picker_key, None)
+            self._sync_rows()
+        self._clear_picker_state()
+
+    def _clear_picker_state(self) -> None:
+        self._picker_dialog = None
+        self._picker_key = ""
+        self._picker_original_color = ""
+
+    def reset_selected_visual(self) -> None:
+        self.draft_palettes.pop(self.selected_visual, None)
+        if self.selected_visual == VISUAL_MODE_CRYSTAL_REACTOR:
+            self.draft_crystal_color_mode = CRYSTAL_COLOR_MODE_CORE
+        self._rebuild_content()
+
+    def _is_dirty(self) -> bool:
+        self._commit_visible_hex_fields()
+        normalized = normalize_visual_color_palettes(self.draft_palettes)
+        saved = normalize_visual_color_palettes(self._saved_palettes)
+        return normalized != saved or self.draft_crystal_color_mode != self._saved_crystal_color_mode
+
+    def _save(self) -> None:
+        self._commit_visible_hex_fields()
+        self.owner.set_visual_color_palettes(
+            normalize_visual_color_palettes(self.draft_palettes),
+            crystal_color_mode=self.draft_crystal_color_mode,
+        )
+        self._saved_palettes = normalize_visual_color_palettes(self.draft_palettes)
+        self._saved_crystal_color_mode = self.draft_crystal_color_mode
+
+    def save_and_close(self) -> None:
+        self._save()
+        self._allow_close = True
+        self.accept()
+
+    def reject(self) -> None:
+        # Escape and the native title-bar close button must use the same
+        # unsaved-change path as the explicit Close action.
+        self.close()
+
+    def closeEvent(self, event: Any) -> None:
+        if self._allow_close or not self._is_dirty():
+            event.accept()
+            return
+        prompt = QMessageBox(self)
+        prompt.setIcon(QMessageBox.Icon.Warning)
+        prompt.setWindowTitle("Unsaved Changes")
+        prompt.setText("Save your changes before closing?")
+        save_button = prompt.addButton("Save", QMessageBox.ButtonRole.AcceptRole)
+        discard_button = prompt.addButton("Discard", QMessageBox.ButtonRole.DestructiveRole)
+        keep_button = prompt.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        prompt.setDefaultButton(save_button)
+        prompt.setEscapeButton(keep_button)
+        prompt.exec()
+        clicked = prompt.clickedButton()
+        if clicked is save_button:
+            self._save()
+            self._allow_close = True
+            event.accept()
+        elif clicked is discard_button:
+            self._allow_close = True
+            event.accept()
+        else:
+            if clicked is keep_button:
+                self.raise_()
+            event.ignore()
 
 
 class SidebarSwitch(QCheckBox):
@@ -822,11 +1952,11 @@ class ThemePickerDialog(QDialog):
         super().__init__(owner)
         self.owner = owner
         self.setModal(True)
-        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setWindowFlags(Qt.WindowType.Dialog)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setObjectName("speedStreakThemePicker")
-        self.setStyleSheet(
-            """
+        _apply_consistent_dialog_style(self)
+        _legacy_theme_stylesheet = """
             QDialog#speedStreakThemePicker {
               background: rgba(4, 8, 20, 168);
             }
@@ -857,11 +1987,11 @@ class ThemePickerDialog(QDialog):
               background: rgba(127,176,255,0.18);
             }
             """
-        )
+        self.setStyleSheet(POPUP_DIALOG_STYLESHEET)
 
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(42, 42, 42, 42)
-        card = QFrame(self)
+        outer.setContentsMargins(18, 18, 18, 18)
+        card = ModernSurface("popup_card", self)
         card.setObjectName("themePickerCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(18, 18, 18, 18)
@@ -879,13 +2009,11 @@ class ThemePickerDialog(QDialog):
         grid.setVerticalSpacing(12)
         current = self.owner.current_theme_key
         for index, (key, label, top, bottom) in enumerate(THEMES):
-            button = QPushButton(label, card)
+            button = ModernButton(label, card)
             button.setProperty("current", "true" if key == current else "false")
+            button.setProperty("themeTop", top)
+            button.setProperty("themeBottom", bottom)
             button.setMinimumHeight(72)
-            button.setStyleSheet(
-                button.styleSheet()
-                + f"background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 {top}, stop:1 {bottom});"
-            )
             button.clicked.connect(lambda _=False, theme_key=key: self._pick(theme_key))
             row, col = divmod(index, 2)
             grid.addWidget(button, row, col)
@@ -898,12 +2026,120 @@ class ThemePickerDialog(QDialog):
         self.close()
 
 
+class NoteTypePickerDialog(QDialog):
+    def __init__(
+        self,
+        parent: QWidget,
+        note_type_names: list[str],
+        selected_names: list[str],
+    ) -> None:
+        super().__init__(parent)
+        _apply_consistent_dialog_style(self)
+        self.setStyleSheet(POPUP_DIALOG_STYLESHEET)
+        self.setWindowTitle("Choose Note Types")
+        self.setModal(True)
+        self.resize(560, 620)
+        self.setMinimumSize(440, 420)
+
+        selected_keys = {name.casefold() for name in selected_names}
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(10)
+
+        title = QLabel("Select note types for this timer rule", self)
+        title.setStyleSheet("font-size: 17px; font-weight: 800; color: #f2f5fb;")
+        layout.addWidget(title)
+        help_text = QLabel(
+            "Search the note types in this Anki collection, then check every note type that should share these timer settings.",
+            self,
+        )
+        help_text.setWordWrap(True)
+        help_text.setProperty("class", "helpText")
+        layout.addWidget(help_text)
+
+        self.filter_input = QLineEdit(self)
+        self.filter_input.setPlaceholderText("Filter note types...")
+        self.filter_input.setClearButtonEnabled(True)
+        layout.addWidget(self.filter_input)
+
+        self.note_type_list = QListWidget(self)
+        self.note_type_list.setAlternatingRowColors(True)
+        for name in sorted(note_type_names, key=str.casefold):
+            item = QListWidgetItem(name, self.note_type_list)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(
+                Qt.CheckState.Checked if name.casefold() in selected_keys else Qt.CheckState.Unchecked
+            )
+        layout.addWidget(self.note_type_list, 1)
+
+        utility_row = QHBoxLayout()
+        self.selection_label = QLabel("", self)
+        self.selection_label.setProperty("class", "helpText")
+        utility_row.addWidget(self.selection_label, 1)
+        select_visible = ModernButton("Select Visible", self)
+        clear_visible = ModernButton("Clear Visible", self)
+        select_visible.clicked.connect(lambda _=False: self._set_visible_items_checked(True))
+        clear_visible.clicked.connect(lambda _=False: self._set_visible_items_checked(False))
+        utility_row.addWidget(select_visible)
+        utility_row.addWidget(clear_visible)
+        layout.addLayout(utility_row)
+
+        action_row = QHBoxLayout()
+        action_row.addStretch(1)
+        cancel_button = ModernButton("Cancel", self)
+        apply_button = ModernButton("Apply Selection", self)
+        apply_button.setProperty("class", "primaryAction")
+        cancel_button.setAutoDefault(False)
+        apply_button.setAutoDefault(False)
+        cancel_button.clicked.connect(self.reject)
+        apply_button.clicked.connect(self.accept)
+        action_row.addWidget(cancel_button)
+        action_row.addWidget(apply_button)
+        layout.addLayout(action_row)
+
+        self.filter_input.textChanged.connect(self._apply_filter)
+        self.note_type_list.itemChanged.connect(lambda _item: self._update_selection_label())
+        self._update_selection_label()
+        self.filter_input.setFocus()
+
+    def selected_names(self) -> list[str]:
+        return [
+            self.note_type_list.item(index).text()
+            for index in range(self.note_type_list.count())
+            if self.note_type_list.item(index).checkState() == Qt.CheckState.Checked
+        ]
+
+    def _apply_filter(self, text: str) -> None:
+        query = str(text or "").strip().casefold()
+        for index in range(self.note_type_list.count()):
+            item = self.note_type_list.item(index)
+            item.setHidden(bool(query and query not in item.text().casefold()))
+
+    def _set_visible_items_checked(self, checked: bool) -> None:
+        state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        for index in range(self.note_type_list.count()):
+            item = self.note_type_list.item(index)
+            if not item.isHidden():
+                item.setCheckState(state)
+
+    def _update_selection_label(self) -> None:
+        count = len(self.selected_names())
+        self.selection_label.setText(f"{count} note type{'s' if count != 1 else ''} selected")
+
+    def keyPressEvent(self, event: Any) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+
 class SettingsDialog(QDialog):
     def __init__(self, controller: Any) -> None:
         super().__init__(mw)
         self.controller = controller
         self._syncing = False
         self.custom_colors: dict[str, str] = {}
+        self.visual_color_palettes: dict[str, dict[str, str]] = {}
         self.use_custom_timer_colors = False
         self.timer_color_level = 0.0
         self.audio_event_files = default_audio_event_files()
@@ -911,20 +2147,82 @@ class SettingsDialog(QDialog):
         self.audio_upload_buttons: dict[str, QPushButton] = {}
         self.audio_preview_buttons: dict[str, QPushButton] = {}
         self.haptic_event_patterns = default_haptic_event_patterns()
+        self.haptic_controller_profile = "standard"
+        self.haptic_profile_combo: ScrollSafeComboBox | None = None
         self.haptic_event_combos: dict[str, ScrollSafeComboBox] = {}
         self.haptic_preview_buttons: dict[str, QPushButton] = {}
+        self.haptic_lab_buttons: dict[str, QPushButton] = {}
         self.shortcut_bindings = default_shortcut_bindings()
         self.shortcut_inputs: dict[str, QLineEdit] = {}
+        self.shortcuts_section: QFrame | None = None
+        self.timers_section: QFrame | None = None
+        self.gameplay_panel: QFrame | None = None
+        self.pause_shortcut_mode_combo: ScrollSafeComboBox | None = None
+        self.block_answer_keys_while_paused_check: QCheckBox | None = None
+        self.developer_status_timer: QTimer | None = None
+        self.developer_hold_timer = QTimer(self)
+        self.developer_hold_timer.setSingleShot(True)
+        self.developer_hold_timer.setInterval(7000)
+        self.developer_hold_timer.timeout.connect(self._complete_developer_hold)
+        self._developer_hold_active = False
+        self._developer_hold_filter_targets: list[QWidget] = []
+        self.developer_testing_section: QWidget | None = None
+        self.test_streak_spin: ScrollSafeSpinBox | None = None
+        self.side_panel_enabled_check: QCheckBox | None = None
+        self.display_mode_row: QFrame | None = None
+        self.resume_run_after_restart_check: QCheckBox | None = None
+        self.free_first_card_on_review_entry_check: QCheckBox | None = None
+        self.answer_timeout_breaks_streak_check: QCheckBox | None = None
+        self.gameplay_mode_combo: ScrollSafeComboBox | None = None
+        self.crystal_color_mode_combo: ScrollSafeComboBox | None = None
+        # Kept as a compatibility attribute only. Render mode is controlled
+        # by the side-panel visual/resource chooser.
+        self.render_mode_combo: ScrollSafeComboBox | None = None
+        self.no_pause_mode_check: QCheckBox | None = None
+        self.no_undo_mode_check: QCheckBox | None = None
+        self.show_focus_mode_toggles_check: QCheckBox | None = None
+        self.boost_seconds_spin: ScrollSafeDoubleSpinBox | None = None
+        self.max_boost_charges_spin: ScrollSafeSpinBox | None = None
+        self.starting_boost_charges_spin: ScrollSafeSpinBox | None = None
+        self.cards_per_boost_charge_spin: ScrollSafeSpinBox | None = None
+        self.time_boost_setting_rows: list[QWidget] = []
+        self.special_timing_anking_mode_combo: ScrollSafeComboBox | None = None
+        self.special_timing_anking_question_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timing_anking_answer_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timing_typed_mode_combo: ScrollSafeComboBox | None = None
+        self.special_timing_typed_question_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timing_typed_answer_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timing_tag_input: QLineEdit | None = None
+        self.special_timing_tag_mode_combo: ScrollSafeComboBox | None = None
+        self.special_timing_tag_question_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timing_tag_answer_spin: ScrollSafeDoubleSpinBox | None = None
+        self.special_timer_rule_controls: dict[str, dict[str, QWidget]] = {}
+        self.special_timer_tag_controls: list[dict[str, Any]] = []
+        self.special_timer_tags_enabled_check: QCheckBox | None = None
+        self.special_timer_tags_content: QWidget | None = None
+        self.special_timer_tags_layout: QVBoxLayout | None = None
+        self.special_timer_note_type_controls: list[dict[str, Any]] = []
+        self.special_timer_note_types_enabled_check: QCheckBox | None = None
+        self.special_timer_note_types_content: QWidget | None = None
+        self.special_timer_note_types_layout: QVBoxLayout | None = None
+        self.settings_scroll: QScrollArea | None = None
+        self.settings_stack: QStackedWidget | None = None
+        self.settings_page_scrolls: dict[str, QScrollArea] = {}
+        self.settings_page_indices: dict[str, int] = {}
+        self.settings_nav_buttons: dict[str, ModernButton] = {}
+        self.current_settings_page = "gameplay"
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
         self.setWindowTitle("Speed Streak Settings")
         self.setWindowFlag(Qt.WindowType.Window, True)
         self.setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint, True)
-        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
+        # Keep the fully built dialog alive after the first close. Reopening
+        # only resyncs values, avoiding repeated widget and stylesheet setup.
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, False)
         self.setObjectName("speedStreakSettingsDialog")
-        self.setStyleSheet(
-            """
+        _apply_consistent_dialog_style(self)
+        _legacy_settings_stylesheet = """
             QDialog#speedStreakSettingsDialog {
               background: #0d1117;
             }
@@ -968,6 +2266,7 @@ class SettingsDialog(QDialog):
               font-size: 11px;
             }
             QToolButton[class="sectionToggle"] {
+              color: #dce5f5;
               background: transparent;
               border: none;
               padding: 2px 0;
@@ -977,15 +2276,57 @@ class SettingsDialog(QDialog):
             }
             QToolButton[class="sectionToggle"]:hover {
               color: #f4f7ff;
+              background: rgba(255, 255, 255, 0.045);
+            }
+            QToolButton[class="sectionToggle"]:checked {
+              color: #f4f7ff;
+              background: rgba(105, 156, 255, 0.08);
+            }
+            QToolButton[class="sectionToggle"]:pressed {
+              color: #ffffff;
+              background: rgba(105, 156, 255, 0.14);
+            }
+            QToolButton[class="sectionToggle"]:disabled {
+              color: #687387;
+              background: transparent;
             }
             QLabel[class="fieldLabel"] {
               color: #e5eaf5;
               font-size: 12px;
               font-weight: 700;
             }
+            QLabel[class="fieldLabel"]:disabled {
+              color: #6f7b91;
+            }
             QLabel[class="helpText"] {
               color: #95a3ba;
               font-size: 11px;
+            }
+            QLabel[class="helpText"]:disabled {
+              color: #687387;
+            }
+            QLabel[class="secondsUnit"] {
+              color: #aeb9cc;
+              font-size: 12px;
+              font-weight: 700;
+            }
+            QLabel[class="secondsUnit"]:disabled {
+              color: #687387;
+            }
+            QFrame[class="timerNotice"] {
+              background: rgba(65, 111, 202, 0.18);
+              border: 1px solid rgba(126, 174, 255, 0.58);
+              border-radius: 10px;
+            }
+            QLabel[class="timerNoticeTitle"] {
+              color: #dceaff;
+              font-size: 13px;
+              font-weight: 900;
+            }
+            QLabel[class="timerNoticeBody"] {
+              color: #c5d8fa;
+              font-size: 12px;
+              font-weight: 700;
             }
             QLabel#errorLabel {
               color: #f58ea5;
@@ -1044,6 +2385,11 @@ class SettingsDialog(QDialog):
             QPushButton[class="dangerAction"]:hover {
               background: rgba(135, 56, 74, 0.96);
             }
+            QPushButton:disabled, QToolButton[class="secondaryAction"]:disabled {
+              color: #687387;
+              background: rgba(20, 25, 35, 0.72);
+              border-color: rgba(125, 137, 161, 0.08);
+            }
             QFrame[class="sectionCard"] {
               border-radius: 16px;
             }
@@ -1052,7 +2398,11 @@ class SettingsDialog(QDialog):
               border: 1px solid rgba(151, 164, 188, 0.10);
               border-radius: 14px;
             }
-            QDoubleSpinBox, QComboBox {
+            QFrame[class="settingRow"][disabled="true"] {
+              background: rgba(255, 255, 255, 0.018);
+              border-color: rgba(151, 164, 188, 0.06);
+            }
+            QDoubleSpinBox, QSpinBox, QComboBox, QLineEdit {
               min-height: 34px;
               padding: 4px 10px;
               border-radius: 12px;
@@ -1062,11 +2412,21 @@ class SettingsDialog(QDialog):
               font-size: 12px;
               font-weight: 700;
             }
-            QDoubleSpinBox:hover, QComboBox:hover {
+            QDoubleSpinBox:hover, QSpinBox:hover, QComboBox:hover, QLineEdit:hover {
               border-color: rgba(141, 171, 227, 0.28);
             }
-            QDoubleSpinBox:focus, QComboBox:focus {
+            QDoubleSpinBox:focus, QSpinBox:focus, QComboBox:focus, QLineEdit:focus {
               border-color: rgba(105, 156, 255, 0.54);
+              color: #f7f9ff;
+            }
+            QDoubleSpinBox:disabled, QSpinBox:disabled, QComboBox:disabled, QLineEdit:disabled {
+              background: rgba(12, 17, 26, 0.42);
+              color: #6f7b91;
+              border-color: rgba(127, 142, 169, 0.08);
+            }
+            QLineEdit {
+              selection-background-color: #4a76cf;
+              selection-color: #f7f9ff;
             }
             QComboBox::drop-down {
               border: none;
@@ -1086,6 +2446,12 @@ class SettingsDialog(QDialog):
               font-size: 12px;
               font-weight: 700;
               spacing: 8px;
+            }
+            QCheckBox:hover, QRadioButton:hover {
+              color: #ffffff;
+            }
+            QCheckBox:disabled, QRadioButton:disabled {
+              color: #687387;
             }
             QCheckBox::indicator, QRadioButton::indicator {
               width: 15px;
@@ -1130,72 +2496,154 @@ class SettingsDialog(QDialog):
               border: 1px solid rgba(255,255,255,0.06);
             }
             """
-        )
+        self.setStyleSheet(SETTINGS_DIALOG_STYLESHEET)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(18, 18, 18, 18)
 
-        card = QFrame(self)
+        card = ModernSurface("card", self)
         card.setObjectName("speedStreakSettingsCard")
         card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(18, 18, 18, 16)
-        card_layout.setSpacing(14)
+        card_layout.setContentsMargins(18, 14, 18, 16)
+        card_layout.setSpacing(12)
 
-        hero = QFrame(card)
-        hero.setObjectName("speedStreakSettingsHero")
-        hero_layout = QHBoxLayout(hero)
-        hero_layout.setContentsMargins(16, 14, 14, 14)
-        hero_layout.setSpacing(12)
+        settings_shell = QWidget(card)
+        settings_shell.setAutoFillBackground(False)
+        settings_shell_layout = QHBoxLayout(settings_shell)
+        settings_shell_layout.setContentsMargins(0, 0, 0, 0)
+        settings_shell_layout.setSpacing(12)
 
-        header = QVBoxLayout()
-        eyebrow = QLabel("Speed Streak", hero)
-        eyebrow.setObjectName("speedStreakHeroEyebrow")
-        title = QLabel("Settings", hero)
-        title.setObjectName("speedStreakSettingsTitle")
-        subtitle = QLabel("Tune timers, flags, feedback, modes, and appearance.", hero)
-        subtitle.setObjectName("speedStreakSettingsSub")
-        header.addWidget(eyebrow)
-        header.addWidget(title)
-        header.addWidget(subtitle)
-        hero_layout.addLayout(header, 1)
-        close_button = QPushButton("Close", hero)
-        close_button.setObjectName("speedStreakSettingsClose")
-        close_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        close_button.clicked.connect(self.close)
-        hero_layout.addWidget(close_button, 0, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        card_layout.addWidget(hero)
+        navigation = ModernSurface("row", settings_shell)
+        navigation.setObjectName("speedStreakSettingsNavigation")
+        navigation.setMinimumWidth(154)
+        navigation.setMaximumWidth(178)
+        navigation_layout = QVBoxLayout(navigation)
+        navigation_layout.setContentsMargins(10, 12, 10, 12)
+        navigation_layout.setSpacing(7)
+        navigation_title = QLabel("SETTINGS", navigation)
+        navigation_title.setObjectName("speedStreakSettingsNavigationTitle")
+        navigation_layout.addWidget(navigation_title)
+        for page_key, page_title, _page_description in SETTINGS_PAGES:
+            button = ModernButton(page_title, navigation)
+            button.setCheckable(True)
+            button.setMinimumHeight(40)
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            button.clicked.connect(
+                lambda _checked=False, selected_page=page_key: self._select_settings_page(selected_page)
+            )
+            self.settings_nav_buttons[page_key] = button
+            navigation_layout.addWidget(button)
+        navigation_layout.addStretch(1)
+        live_note = QLabel("Changes apply instantly.", navigation)
+        live_note.setWordWrap(True)
+        live_note.setObjectName("speedStreakSettingsLiveNote")
+        navigation_layout.addWidget(live_note)
+        settings_shell_layout.addWidget(navigation, 0)
 
-        scroll = QScrollArea(card)
-        scroll.setWidgetResizable(True)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.viewport().setStyleSheet("background: transparent;")
+        stack = QStackedWidget(settings_shell)
+        stack.setObjectName("speedStreakSettingsPages")
+        self.settings_stack = stack
+        page_bodies: dict[str, QWidget] = {}
+        page_layouts: dict[str, QVBoxLayout] = {}
+        for page_key, page_title, page_description in SETTINGS_PAGES:
+            body, body_layout = self._create_settings_page(
+                stack,
+                page_key,
+                page_title,
+                page_description,
+            )
+            page_bodies[page_key] = body
+            page_layouts[page_key] = body_layout
 
-        body = QWidget(scroll)
-        body.setStyleSheet("background: transparent;")
-        body_layout = QVBoxLayout(body)
-        body_layout.setContentsMargins(2, 2, 8, 2)
-        body_layout.setSpacing(12)
+        gameplay_body = page_bodies["gameplay"]
+        gameplay_layout = page_layouts["gameplay"]
+        self.developer_testing_section = self._build_developer_testing_section(gameplay_body)
+        self.developer_testing_section.setVisible(bool(getattr(self.controller, "developer_mode_enabled", False)))
+        gameplay_layout.addWidget(self.developer_testing_section)
+        gameplay_layout.addWidget(self._build_gameplay_section(gameplay_body))
+        gameplay_layout.addWidget(self._build_flags_section(gameplay_body))
+        gameplay_layout.addStretch(1)
 
-        body_layout.addWidget(self._build_testing_section(body))
-        body_layout.addWidget(self._build_actions_section(body))
-        body_layout.addWidget(self._build_timers_section(body))
-        body_layout.addWidget(self._build_flags_section(body))
-        body_layout.addWidget(self._build_display_style_section(body))
-        body_layout.addWidget(self._build_feedback_section(body))
-        body_layout.addWidget(self._build_performance_section(body))
-        body_layout.addWidget(self._build_appearance_section(body))
-        body_layout.addWidget(self._build_shortcuts_section(body))
-        body_layout.addStretch(1)
+        timers_body = page_bodies["timers"]
+        page_layouts["timers"].addWidget(self._build_timers_section(timers_body))
+        page_layouts["timers"].addStretch(1)
 
-        scroll.setWidget(body)
-        card_layout.addWidget(scroll, 1)
+        visuals_body = page_bodies["visuals"]
+        page_layouts["visuals"].addWidget(self._build_display_style_section(visuals_body))
+        page_layouts["visuals"].addWidget(self._build_performance_section(visuals_body))
+        page_layouts["visuals"].addWidget(self._build_appearance_section(visuals_body))
+        page_layouts["visuals"].addStretch(1)
+
+        feedback_body = page_bodies["feedback"]
+        page_layouts["feedback"].addWidget(self._build_feedback_section(feedback_body))
+        page_layouts["feedback"].addStretch(1)
+
+        shortcuts_body = page_bodies["shortcuts"]
+        page_layouts["shortcuts"].addWidget(self._build_shortcuts_section(shortcuts_body))
+        page_layouts["shortcuts"].addStretch(1)
+
+        tools_body = page_bodies["tools"]
+        page_layouts["tools"].addWidget(self._build_actions_section(tools_body))
+        page_layouts["tools"].addWidget(self._build_help_section(tools_body))
+        page_layouts["tools"].addStretch(1)
+
+        settings_shell_layout.addWidget(stack, 1)
+        card_layout.addWidget(settings_shell, 1)
+        self._select_settings_page("gameplay")
 
         self.error_label = QLabel("", card)
         self.error_label.setObjectName("errorLabel")
         self.error_label.setWordWrap(True)
         card_layout.addWidget(self.error_label)
+
+        self.developer_status_label = QLabel("", card)
+        self.developer_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.developer_status_label.setStyleSheet(
+            """
+            color: #f4f7ff;
+            background: #304468;
+            border: 1px solid #5977a8;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 800;
+            """
+        )
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("#0d1117"))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.Base, QColor("#0c111a"))
+        palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#11161f"))
+        palette.setColor(QPalette.ColorRole.Text, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.Button, QColor("#212836"))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor("#4a76cf"))
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#f7f9ff"))
+        palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#78859b"))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#687387"))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#687387"))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#687387"))
+        self.setPalette(palette)
+        self.developer_status_label.hide()
+        card_layout.addWidget(self.developer_status_label)
+
+        self.developer_toggle_shortcut = QShortcut(QKeySequence("Ctrl+Shift+W"), self)
+        # Keep the hidden developer toggle reliable regardless of which
+        # settings page or editor currently owns focus. WindowShortcut also
+        # avoids relying on the nested stacked-page ancestry introduced in
+        # v1.35.
+        self.developer_toggle_shortcut.setContext(Qt.ShortcutContext.WindowShortcut)
+        self.developer_toggle_shortcut.setAutoRepeat(False)
+        self.developer_toggle_shortcut.activated.connect(self._toggle_developer_preferences)
+        self.developer_toggle_shortcut.activatedAmbiguously.connect(self._toggle_developer_preferences)
+
+        # Watch mouse events at the application level so the hidden hold
+        # gesture works over every child control in the settings window.
+        # Observe only this dialog's own widget tree. Installing the reusable
+        # dialog on QApplication would leave a hidden QWidget participating in
+        # every Anki event and, more importantly, in Qt's application teardown.
+        self._install_developer_hold_filters()
 
         outer.addWidget(card, 1)
         self.sync_from_state()
@@ -1207,10 +2655,157 @@ class SettingsDialog(QDialog):
             self.resize(820, 780)
 
     def closeEvent(self, event: Any) -> None:
-        global _dialog
-        if _dialog is self:
-            _dialog = None
+        # WA_DeleteOnClose is intentionally disabled so the next Settings
+        # open reuses this widget tree instead of rebuilding every section.
+        self._cancel_developer_hold()
         super().closeEvent(event)
+
+    def _install_developer_hold_filters(self) -> None:
+        self._remove_developer_hold_filters()
+        targets = [self, *self.findChildren(QWidget)]
+        for target in targets:
+            self._add_developer_hold_filter_target(target)
+
+    def _add_developer_hold_filter_target(self, target: QWidget) -> None:
+        if target in self._developer_hold_filter_targets:
+            return
+        try:
+            target.installEventFilter(self)
+        except RuntimeError:
+            return
+        self._developer_hold_filter_targets.append(target)
+
+    def _remove_developer_hold_filters(self) -> None:
+        for target in self._developer_hold_filter_targets:
+            try:
+                target.removeEventFilter(self)
+            except RuntimeError:
+                # A dynamically rebuilt settings control may already have
+                # been deleted by Qt.
+                pass
+        self._developer_hold_filter_targets.clear()
+
+    def prepare_for_shutdown(self) -> None:
+        """Detach event observers before Qt begins destroying Anki widgets."""
+        self._cancel_developer_hold()
+        self._remove_developer_hold_filters()
+
+    def eventFilter(self, watched: Any, event: Any) -> bool:
+        event_type = event.type()
+        if event_type == QEvent.Type.ChildAdded:
+            # Some settings rows are rebuilt after the initial widget tree.
+            # Enroll those children locally as they appear without observing
+            # unrelated Anki widgets through QApplication.
+            child = getattr(event, "child", lambda: None)()
+            if isinstance(child, QWidget):
+                self._add_developer_hold_filter_target(child)
+                for descendant in child.findChildren(QWidget):
+                    self._add_developer_hold_filter_target(descendant)
+        elif event_type == QEvent.Type.MouseButtonPress:
+            is_settings_widget = isinstance(watched, QWidget) and (
+                watched is self or self.isAncestorOf(watched)
+            )
+            if is_settings_widget and event.button() == Qt.MouseButton.LeftButton:
+                self._developer_hold_active = True
+                self.developer_hold_timer.start()
+        elif (
+            event_type == QEvent.Type.MouseButtonRelease
+            and self._developer_hold_active
+            and event.button() == Qt.MouseButton.LeftButton
+        ):
+            self._cancel_developer_hold()
+        elif watched is self and event_type in (
+            QEvent.Type.Hide,
+            QEvent.Type.Close,
+            QEvent.Type.WindowDeactivate,
+        ):
+            self._cancel_developer_hold()
+        return super().eventFilter(watched, event)
+
+    def _cancel_developer_hold(self) -> None:
+        self._developer_hold_active = False
+        self.developer_hold_timer.stop()
+
+    def _complete_developer_hold(self) -> None:
+        if not self._developer_hold_active:
+            return
+        self._developer_hold_active = False
+        if not self.isVisible():
+            return
+        if not (QApplication.mouseButtons() & Qt.MouseButton.LeftButton):
+            return
+        self._set_developer_preferences(True)
+
+    def keyPressEvent(self, event: Any) -> None:
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            # QDialog treats Enter as an implicit accept action. Settings save
+            # live, so Enter should never dismiss the entire window.
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _create_settings_page(
+        self,
+        stack: QStackedWidget,
+        page_key: str,
+        title: str,
+        description: str,
+    ) -> tuple[QWidget, QVBoxLayout]:
+        scroll = QScrollArea(stack)
+        scroll.setObjectName(f"speedStreakSettingsPage_{page_key}")
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.viewport().setAutoFillBackground(False)
+
+        body = QWidget(scroll)
+        body.setAutoFillBackground(False)
+        body_layout = QVBoxLayout(body)
+        body_layout.setContentsMargins(2, 2, 8, 2)
+        body_layout.setSpacing(12)
+
+        page_header = ModernSurface("row", body)
+        page_header.setObjectName(f"speedStreakSettingsPageHeader_{page_key}")
+        header_layout = QVBoxLayout(page_header)
+        header_layout.setContentsMargins(14, 12, 14, 12)
+        header_layout.setSpacing(4)
+        page_title = QLabel(title, page_header)
+        page_title.setObjectName("speedStreakSettingsPageTitle")
+        page_description = QLabel(description, page_header)
+        page_description.setObjectName("speedStreakSettingsPageDescription")
+        page_description.setWordWrap(True)
+        header_layout.addWidget(page_title)
+        header_layout.addWidget(page_description)
+        body_layout.addWidget(page_header)
+
+        scroll.setWidget(body)
+        page_index = stack.addWidget(scroll)
+        self.settings_page_scrolls[page_key] = scroll
+        self.settings_page_indices[page_key] = page_index
+        return body, body_layout
+
+    def _select_settings_page(self, page_key: str) -> None:
+        normalized = str(page_key or "gameplay")
+        if normalized not in self.settings_page_indices:
+            normalized = "gameplay"
+        if self.settings_stack is None:
+            return
+        self.current_settings_page = normalized
+        self.settings_stack.setCurrentIndex(self.settings_page_indices[normalized])
+        self.settings_scroll = self.settings_page_scrolls.get(normalized)
+        for key, button in self.settings_nav_buttons.items():
+            selected = key == normalized
+            button.blockSignals(True)
+            try:
+                button.setChecked(selected)
+                button.setProperty("current", "true" if selected else "false")
+                button.setProperty("themeTop", "#456fae" if selected else "")
+                button.setProperty("themeBottom", "#304f82" if selected else "")
+            finally:
+                button.blockSignals(False)
+            button.update()
+        if self.settings_scroll is not None:
+            self.settings_scroll.setFocus(Qt.FocusReason.OtherFocusReason)
 
     def _build_section_card(
         self,
@@ -1220,8 +2815,9 @@ class SettingsDialog(QDialog):
         *,
         collapsible: bool = True,
         expanded: bool = False,
+        description: str | None = None,
     ) -> tuple[QFrame, QVBoxLayout]:
-        frame = QFrame(parent)
+        frame = ModernSurface("section", parent, accent=accent)
         frame.setProperty("class", "sectionCard")
         frame.setProperty("accent", accent)
         frame.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -1232,29 +2828,29 @@ class SettingsDialog(QDialog):
         self._apply_section_card_style(frame, accent)
         title_color = SECTION_STYLE_TOKENS.get(accent, SECTION_STYLE_TOKENS["appearance"])["title_color"]
         if collapsible:
-            heading_button = QToolButton(frame)
+            heading_button = ModernSectionToggle(frame, accent=accent)
             heading_button.setProperty("class", "sectionToggle")
             heading_button.setText(title)
-            heading_button.setCheckable(True)
             heading_button.setChecked(bool(expanded))
-            heading_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
             heading_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
             heading_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            heading_button.setStyleSheet(f"color: {title_color};")
+            heading_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             layout.addWidget(heading_button)
         else:
             heading = QLabel(title, frame)
             heading.setProperty("class", "sectionTitle")
-            heading.setStyleSheet(f"color: {title_color};")
+            heading_palette = heading.palette()
+            heading_palette.setColor(QPalette.ColorRole.WindowText, QColor(title_color))
+            heading.setPalette(heading_palette)
             layout.addWidget(heading)
         content = QWidget(frame)
-        content.setStyleSheet("background: transparent;")
+        content.setAutoFillBackground(False)
         content_layout = QVBoxLayout(content)
         content_layout.setContentsMargins(0, 10, 0, 0)
         content_layout.setSpacing(12)
-        description = SECTION_DESCRIPTIONS.get(accent, "")
-        if description:
-            copy = QLabel(description, content)
+        section_description = SECTION_DESCRIPTIONS.get(accent, "") if description is None else description
+        if section_description:
+            copy = QLabel(section_description, content)
             copy.setWordWrap(True)
             copy.setProperty("class", "sectionCopy")
             content_layout.addWidget(copy)
@@ -1271,20 +2867,153 @@ class SettingsDialog(QDialog):
         return frame, content_layout
 
     def _set_section_expanded(self, button: QToolButton, content: QWidget, expanded: bool) -> None:
-        button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+        scroll_value = self._capture_settings_scroll_value()
+        self.setUpdatesEnabled(False)
+        try:
+            button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+            content.setVisible(bool(expanded))
+            parent_layout = content.parentWidget().layout() if content.parentWidget() is not None else None
+            if parent_layout is not None:
+                parent_layout.activate()
+        finally:
+            self._restore_settings_scroll_value(scroll_value)
+            self.setUpdatesEnabled(True)
+            self.update()
+            self._restore_settings_scroll_value_later(scroll_value)
+
+    def _set_widget_visible_atomic(self, widget: QWidget, visible: bool) -> None:
+        scroll_value = self._capture_settings_scroll_value()
+        self.setUpdatesEnabled(False)
+        try:
+            widget.setVisible(bool(visible))
+            parent_layout = widget.parentWidget().layout() if widget.parentWidget() is not None else None
+            if parent_layout is not None:
+                parent_layout.activate()
+        finally:
+            self._restore_settings_scroll_value(scroll_value)
+            self.setUpdatesEnabled(True)
+            self.update()
+            self._restore_settings_scroll_value_later(scroll_value)
+
+    def _capture_settings_scroll_value(self) -> int | None:
+        if self.settings_scroll is None:
+            return None
+        return int(self.settings_scroll.verticalScrollBar().value())
+
+    def _restore_settings_scroll_value(self, value: int | None) -> None:
+        if value is None or self.settings_scroll is None:
+            return
+        bar = self.settings_scroll.verticalScrollBar()
+        bar.setValue(max(bar.minimum(), min(int(value), bar.maximum())))
+
+    def _restore_settings_scroll_value_later(self, value: int | None) -> None:
+        if value is None:
+            return
+        QTimer.singleShot(0, lambda saved=value: self._restore_settings_scroll_value(saved))
+
+    def _build_feedback_panel(
+        self,
+        parent: QWidget,
+        title: str,
+        *,
+        expanded: bool = False,
+    ) -> tuple[QFrame, QVBoxLayout]:
+        frame = ModernSurface("row", parent)
+        frame.setProperty("class", "settingRow")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        heading_button = ModernSectionToggle(
+            frame,
+            accent=str(getattr(parent, "surface_accent", "feedback") or "feedback"),
+        )
+        heading_button.setProperty("class", "sectionToggle")
+        heading_button.setText(title)
+        heading_button.setChecked(bool(expanded))
+        heading_button.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
+        heading_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        heading_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        layout.addWidget(heading_button)
+
+        content = QWidget(frame)
+        content.setAutoFillBackground(False)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 6, 0, 0)
+        content_layout.setSpacing(8)
         content.setVisible(bool(expanded))
+        layout.addWidget(content)
+        heading_button.toggled.connect(
+            lambda checked, button=heading_button, section_content=content: self._set_section_expanded(
+                button,
+                section_content,
+                checked,
+            )
+        )
+        return frame, content_layout
+
+    def _build_lazy_settings_panel(
+        self,
+        parent: QWidget,
+        title: str,
+        builder: Any,
+        on_built: Any = None,
+    ) -> QFrame:
+        frame = ModernSurface("row", parent)
+        frame.setProperty("class", "settingRow")
+        layout = QVBoxLayout(frame)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+
+        heading_button = ModernSectionToggle(
+            frame,
+            accent=str(getattr(parent, "surface_accent", "feedback") or "feedback"),
+        )
+        heading_button.setProperty("class", "sectionToggle")
+        heading_button.setText(title)
+        heading_button.setArrowType(Qt.ArrowType.RightArrow)
+        heading_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        heading_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        layout.addWidget(heading_button)
+
+        content = QWidget(frame)
+        content.setAutoFillBackground(False)
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(0, 6, 0, 0)
+        content_layout.setSpacing(8)
+        content.setVisible(False)
+        layout.addWidget(content)
+
+        built = False
+
+        def toggle(checked: bool) -> None:
+            nonlocal built
+            scroll_value = self._capture_settings_scroll_value()
+            self.setUpdatesEnabled(False)
+            try:
+                if checked and not built:
+                    builder(content, content_layout)
+                    built = True
+                    if callable(on_built):
+                        on_built()
+                heading_button.setArrowType(Qt.ArrowType.DownArrow if checked else Qt.ArrowType.RightArrow)
+                content.setVisible(bool(checked))
+                layout.activate()
+            finally:
+                self._restore_settings_scroll_value(scroll_value)
+                self.setUpdatesEnabled(True)
+                self.update()
+                self._restore_settings_scroll_value_later(scroll_value)
+
+        heading_button.toggled.connect(toggle)
+        return frame
 
     def _apply_section_card_style(self, frame: QFrame, accent: str) -> None:
-        tokens = SECTION_STYLE_TOKENS.get(accent, SECTION_STYLE_TOKENS["appearance"])
-        frame.setStyleSheet(
-            f"""
-            QFrame#{frame.objectName()} {{
-              background: {tokens["frame_background"].strip()};
-              border: 1px solid {tokens["border_color"]};
-              border-radius: 18px;
-            }}
-            """
-        )
+        # ModernSurface paints the entire section. Avoid per-widget
+        # stylesheets, which previously broke descendant styling by scope.
+        if isinstance(frame, ModernSurface):
+            frame.surface_accent = str(accent or "appearance")
+            frame.update()
 
     def _build_setting_row(
         self,
@@ -1295,7 +3024,7 @@ class SettingsDialog(QDialog):
         *,
         control_width: int = 176,
     ) -> QFrame:
-        row = QFrame(parent)
+        row = ModernSurface("row", parent)
         row.setProperty("class", "settingRow")
         layout = QVBoxLayout(row)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -1321,7 +3050,7 @@ class SettingsDialog(QDialog):
         return row
 
     def _build_toggle_block(self, parent: QWidget, checkbox: QWidget, help_text: str) -> QFrame:
-        block = QFrame(parent)
+        block = ModernSurface("toggle", parent)
         block.setProperty("class", "toggleBlock")
         layout = QVBoxLayout(block)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -1335,7 +3064,7 @@ class SettingsDialog(QDialog):
         return block
 
     def _build_button_group(self, parent: QWidget) -> tuple[QFrame, QGridLayout]:
-        block = QFrame(parent)
+        block = ModernSurface("button_group", parent)
         block.setProperty("class", "buttonRowGroup")
         layout = QGridLayout(block)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -1353,64 +3082,877 @@ class SettingsDialog(QDialog):
             layout.addWidget(widget, stretch)
         return container
 
-    def _build_testing_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Testing", "actions", collapsible=False)
-        self.test_streak_spin = QSpinBox(frame)
+    def _build_developer_testing_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(
+            parent,
+            "Developer Testing",
+            "actions",
+            collapsible=False,
+            expanded=True,
+        )
+        self.test_streak_spin = ScrollSafeSpinBox(frame)
         self.test_streak_spin.setRange(0, 5000)
-        self.test_streak_spin.setSingleStep(10)
+        self.test_streak_spin.setSingleStep(1)
         self.test_streak_spin.setSuffix(" satellites")
-        apply_button = QPushButton("Apply Test Streak", frame)
+        self.test_streak_spin.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.test_streak_spin.setMinimumWidth(160)
+        apply_button = ModernButton("Apply Test Streak", frame)
         apply_button.setProperty("class", "secondaryAction")
         apply_button.clicked.connect(self.apply_test_streak)
-        controls = self._build_inline_controls(frame, self.test_streak_spin, apply_button)
+        quick_buttons: list[ModernButton] = []
+        for streak_value in (48, 248, 498):
+            quick_button = ModernButton(str(streak_value), frame)
+            quick_button.setProperty("class", "secondaryAction")
+            quick_button.setToolTip(f"Set the test streak to {streak_value}")
+            quick_button.setMinimumWidth(52)
+            quick_button.clicked.connect(
+                lambda _checked=False, value=streak_value: self.apply_test_streak_value(value)
+            )
+            quick_buttons.append(quick_button)
+        controls = self._build_inline_controls(
+            frame,
+            self.test_streak_spin,
+            apply_button,
+            *quick_buttons,
+        )
         layout.addWidget(
             self._build_setting_row(
                 frame,
-                "Test streak",
-                "Sets the current streak and satellite count for performance testing in v2.0.",
+                "Current streak / satellite count",
+                "Enter any count, or use 48, 248, and 498 to jump just below the major Fusion milestones.",
                 controls,
                 control_width=0,
             )
         )
         return frame
 
+    def _configure_seconds_input(
+        self,
+        spin: ScrollSafeDoubleSpinBox,
+        *,
+        minimum: float,
+    ) -> None:
+        spin.setDecimals(1)
+        spin.setRange(minimum, 999999.0)
+        spin.setSingleStep(0.5)
+        spin.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        spin.setAlignment(Qt.AlignmentFlag.AlignRight)
+        spin.setMinimumWidth(112)
+        spin.setMaximumWidth(112)
+        spin.lineEdit().setMaxLength(8)
+
+    def _build_seconds_input(
+        self,
+        parent: QWidget,
+        spin: ScrollSafeDoubleSpinBox,
+        *trailing_controls: QWidget,
+    ) -> QWidget:
+        container = QWidget(parent)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(spin, 0)
+        unit = QLabel("seconds", container)
+        unit.setProperty("class", "secondsUnit")
+        setattr(spin, "_seconds_unit_label", unit)
+        layout.addWidget(unit, 0)
+        for control in trailing_controls:
+            layout.addWidget(control, 0)
+        layout.addStretch(1)
+        return container
+
+    def _build_gameplay_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(
+            parent,
+            "Streak Rules & Time Boost",
+            "timers",
+            collapsible=False,
+            description="Choose the scoring model, focus restrictions, and how Boosts are earned and used.",
+        )
+        layout.addWidget(self._build_gameplay_panel(frame))
+        return frame
+
     def _build_timers_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Timers", "timers")
+        frame, layout = self._build_section_card(
+            parent,
+            "Timer Rules",
+            "timers",
+            collapsible=False,
+        )
+        self.timers_section = frame
+        general_panel, general_layout = self._build_feedback_panel(frame, "General Timers", expanded=True)
         self.question_spin = ScrollSafeDoubleSpinBox(frame)
-        self.question_spin.setDecimals(1)
-        self.question_spin.setRange(1.0, 999.0)
-        self.question_spin.setSingleStep(0.5)
-        self.question_spin.setSuffix(" s")
+        self._configure_seconds_input(self.question_spin, minimum=1.0)
         self.question_spin.valueChanged.connect(self.persist_settings)
         self.answer_spin = ScrollSafeDoubleSpinBox(frame)
-        self.answer_spin.setDecimals(1)
-        self.answer_spin.setRange(1.0, 999.0)
-        self.answer_spin.setSingleStep(0.5)
-        self.answer_spin.setSuffix(" s")
+        self._configure_seconds_input(self.answer_spin, minimum=1.0)
         self.answer_spin.valueChanged.connect(self.persist_settings)
 
-        layout.addWidget(
+        general_layout.addWidget(
             self._build_setting_row(
                 frame,
                 "Question time",
                 "How long you give yourself before a question is treated as too slow.",
-                self.question_spin,
+                self._build_seconds_input(frame, self.question_spin),
+                control_width=230,
+            )
+        )
+        general_layout.addWidget(
+            self._build_setting_row(
+                frame,
+                "Answer time",
+                "How long the answer side stays on its timer once the card is revealed.",
+                self._build_seconds_input(frame, self.answer_spin),
+                control_width=230,
+            )
+        )
+        self.free_first_card_on_review_entry_check = QCheckBox(
+            "Free first card when entering Review",
+            frame,
+        )
+        self.free_first_card_on_review_entry_check.toggled.connect(self.persist_settings)
+        general_layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.free_first_card_on_review_entry_check,
+                "Makes both sides of the first card untimed.",
+            )
+        )
+        self.answer_timeout_breaks_streak_check = QCheckBox(
+            "Answer timer can end streak",
+            frame,
+        )
+        self.answer_timeout_breaks_streak_check.toggled.connect(self.persist_settings)
+        general_layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.answer_timeout_breaks_streak_check,
+                "When off, answer timeout still alerts you but preserves the streak.",
+            )
+        )
+        self.resume_run_after_restart_check = QCheckBox("Resume run after restarting Anki", frame)
+        self.resume_run_after_restart_check.toggled.connect(self.persist_settings)
+        general_layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.resume_run_after_restart_check,
+                "Default: Off. Restores the active Speed Streak run, streak, score, and timer state after closing and reopening Anki.",
+            )
+        )
+        layout.addWidget(general_panel)
+        layout.addWidget(
+            self._build_lazy_settings_panel(
+                frame,
+                "Special Timers",
+                self._build_absolute_special_timers,
+                self._sync_special_timer_rule_controls,
+            )
+        )
+        return frame
+
+    def _build_gameplay_panel(self, parent: QWidget) -> QWidget:
+        panel, layout = self._build_feedback_panel(parent, "Mode & Focus Rules", expanded=True)
+        self.gameplay_panel = panel
+        self.gameplay_mode_combo = ScrollSafeComboBox(panel)
+        self.gameplay_mode_combo.addItem("Time Boost (default)", GAMEPLAY_MODE_TIME_BOOST)
+        self.gameplay_mode_combo.addItem("Legacy Points", GAMEPLAY_MODE_LEGACY)
+        self.gameplay_mode_combo.currentIndexChanged.connect(self._on_gameplay_mode_changed)
+        layout.addWidget(
+            self._build_setting_row(
+                panel,
+                "Gameplay mode",
+                "Legacy Points keeps the score and multiplier. Time Boost replaces points with Boosts that add time.",
+                self.gameplay_mode_combo,
+                control_width=230,
+            )
+        )
+
+        self.no_pause_mode_check = QCheckBox("No Pause mode", panel)
+        self.no_pause_mode_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_toggle_block(
+                panel,
+                self.no_pause_mode_check,
+                "Blocks deliberate pause shortcuts during review. Safety pauses still protect the timer when Anki leaves Review or opens Settings.",
+            )
+        )
+
+        self.no_undo_mode_check = QCheckBox("No Undo mode", panel)
+        self.no_undo_mode_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_toggle_block(
+                panel,
+                self.no_undo_mode_check,
+                "Clears Anki's undo history while reviewing so completed cards cannot be taken back. Turn this on only when you want a committed run.",
+            )
+        )
+
+        self.show_focus_mode_toggles_check = QCheckBox("Show focus-mode toggles when off", panel)
+        self.show_focus_mode_toggles_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_toggle_block(
+                panel,
+                self.show_focus_mode_toggles_check,
+                "Includes inactive No Pause and No Undo controls in the row that expands below the Boost progress. Active controls are always included.",
+            )
+        )
+
+        self.boost_seconds_spin = ScrollSafeDoubleSpinBox(panel)
+        self._configure_seconds_input(self.boost_seconds_spin, minimum=0.5)
+        self.boost_seconds_spin.setMaximum(120.0)
+        self.boost_seconds_spin.valueChanged.connect(self.persist_settings)
+        boost_time_row = self._build_setting_row(
+            panel,
+            "Time added per Boost",
+            "Each press adds this much real time to the active question or answer timer.",
+            self._build_seconds_input(panel, self.boost_seconds_spin),
+            control_width=230,
+        )
+        layout.addWidget(boost_time_row)
+
+        self.max_boost_charges_spin = ScrollSafeSpinBox(panel)
+        self.max_boost_charges_spin.setRange(1, 20)
+        self.max_boost_charges_spin.setSuffix(" Boosts")
+        self.max_boost_charges_spin.valueChanged.connect(self.persist_settings)
+        max_row = self._build_setting_row(
+            panel,
+            "Boost bank capacity",
+            "Prevents unlimited stockpiling and keeps boosts as a deliberate resource.",
+            self.max_boost_charges_spin,
+        )
+        layout.addWidget(max_row)
+
+        self.starting_boost_charges_spin = ScrollSafeSpinBox(panel)
+        self.starting_boost_charges_spin.setRange(0, 20)
+        self.starting_boost_charges_spin.setSuffix(" Boosts")
+        self.starting_boost_charges_spin.valueChanged.connect(self.persist_settings)
+        starting_row = self._build_setting_row(
+            panel,
+            "Starting Boosts",
+            "A new or manually reset run begins with this many Boosts, capped by the bank capacity.",
+            self.starting_boost_charges_spin,
+        )
+        layout.addWidget(starting_row)
+
+        self.cards_per_boost_charge_spin = ScrollSafeSpinBox(panel)
+        self.cards_per_boost_charge_spin.setRange(1, 100)
+        self.cards_per_boost_charge_spin.setSuffix(" cards")
+        self.cards_per_boost_charge_spin.valueChanged.connect(self.persist_settings)
+        earn_row = self._build_setting_row(
+            panel,
+            "Cards required to earn a Boost",
+            "Every completed card advances this meter; progress waits while the bank is full.",
+            self.cards_per_boost_charge_spin,
+        )
+        layout.addWidget(earn_row)
+
+        self.time_boost_setting_rows = [boost_time_row, max_row, starting_row, earn_row]
+        self._sync_gameplay_mode_controls()
+        return panel
+
+    def _on_gameplay_mode_changed(self, *_args: Any) -> None:
+        self._sync_gameplay_mode_controls()
+        if not self._syncing:
+            self.persist_settings()
+
+    def _current_gameplay_mode(self) -> str:
+        if self.gameplay_mode_combo is None:
+            return GAMEPLAY_MODE_TIME_BOOST
+        value = str(self.gameplay_mode_combo.currentData() or GAMEPLAY_MODE_TIME_BOOST)
+        return GAMEPLAY_MODE_TIME_BOOST if value == GAMEPLAY_MODE_TIME_BOOST else GAMEPLAY_MODE_LEGACY
+
+    def _sync_gameplay_mode_controls(self) -> None:
+        enabled = self._current_gameplay_mode() == GAMEPLAY_MODE_TIME_BOOST
+        for row in self.time_boost_setting_rows:
+            row.setEnabled(enabled)
+
+    def _build_special_timing_controls(
+        self,
+        parent: QWidget,
+        *,
+        default_question_seconds: float,
+        default_answer_seconds: float,
+    ) -> tuple[QWidget, ScrollSafeComboBox, ScrollSafeDoubleSpinBox, ScrollSafeDoubleSpinBox]:
+        mode_combo = ScrollSafeComboBox(parent)
+        for value, label in SPECIAL_TIMING_MODE_OPTIONS:
+            mode_combo.addItem(label, value)
+        mode_combo.currentIndexChanged.connect(self.persist_settings)
+
+        question_spin = ScrollSafeDoubleSpinBox(parent)
+        self._configure_seconds_input(question_spin, minimum=0.0)
+        question_spin.setSpecialValueText("None")
+        question_spin.setValue(default_question_seconds)
+        question_spin.valueChanged.connect(self.persist_settings)
+
+        answer_spin = ScrollSafeDoubleSpinBox(parent)
+        self._configure_seconds_input(answer_spin, minimum=0.0)
+        answer_spin.setSpecialValueText("None")
+        answer_spin.setValue(default_answer_seconds)
+        answer_spin.valueChanged.connect(self.persist_settings)
+
+        mode_combo.currentIndexChanged.connect(
+            lambda _index=0, combo=mode_combo, question=question_spin, answer=answer_spin: self._sync_special_timing_mode_controls(
+                combo,
+                question,
+                answer,
+            )
+        )
+        controls = self._build_inline_controls(parent, mode_combo)
+        return controls, mode_combo, question_spin, answer_spin
+
+    def _sync_special_timing_mode_controls(
+        self,
+        mode_combo: ScrollSafeComboBox,
+        question_spin: ScrollSafeDoubleSpinBox,
+        answer_spin: ScrollSafeDoubleSpinBox,
+    ) -> None:
+        extra_time_enabled = str(mode_combo.currentData() or TIMER_POLICY_NORMAL) == TIMER_POLICY_EXTRA_TIME
+        question_spin.setEnabled(extra_time_enabled)
+        answer_spin.setEnabled(extra_time_enabled)
+
+    def _build_special_timing_card_panel(
+        self,
+        parent: QWidget,
+        layout: QVBoxLayout,
+        *,
+        card_type: str,
+        help_text: str,
+        default_question_seconds: float,
+        default_answer_seconds: float,
+    ) -> None:
+        controls, mode_combo, question_spin, answer_spin = self._build_special_timing_controls(
+            parent,
+            default_question_seconds=default_question_seconds,
+            default_answer_seconds=default_answer_seconds,
+        )
+        if card_type == "anking":
+            self.special_timing_anking_mode_combo = mode_combo
+            self.special_timing_anking_question_spin = question_spin
+            self.special_timing_anking_answer_spin = answer_spin
+        elif card_type == "typed":
+            self.special_timing_typed_mode_combo = mode_combo
+            self.special_timing_typed_question_spin = question_spin
+            self.special_timing_typed_answer_spin = answer_spin
+        else:
+            self.special_timing_tag_input = QLineEdit(parent)
+            self.special_timing_tag_input.setPlaceholderText("speedstreak::extended_time")
+            self.special_timing_tag_input.editingFinished.connect(self.persist_settings)
+            self.special_timing_tag_mode_combo = mode_combo
+            self.special_timing_tag_question_spin = question_spin
+            self.special_timing_tag_answer_spin = answer_spin
+            layout.addWidget(
+                self._build_setting_row(
+                    parent,
+                    "Exact tag",
+                    "Only cards carrying this exact Anki tag use this timing rule.",
+                    self.special_timing_tag_input,
+                    control_width=300,
+                )
+            )
+
+        layout.addWidget(
+            self._build_setting_row(
+                parent,
+                "Timing behavior",
+                help_text,
+                controls,
+                control_width=230,
+            )
+        )
+        layout.addWidget(
+            self._build_setting_row(
+                parent,
+                "Extra question time",
+                "Additional time before revealing the answer. None means no extra time is added to this phase.",
+                question_spin,
                 control_width=148,
             )
         )
         layout.addWidget(
             self._build_setting_row(
-                frame,
-                "Answer time",
-                "How long the answer side stays on its timer once the card is revealed.",
-                self.answer_spin,
+                parent,
+                "Extra answer time",
+                "Additional time after revealing the answer. None means no extra time is added to this phase.",
+                answer_spin,
                 control_width=148,
+            )
+        )
+        self._sync_special_timing_mode_controls(mode_combo, question_spin, answer_spin)
+
+    def _build_special_timing_section(self, parent: QWidget) -> QWidget:
+        frame, layout = self._build_section_card(parent, "Special Card Timing", "timers")
+        intro = QLabel(
+            "Optional per-card timing exceptions. Off keeps the normal Speed Streak timer; Extra time adds seconds to the detected card; No timeout leaves the detected card untimed.",
+            frame,
+        )
+        intro.setWordWrap(True)
+        intro.setProperty("class", "helpText")
+        layout.addWidget(intro)
+
+        layout.addWidget(
+            self._build_lazy_settings_panel(
+                frame,
+                "AnKing one-by-one",
+                lambda panel, panel_layout: self._build_special_timing_card_panel(
+                    panel,
+                    panel_layout,
+                    card_type="anking",
+                    help_text="Detects cards only when the 'One by one' field has content. Extra answer time is usually the useful choice.",
+                    default_question_seconds=0,
+                    default_answer_seconds=15,
+                ),
+            )
+        )
+        layout.addWidget(
+            self._build_lazy_settings_panel(
+                frame,
+                "Typed-answer cards",
+                lambda panel, panel_layout: self._build_special_timing_card_panel(
+                    panel,
+                    panel_layout,
+                    card_type="typed",
+                    help_text="Detects standard Anki templates containing {{type:...}}. Extra question time is usually the useful choice.",
+                    default_question_seconds=15,
+                    default_answer_seconds=0,
+                ),
+            )
+        )
+        layout.addWidget(
+            self._build_lazy_settings_panel(
+                frame,
+                "Custom tag",
+                lambda panel, panel_layout: self._build_special_timing_card_panel(
+                    panel,
+                    panel_layout,
+                    card_type="tag",
+                    help_text="Use this for custom card types Speed Streak cannot safely auto-detect. Both phases receive 15 seconds by default.",
+                    default_question_seconds=15,
+                    default_answer_seconds=15,
+                ),
             )
         )
         return frame
 
+    def _build_absolute_special_timers(self, parent: QWidget, layout: QVBoxLayout) -> None:
+        intro = QLabel(
+            "Set exact timers for recognized card types. When several rules match, the longest time wins for each phase; Untimed overrides a timed value for that phase.",
+            parent,
+        )
+        intro.setWordWrap(True)
+        intro.setProperty("class", "helpText")
+        layout.addWidget(intro)
+        layout.addWidget(
+            self._build_absolute_timer_rule_panel(
+                parent,
+                "anking_one_by_one",
+                "AnKing one-by-one cards",
+                "Matches only cards whose 'One by one' field contains content.",
+            )
+        )
+        layout.addWidget(
+            self._build_absolute_timer_rule_panel(
+                parent,
+                "typed_answer",
+                "Typed-answer cards",
+                "Matches standard Anki card templates containing {{type:...}}.",
+            )
+        )
+        layout.addWidget(
+            self._build_absolute_timer_rule_panel(
+                parent,
+                "time_drain_flag",
+                "Time Drain flag timer",
+                "Uses exact timers instead of the normal Time Drain warning and review-last behavior for cards carrying the selected Time Drain flag.",
+            )
+        )
+
+        # The toggle block already provides the visual grouping. Keeping this
+        # parent transparent avoids a redundant second rectangle around it.
+        note_types_panel = QWidget(parent)
+        note_types_panel.setAutoFillBackground(False)
+        note_types_panel_layout = QVBoxLayout(note_types_panel)
+        note_types_panel_layout.setContentsMargins(0, 0, 0, 0)
+        note_types_panel_layout.setSpacing(8)
+        self.special_timer_note_types_enabled_check = QCheckBox("Enable Note Type-Specific Timers", note_types_panel)
+        note_types_panel_layout.addWidget(
+            self._build_toggle_block(
+                note_types_panel,
+                self.special_timer_note_types_enabled_check,
+                "Apply exact question and answer timers to selected Anki note types. Each rule can include multiple note types.",
+            )
+        )
+        note_types_content = QWidget(note_types_panel)
+        note_types_layout = QVBoxLayout(note_types_content)
+        note_types_layout.setContentsMargins(24, 0, 0, 0)
+        note_types_layout.setSpacing(8)
+        note_types_panel_layout.addWidget(note_types_content)
+        self.special_timer_note_types_content = note_types_content
+        self.special_timer_note_types_layout = note_types_layout
+        add_note_type_button = ModernButton("Add Note Type Rule", note_types_panel)
+        add_note_type_button.setProperty("class", "primaryAction")
+        add_note_type_button.clicked.connect(self._add_special_timer_note_type_rule)
+        note_types_layout.addWidget(add_note_type_button)
+        self.special_timer_note_types_enabled_check.toggled.connect(
+            lambda checked, content=note_types_content: self._set_widget_visible_atomic(content, checked)
+        )
+        self.special_timer_note_types_enabled_check.toggled.connect(self.persist_settings)
+        note_types_content.setVisible(False)
+        layout.addWidget(note_types_panel)
+
+        tags_panel = QWidget(parent)
+        tags_panel.setAutoFillBackground(False)
+        tags_panel_layout = QVBoxLayout(tags_panel)
+        tags_panel_layout.setContentsMargins(0, 0, 0, 0)
+        tags_panel_layout.setSpacing(8)
+        self.special_timer_tags_enabled_check = QCheckBox("Enable Tag-Specific Timers", tags_panel)
+        tags_panel_layout.addWidget(
+            self._build_toggle_block(
+                tags_panel,
+                self.special_timer_tags_enabled_check,
+                "Apply exact question and answer timers to cards carrying configured Anki tags.",
+            )
+        )
+        tags_content = QWidget(tags_panel)
+        tags_layout = QVBoxLayout(tags_content)
+        tags_layout.setContentsMargins(24, 0, 0, 0)
+        tags_layout.setSpacing(8)
+        tags_panel_layout.addWidget(tags_content)
+        self.special_timer_tags_content = tags_content
+        self.special_timer_tags_layout = tags_layout
+        add_button = ModernButton("Add Tag Rule", tags_panel)
+        add_button.setProperty("class", "primaryAction")
+        add_button.clicked.connect(self._add_special_timer_tag_rule)
+        tags_layout.addWidget(add_button)
+        self.special_timer_tags_enabled_check.toggled.connect(
+            lambda checked, content=tags_content: self._set_widget_visible_atomic(content, checked)
+        )
+        self.special_timer_tags_enabled_check.toggled.connect(self.persist_settings)
+        tags_content.setVisible(False)
+        layout.addWidget(tags_panel)
+
+    def _build_absolute_timer_rule_panel(
+        self,
+        parent: QWidget,
+        rule_key: str,
+        title: str,
+        help_text: str,
+        *,
+        tag: str = "",
+        note_types: list[str] | None = None,
+    ) -> QWidget:
+        # Each rule begins with a painted toggle block, so the rule container
+        # itself stays transparent instead of drawing a larger duplicate box.
+        panel = QWidget(parent)
+        panel.setAutoFillBackground(False)
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+        panel_layout.setSpacing(8)
+
+        enabled = QCheckBox(f"Enable {title}", panel)
+        panel_layout.addWidget(self._build_toggle_block(panel, enabled, help_text))
+
+        controls: dict[str, Any] = {"enabled": enabled}
+        if rule_key == "tag":
+            tag_input = QLineEdit(panel)
+            tag_input.setPlaceholderText("speedstreak::long-card")
+            tag_input.setText(tag)
+            save_tag_button = ModernButton("Save Tag", panel)
+            save_tag_button.setProperty("class", "secondaryAction")
+            save_tag_button.setAutoDefault(False)
+            tag_status = QLabel("Saved", panel)
+            tag_status.setProperty("class", "helpText")
+            tag_editor = QWidget(panel)
+            tag_editor_layout = QHBoxLayout(tag_editor)
+            tag_editor_layout.setContentsMargins(0, 0, 0, 0)
+            tag_editor_layout.setSpacing(8)
+            tag_editor_layout.addWidget(tag_input, 1)
+            tag_editor_layout.addWidget(save_tag_button, 0)
+            tag_editor_layout.addWidget(tag_status, 0)
+            controls["tag"] = tag_input
+            controls["saved_tag"] = str(tag or "").strip()
+            controls["tag_status"] = tag_status
+            save_tag_button.clicked.connect(lambda _=False, item=controls: self._save_special_timer_tag_rule(item))
+            tag_input.returnPressed.connect(lambda item=controls: self._save_special_timer_tag_rule(item))
+            tag_input.textChanged.connect(lambda _text, item=controls: self._mark_special_timer_tag_dirty(item))
+            panel_layout.addWidget(
+                self._build_setting_row(
+                    panel,
+                    "Exact tag",
+                    "Matches this complete Anki tag only. Edit freely, then save once to apply the change.",
+                    tag_editor,
+                    control_width=430,
+                )
+            )
+        elif rule_key == "note_type":
+            controls["note_types"] = list(note_types or [])
+            selection_summary = QLabel("", panel)
+            selection_summary.setWordWrap(True)
+            selection_summary.setProperty("class", "helpText")
+            choose_button = ModernButton("Choose Note Types...", panel)
+            choose_button.setProperty("class", "secondaryAction")
+            choose_button.setAutoDefault(False)
+            controls["note_types_summary"] = selection_summary
+            choose_button.clicked.connect(lambda _=False, item=controls: self._choose_note_types_for_rule(item))
+            selector = QWidget(panel)
+            selector_layout = QVBoxLayout(selector)
+            selector_layout.setContentsMargins(0, 0, 0, 0)
+            selector_layout.setSpacing(6)
+            selector_layout.addWidget(choose_button, 0, Qt.AlignmentFlag.AlignLeft)
+            selector_layout.addWidget(selection_summary)
+            panel_layout.addWidget(
+                self._build_setting_row(
+                    panel,
+                    "Note types",
+                    "Search and select one or more note types that should share this rule.",
+                    selector,
+                    control_width=430,
+                )
+            )
+            self._update_note_type_rule_summary(controls)
+
+        question_spin = ScrollSafeDoubleSpinBox(panel)
+        self._configure_seconds_input(question_spin, minimum=0.1)
+        question_spin.valueChanged.connect(self.persist_settings)
+        question_untimed = QCheckBox("Question untimed", panel)
+        question_untimed.toggled.connect(
+            lambda checked, spin=question_spin: self._on_special_phase_untimed_toggled(spin, checked)
+        )
+        question_untimed.toggled.connect(self.persist_settings)
+        phase_controls = QWidget(panel)
+        phase_layout = QVBoxLayout(phase_controls)
+        phase_layout.setContentsMargins(24, 0, 0, 0)
+        phase_layout.setSpacing(8)
+        question_label = "Question time"
+        question_help = "Exact timer for the question phase."
+        answer_label = "Answer time"
+        answer_help = "Exact timer for the answer phase."
+        question_untimed_label = "Question untimed"
+        answer_untimed_label = "Answer untimed"
+        if rule_key == "anking_one_by_one":
+            notice = ModernSurface("notice", phase_controls)
+            notice.setProperty("class", "timerNotice")
+            notice_layout = QVBoxLayout(notice)
+            notice_layout.setContentsMargins(12, 10, 12, 10)
+            notice_layout.setSpacing(4)
+            notice_title = QLabel("Some AnKing templates skip the first phase", notice)
+            notice_title.setProperty("class", "timerNoticeTitle")
+            notice_body = QLabel(
+                "If the card automatically opens one-by-one mode, you may only notice the 'While revealing items' timer. Other AnKing templates wait on the first phase, so both settings remain available.",
+                notice,
+            )
+            notice_body.setWordWrap(True)
+            notice_body.setProperty("class", "timerNoticeBody")
+            notice_layout.addWidget(notice_title)
+            notice_layout.addWidget(notice_body)
+            phase_layout.addWidget(notice)
+            question_label = "Before one-by-one starts"
+            question_help = "Time available before the card enters its one-by-one revealing view."
+            answer_label = "While revealing items"
+            answer_help = "Time available while revealing the hidden clozes one at a time."
+            question_untimed_label = "Before one-by-one is untimed"
+            answer_untimed_label = "Revealing items is untimed"
+            question_untimed.setText(question_untimed_label)
+        phase_layout.addWidget(
+            self._build_setting_row(
+                phase_controls,
+                question_label,
+                question_help,
+                self._build_seconds_input(phase_controls, question_spin, question_untimed),
+                control_width=400,
+            )
+        )
+
+        answer_spin = ScrollSafeDoubleSpinBox(panel)
+        self._configure_seconds_input(answer_spin, minimum=0.1)
+        answer_spin.valueChanged.connect(self.persist_settings)
+        answer_untimed = QCheckBox("Answer untimed", panel)
+        answer_untimed.toggled.connect(
+            lambda checked, spin=answer_spin: self._on_special_phase_untimed_toggled(spin, checked)
+        )
+        answer_untimed.toggled.connect(self.persist_settings)
+        answer_untimed.setText(answer_untimed_label)
+        phase_layout.addWidget(
+            self._build_setting_row(
+                phase_controls,
+                answer_label,
+                answer_help,
+                self._build_seconds_input(phase_controls, answer_spin, answer_untimed),
+                control_width=400,
+            )
+        )
+        panel_layout.addWidget(phase_controls)
+        controls.update({
+            "question_spin": question_spin,
+            "question_untimed": question_untimed,
+            "answer_spin": answer_spin,
+            "answer_untimed": answer_untimed,
+            "phase_controls": phase_controls,
+            "panel": panel,
+        })
+        enabled.toggled.connect(
+            lambda checked, content=phase_controls: self._set_widget_visible_atomic(content, checked)
+        )
+        if rule_key == "time_drain_flag":
+            enabled.toggled.connect(self._sync_time_drain_override_dependencies)
+        enabled.toggled.connect(self.persist_settings)
+        phase_controls.setVisible(False)
+        if rule_key in {"tag", "note_type"}:
+            remove_label = "Remove Tag Rule" if rule_key == "tag" else "Remove Note Type Rule"
+            remove_button = ModernButton("Remove Tag Rule", panel)
+            remove_button.setText(remove_label)
+            remove_button.setProperty("class", "dangerAction")
+            if rule_key == "tag":
+                remove_button.clicked.connect(lambda _=False, item=controls: self._remove_special_timer_tag_rule(item))
+            else:
+                remove_button.clicked.connect(lambda _=False, item=controls: self._remove_special_timer_note_type_rule(item))
+            panel_layout.addWidget(remove_button)
+            if rule_key == "tag":
+                self.special_timer_tag_controls.append(controls)
+            else:
+                self.special_timer_note_type_controls.append(controls)
+        else:
+            self.special_timer_rule_controls[rule_key] = controls
+        return panel
+
+    def _on_special_phase_untimed_toggled(self, spin: ScrollSafeDoubleSpinBox, checked: bool) -> None:
+        spin.setEnabled(not checked)
+        unit = getattr(spin, "_seconds_unit_label", None)
+        if isinstance(unit, QLabel):
+            unit.setEnabled(not checked)
+
+    def _available_note_type_names(self, selected_names: list[str] | None = None) -> list[str]:
+        names: list[str] = []
+        models = getattr(getattr(mw, "col", None), "models", None)
+        if models is not None:
+            try:
+                names.extend(str(name or "").strip() for name in models.all_names())
+            except Exception:
+                try:
+                    for item in models.all_names_and_ids():
+                        if isinstance(item, dict):
+                            name = item.get("name", "")
+                        elif isinstance(item, (tuple, list)) and item:
+                            name = item[0]
+                        else:
+                            name = getattr(item, "name", "")
+                        names.append(str(name or "").strip())
+                except Exception:
+                    pass
+        names.extend(str(name or "").strip() for name in (selected_names or []))
+        unique: dict[str, str] = {}
+        for name in names:
+            if name:
+                unique.setdefault(name.casefold(), name)
+        return sorted(unique.values(), key=str.casefold)
+
+    def _choose_note_types_for_rule(self, controls: dict[str, Any]) -> None:
+        selected = [str(name) for name in controls.get("note_types", []) if str(name).strip()]
+        picker = NoteTypePickerDialog(
+            self,
+            self._available_note_type_names(selected),
+            selected,
+        )
+        if picker.exec() != QDialog.DialogCode.Accepted:
+            return
+        controls["note_types"] = picker.selected_names()
+        self._update_note_type_rule_summary(controls)
+        self.persist_settings()
+
+    def _update_note_type_rule_summary(self, controls: dict[str, Any]) -> None:
+        summary = controls.get("note_types_summary")
+        if not isinstance(summary, QLabel):
+            return
+        names = [str(name).strip() for name in controls.get("note_types", []) if str(name).strip()]
+        if not names:
+            summary.setText("No note types selected yet.")
+        elif len(names) <= 3:
+            summary.setText(", ".join(names))
+        else:
+            summary.setText(f"{', '.join(names[:3])}, and {len(names) - 3} more")
+
+    def _mark_special_timer_tag_dirty(self, controls: dict[str, Any]) -> None:
+        tag_input = controls.get("tag")
+        status = controls.get("tag_status")
+        if not isinstance(tag_input, QLineEdit) or not isinstance(status, QLabel):
+            return
+        saved_tag = str(controls.get("saved_tag", "") or "").strip()
+        status.setText("Saved" if tag_input.text().strip() == saved_tag else "Unsaved")
+
+    def _save_special_timer_tag_rule(self, controls: dict[str, Any]) -> None:
+        tag_input = controls.get("tag")
+        if not isinstance(tag_input, QLineEdit):
+            return
+        controls["saved_tag"] = tag_input.text().strip()
+        self._mark_special_timer_tag_dirty(controls)
+        self.persist_settings()
+
+    def _add_special_timer_note_type_rule(self) -> None:
+        if self.special_timer_note_types_layout is None:
+            return
+        panel = self._build_absolute_timer_rule_panel(
+            self.special_timer_note_types_layout.parentWidget(),
+            "note_type",
+            "note type rule",
+            "Applies an exact timer to cards created from any selected note type.",
+        )
+        self.special_timer_note_types_layout.insertWidget(
+            max(0, self.special_timer_note_types_layout.count() - 1),
+            panel,
+        )
+        controls = self.special_timer_note_type_controls[-1]
+        self._sync_single_special_timer_controls(
+            controls,
+            {
+                "enabled": True,
+                "question_seconds": float(self.question_spin.value()),
+                "answer_seconds": float(self.answer_spin.value()),
+                "question_untimed": False,
+                "answer_untimed": False,
+                "note_types": [],
+            },
+        )
+        self._choose_note_types_for_rule(controls)
+
+    def _remove_special_timer_note_type_rule(self, controls: dict[str, Any]) -> None:
+        if controls in self.special_timer_note_type_controls:
+            self.special_timer_note_type_controls.remove(controls)
+        panel = controls.get("panel")
+        if panel is not None:
+            panel.deleteLater()
+        self.persist_settings()
+
+    def _add_special_timer_tag_rule(self) -> None:
+        if self.special_timer_tags_layout is None:
+            return
+        panel = self._build_absolute_timer_rule_panel(
+            self.special_timer_tags_layout.parentWidget(),
+            "tag",
+            "tag rule",
+            "Applies an exact timer to cards carrying this tag.",
+        )
+        self.special_timer_tags_layout.insertWidget(max(0, self.special_timer_tags_layout.count() - 1), panel)
+        self._sync_single_special_timer_controls(
+            self.special_timer_tag_controls[-1],
+            {
+                "enabled": True,
+                "question_seconds": float(self.question_spin.value()),
+                "answer_seconds": float(self.answer_spin.value()),
+                "question_untimed": False,
+                "answer_untimed": False,
+            },
+        )
+        self.persist_settings()
+
+    def _remove_special_timer_tag_rule(self, controls: dict[str, Any]) -> None:
+        if controls in self.special_timer_tag_controls:
+            self.special_timer_tag_controls.remove(controls)
+        panel = controls.get("panel")
+        if panel is not None:
+            panel.deleteLater()
+        self.persist_settings()
+
     def _build_flags_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Flags", "flags")
+        frame, layout = self._build_section_card(parent, "Card Workflows", "flags", collapsible=False)
         self.time_drain_combo = ScrollSafeComboBox(frame)
         self.time_drain_combo.setObjectName("speedStreakTimeDrainCombo")
         self.time_drain_combo.currentIndexChanged.connect(self._on_flag_combo_changed)
@@ -1429,13 +3971,12 @@ class SettingsDialog(QDialog):
         )
         self.time_drain_review_last_check = QCheckBox("Review time-drain cards last", frame)
         self.time_drain_review_last_check.toggled.connect(self.persist_settings)
-        layout.addWidget(
-            self._build_toggle_block(
-                frame,
-                self.time_drain_review_last_check,
-                "Default: Off. Keeps flagged time-drain cards in today's queue, but reviews them only after every non-time-drain card. If you flag the current card mid-review, the current showing stays put and only later reappearances move to the end of the session.",
-            )
+        self.time_drain_review_last_block = self._build_toggle_block(
+            frame,
+            self.time_drain_review_last_check,
+            "Default: Off. Keeps flagged time-drain cards in today's queue, but reviews them only after every non-time-drain card. Disabled when the Time Drain flag timer override is enabled.",
         )
+        layout.addWidget(self.time_drain_review_last_block)
         layout.addWidget(
             self._build_setting_row(
                 frame,
@@ -1445,25 +3986,33 @@ class SettingsDialog(QDialog):
                 control_width=210,
             )
         )
+        self._sync_time_drain_override_dependencies()
         return frame
 
     def _build_display_style_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Display Style", "display_style")
+        frame, layout = self._build_section_card(parent, "Window & Placement", "display_style", collapsible=False)
+        self.side_panel_enabled_check = QCheckBox("Side Panel", frame)
+        self.side_panel_enabled_check.toggled.connect(self._on_side_panel_toggled)
+        layout.addWidget(
+            self._build_toggle_block(
+                frame,
+                self.side_panel_enabled_check,
+                "Default: On. Turn off to keep the top card timer and haptics without reserving the inline left Speed Streak panel. Display mode choices apply only when the side panel is on.",
+            )
+        )
+
         self.display_mode_combo = ScrollSafeComboBox(frame)
         for value, label in DISPLAY_MODE_OPTIONS:
             self.display_mode_combo.addItem(label, value)
         self.display_mode_combo.currentIndexChanged.connect(self.persist_settings)
-        layout.addWidget(
-            self._build_setting_row(
-                frame,
-                "Display mode",
-                "Inline Left Pane keeps the dedicated Speed Streak column. Compatibility Window leaves Anki's "
-                "review layout untouched and opens Speed Streak in a floating window, which is recommended for "
-                "AMBOSS, AnkiHub, and other reviewer UI add-ons.",
-                self.display_mode_combo,
-                control_width=240,
-            )
+        self.display_mode_row = self._build_setting_row(
+            frame,
+            "Display mode",
+            "Available when Side Panel is on. Inline Left Pane keeps the dedicated Speed Streak column. Compatibility Window leaves Anki's review layout untouched and opens Speed Streak in a floating window.",
+            self.display_mode_combo,
+            control_width=240,
         )
+        layout.addWidget(self.display_mode_row)
 
         self.show_card_timer_check = QCheckBox("Top Card Timer", frame)
         self.show_card_timer_check.toggled.connect(self.persist_settings)
@@ -1471,13 +4020,9 @@ class SettingsDialog(QDialog):
         return frame
 
     def _build_feedback_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Haptic/Audio Feedback", "feedback")
+        frame, layout = self._build_section_card(parent, "Sound & Haptics", "feedback", collapsible=False)
 
-        audio_group = QFrame(frame)
-        audio_group.setProperty("class", "settingRow")
-        audio_layout = QVBoxLayout(audio_group)
-        audio_layout.setContentsMargins(12, 12, 12, 12)
-        audio_layout.setSpacing(8)
+        audio_group, audio_layout = self._build_feedback_panel(frame, "Audio", expanded=False)
         audio_title = QLabel("Audio Feedback", audio_group)
         audio_title.setProperty("class", "fieldLabel")
         audio_copy = QLabel(
@@ -1501,49 +4046,17 @@ class SettingsDialog(QDialog):
             )
         )
 
-        for item in HAPTIC_EVENT_OPTIONS:
-            event_key = item["event"]
-            button = QToolButton(audio_group)
-            button.setProperty("class", "secondaryAction")
-            button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
-            self.audio_event_buttons[event_key] = button
-
-            upload_button = QPushButton("Upload", audio_group)
-            upload_button.setProperty("class", "secondaryAction")
-            upload_button.clicked.connect(lambda _=False, key=event_key: self._upload_audio_feedback(key))
-            self.audio_upload_buttons[event_key] = upload_button
-
-            preview_button = QPushButton("Play", audio_group)
-            preview_button.setProperty("class", "secondaryAction")
-            preview_button.clicked.connect(lambda _=False, key=event_key: self._preview_audio_feedback(key))
-            self.audio_preview_buttons[event_key] = preview_button
-
-            controls = self._build_inline_controls(audio_group, button, upload_button, preview_button)
-            default_label = self.controller.audio_feedback_label(default_audio_event_files().get(event_key, DEFAULT_AUDIO_FILE))
-            audio_layout.addWidget(
-                self._build_setting_row(
-                    audio_group,
-                    item["label"],
-                    f"{item['description']} Default: {default_label}. Categories stay collapsed until you open one, and uploaded clips stay grouped at the top in the order you added them.",
-                    controls,
-                    control_width=430,
-                )
+        audio_layout.addWidget(
+            self._build_lazy_settings_panel(
+                audio_group,
+                "Event Sounds",
+                self._build_audio_event_settings,
+                lambda: self._populate_audio_event_buttons(self.audio_event_files),
             )
-        audio_note = QLabel(
-            "Audio previews work even while audio feedback is turned off. Accepted uploads include OGG, MP3, WAV, FLAC, M4A, AAC, and OPUS.",
-            audio_group,
         )
-        audio_note.setWordWrap(True)
-        audio_note.setProperty("class", "helpText")
-        audio_layout.addWidget(audio_note)
         layout.addWidget(audio_group)
 
-        haptics_group = QFrame(frame)
-        haptics_group.setProperty("class", "settingRow")
-        haptics_layout = QVBoxLayout(haptics_group)
-        haptics_layout.setContentsMargins(12, 12, 12, 12)
-        haptics_layout.setSpacing(8)
+        haptics_group, haptics_layout = self._build_feedback_panel(frame, "Haptics", expanded=False)
         haptics_title = QLabel("Haptic Feedback", haptics_group)
         haptics_title.setProperty("class", "fieldLabel")
         haptics_copy = QLabel(
@@ -1567,7 +4080,21 @@ class SettingsDialog(QDialog):
             )
         )
 
-        self.feedback_mode_group = QFrame(haptics_group)
+        self.haptic_profile_combo = ScrollSafeComboBox(haptics_group)
+        for profile_key, label in HAPTIC_CONTROLLER_PROFILE_OPTIONS:
+            self.haptic_profile_combo.addItem(label, profile_key)
+        self.haptic_profile_combo.currentIndexChanged.connect(self._on_haptic_profile_changed)
+        haptics_layout.addWidget(
+            self._build_setting_row(
+                haptics_group,
+                "Controller type",
+                "Choose the controller family you are tuning. This saves for future sessions and keeps all patterns available for testing.",
+                self.haptic_profile_combo,
+                control_width=300,
+            )
+        )
+
+        self.feedback_mode_group = ModernSurface("row", haptics_group)
         self.feedback_mode_group.setProperty("class", "buttonRowGroup")
         feedback_layout = QVBoxLayout(self.feedback_mode_group)
         feedback_layout.setContentsMargins(12, 12, 12, 12)
@@ -1596,44 +4123,125 @@ class SettingsDialog(QDialog):
         )
         haptics_layout.addWidget(self.feedback_mode_group)
 
+        haptics_layout.addWidget(
+            self._build_lazy_settings_panel(
+                haptics_group,
+                "Event Patterns",
+                self._build_haptic_event_settings,
+                lambda: self._populate_haptic_event_combos(self.haptic_event_patterns),
+            )
+        )
+        haptics_layout.addWidget(
+            self._build_lazy_settings_panel(
+                haptics_group,
+                "Preview and Testing",
+                self._build_haptics_lab,
+            )
+        )
+        layout.addWidget(haptics_group)
+
+        return frame
+
+    def _build_audio_event_settings(self, parent: QWidget, layout: QVBoxLayout) -> None:
         for item in HAPTIC_EVENT_OPTIONS:
             event_key = item["event"]
-            combo = ScrollSafeComboBox(haptics_group)
+            button = ModernToolButton(parent)
+            button.setProperty("class", "secondaryAction")
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+            button.clicked.connect(lambda _=False, key=event_key: self._show_audio_picker_menu(key))
+            self.audio_event_buttons[event_key] = button
+
+            upload_button = ModernButton("Upload", parent)
+            upload_button.setProperty("class", "secondaryAction")
+            upload_button.clicked.connect(lambda _=False, key=event_key: self._upload_audio_feedback(key))
+            self.audio_upload_buttons[event_key] = upload_button
+
+            preview_button = ModernButton("Play", parent)
+            preview_button.setProperty("class", "secondaryAction")
+            preview_button.clicked.connect(lambda _=False, key=event_key: self._preview_audio_feedback(key))
+            self.audio_preview_buttons[event_key] = preview_button
+
+            controls = self._build_inline_controls(parent, button, upload_button, preview_button)
+            layout.addWidget(
+                self._build_setting_row(
+                    parent,
+                    item["label"],
+                    f"{item['description']} Audio choices load when you open this picker, and uploaded clips stay grouped at the top in the order you added them.",
+                    controls,
+                    control_width=430,
+                )
+            )
+        note = QLabel(
+            "Audio previews work even while audio feedback is turned off. Accepted uploads include OGG, MP3, WAV, FLAC, M4A, AAC, and OPUS.",
+            parent,
+        )
+        note.setWordWrap(True)
+        note.setProperty("class", "helpText")
+        layout.addWidget(note)
+
+    def _build_haptic_event_settings(self, parent: QWidget, layout: QVBoxLayout) -> None:
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            combo = ScrollSafeComboBox(parent)
             for pattern_key, label in HAPTIC_PATTERN_OPTIONS:
                 combo.addItem(label, pattern_key)
             combo.currentIndexChanged.connect(lambda _index=0, key=event_key: self._on_haptic_pattern_changed(key))
             self.haptic_event_combos[event_key] = combo
 
-            preview_button = QPushButton("Test", haptics_group)
+            preview_button = ModernButton("Test", parent)
             preview_button.setProperty("class", "secondaryAction")
             preview_button.clicked.connect(lambda _=False, key=event_key: self._preview_haptic_feedback(key))
             self.haptic_preview_buttons[event_key] = preview_button
 
-            controls = self._build_inline_controls(haptics_group, combo, preview_button)
+            controls = self._build_inline_controls(parent, combo, preview_button)
             default_label = haptic_pattern_label(item["default_pattern"])
-            haptics_layout.addWidget(
+            layout.addWidget(
                 self._build_setting_row(
-                    haptics_group,
+                    parent,
                     item["label"],
                     f"{item['description']} Default: {default_label}.",
                     controls,
                     control_width=340,
                 )
             )
-
-        haptic_note = QLabel(
+        note = QLabel(
             "Haptic previews use the currently selected pattern for that event. They need a connected controller with native XInput rumble support.",
-            haptics_group,
+            parent,
         )
-        haptic_note.setWordWrap(True)
-        haptic_note.setProperty("class", "helpText")
-        haptics_layout.addWidget(haptic_note)
-        layout.addWidget(haptics_group)
+        note.setWordWrap(True)
+        note.setProperty("class", "helpText")
+        layout.addWidget(note)
 
-        return frame
+    def _build_haptics_lab(self, parent: QWidget, layout: QVBoxLayout) -> None:
+        copy = QLabel(
+            "Use these one-off tests to feel patterns before assigning them to review events.",
+            parent,
+        )
+        copy.setWordWrap(True)
+        copy.setProperty("class", "helpText")
+        layout.addWidget(copy)
+        for group_name, pattern_keys in HAPTIC_LAB_GROUPS:
+            group_label = QLabel(group_name, parent)
+            group_label.setProperty("class", "fieldLabel")
+            layout.addWidget(group_label)
+            grid = QGridLayout()
+            grid.setContentsMargins(0, 0, 0, 0)
+            grid.setHorizontalSpacing(8)
+            grid.setVerticalSpacing(8)
+            for index, pattern_key in enumerate(pattern_keys):
+                meta = HAPTIC_PATTERN_LIBRARY.get(pattern_key, {})
+                label = str(meta.get("label", pattern_key))
+                button = ModernButton(label, parent)
+                button.setProperty("class", "secondaryAction")
+                button.setToolTip(str(meta.get("description", "")))
+                button.clicked.connect(lambda _=False, key=pattern_key: self._preview_haptic_pattern_key(key))
+                self.haptic_lab_buttons[pattern_key] = button
+                row, column = divmod(index, 2)
+                grid.addWidget(button, row, column)
+            layout.addLayout(grid)
 
     def _build_performance_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Performance", "performance")
+        frame, layout = self._build_section_card(parent, "Visual & Performance", "performance", collapsible=False)
         self.visual_mode_combo = ScrollSafeComboBox(frame)
         for value, label in VISUAL_MODE_OPTIONS:
             self.visual_mode_combo.addItem(label, value)
@@ -1642,13 +4250,13 @@ class SettingsDialog(QDialog):
             self._build_setting_row(
                 frame,
                 "Visual mode",
-                "Choose between the legacy sphere presentation and brick layout, which is the built-in ultra-low-resource option.",
+                "Choose Satellites, Singularity, Crystal Reactor, Brick Layout, or a separate number-only display.",
                 self.visual_mode_combo,
                 control_width=250,
             )
         )
 
-        self.sphere_settings_group = QFrame(frame)
+        self.sphere_settings_group = ModernSurface("row", frame)
         self.sphere_settings_group.setProperty("class", "settingRow")
         sphere_layout = QVBoxLayout(self.sphere_settings_group)
         sphere_layout.setContentsMargins(12, 12, 12, 12)
@@ -1656,7 +4264,7 @@ class SettingsDialog(QDialog):
         sphere_title = QLabel("Sphere/Satellites Settings", self.sphere_settings_group)
         sphere_title.setProperty("class", "fieldLabel")
         sphere_copy = QLabel(
-            "These controls apply only to sphere mode. Brick layout is already the built-in ultra-low-resource option, so it does not have its own extra sub-settings.",
+            "Choose whether satellites remain in the original orbit or fuse into milestone rings every 50 cards.",
             self.sphere_settings_group,
         )
         sphere_copy.setWordWrap(True)
@@ -1671,34 +4279,30 @@ class SettingsDialog(QDialog):
             self._build_setting_row(
                 self.sphere_settings_group,
                 "Satellite mode",
-                "Classic Orbit keeps the familiar live rings. Consolidate turns every completed bank of 10 into a static donut ring and keeps only the current outer orbit live.",
+                "Fusion Rings is the default and fuses each group of 50 into a permanent rating-color ring. Classic Orbit preserves the original Speed Streak satellite layout and keeps every satellite independently visible.",
                 self.sphere_mode_combo,
                 control_width=230,
             )
         )
-        self.render_mode_combo = ScrollSafeComboBox(frame)
-        for value, label in RENDER_MODE_OPTIONS:
-            self.render_mode_combo.addItem(label, value)
-        self.render_mode_combo.currentIndexChanged.connect(self.persist_settings)
-        sphere_layout.addWidget(
-            self._build_setting_row(
-                self.sphere_settings_group,
-                "Render mode",
-                "Applies to sphere mode only. WebGL uses the GPU for the moving satellites. Classic keeps the original DOM/CSS orbit. Low Resource reduces live updates. Ultra Low Resource freezes satellite motion and skips extra flare effects.",
-                self.render_mode_combo,
-                control_width=230,
-            )
-        )
+        # Retained as a hidden persistence bridge for older saved settings.
+        # Number-only is now a first-class visual choice.
         self.orbit_animation_check = QCheckBox("Orb Animation", frame)
-        self.orbit_animation_check.toggled.connect(self.persist_settings)
-        sphere_layout.addWidget(
-            self._build_toggle_block(
-                self.sphere_settings_group,
-                self.orbit_animation_check,
-                "Turn off the orb and satellite animation if your computer struggles, and show only the streak number instead.",
-            )
-        )
+        self.orbit_animation_check.setVisible(False)
         layout.addWidget(self.sphere_settings_group)
+        self.crystal_mode_note = QLabel(
+            "Crystal Reactor starts with only the streak number, then adds one iridescent component per streak card in the original golden-angle rosette. The preferred early-streak appearance remains exact through 50; after that, each set of 50 grows into a spacious concentric era so late streaks become an expanding crystal mandala instead of one packed mass. Click the star in the side pane to choose rotating or still mode.",
+            frame,
+        )
+        self.crystal_mode_note.setWordWrap(True)
+        self.crystal_mode_note.setProperty("class", "helpText")
+        layout.addWidget(self.crystal_mode_note)
+        self.singularity_mode_note = QLabel(
+            "Singularity begins as a quiet gravity seed, then adds structured energy every 10 cards, major phase changes every 50, and apex transformations every 100. Click its gravity-well icon in the side pane to choose Efficient, Balanced, or Full rendering.",
+            frame,
+        )
+        self.singularity_mode_note.setWordWrap(True)
+        self.singularity_mode_note.setProperty("class", "helpText")
+        layout.addWidget(self.singularity_mode_note)
         self.brick_mode_note = QLabel(
             "Brick layout is already the built-in ultra-low-resource mode, so there are no extra brick display sub-settings here.",
             frame,
@@ -1711,45 +4315,31 @@ class SettingsDialog(QDialog):
         return frame
 
     def _build_appearance_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Appearance", "appearance")
+        frame, layout = self._build_section_card(parent, "Theme & Colors", "appearance", collapsible=False)
         self.appearance_section = frame
         self.appearance_value = QLabel("", frame)
         self.appearance_value.setProperty("class", "fieldLabel")
         self.appearance_value.setWordWrap(True)
         layout.addWidget(self.appearance_value)
-        self.color_value = QLabel("", frame)
-        self.color_value.setProperty("class", "fieldLabel")
-        self.color_value.setWordWrap(True)
-        layout.addWidget(self.color_value)
-        preview = QFrame(frame)
-        preview.setObjectName("speedStreakAppearancePreview")
-        preview_layout = QVBoxLayout(preview)
-        preview_layout.setContentsMargins(12, 10, 12, 10)
-        preview_layout.setSpacing(7)
-        preview_title = QLabel("Theme Preview", preview)
-        preview_title.setObjectName("speedStreakPreviewTitle")
-        preview_body = QLabel("Live palette swatches help you preview the sidebar mood before applying it.", preview)
-        preview_body.setWordWrap(True)
-        preview_body.setObjectName("speedStreakPreviewBody")
-        swatch_row = QHBoxLayout()
-        swatch_row.setSpacing(8)
-        self.preview_swatches: list[QFrame] = []
-        for _ in range(4):
-            swatch = QFrame(preview)
-            swatch.setProperty("swatch", "true")
-            swatch.setFixedSize(28, 18)
-            self.preview_swatches.append(swatch)
-            swatch_row.addWidget(swatch)
-        swatch_row.addStretch(1)
-        preview_layout.addWidget(preview_title)
-        preview_layout.addWidget(preview_body)
-        preview_layout.addLayout(swatch_row)
-        layout.addWidget(preview)
+        # Retain the legacy attribute for integrations that introspect the
+        # dialog, but do not render the former diagnostic status dump.
+        self.color_value: QLabel | None = None
+        self.crystal_color_mode_combo = ScrollSafeComboBox(frame)
+        for value, label in CRYSTAL_COLOR_MODE_OPTIONS:
+            self.crystal_color_mode_combo.addItem(label, value)
+        self.crystal_color_mode_combo.currentIndexChanged.connect(self.persist_settings)
+        # This combo is only a persistence bridge for the dedicated color
+        # editor. An unlaid-out child widget otherwise appears at (0, 0) and
+        # can paint over the section heading when its parent is shown.
+        self.crystal_color_mode_combo.hide()
+        # Color choices now belong to each visual independently. The former
+        # summary preview implied a shared palette and duplicated the editor.
+        self.preview_swatches: dict[str, QWidget] = {}
         button_group, button_layout = self._build_button_group(frame)
-        appearance_button = QPushButton("Choose Theme", frame)
+        appearance_button = ModernButton("Choose Theme", frame)
         appearance_button.setProperty("class", "primaryAction")
         appearance_button.clicked.connect(self.open_theme_picker)
-        color_button = QPushButton("Customize Orb Colors", frame)
+        color_button = ModernButton("Edit Colors", frame)
         color_button.setProperty("class", "secondaryAction")
         color_button.clicked.connect(self.open_color_picker)
         button_layout.addWidget(appearance_button, 0, 0)
@@ -1761,19 +4351,19 @@ class SettingsDialog(QDialog):
         frame, layout = self._build_section_card(parent, "Actions", "actions", collapsible=False, expanded=True)
         button_group, grid = self._build_button_group(frame)
 
-        review_later_button = QPushButton("Review Later Manager", frame)
+        review_later_button = ModernButton("Review Later Manager", frame)
         review_later_button.setProperty("class", "reviewLaterAction")
         review_later_button.clicked.connect(self.open_review_later_manager)
 
-        stats_button = QPushButton("Show Stats (Work in Progress)", frame)
+        stats_button = ModernButton("Show Stats (Work in Progress)", frame)
         stats_button.setProperty("class", "secondaryAction")
         stats_button.clicked.connect(self.open_stats)
 
-        default_button = QPushButton("Default Settings", frame)
+        default_button = ModernButton("Default Settings", frame)
         default_button.setProperty("class", "secondaryAction")
         default_button.clicked.connect(self.reset_defaults)
 
-        reset_button = QPushButton("Reset Game", frame)
+        reset_button = ModernButton("Reset Game", frame)
         reset_button.setProperty("class", "dangerAction")
         reset_button.clicked.connect(self.reset_game)
 
@@ -1788,13 +4378,41 @@ class SettingsDialog(QDialog):
         return SHORTCUT_DEFAULTS.get(shortcut_key, "P")
 
     def _build_shortcuts_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Shortcuts", "shortcuts")
+        frame, layout = self._build_section_card(parent, "Keyboard Controls", "shortcuts", collapsible=False)
+        self.shortcuts_section = frame
+        self.pause_shortcut_mode_combo = ScrollSafeComboBox(frame)
+        self.pause_shortcut_mode_combo.addItem("Combined pause/unpause", PAUSE_SHORTCUT_MODE_COMBINED)
+        self.pause_shortcut_mode_combo.addItem("Separate pause and unpause", PAUSE_SHORTCUT_MODE_SPLIT)
+        self.pause_shortcut_mode_combo.currentIndexChanged.connect(self._on_pause_shortcut_mode_changed)
+        layout.addWidget(
+            self._build_setting_row(
+                frame,
+                "Pause Shortcut Mode",
+                "Choose whether one shortcut toggles pause/unpause or separate shortcuts pause and resume.",
+                self.pause_shortcut_mode_combo,
+                control_width=220,
+            )
+        )
+        self.block_answer_keys_while_paused_check = QCheckBox("Lock answering while paused", frame)
+        self.block_answer_keys_while_paused_check.toggled.connect(self.persist_settings)
+        layout.addWidget(
+            self._build_setting_row(
+                frame,
+                "Pause Safety Lock",
+                "Prevents keyboard shortcuts and Show Answer or ease-button clicks from showing or answering cards while Speed Streak is paused.",
+                self.block_answer_keys_while_paused_check,
+                control_width=260,
+            )
+        )
         for item in SHORTCUT_OPTIONS:
             shortcut_key = str(item["key"])
             field = QLineEdit(frame)
             field.setMaxLength(1)
             field.setAlignment(Qt.AlignmentFlag.AlignCenter)
             field.setPlaceholderText(self._shortcut_default(shortcut_key))
+            field.textEdited.connect(
+                lambda _text, key=shortcut_key: self._on_shortcut_text_edited(key)
+            )
             field.editingFinished.connect(lambda key=shortcut_key: self._on_shortcut_edit_finished(key))
             self.shortcut_inputs[shortcut_key] = field
             layout.addWidget(
@@ -1807,6 +4425,23 @@ class SettingsDialog(QDialog):
                 )
             )
         return frame
+
+    def _on_pause_shortcut_mode_changed(self, *_args: Any) -> None:
+        self._sync_shortcut_mode_controls()
+        if self._syncing:
+            return
+        self.persist_settings()
+
+    def _current_pause_shortcut_mode(self) -> str:
+        if self.pause_shortcut_mode_combo is None:
+            return PAUSE_SHORTCUT_MODE_COMBINED
+        return normalize_pause_shortcut_mode(self.pause_shortcut_mode_combo.currentData())
+
+    def _sync_shortcut_mode_controls(self) -> None:
+        split_enabled = self._current_pause_shortcut_mode() == PAUSE_SHORTCUT_MODE_SPLIT
+        unpause_input = self.shortcut_inputs.get("unpause")
+        if unpause_input is not None:
+            unpause_input.setEnabled(split_enabled)
 
     def _on_shortcut_edit_finished(self, shortcut_key: str) -> None:
         field = self.shortcut_inputs.get(shortcut_key)
@@ -1824,10 +4459,99 @@ class SettingsDialog(QDialog):
             return
         self.persist_settings()
 
+    def _on_shortcut_text_edited(self, shortcut_key: str) -> None:
+        field = self.shortcut_inputs.get(shortcut_key)
+        if field is None or self._syncing or not field.text():
+            return
+        self._on_shortcut_edit_finished(shortcut_key)
+
+    def focus_shortcut_setting(self, shortcut_key: str) -> None:
+        field = self.shortcut_inputs.get(str(shortcut_key or ""))
+        section = self.shortcuts_section
+        if field is None or section is None:
+            return
+        self._select_settings_page("shortcuts")
+        self._expand_settings_section(section)
+
+        def focus_field() -> None:
+            if self.settings_scroll is not None:
+                self.settings_scroll.ensureWidgetVisible(field, 32, 80)
+            field.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            field.selectAll()
+
+        focus_field()
+        QTimer.singleShot(0, focus_field)
+
+    def _expand_settings_section(self, section: QWidget) -> None:
+        toggle: ModernSectionToggle | None = None
+        layout = section.layout()
+        if layout is not None and layout.count() > 0:
+            first_widget = layout.itemAt(0).widget()
+            if isinstance(first_widget, ModernSectionToggle):
+                toggle = first_widget
+        if toggle is None:
+            toggle = section.findChild(ModernSectionToggle)
+        if toggle is not None and not toggle.isChecked():
+            toggle.setChecked(True)
+
+    def focus_time_boost_settings(self, setting: str = "capacity") -> None:
+        field = (
+            self.cards_per_boost_charge_spin
+            if str(setting or "").strip().lower() == "cards"
+            else self.max_boost_charges_spin
+        )
+        if field is None or self.gameplay_panel is None:
+            return
+        self._select_settings_page("gameplay")
+        for section in (self.gameplay_panel,):
+            self._expand_settings_section(section)
+
+        def focus_field() -> None:
+            if self.settings_scroll is not None:
+                self.settings_scroll.ensureWidgetVisible(field, 32, 80)
+            field.setFocus(Qt.FocusReason.ShortcutFocusReason)
+            field.selectAll()
+
+        focus_field()
+        QTimer.singleShot(0, focus_field)
+
+    def _toggle_developer_preferences(self) -> None:
+        enabled = not bool(getattr(self.controller, "developer_mode_enabled", False))
+        self._set_developer_preferences(enabled)
+
+    def _set_developer_preferences(self, enabled: bool) -> None:
+        currently_enabled = bool(getattr(self.controller, "developer_mode_enabled", False))
+        if enabled and not currently_enabled:
+            self.controller.enable_developer_mode()
+        elif not enabled and currently_enabled:
+            self.controller.disable_developer_mode()
+        self.sync_from_state()
+        self._select_settings_page("gameplay")
+        if enabled and self.developer_testing_section is not None:
+            def reveal_developer_section() -> None:
+                if self.settings_scroll is not None and self.developer_testing_section is not None:
+                    self.settings_scroll.ensureWidgetVisible(self.developer_testing_section, 32, 24)
+
+            reveal_developer_section()
+            QTimer.singleShot(0, reveal_developer_section)
+        self._show_developer_status(enabled)
+
+    def _show_developer_status(self, enabled: bool) -> None:
+        self.developer_status_label.setText(
+            f"Developer preferences {'on' if enabled else 'off'}"
+        )
+        self.developer_status_label.show()
+        if self.developer_status_timer is None:
+            self.developer_status_timer = QTimer(self)
+            self.developer_status_timer.setSingleShot(True)
+            self.developer_status_timer.timeout.connect(self.developer_status_label.hide)
+        self.developer_status_timer.start(2200)
+
     def _build_help_section(self, parent: QWidget) -> QWidget:
-        frame, layout = self._build_section_card(parent, "Help", "help")
+        frame, layout = self._build_section_card(parent, "Quick Guide", "help", collapsible=False)
         help_text = QLabel(
             f"Press {self.controller.shortcut_label('pause')} to pause or unpause. Time Drain warns you when a flagged card is consuming time. "
+            f"In Time Boost mode, press {self.controller.shortcut_label('boost')} to use a Boost. "
             "You can also defer time-drain cards until the end of the current session. Review Later marks cards to revisit later and pairs with the Review Later Manager.",
             frame,
         )
@@ -1841,22 +4565,78 @@ class SettingsDialog(QDialog):
         self._syncing = True
         try:
             self.flag_palette = get_anki_flag_palette()
-            self.test_streak_spin.setValue(max(0, min(5000, int(getattr(state, "streak", 0) or 0))))
+            if self.developer_testing_section is not None:
+                self.developer_testing_section.setVisible(
+                    bool(getattr(self.controller, "developer_mode_enabled", False))
+                )
+            if self.test_streak_spin is not None:
+                self.test_streak_spin.setValue(max(0, min(5000, int(getattr(state, "streak", 0) or 0))))
             self.question_spin.setValue(state.question_limit_ms / 1000)
             self.answer_spin.setValue(state.review_limit_ms / 1000)
+            if self.free_first_card_on_review_entry_check is not None:
+                self.free_first_card_on_review_entry_check.setChecked(
+                    bool(getattr(state, "free_first_card_on_review_entry", True))
+                )
+            if self.answer_timeout_breaks_streak_check is not None:
+                self.answer_timeout_breaks_streak_check.setChecked(
+                    bool(getattr(state, "answer_timeout_breaks_streak", True))
+                )
+            if self.gameplay_mode_combo is not None:
+                mode_index = self.gameplay_mode_combo.findData(
+                    str(getattr(state, "gameplay_mode", GAMEPLAY_MODE_TIME_BOOST))
+                )
+                self.gameplay_mode_combo.setCurrentIndex(max(0, mode_index))
+            if self.no_pause_mode_check is not None:
+                self.no_pause_mode_check.setChecked(bool(getattr(state, "no_pause_mode", False)))
+            if self.no_undo_mode_check is not None:
+                self.no_undo_mode_check.setChecked(bool(getattr(state, "no_undo_mode", False)))
+            if self.show_focus_mode_toggles_check is not None:
+                self.show_focus_mode_toggles_check.setChecked(
+                    bool(getattr(state, "show_focus_mode_toggles", True))
+                )
+            if self.boost_seconds_spin is not None:
+                self.boost_seconds_spin.setValue(float(getattr(state, "boost_seconds", 10.0)))
+            if self.max_boost_charges_spin is not None:
+                self.max_boost_charges_spin.setValue(int(getattr(state, "max_boost_charges", 5)))
+            if self.starting_boost_charges_spin is not None:
+                self.starting_boost_charges_spin.setValue(int(getattr(state, "starting_boost_charges", 3)))
+            if self.cards_per_boost_charge_spin is not None:
+                self.cards_per_boost_charge_spin.setValue(int(getattr(state, "cards_per_boost_charge", 10)))
+            self._sync_gameplay_mode_controls()
+            self._sync_special_timing_controls()
+            self._sync_special_timer_rule_controls()
             self._populate_flag_combos(state.time_drain_flag, state.review_later_flag)
+            if self.resume_run_after_restart_check is not None:
+                self.resume_run_after_restart_check.setChecked(
+                    bool(getattr(self.controller, "resume_run_after_restart_enabled", False))
+                )
             self.display_mode_combo.setCurrentIndex(
                 max(0, self.display_mode_combo.findData(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE)))
             )
+            if self.side_panel_enabled_check is not None:
+                self.side_panel_enabled_check.setChecked(bool(getattr(self.controller, "side_panel_enabled", True)))
+            self._sync_side_panel_controls()
+            if self.block_answer_keys_while_paused_check is not None:
+                self.block_answer_keys_while_paused_check.setChecked(
+                    bool(getattr(self.controller, "block_answer_keys_while_paused", False))
+                )
             self.visual_mode_combo.setCurrentIndex(
-                max(0, self.visual_mode_combo.findData(getattr(self.controller, "visual_mode", VISUAL_MODE_LIGHTWEIGHT_ROWS)))
+                max(0, self.visual_mode_combo.findData(getattr(self.controller, "visual_mode", VISUAL_MODE_SPHERE)))
             )
+            if self.crystal_color_mode_combo is not None:
+                self.crystal_color_mode_combo.setCurrentIndex(
+                    max(
+                        0,
+                        self.crystal_color_mode_combo.findData(
+                            getattr(self.controller, "crystal_color_mode", CRYSTAL_COLOR_MODE_CORE)
+                        ),
+                    )
+                )
             self.sphere_mode_combo.setCurrentIndex(
-                max(0, self.sphere_mode_combo.findData(getattr(self.controller, "sphere_mode", SPHERE_MODE_CLASSIC)))
+                max(0, self.sphere_mode_combo.findData(getattr(self.controller, "sphere_mode", SPHERE_MODE_DEFAULT)))
             )
-            self.render_mode_combo.setCurrentIndex(
-                max(0, self.render_mode_combo.findData(getattr(self.controller, "render_mode", RENDER_MODE_WEBGL)))
-            )
+            # Render mode is selected by the side-panel visual/resource
+            # chooser, not by a second Settings control.
             self.show_card_timer_check.setChecked(bool(state.show_card_timer))
             self.time_drain_review_last_check.setChecked(bool(getattr(state, "time_drain_review_last", False)))
             self.orbit_animation_check.setChecked(bool(getattr(state, "orbit_animation_enabled", True)))
@@ -1864,17 +4644,31 @@ class SettingsDialog(QDialog):
             self.audio_event_files = dict(getattr(state, "audio_event_files", default_audio_event_files()) or {})
             self._populate_audio_event_buttons(self.audio_event_files)
             self.haptics_enabled_switch.setChecked(bool(getattr(state, "haptics_enabled", True)))
+            self.haptic_controller_profile = str(getattr(state, "haptic_controller_profile", "standard") or "standard")
+            if self.haptic_profile_combo is not None:
+                profile_index = self.haptic_profile_combo.findData(self.haptic_controller_profile)
+                self.haptic_profile_combo.setCurrentIndex(max(0, profile_index))
             self.haptic_event_patterns = dict(getattr(state, "haptic_event_patterns", default_haptic_event_patterns()) or {})
             self._populate_haptic_event_combos(self.haptic_event_patterns)
             self.shortcut_bindings = self.controller.current_shortcut_bindings()
             for shortcut_key, field in self.shortcut_inputs.items():
                 field.setText(self.shortcut_bindings.get(shortcut_key, self._shortcut_default(shortcut_key)))
+            if self.pause_shortcut_mode_combo is not None:
+                mode_index = self.pause_shortcut_mode_combo.findData(
+                    normalize_pause_shortcut_mode(getattr(self.controller, "pause_shortcut_mode", PAUSE_SHORTCUT_MODE_COMBINED))
+                )
+                self.pause_shortcut_mode_combo.setCurrentIndex(max(0, mode_index))
+            self._sync_shortcut_mode_controls()
             if bool(getattr(state, "haptics_enabled", True)) and not bool(state.visuals_enabled):
                 self.vibration_only_radio.setChecked(True)
             else:
                 self.display_and_vibration_radio.setChecked(True)
             self.current_theme_key = str(state.appearance_mode or "midnight")
             self.custom_colors = normalize_custom_colors(getattr(state, "custom_colors", {}) or {})
+            self.visual_color_palettes = normalize_visual_color_palettes(
+                getattr(self.controller, "visual_color_palettes", {}),
+                legacy_colors=self.custom_colors,
+            )
             self.use_custom_timer_colors = bool(getattr(state, "custom_timer_colors", False))
             self.timer_color_level = float(getattr(state, "custom_timer_color_level", 0.0) or 0.0)
             self._sync_feedback_controls()
@@ -1898,9 +4692,9 @@ class SettingsDialog(QDialog):
         menu.setStyleSheet(
             """
             QMenu {
-              background: rgba(17, 22, 31, 0.99);
-              color: #edf1fb;
-              border: 1px solid rgba(116, 128, 153, 0.22);
+              background: #111a25;
+              color: #edf2f8;
+              border: 1px solid #35445a;
               padding: 6px;
             }
             QMenu::item {
@@ -1908,16 +4702,31 @@ class SettingsDialog(QDialog):
               border-radius: 8px;
             }
             QMenu::item:selected {
-              background: rgba(74, 118, 207, 0.92);
-              color: #f7f9ff;
+              background: #356dcc;
+              color: #ffffff;
+            }
+            QMenu::item:disabled {
+              color: #6f7c8e;
+              background: transparent;
             }
             QMenu::separator {
               height: 1px;
               margin: 5px 8px;
-              background: rgba(116, 128, 153, 0.22);
+              background: #35445a;
             }
             """
         )
+        palette = menu.palette()
+        palette.setColor(QPalette.ColorRole.Window, QColor("#11161f"))
+        palette.setColor(QPalette.ColorRole.WindowText, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.Base, QColor("#11161f"))
+        palette.setColor(QPalette.ColorRole.Text, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.ButtonText, QColor("#edf1fb"))
+        palette.setColor(QPalette.ColorRole.Highlight, QColor("#4a76cf"))
+        palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#f7f9ff"))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#687387"))
+        palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#687387"))
+        menu.setPalette(palette)
 
     def _build_audio_picker_menu(self, event_key: str, selected_key: str) -> QMenu:
         button = self.audio_event_buttons.get(event_key)
@@ -1942,13 +4751,27 @@ class SettingsDialog(QDialog):
                 )
         return menu
 
+    def _show_audio_picker_menu(self, event_key: str) -> None:
+        button = self.audio_event_buttons.get(event_key)
+        if button is None or not button.isEnabled():
+            return
+        menu = self._build_audio_picker_menu(event_key, self._current_audio_file_for_event(event_key))
+        menu.exec(button.mapToGlobal(button.rect().bottomLeft()))
+
     def _current_audio_file_for_event(self, event_key: str) -> str:
         defaults = default_audio_event_files()
         selected = str(self.audio_event_files.get(event_key, defaults.get(event_key, DEFAULT_AUDIO_FILE)) or "")
         return self.controller.normalize_audio_feedback_file(selected)
 
     def _audio_button_text(self, file_name: str) -> str:
-        label = self.controller.audio_feedback_label(file_name) or "Choose audio clip"
+        normalized = str(file_name or "").replace("\\", "/").strip()
+        if normalized.startswith("audio_uploads/"):
+            label = f"Uploaded / {normalized.rsplit('/', 1)[-1]}"
+        elif "/" in normalized:
+            parts = normalized.split("/")
+            label = f"{parts[0]} / {parts[-1]}"
+        else:
+            label = normalized or "Choose audio clip"
         if len(label) <= 44:
             return label
         return f"{label[:41].rstrip()}..."
@@ -1961,12 +4784,10 @@ class SettingsDialog(QDialog):
         has_audio = bool(file_name)
         if has_audio:
             button.setText(self._audio_button_text(file_name))
-            button.setToolTip(self.controller.audio_feedback_label(file_name))
-            button.setMenu(self._build_audio_picker_menu(event_key, file_name))
+            button.setToolTip(file_name)
         else:
             button.setText("No audio files available")
             button.setToolTip("")
-            button.setMenu(self._build_audio_picker_menu(event_key, ""))
         button.setEnabled(has_audio)
         self._update_audio_preview_button(event_key)
 
@@ -2016,6 +4837,226 @@ class SettingsDialog(QDialog):
             self.time_drain_combo.blockSignals(False)
             self.review_later_combo.blockSignals(False)
 
+    def _set_combo_data(self, combo: ScrollSafeComboBox | None, value: object) -> None:
+        if combo is None:
+            return
+        index = combo.findData(value)
+        combo.setCurrentIndex(max(0, index))
+
+    def _sync_special_timing_controls(self) -> None:
+        self._set_combo_data(
+            self.special_timing_anking_mode_combo,
+            getattr(self.controller, "special_timing_anking_mode", TIMER_POLICY_NORMAL),
+        )
+        if self.special_timing_anking_question_spin is not None:
+            self.special_timing_anking_question_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_anking_question_extra_ms", 0)) / 1000)
+            )
+        if self.special_timing_anking_answer_spin is not None:
+            self.special_timing_anking_answer_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_anking_answer_extra_ms", 15000)) / 1000)
+            )
+
+        self._set_combo_data(
+            self.special_timing_typed_mode_combo,
+            getattr(self.controller, "special_timing_typed_mode", TIMER_POLICY_NORMAL),
+        )
+        if self.special_timing_typed_question_spin is not None:
+            self.special_timing_typed_question_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_typed_question_extra_ms", 15000)) / 1000)
+            )
+        if self.special_timing_typed_answer_spin is not None:
+            self.special_timing_typed_answer_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_typed_answer_extra_ms", 0)) / 1000)
+            )
+
+        if self.special_timing_tag_input is not None:
+            self.special_timing_tag_input.setText(str(getattr(self.controller, "special_timing_tag", "") or ""))
+        self._set_combo_data(
+            self.special_timing_tag_mode_combo,
+            getattr(self.controller, "special_timing_tag_mode", TIMER_POLICY_NORMAL),
+        )
+        if self.special_timing_tag_question_spin is not None:
+            self.special_timing_tag_question_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_tag_question_extra_ms", 15000)) / 1000)
+            )
+        if self.special_timing_tag_answer_spin is not None:
+            self.special_timing_tag_answer_spin.setValue(
+                max(0.0, float(getattr(self.controller, "special_timing_tag_answer_extra_ms", 15000)) / 1000)
+            )
+
+    def _sync_single_special_timer_controls(
+        self,
+        controls: dict[str, Any],
+        rule: dict[str, Any],
+    ) -> None:
+        enabled = controls.get("enabled")
+        question_spin = controls.get("question_spin")
+        answer_spin = controls.get("answer_spin")
+        question_untimed = controls.get("question_untimed")
+        answer_untimed = controls.get("answer_untimed")
+        tag_input = controls.get("tag")
+        phase_controls = controls.get("phase_controls")
+        if isinstance(enabled, QCheckBox):
+            enabled.setChecked(bool(rule.get("enabled", False)))
+        if isinstance(phase_controls, QWidget):
+            phase_controls.setVisible(bool(rule.get("enabled", False)))
+        if isinstance(question_spin, QDoubleSpinBox):
+            question_spin.setValue(max(0.1, float(rule.get("question_seconds", self.question_spin.value()) or self.question_spin.value())))
+        if isinstance(answer_spin, QDoubleSpinBox):
+            answer_spin.setValue(max(0.1, float(rule.get("answer_seconds", self.answer_spin.value()) or self.answer_spin.value())))
+        if isinstance(question_untimed, QCheckBox):
+            question_untimed.setChecked(bool(rule.get("question_untimed", False)))
+        if isinstance(answer_untimed, QCheckBox):
+            answer_untimed.setChecked(bool(rule.get("answer_untimed", False)))
+        if isinstance(question_spin, QDoubleSpinBox):
+            self._on_special_phase_untimed_toggled(
+                question_spin,
+                bool(rule.get("question_untimed", False)),
+            )
+        if isinstance(answer_spin, QDoubleSpinBox):
+            self._on_special_phase_untimed_toggled(
+                answer_spin,
+                bool(rule.get("answer_untimed", False)),
+            )
+        if isinstance(tag_input, QLineEdit):
+            saved_tag = str(rule.get("tag", "") or "").strip()
+            controls["saved_tag"] = saved_tag
+            tag_input.setText(saved_tag)
+            self._mark_special_timer_tag_dirty(controls)
+        if "note_types" in controls:
+            controls["note_types"] = [
+                str(name).strip()
+                for name in rule.get("note_types", [])
+                if str(name).strip()
+            ]
+            self._update_note_type_rule_summary(controls)
+
+    def _sync_special_timer_rule_controls(self) -> None:
+        rules = dict(getattr(self.controller, "special_timer_rules", {}) or {})
+        for key, controls in self.special_timer_rule_controls.items():
+            self._sync_single_special_timer_controls(controls, dict(rules.get(key, {}) or {}))
+        if self.special_timer_tags_enabled_check is not None:
+            tags_enabled = bool(rules.get("tags_enabled", bool(rules.get("tags", []))))
+            self.special_timer_tags_enabled_check.setChecked(tags_enabled)
+            if self.special_timer_tags_content is not None:
+                self.special_timer_tags_content.setVisible(tags_enabled)
+        if self.special_timer_note_types_enabled_check is not None:
+            note_types_enabled = bool(rules.get("note_types_enabled", bool(rules.get("note_types", []))))
+            self.special_timer_note_types_enabled_check.setChecked(note_types_enabled)
+            if self.special_timer_note_types_content is not None:
+                self.special_timer_note_types_content.setVisible(note_types_enabled)
+        if self.special_timer_note_types_layout is not None:
+            for controls in list(self.special_timer_note_type_controls):
+                panel = controls.get("panel")
+                if panel is not None:
+                    panel.deleteLater()
+            self.special_timer_note_type_controls.clear()
+            note_type_rules = rules.get("note_types", []) if isinstance(rules.get("note_types"), list) else []
+            for rule in note_type_rules:
+                if not isinstance(rule, dict):
+                    continue
+                panel = self._build_absolute_timer_rule_panel(
+                    self.special_timer_note_types_layout.parentWidget(),
+                    "note_type",
+                    "note type rule",
+                    "Applies an exact timer to cards created from any selected note type.",
+                    note_types=[str(name) for name in rule.get("note_types", [])],
+                )
+                self.special_timer_note_types_layout.insertWidget(
+                    max(0, self.special_timer_note_types_layout.count() - 1),
+                    panel,
+                )
+                self._sync_single_special_timer_controls(self.special_timer_note_type_controls[-1], dict(rule))
+        self._sync_time_drain_override_dependencies()
+        if self.special_timer_tags_layout is None:
+            return
+        for controls in list(self.special_timer_tag_controls):
+            panel = controls.get("panel")
+            if panel is not None:
+                panel.deleteLater()
+        self.special_timer_tag_controls.clear()
+        for rule in rules.get("tags", []) if isinstance(rules.get("tags"), list) else []:
+            panel = self._build_absolute_timer_rule_panel(
+                self.special_timer_tags_layout.parentWidget(),
+                "tag",
+                "tag rule",
+                "Applies an exact timer to cards carrying this tag.",
+                tag=str(rule.get("tag", "") or ""),
+            )
+            self.special_timer_tags_layout.insertWidget(max(0, self.special_timer_tags_layout.count() - 1), panel)
+            self._sync_single_special_timer_controls(self.special_timer_tag_controls[-1], dict(rule))
+
+    def _special_timer_rule_from_controls(self, controls: dict[str, Any]) -> dict[str, Any]:
+        enabled = controls.get("enabled")
+        question_spin = controls.get("question_spin")
+        answer_spin = controls.get("answer_spin")
+        question_untimed = controls.get("question_untimed")
+        answer_untimed = controls.get("answer_untimed")
+        result: dict[str, Any] = {
+            "enabled": bool(isinstance(enabled, QCheckBox) and enabled.isChecked()),
+            "question_seconds": float(question_spin.value()) if isinstance(question_spin, QDoubleSpinBox) else float(self.question_spin.value()),
+            "answer_seconds": float(answer_spin.value()) if isinstance(answer_spin, QDoubleSpinBox) else float(self.answer_spin.value()),
+            "question_untimed": bool(isinstance(question_untimed, QCheckBox) and question_untimed.isChecked()),
+            "answer_untimed": bool(isinstance(answer_untimed, QCheckBox) and answer_untimed.isChecked()),
+        }
+        tag_input = controls.get("tag")
+        if isinstance(tag_input, QLineEdit):
+            result["tag"] = str(controls.get("saved_tag", "") or "").strip()
+        if "note_types" in controls:
+            result["note_types"] = list(controls.get("note_types", []))
+        return result
+
+    def _current_special_timer_rules(self) -> dict[str, Any]:
+        existing = dict(getattr(self.controller, "special_timer_rules", {}) or {})
+        result = {
+            "anking_one_by_one": dict(existing.get("anking_one_by_one", {}) or {}),
+            "typed_answer": dict(existing.get("typed_answer", {}) or {}),
+            "time_drain_flag": dict(existing.get("time_drain_flag", {}) or {}),
+            "note_types_enabled": bool(existing.get("note_types_enabled", bool(existing.get("note_types", [])))),
+            "note_types": list(existing.get("note_types", []) or []),
+            "tags_enabled": bool(existing.get("tags_enabled", bool(existing.get("tags", [])))),
+            "tags": list(existing.get("tags", []) or []),
+        }
+        for key, controls in self.special_timer_rule_controls.items():
+            result[key] = self._special_timer_rule_from_controls(controls)
+        if self.special_timer_tags_layout is not None:
+            result["tags_enabled"] = bool(
+                self.special_timer_tags_enabled_check is not None
+                and self.special_timer_tags_enabled_check.isChecked()
+            )
+            result["tags"] = [
+                rule
+                for controls in self.special_timer_tag_controls
+                if (rule := self._special_timer_rule_from_controls(controls)).get("tag")
+            ]
+        if self.special_timer_note_types_layout is not None:
+            result["note_types_enabled"] = bool(
+                self.special_timer_note_types_enabled_check is not None
+                and self.special_timer_note_types_enabled_check.isChecked()
+            )
+            result["note_types"] = [
+                rule
+                for controls in self.special_timer_note_type_controls
+                if (rule := self._special_timer_rule_from_controls(controls)).get("note_types")
+            ]
+        return result
+
+    def _sync_time_drain_override_dependencies(self, _checked: bool | None = None) -> None:
+        controls = self.special_timer_rule_controls.get("time_drain_flag", {})
+        enabled_control = controls.get("enabled")
+        if isinstance(enabled_control, QCheckBox):
+            override_enabled = enabled_control.isChecked()
+        else:
+            rules = dict(getattr(self.controller, "special_timer_rules", {}) or {})
+            override_enabled = bool(
+                dict(rules.get("time_drain_flag", {}) or {}).get("enabled", False)
+            )
+        if hasattr(self, "time_drain_review_last_check"):
+            self.time_drain_review_last_check.setEnabled(not override_enabled)
+        if hasattr(self, "time_drain_review_last_block"):
+            self.time_drain_review_last_block.setEnabled(not override_enabled)
+
     def _flag_option_color(self, value: int) -> str:
         return self.flag_palette.get(int(value), self.flag_palette[0])
 
@@ -2042,25 +5083,20 @@ class SettingsDialog(QDialog):
             combo.setItemData(index, QBrush(background), Qt.ItemDataRole.BackgroundRole)
 
     def _flag_combo_stylesheet(self, color_hex: str) -> str:
-        tint = QColor(color_hex)
-        tint.setAlpha(28)
-        tint_str = f"rgba({tint.red()}, {tint.green()}, {tint.blue()}, {tint.alpha()})"
         border = QColor(color_hex)
-        border.setAlpha(132)
-        border_str = f"rgba({border.red()}, {border.green()}, {border.blue()}, {border.alpha()})"
+        if not border.isValid():
+            border = QColor("#526178")
+        border_str = border.name()
         return f"""
             QComboBox#{'{name}'} {{
               min-height: 34px;
               padding: 3px 9px;
-              border-radius: 12px;
+              border-radius: 8px;
               border: 1px solid {border_str};
-              background:
-                qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                  stop:0 {tint_str},
-                  stop:1 rgba(10, 14, 22, 0.94));
-              color: #edf1fb;
+              background: #0d151f;
+              color: #edf2f8;
               font-size: 12px;
-              font-weight: 700;
+              font-weight: 600;
             }}
             QComboBox#{'{name}'}:hover {{
               border-color: {border_str};
@@ -2163,6 +5199,15 @@ class SettingsDialog(QDialog):
         self._sync_theme_label()
         self.persist_settings()
 
+    def _on_haptic_profile_changed(self) -> None:
+        if self.haptic_profile_combo is not None:
+            self.haptic_controller_profile = str(self.haptic_profile_combo.currentData() or "standard")
+        if self._syncing:
+            return
+        self.haptic_event_patterns = default_haptic_event_patterns_for_profile(self.haptic_controller_profile)
+        self._populate_haptic_event_combos(self.haptic_event_patterns)
+        self.persist_settings()
+
     def _on_haptic_pattern_changed(self, event_key: str) -> None:
         self._update_haptic_preview_button(event_key)
         if self._syncing:
@@ -2175,8 +5220,12 @@ class SettingsDialog(QDialog):
         if combo is None:
             return
         pattern_key = str(combo.currentData() or "")
+        self._preview_haptic_pattern_key(pattern_key)
+
+    def _preview_haptic_pattern_key(self, pattern_key: str) -> None:
+        self.error_label.setText("")
         if not pattern_key or pattern_key == HAPTIC_PATTERN_OFF:
-            self.error_label.setText("This event is set to Off, so there is nothing to preview.")
+            self.error_label.setText("This pattern is set to Off, so there is nothing to preview.")
             return
         if not self.controller.preview_haptic_pattern(pattern_key):
             self.error_label.setText("Haptic preview needs a connected controller with native XInput rumble support.")
@@ -2191,19 +5240,24 @@ class SettingsDialog(QDialog):
             return
         self.error_label.setText("")
         audio_enabled = bool(self.audio_enabled_switch.isChecked())
-        audio_event_files = {
-            item["event"]: self._current_audio_file_for_event(item["event"])
-            for item in HAPTIC_EVENT_OPTIONS
-            if item["event"] in self.audio_event_buttons
-        }
+        audio_event_files = dict(self.audio_event_files)
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            if event_key in self.audio_event_buttons:
+                audio_event_files[event_key] = self._current_audio_file_for_event(event_key)
         self.audio_event_files = audio_event_files
         selected_audio_file = next((file_name for file_name in audio_event_files.values() if file_name), DEFAULT_AUDIO_FILE)
         haptics_enabled = bool(self.haptics_enabled_switch.isChecked())
-        haptic_event_patterns = {
-            item["event"]: str(self.haptic_event_combos[item["event"]].currentData() or item["default_pattern"])
-            for item in HAPTIC_EVENT_OPTIONS
-            if item["event"] in self.haptic_event_combos
-        }
+        haptic_controller_profile = str(self.haptic_profile_combo.currentData() or "standard") if self.haptic_profile_combo is not None else "standard"
+        self.haptic_controller_profile = haptic_controller_profile
+        haptic_event_patterns = dict(self.haptic_event_patterns)
+        for item in HAPTIC_EVENT_OPTIONS:
+            event_key = item["event"]
+            if event_key in self.haptic_event_combos:
+                haptic_event_patterns[event_key] = str(
+                    self.haptic_event_combos[event_key].currentData() or item["default_pattern"]
+                )
+        self.haptic_event_patterns = haptic_event_patterns
         shortcut_bindings = {
             item["key"]: normalize_shortcut_value(
                 self.shortcut_inputs[item["key"]].text() if item["key"] in self.shortcut_inputs else "",
@@ -2214,12 +5268,52 @@ class SettingsDialog(QDialog):
         self.shortcut_bindings = shortcut_bindings
         visuals_enabled = not (haptics_enabled and self.vibration_only_radio.isChecked())
         visual_mode = str(self.visual_mode_combo.currentData() or VISUAL_MODE_SPHERE)
-        render_mode = str(self.render_mode_combo.currentData() or RENDER_MODE_WEBGL)
+        # Preserve the side-panel resource choice when unrelated Settings are
+        # changed. Visual modes with a fixed renderer still normalize below.
+        render_mode = str(getattr(self.controller, "render_mode", RENDER_MODE_WEBGL) or RENDER_MODE_WEBGL)
         if visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS:
             render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
+        elif visual_mode == VISUAL_MODE_NUMBER_ONLY:
+            render_mode = RENDER_MODE_ULTRA_LOW_RESOURCE
+        elif visual_mode == VISUAL_MODE_CRYSTAL_REACTOR:
+            render_mode = RENDER_MODE_WEBGL
         self.controller.apply_settings_from_dialog(
             question_seconds=float(self.question_spin.value()),
             answer_seconds=float(self.answer_spin.value()),
+            free_first_card_on_review_entry=bool(
+                self.free_first_card_on_review_entry_check.isChecked()
+                if self.free_first_card_on_review_entry_check is not None
+                else True
+            ),
+            answer_timeout_breaks_streak=bool(
+                self.answer_timeout_breaks_streak_check.isChecked()
+                if self.answer_timeout_breaks_streak_check is not None
+                else True
+            ),
+            gameplay_mode=self._current_gameplay_mode(),
+            no_pause_mode=bool(
+                self.no_pause_mode_check.isChecked() if self.no_pause_mode_check is not None else False
+            ),
+            no_undo_mode=bool(
+                self.no_undo_mode_check.isChecked() if self.no_undo_mode_check is not None else False
+            ),
+            show_focus_mode_toggles=bool(
+                self.show_focus_mode_toggles_check.isChecked()
+                if self.show_focus_mode_toggles_check is not None
+                else True
+            ),
+            boost_seconds=float(
+                self.boost_seconds_spin.value() if self.boost_seconds_spin is not None else 10.0
+            ),
+            max_boost_charges=int(
+                self.max_boost_charges_spin.value() if self.max_boost_charges_spin is not None else 5
+            ),
+            starting_boost_charges=int(
+                self.starting_boost_charges_spin.value() if self.starting_boost_charges_spin is not None else 3
+            ),
+            cards_per_boost_charge=int(
+                self.cards_per_boost_charge_spin.value() if self.cards_per_boost_charge_spin is not None else 10
+            ),
             time_drain_flag=time_drain_flag,
             time_drain_review_last=bool(self.time_drain_review_last_check.isChecked()),
             review_later_flag=review_later_flag,
@@ -2227,77 +5321,119 @@ class SettingsDialog(QDialog):
             selected_audio_file=selected_audio_file,
             audio_event_files=audio_event_files,
             haptics_enabled=haptics_enabled,
+            haptic_controller_profile=haptic_controller_profile,
             haptic_event_patterns=haptic_event_patterns,
             show_card_timer=bool(self.show_card_timer_check.isChecked()),
+            side_panel_enabled=bool(
+                self.side_panel_enabled_check.isChecked()
+                if self.side_panel_enabled_check is not None
+                else False
+            ),
+            resume_run_after_restart=bool(
+                self.resume_run_after_restart_check.isChecked()
+                if self.resume_run_after_restart_check is not None
+                else False
+            ),
             display_mode=str(self.display_mode_combo.currentData() or DISPLAY_MODE_INLINE),
             visual_mode=visual_mode,
-            sphere_mode=str(self.sphere_mode_combo.currentData() or SPHERE_MODE_CLASSIC),
+            sphere_mode=str(self.sphere_mode_combo.currentData() or SPHERE_MODE_DEFAULT),
             render_mode=render_mode,
-            orbit_animation_enabled=bool(self.orbit_animation_check.isChecked()),
-            reduced_motion_enabled=(visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS),
+            crystal_color_mode=str(
+                self.crystal_color_mode_combo.currentData()
+                if self.crystal_color_mode_combo is not None
+                else getattr(self.controller, "crystal_color_mode", CRYSTAL_COLOR_MODE_CORE)
+            ),
+            orbit_animation_enabled=(visual_mode != VISUAL_MODE_NUMBER_ONLY),
+            reduced_motion_enabled=(visual_mode in {VISUAL_MODE_LIGHTWEIGHT_ROWS, VISUAL_MODE_NUMBER_ONLY}),
             visuals_enabled=visuals_enabled,
             custom_timer_colors=bool(self.use_custom_timer_colors),
             custom_timer_color_level=float(self.timer_color_level),
             appearance_mode=self.current_theme_key,
             custom_colors=dict(self.custom_colors),
+            visual_color_palettes={
+                visual: dict(palette)
+                for visual, palette in self.visual_color_palettes.items()
+            },
             shortcut_bindings=shortcut_bindings,
+            pause_shortcut_mode=self._current_pause_shortcut_mode(),
+            special_timing_anking_mode=str(
+                self.special_timing_anking_mode_combo.currentData()
+                if self.special_timing_anking_mode_combo is not None
+                else getattr(self.controller, "special_timing_anking_mode", TIMER_POLICY_NORMAL)
+            ),
+            special_timing_anking_question_extra_seconds=float(
+                self.special_timing_anking_question_spin.value()
+                if self.special_timing_anking_question_spin is not None
+                else float(getattr(self.controller, "special_timing_anking_question_extra_ms", 0)) / 1000
+            ),
+            special_timing_anking_answer_extra_seconds=float(
+                self.special_timing_anking_answer_spin.value()
+                if self.special_timing_anking_answer_spin is not None
+                else float(getattr(self.controller, "special_timing_anking_answer_extra_ms", 15000)) / 1000
+            ),
+            special_timing_typed_mode=str(
+                self.special_timing_typed_mode_combo.currentData()
+                if self.special_timing_typed_mode_combo is not None
+                else getattr(self.controller, "special_timing_typed_mode", TIMER_POLICY_NORMAL)
+            ),
+            special_timing_typed_question_extra_seconds=float(
+                self.special_timing_typed_question_spin.value()
+                if self.special_timing_typed_question_spin is not None
+                else float(getattr(self.controller, "special_timing_typed_question_extra_ms", 15000)) / 1000
+            ),
+            special_timing_typed_answer_extra_seconds=float(
+                self.special_timing_typed_answer_spin.value()
+                if self.special_timing_typed_answer_spin is not None
+                else float(getattr(self.controller, "special_timing_typed_answer_extra_ms", 0)) / 1000
+            ),
+            special_timing_tag=str(
+                self.special_timing_tag_input.text()
+                if self.special_timing_tag_input is not None
+                else str(getattr(self.controller, "special_timing_tag", "") or "")
+            ),
+            special_timing_tag_mode=str(
+                self.special_timing_tag_mode_combo.currentData()
+                if self.special_timing_tag_mode_combo is not None
+                else getattr(self.controller, "special_timing_tag_mode", TIMER_POLICY_NORMAL)
+            ),
+            special_timing_tag_question_extra_seconds=float(
+                self.special_timing_tag_question_spin.value()
+                if self.special_timing_tag_question_spin is not None
+                else float(getattr(self.controller, "special_timing_tag_question_extra_ms", 15000)) / 1000
+            ),
+            special_timing_tag_answer_extra_seconds=float(
+                self.special_timing_tag_answer_spin.value()
+                if self.special_timing_tag_answer_spin is not None
+                else float(getattr(self.controller, "special_timing_tag_answer_extra_ms", 15000)) / 1000
+            ),
+            special_timer_rules=self._current_special_timer_rules(),
+            block_answer_keys_while_paused=bool(
+                self.block_answer_keys_while_paused_check.isChecked()
+                if self.block_answer_keys_while_paused_check is not None
+                else False
+            ),
         )
         self._sync_theme_label()
 
     def _sync_theme_label(self) -> None:
         theme = next(((key, theme_label, top, bottom) for key, theme_label, top, bottom in THEMES if key == self.current_theme_key), None)
         label = theme[1] if theme else "Midnight"
-        state = self.controller.engine.state
-        if not bool(getattr(state, "haptics_enabled", True)):
-            feedback_label = "Display Only"
-        elif bool(state.visuals_enabled):
-            feedback_label = "Display + Haptics"
-        else:
-            feedback_label = "Haptics Only"
-        audio_files = dict(getattr(state, "audio_event_files", default_audio_event_files()) or {})
-        normalized_audio_files = [
-            self.controller.normalize_audio_feedback_file(
-                str(audio_files.get(item["event"], default_audio_event_files().get(item["event"], DEFAULT_AUDIO_FILE)) or "")
-            )
-            for item in HAPTIC_EVENT_OPTIONS
-        ]
-        normalized_audio_files = [file_name for file_name in normalized_audio_files if file_name]
-        unique_audio_files = list(dict.fromkeys(normalized_audio_files))
-        if not bool(getattr(state, "audio_enabled", False)):
-            audio_label = "Off"
-        elif not unique_audio_files:
-            audio_label = "On"
-        elif len(unique_audio_files) == 1:
-            audio_label = f"On ({self.controller.audio_feedback_label(unique_audio_files[0]).split('/')[-1].strip()})"
-        else:
-            audio_label = f"On ({len(unique_audio_files)} clips)"
-        self.appearance_value.setText(f"Current Theme: {label}")
-        resolved_colors = {**theme_default_colors(self.current_theme_key), **normalize_custom_colors(self.custom_colors)}
-        display_label = display_mode_label(getattr(self.controller, "display_mode", DISPLAY_MODE_INLINE))
-        visual_mode = getattr(self.controller, "visual_mode", VISUAL_MODE_LIGHTWEIGHT_ROWS)
-        if visual_mode == VISUAL_MODE_SPHERE:
-            visual_detail = (
-                f"Sphere settings: {sphere_mode_label(getattr(self.controller, 'sphere_mode', SPHERE_MODE_CLASSIC))}  |  "
-                f"{render_mode_label(getattr(self.controller, 'render_mode', RENDER_MODE_WEBGL))}  |  "
-                f"Orb animation {'on' if getattr(self.controller.engine.state, 'orbit_animation_enabled', True) else 'off'}"
-            )
-        else:
-            visual_detail = "Brick layout: built-in ultra-low-resource mode."
-        self.color_value.setText(
-            f"Display: {display_label}  |  Haptics: {feedback_label}  |  Audio: {audio_label}  |  Visual: {visual_mode_label(visual_mode)}\n"
-            f"{visual_detail}\n"
-            "Orb colors: "
-            f"Orb {resolved_colors['core'].upper()}  "
-            f"Again {resolved_colors['red'].upper()}  "
-            f"Hard {resolved_colors['yellow'].upper()}  "
-            f"Good {resolved_colors['green'].upper()}  "
-            f"Easy {resolved_colors['blue'].upper()}\n"
-            f"Timer colors: {'match theme/custom palette' if self.use_custom_timer_colors else 'default ramp'}  ({self.timer_color_level:+.2f})"
+        self.appearance_value.setText(f"Theme: {label}")
+        visual_mode = str(
+            getattr(self.visual_mode_combo, "currentData", lambda: VISUAL_MODE_SPHERE)()
+            or VISUAL_MODE_SPHERE
         )
+        visual_palette = self.visual_color_palettes.get(visual_mode, {})
+        resolved_colors = {
+            **theme_default_colors(self.current_theme_key),
+            **normalize_color_overrides(visual_palette),
+        }
         if theme:
-            swatches = [resolved_colors["core"], resolved_colors["red"], resolved_colors["green"], resolved_colors["blue"]]
-            for swatch, color in zip(self.preview_swatches, swatches):
-                swatch.setStyleSheet(f"background: {color};")
+            for color_key, swatch in self.preview_swatches.items():
+                if isinstance(swatch, OrbPreviewButton):
+                    swatch.set_preview(resolved_colors[color_key])
+                else:
+                    swatch.setStyleSheet(f"background: {resolved_colors[color_key]};")
 
     def set_theme(self, theme_key: str) -> None:
         self.current_theme_key = str(theme_key or "midnight")
@@ -2305,17 +5441,51 @@ class SettingsDialog(QDialog):
         self.persist_settings()
 
     def _on_visual_mode_changed(self) -> None:
+        visual_mode = str(
+            getattr(self.visual_mode_combo, "currentData", lambda: VISUAL_MODE_SPHERE)()
+            or VISUAL_MODE_SPHERE
+        )
+        if (
+            visual_mode == VISUAL_MODE_SINGULARITY
+            and getattr(self.controller, "visual_mode", VISUAL_MODE_SPHERE) != VISUAL_MODE_SINGULARITY
+        ):
+            self.controller.render_mode = RENDER_MODE_LOW_RESOURCE
         self._sync_visual_mode_controls()
         self.persist_settings()
+
+    def _on_side_panel_toggled(self) -> None:
+        self._sync_side_panel_controls()
+        self.persist_settings()
+
+    def _sync_side_panel_controls(self) -> None:
+        side_panel_enabled = bool(
+            self.side_panel_enabled_check.isChecked()
+            if self.side_panel_enabled_check is not None
+            else True
+        )
+        if self.display_mode_combo is not None:
+            self.display_mode_combo.setEnabled(side_panel_enabled)
+        if self.display_mode_row is not None:
+            self.display_mode_row.setProperty("disabled", "false" if side_panel_enabled else "true")
+            self.display_mode_row.setEnabled(side_panel_enabled)
+            self.display_mode_row.style().unpolish(self.display_mode_row)
+            self.display_mode_row.style().polish(self.display_mode_row)
+            self.display_mode_row.update()
 
     def _sync_visual_mode_controls(self) -> None:
         visual_mode = str(getattr(self.visual_mode_combo, "currentData", lambda: VISUAL_MODE_SPHERE)() or VISUAL_MODE_SPHERE)
         sphere_selected = visual_mode == VISUAL_MODE_SPHERE
+        singularity_selected = visual_mode == VISUAL_MODE_SINGULARITY
+        crystal_selected = visual_mode == VISUAL_MODE_CRYSTAL_REACTOR
         rows_selected = visual_mode == VISUAL_MODE_LIGHTWEIGHT_ROWS
         if getattr(self, "sphere_settings_group", None) is not None:
             self.sphere_settings_group.setVisible(sphere_selected)
         if getattr(self, "brick_mode_note", None) is not None:
             self.brick_mode_note.setVisible(rows_selected)
+        if getattr(self, "crystal_mode_note", None) is not None:
+            self.crystal_mode_note.setVisible(crystal_selected)
+        if getattr(self, "singularity_mode_note", None) is not None:
+            self.singularity_mode_note.setVisible(singularity_selected)
 
     def open_theme_picker(self) -> None:
         if self._is_vibration_only_selected():
@@ -2323,16 +5493,53 @@ class SettingsDialog(QDialog):
         picker = ThemePickerDialog(self)
         picker.exec()
 
-    def open_color_picker(self) -> None:
+    def open_color_picker(self, focus_visual: str = "") -> None:
         if self._is_vibration_only_selected():
             return
-        picker = ColorCustomizerDialog(self)
+        picker = VisualColorCustomizerDialog(self, focus_visual=focus_visual)
         picker.exec()
 
-    def set_custom_colors(self, custom_colors: dict[str, str], use_custom_timer_colors: bool, timer_color_level: float) -> None:
+    def set_visual_color_palettes(
+        self,
+        palettes: dict[str, dict[str, str]],
+        *,
+        crystal_color_mode: str,
+    ) -> None:
+        self.visual_color_palettes = normalize_visual_color_palettes(palettes)
+        if self.crystal_color_mode_combo is not None:
+            normalized_mode = (
+                CRYSTAL_COLOR_MODE_ANSWER
+                if normalize_crystal_color_mode(crystal_color_mode) == CRYSTAL_COLOR_MODE_ANSWER
+                else CRYSTAL_COLOR_MODE_CORE
+            )
+            index = self.crystal_color_mode_combo.findData(normalized_mode)
+            self.crystal_color_mode_combo.blockSignals(True)
+            try:
+                self.crystal_color_mode_combo.setCurrentIndex(max(0, index))
+            finally:
+                self.crystal_color_mode_combo.blockSignals(False)
+        self.persist_settings()
+
+    def set_custom_colors(
+        self,
+        custom_colors: dict[str, str],
+        use_custom_timer_colors: bool,
+        timer_color_level: float,
+        *,
+        crystal_color_mode: str | None = None,
+    ) -> None:
         self.custom_colors = normalize_custom_colors(custom_colors)
         self.use_custom_timer_colors = bool(use_custom_timer_colors)
         self.timer_color_level = max(-1.0, min(1.0, float(timer_color_level)))
+        if crystal_color_mode is not None and self.crystal_color_mode_combo is not None:
+            index = self.crystal_color_mode_combo.findData(
+                normalize_crystal_color_mode(crystal_color_mode)
+            )
+            self.crystal_color_mode_combo.blockSignals(True)
+            try:
+                self.crystal_color_mode_combo.setCurrentIndex(max(0, index))
+            finally:
+                self.crystal_color_mode_combo.blockSignals(False)
         self._sync_theme_label()
         self.persist_settings()
 
@@ -2370,11 +5577,25 @@ class SettingsDialog(QDialog):
         self.sync_from_state()
 
     def apply_test_streak(self) -> None:
+        if self.test_streak_spin is None:
+            return
         self.controller.set_test_streak_from_dialog(int(self.test_streak_spin.value()))
         self.sync_from_state()
 
+    def apply_test_streak_value(self, streak: int) -> None:
+        if self.test_streak_spin is None:
+            return
+        self.test_streak_spin.setValue(int(streak))
+        self.apply_test_streak()
 
-def open_settings_dialog(controller: Any) -> None:
+def open_settings_dialog(
+    controller: Any,
+    *,
+    shortcut_key: str = "",
+    time_boost_setting: str = "",
+    settings_page: str = "",
+    color_visual: str = "",
+) -> None:
     global _dialog
     if _dialog is not None:
         try:
@@ -2383,6 +5604,14 @@ def open_settings_dialog(controller: Any) -> None:
             _dialog.show()
             _dialog.raise_()
             _dialog.activateWindow()
+            if settings_page:
+                _dialog._select_settings_page(settings_page)
+            if shortcut_key:
+                _dialog.focus_shortcut_setting(shortcut_key)
+            elif time_boost_setting:
+                _dialog.focus_time_boost_settings(time_boost_setting)
+            elif color_visual:
+                _dialog.open_color_picker(color_visual)
             return
         except Exception:
             try:
@@ -2394,3 +5623,32 @@ def open_settings_dialog(controller: Any) -> None:
     _dialog.show()
     _dialog.raise_()
     _dialog.activateWindow()
+    if settings_page:
+        _dialog._select_settings_page(settings_page)
+    if shortcut_key:
+        _dialog.focus_shortcut_setting(shortcut_key)
+    elif time_boost_setting:
+        _dialog.focus_time_boost_settings(time_boost_setting)
+    elif color_visual:
+        _dialog.open_color_picker(color_visual)
+
+
+def cleanup_settings_dialog() -> None:
+    """Release the cached Settings window before Anki tears down Qt widgets."""
+    global _dialog
+    dialog = _dialog
+    _dialog = None
+    if dialog is None:
+        return
+    try:
+        dialog.prepare_for_shutdown()
+    except RuntimeError:
+        return
+    try:
+        dialog.close()
+    except RuntimeError:
+        return
+    try:
+        dialog.deleteLater()
+    except RuntimeError:
+        pass

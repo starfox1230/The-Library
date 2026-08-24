@@ -14,6 +14,8 @@ ADDON_ROOT = Path(__file__).resolve().parents[1] / "speed-streak-addon-v1.32"
 ENGINE_ROOTS = (
     ADDON_ROOT,
     ADDON_ROOT.parent / "speed-streak-addon-v1.33",
+    ADDON_ROOT.parent / "speed-streak-addon-v1.34",
+    ADDON_ROOT.parent / "speed-streak-addon-v1.35",
 )
 
 

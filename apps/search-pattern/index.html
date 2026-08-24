@@ -1,276 +1,166 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Section Stopwatch</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
-      height: 100%;
-      overflow: hidden;
-    }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0d0d0d;
-      color: #c5c5c5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px;
-      user-select: none;
-    }
-    .container {
-      position: relative; text-align: center;
-      padding: 10px 12px;
-      background: #1a1a1a; /* Default background when idle */
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.9);
-      width: 95vw;
-      max-width: 600px;
-      height: 90vh;
-      max-height: 800px;
-      display: flex;
-      flex-direction: column;
-      transition: background-color 0.3s ease;
-    }
-    .container.running-state { background-color: #3a0f6f; }
-    .container.paused-state { background-color: #d4a01a; }
-
-    .top-panel {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 5px 0;
-      margin-bottom: 12px;
-      flex-shrink: 0;
-    }
-
-    #totalTimeDisplay {
-      font-size: clamp(2.6rem, 9vw, 4.2rem);
-      color: #e0e0e0;
-      text-align: left;
-      margin: 0;
-      line-height: 1;
-      padding-left: 2px;
-      margin-right: 10px;
-    }
-
-    .controls {
-      display: flex;
-      align-items: center;
-    }
-
-    .controls button {
-      background: #282828;
-      border: none;
-      color: #c5c5c5;
-      padding: 12px 20px;
-      font-size: clamp(1rem, 3.5vw, 1.2rem);
-      border-radius: 8px;
-      cursor: pointer; transition: background .2s, transform .1s;
-      white-space: nowrap;
-      font-weight: 500;
-    }
-    .controls button#startPauseBtn {
-      margin-right: 10px;
-    }
-
-    .controls button:hover { background: #383838; }
-    .controls button:active { transform: scale(0.98); }
-
-    #sectionList {
-      list-style: none;
-      padding: 0;
-      margin-top: 0;
-      display: block;
-      text-align: left;
-      border: 1px solid #2f2f2f;
-      border-radius: 8px;
-      overflow-y: auto;
-      flex-grow: 1;
-      background-color: #161616;
-    }
-    #sectionList li {
-      padding: 7px 10px;
-      border-bottom: 1px solid #2f2f2f;
-      cursor: pointer; display: flex;
-      justify-content: space-between; align-items: center;
-      font-size: clamp(0.8rem, 2.7vw, 1.05rem);
-      color: #b0b0b0;
-      transition: background-color 0.2s;
-    }
-    #sectionList li:hover {
-        background-color: #252525;
-    }
-    #sectionList li:last-child {
-      border-bottom: none;
-    }
-    #sectionList li.active {
-      background: rgba(100, 60, 150, 0.5);
-      color: #e0e0e0;
-      font-weight: bold;
-    }
-    #sectionList li.active .sectionItemTime {
-        color: #f0f0f0;
-    }
-
-    .sectionItemTime {
-      font-size: clamp(0.75rem, 2.3vw, 0.95rem);
-      color:#888;
-      margin-left: 10px;
-      white-space: nowrap;
-      font-weight: normal;
-      flex-shrink: 0;
-    }
-  </style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#06111f">
+<title>Search Pattern Library | Diagnostic Imaging</title>
+<style>
+:root{--bg:#050b13;--panel:#0d1b2c;--panel2:#11253b;--line:#28445b;--ink:#eaf7ff;--muted:#8aa5ba;--cyan:#72e8ff;--mint:#80f0c3;--violet:#b09cff;--amber:#ffd18b;--red:#ff9dac}*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 10% 0,#1677a822,transparent 35rem),radial-gradient(circle at 100% 0,#8c58ff18,transparent 32rem),var(--bg)}button,input,select,textarea{font:inherit}button{color:inherit}.shell{max-width:1600px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:20px}.eyebrow{color:var(--cyan);font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}h1{font-size:clamp(30px,4vw,54px);letter-spacing:-.05em;line-height:1;margin:5px 0}.sub{color:var(--muted);max-width:850px;margin:0}.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:end}.btn,.search,.select{border:1px solid var(--line);background:#071421dd;border-radius:11px;min-height:42px}.btn{padding:0 13px;cursor:pointer}.btn:hover,.btn:focus-visible{border-color:var(--cyan);box-shadow:0 0 0 3px #72e8ff1c}.primary{background:linear-gradient(135deg,#40cae034,#9b76ff2c);border-color:#72e8ff77}.ghost{color:var(--muted)}.workspace{display:grid;grid-template-columns:335px minmax(0,1fr);gap:18px;align-items:start}.panel{background:linear-gradient(145deg,#10263ddd,#07121fe8);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 60px #0008}.library{position:sticky;top:18px;max-height:calc(100vh - 36px);display:flex;flex-direction:column;overflow:hidden}.panelhead{padding:17px;border-bottom:1px solid var(--line)}.panelhead h2{font-size:14px;margin:0 0 10px}.search{width:100%;padding:0 13px;color:var(--ink);outline:0}.search:focus{border-color:var(--cyan)}.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}.select{width:100%;padding:0 8px;color:var(--ink);outline:0}.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:10px}.list{overflow:auto;padding:8px}.card{display:block;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--ink);border-radius:12px;padding:11px 12px;cursor:pointer;margin-bottom:4px}.card:hover{background:#72e8ff0d;border-color:#72e8ff33}.card.active{background:linear-gradient(100deg,#72e8ff22,#b09cff1c);border-color:#72e8ff66}.card strong{display:block;font-size:13px}.card small{display:block;color:var(--muted);font-size:11px;margin-top:4px}.bar{height:3px;background:#ffffff12;border-radius:4px;margin-top:8px;overflow:hidden}.bar span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--mint))}.detail{min-width:0}.empty{padding:60px 25px;text-align:center;color:var(--muted)}.head{padding:24px;display:flex;justify-content:space-between;gap:20px}.title{min-width:0}.badges{display:flex;gap:6px;flex-wrap:wrap}.badge{border:1px solid #72e8ff44;background:#72e8ff13;color:var(--cyan);border-radius:99px;padding:3px 9px;font-size:11px;font-weight:700}.badge.region{color:var(--violet);border-color:#b09cff55;background:#b09cff13}.title h2{font-size:clamp(25px,3vw,40px);line-height:1.05;letter-spacing:-.04em;margin:8px 0}.intro{color:var(--muted);margin:0;max-width:850px;font-size:13px}.headbuttons{display:flex;gap:8px;flex-wrap:wrap;justify-content:end;align-content:start;min-width:230px}.progresswrap{padding:0 24px 20px}.progresslabel{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:7px}.progress{height:8px;background:#ffffff12;border-radius:20px;overflow:hidden}.progress span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--mint));transition:width .2s}.timerbar{display:flex;gap:13px;align-items:center;padding:13px 24px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#00000018}.timer{color:var(--amber);font-variant-numeric:tabular-nums;font-size:23px;font-weight:800;min-width:80px}.hint{color:var(--muted);font-size:12px;flex:1}.checklist{padding:21px 24px}.group{margin:0 0 22px}.group h3{color:var(--cyan);font-size:11px;text-transform:uppercase;letter-spacing:.13em;margin:0 0 8px}.check{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:10px 12px;border:1px solid transparent;border-radius:10px}.check:hover{background:#72e8ff0d;border-color:#72e8ff22}.check.done{background:#80f0c30c;color:#a6c8bb}.check input{width:19px;height:19px;accent-color:var(--mint);margin-top:1px}.check label{cursor:pointer}.check.done label{text-decoration:line-through;text-decoration-color:#80f0c377}.notes{border-top:1px solid var(--line);padding:18px 24px 24px}.notes label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}textarea{width:100%;min-height:84px;resize:vertical;color:var(--ink);background:#020a13aa;border:1px solid var(--line);border-radius:10px;padding:10px;outline:0}.history{border-top:1px solid var(--line);margin-top:17px;padding-top:14px}.history summary{cursor:pointer;color:var(--cyan);font-size:12px}.history table{width:100%;border-collapse:collapse;font-size:12px;margin-top:9px}.history th,.history td{text-align:left;border-bottom:1px solid var(--line);padding:7px 4px;color:var(--muted)}.history th{color:var(--ink)}.foot{text-align:center;color:var(--muted);font-size:11px;margin:17px}.toast{position:fixed;right:22px;bottom:22px;background:#102b3c;border:1px solid #72e8ff77;border-radius:10px;padding:12px 15px;box-shadow:0 18px 60px #0008;opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:none}@media(max-width:900px){.workspace{grid-template-columns:1fr}.library{position:static;max-height:none}.list{max-height:280px}.top,.head{flex-direction:column;align-items:stretch}.actions,.headbuttons{justify-content:start}}@media(max-width:520px){.shell{padding:14px}.head,.progresswrap,.checklist,.notes{padding-left:15px;padding-right:15px}.filters{grid-template-columns:1fr}.timerbar{padding-left:15px;padding-right:15px;flex-wrap:wrap}}
+</style>
 </head>
-<body>
-  <div class="container" id="mainContainer">
-    <div class="top-panel">
-      <div id="totalTimeDisplay">00:00</div>
-      <div class="controls">
-        <button id="startPauseBtn">Start</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-    </div>
-    <ul id="sectionList">
-      <li data-section="Body wall CAP">Body wall CAP <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Musculature CAP">Musculature CAP <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Skeletal CAP">Skeletal CAP <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Lungs">Lungs <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Mediastinum">Mediastinum <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Vasculature CAP">Vasculature CAP <span class="sectionItemTime">00:00</span></li>
-      <li data-section="LN">LN <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Peritoneum">Peritoneum <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Liver">Liver <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Gallbladder / Biliary System">Gallbladder / Biliary System <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Pancreas">Pancreas <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Spleen">Spleen <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Adrenals">Adrenals <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Kidneys / Ureters / Bladder">Kidneys / Ureters / Bladder <span class="sectionItemTime">00:00</span></li> <!-- Combined Section -->
-      <li data-section="Reproductive">Reproductive <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Large bowel">Large bowel <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Small bowel">Small bowel <span class="sectionItemTime">00:00</span></li>
-      <li data-section="Peritoneum2">Peritoneum <span class="sectionItemTime">00:00</span></li>
-    </ul>
-  </div>
-  <script>
-    // JavaScript remains the same
-    // State variables
-    let running = false;
-    let stopwatchElapsed = 0;
-    let stopwatchInterval = null;
-    let isPaused = false;
-    let currentSection = null;
-    const sectionTimes = {};
+<body><main class="shell">
+<header class="top"><div><div class="eyebrow">Diagnostic imaging · systematic search</div><h1>Search Pattern Library</h1><p class="sub">A fast, checkable workstation companion built from <em>Search Pattern: A Systematic Approach to Diagnostic Imaging</em> (Long H. Tu, 2020). Cross-referenced “usual pattern” instructions are expanded into visible study-specific checks.</p></div><div class="actions"><button class="btn primary" id="export">Export progress</button><button class="btn ghost" id="import">Import progress</button><button class="btn ghost" id="clear">Clear local progress</button><input id="file" type="file" accept="application/json" hidden></div></header>
+<section class="workspace"><aside class="panel library"><div class="panelhead"><h2>Find a study</h2><input class="search" id="search" type="search" placeholder="Search title, anatomy, keyword…"><div class="filters"><select class="select" id="modality"><option value="">All modalities</option></select><select class="select" id="region"><option value="">All regions</option></select></div><div class="meta"><span id="count"></span><span id="total"></span></div></div><div class="list" id="list"></div></aside><section class="panel detail" id="detail" aria-live="polite"></section></section><p class="foot">Progress, notes, and session history stay in this browser. Export a JSON backup to compare sessions or move them to another device.</p></main><div class="toast" id="toast" role="status"></div>
+<script>
+const G=(title,items)=>({title,items});
+const LAST=["Perform a second look at the common blind spots and the area easiest to skip.","Reconcile findings with the indication, priors, labs, and clinical course; state limitations and recommendations.","Check every visible edge-of-field structure, device, foreign body, soft tissue, bone, and vessel.","Proofread laterality, measurements, urgent findings, and communication documentation before signing."];
+const BASE={
+Radiograph:["Form a first impression before anchoring on the history; triage immediately dangerous findings.","Review indication, history, priors, technique, positioning, exposure, motion, rotation, coverage, and cut-off anatomy.","Inspect every visible soft tissue, device, hardware, foreign body, calcification, gas pattern, and surgical change.","Trace each bone individually for alignment, cortical break, lucent/sclerotic lesion, periosteal reaction, and deformity.","Assess every joint for congruence, joint space, articular surface, effusion, degenerative change, and subtle dislocation."],
+CT:["Form a quick gestalt on thick sections; review indication, priors, protocol, contrast phase, dose, coverage, and available reformats.","Inspect scout/localizer images like a radiograph for gross pathology, devices, free air, and anatomy not present on the axial series.","Assess thin sections, coronal/sagittal images, MIPs when helpful, motion, streak, mixing, truncation, and other artifacts.","Trace every line, tube, drain, stent, prosthesis, wire, and foreign body for tip/side-hole position, failure, and complication.","Review bones, marrow, joints, canal, muscles, body wall, skin, subcutaneous tissues, and all edge-of-field anatomy."],
+CTA:["Confirm contrast timing and diagnostic enhancement for the target vessel; assess motion, streak, mixing, calcium blooming, and coverage.","Trace the target artery or vein continuously from origin to distal branches in axial and multiplanar reformats.","Assess patency, stenosis, occlusion, thrombus, dissection, aneurysm, pseudoaneurysm, wall thickening, calcification, collateralization, and extravasation.","Review the heart, lungs, pleura, mediastinum, solid organs, bowel, bones, muscles, devices, and soft tissues outside the vascular question."],
+MRI:["Review indication, priors, prior modality findings, protocol, coverage, gating, required sequences, motion, wrap, susceptibility, and other artifacts.","Review the primary abnormality on every relevant sequence: T1, T2, fluid-sensitive, diffusion/ADC, in/out of phase, perfusion, and post-contrast images when provided.","Use axial and multiplanar images to assess size, location, signal, morphology, enhancement, diffusion, margins, adjacent structures, and associated findings.","Repeat the search on post-contrast images and compare side by side with pre-contrast sequences and priors."],
+Ultrasound:["Confirm indication, preparation, patient position, prior studies, transducer, depth, focus, gain, Doppler settings, and technical limitations.","Sweep the entire target in longitudinal and transverse planes; do not rely on a few still images.","Use compression, dynamic maneuvers, positional imaging, color/spectral Doppler, and side-to-side comparison when appropriate.","Document required measurements, laterality, representative normal/abnormal images, and the limitation or unanswered portion of the question."],
+Fluoroscopy:["Confirm indication, prior surgery, contrast type/route, patient cooperation, aspiration risk, positioning, and scout image.","Observe the study dynamically in multiple projections; document transit, distention, motility, and the sequence of contrast passage.","Trace the lumen and mucosal surface for narrowing, filling defect, mass, ulcer, leak, fistula, obstruction, extrinsic impression, and postoperative complication.","Obtain targeted, delayed, oblique, or decubitus images when needed to answer the question."],
+"Nuclear Medicine":["Confirm indication, preparation, tracer, dose, uptake/acquisition timing, medication effects, injection quality, and technical limitations.","Review dynamic, planar, SPECT/SPECT-CT, delayed, or gated data in the order acquired; distinguish physiologic activity and artifact from disease.","Correlate distribution and intensity with anatomy, priors, CT/MRI/radiographs, laboratory data, and the clinical question.","Document the earliest/most convincing abnormality, extent, comparison, and any urgent or technically indeterminate result."],
+"PET/CT":["Confirm indication, preparation, glucose when relevant, tracer, dose, uptake time, injection site, CT protocol, attenuation correction, motion, and misregistration.","Review non-attenuation-corrected and attenuation-corrected images; use PET activity and CT anatomy together.","Sweep head/neck, chest, abdomen, pelvis, bones, marrow, muscles, skin, lymph nodes, and injection site for focal, diffuse, absent, or discordant activity.","Distinguish physiologic, inflammatory, infectious, traumatic, treatment-related, and malignant uptake; compare prior burden and response."]};
+const specific={
+"Chest Radiograph":["Frontal: review lines/tubes, abdomen below the diaphragm, chest wall/neck/arms, bones, ribs in posterior/lateral/anterior segments, sternum, clavicles, cervical and thoracic spine.","Frontal: trace right and left mediastinal contours, cardiac silhouette, aorta, AP window, pulmonary trunk, hila, paratracheal stripes, cardiophrenic angles, and central lines.","Frontal: trace trachea/bronchi; check pleural lines, apices, lateral and medial costophrenic angles, effusions, diaphragms, pneumothorax, and pleural plaques.","Lungs: compare upper/mid/lower zones side-to-side for opacity, lucency, edema, consolidation, nodules, masses, volume loss, air trapping, and interstitial change.","Lateral: check spine/sternum, cardiac silhouette, aorta, esophagus, hila, posterior sulci, clear spaces, spine sign, fissures, and opacity over the heart."],
+"CT Chest":["Airways: follow trachea through segmental/subsegmental bronchi for patency, caliber, wall, filling defect, stenosis, compression, bronchiectasis, and endobronchial lesion.","Pleura/lungs: assess effusion density and layering, loculation, thickening, nodules, masses, plaques, pneumothorax, diaphragmatic pleura, consolidation, ground glass, cysts, emphysema, air trapping, reticulation, septal thickening, scar, and nodules; use MIPs.","Heart: assess pericardium, heart/chamber size, wall thinning, prior infarct, masses, thrombus, left atrial appendage, valves, devices, and catheter-associated thrombus.","Vessels: assess SVC/IVC and tributaries, pulmonary arteries/veins, coronary origins/course/calcification, aorta, arch branches, plaque, aneurysm, dissection, and collaterals.","Search lower neck/thyroid, supraclavicular and axillary/subpectoral regions, all mediastinal/hilar node stations, esophagus, upper abdomen, bones, canal, muscles, breasts, skin, and subcutaneous tissues."],
+"CTA Pulmonary Embolus":["Measure main pulmonary artery enhancement and decide whether the study is diagnostic; window down if dense contrast could obscure small emboli.","Trace main, lobar, segmental, and subsegmental arteries on axial and coronal images; use sagittal/oblique/MIP problem-solving views.","Follow ten right and eight left segmental territories, lower lobes, and inferior branches for acute defect, web, stenosis, calcification, expansion, tumor embolus, and infarct.","Assess RV/LV size, septal flattening/bowing, contrast reflux into IVC/hepatic veins, and pulmonary artery caliber for right-heart strain.","Complete the CT chest search for aortic/coronary pathology, lungs, pleura, heart, nodes, mediastinum, esophagus, neck, upper abdomen, bones, canal, muscles, and soft tissues."],
+"MRI Chest":["Characterize the known lesion on T1, T2, in/out of phase, diffusion, and pre/post-contrast sequences; assess adjacent structures and management-changing associated findings.","Review SVC/IVC, arch branches, coronary origins, pulmonary arteries/veins, heart chambers/myocardium, pericardium, airways, lungs, pleura, and lymph nodes.","Search thyroid, esophagus, upper abdomen, bones, muscles, breasts, skin, and subcutaneous tissues; use sagittal/coronal sequences for incidental lesions."],
+"Abdominal Radiograph":["Confirm diaphragm, lung bases, flanks, abdominal wall, pelvis, and complete bowel coverage.","Assess stomach, small bowel, colon, rectum, caliber, distribution, air-fluid levels, fecal burden, transition point, ileus, volvulus, pneumatosis, portal venous gas, and free air.","Review solid-organ contours, urinary tract stones, vascular calcification, lines/tubes/drains/clips/stents, spine, pelvis, sacrum, hips, and proximal femora."],
+"Fluoroscopic Esophagram":["Observe pharyngeal swallow, airway protection, laryngeal penetration, aspiration, and cervical esophagus.","Trace esophagus to the GE junction for stricture, ring, web, ulcer, mass, filling defect, foreign body, dilation, motility disorder, and extrinsic impression.","Assess hiatal hernia, reflux, mucosal pattern, leak/perforation, fistula, postsurgical anatomy, and delayed transit in multiple projections."],
+"Fluoroscopic Upper GI Study":["Assess esophageal transit, GE junction, stomach fundus/body/antrum, pylorus, duodenal bulb and sweep in multiple projections.","Search mucosal pattern, ulcer, fold thickening, mass, filling defect, narrowing, obstruction, leak, fistula, reflux, and hiatal hernia.","Assess gastric emptying, duodenal position, malrotation, volvulus, diverticulum, and postoperative anatomy; obtain delayed images for abnormal transit."],
+"CT Chest Abdomen Pelvis":["Chest: complete airway, pleura, lungs, heart, pericardium, pulmonary vessels, aorta, mediastinum, esophagus, nodes, lower neck, and chest wall review.","Abdomen: assess liver, biliary tree, gallbladder, pancreas, spleen, adrenals, kidneys, stomach, bowel, mesentery, peritoneum, nodes, ascites, free air, and upper-abdominal vessels.","Pelvis: assess bladder, ureters, uterus/ovaries or prostate/seminal vesicles, rectum, pelvic fluid, inguinal/femoral/obturator hernias, bones, sacrum, SI joints, hips, muscles, and body wall."],
+"CT Abdomen Pelvis":["Liver/biliary: assess contour, enhancement, fat, lesions, portal/hepatic veins, gallbladder wall/stones/gas/perforation, ducts, pancreas, and spleen.","GI: trace stomach, duodenum, small bowel, appendix, colon, rectum, and transition points for distention, wall thickening, inflammation, ischemia, perforation, mass, diverticulitis, and volvulus.","Spaces/vessels: assess peritoneum, mesentery, omentum, retroperitoneum, psoas, nodes, ascites, collections, free air, aorta, branches, portal/mesenteric veins, IVC, iliacs, and collaterals.","Pelvis: check bladder, ureters, uterus/ovaries or prostate/seminal vesicles, adnexa, pelvic bones, sacrum, SI joints, hips, body wall, skin, and hernias."],
+"MRI Abdomen (General Approach)":["Assess liver morphology, fat/iron, diffusion, focal lesions, enhancement, biliary ducts, portal/hepatic veins, gallbladder, pancreas/duct, spleen, adrenals, kidneys, and collecting systems.","Review bowel, mesentery, peritoneum, retroperitoneum, nodes, ascites, collections, vessels, lower chest, bones, muscles, and soft tissues."],
+"MRI Pelvis (General Approach)":["Assess bladder, urethra, ureters, rectum/anus, pelvic floor, peritoneum, pelvic vessels, bones, marrow, and soft tissues.","Review uterus/cervix/vagina/ovaries/adnexa or prostate/seminal vesicles as applicable for mass, signal, diffusion, enhancement, invasion, nodes, and compartment involvement."],
+"MRI Pelvis (Prostate)":["Assess prostate size, zonal anatomy, transition-zone nodules, peripheral-zone signal, capsule, apex/base, urethra, neurovascular bundles, and seminal vesicles.","Search restricted diffusion, low T2 signal, early enhancement, lesion size/location, extraprostatic extension, invasion, nodes, bladder, rectum, bones, and marrow; document staging features."],
+"Skull Radiograph":["Trace calvarium, skull base, sutures, facial bones, orbits, mastoids, sinuses, sella, and visible soft tissues.","Search fracture, depressed fragment, focal lucency, sclerosis, destructive lesion, hyperostosis, abnormal vascular markings, calcification, and foreign body."],
+"Cervical Spine Radiograph":["Confirm skull base through C7-T1; assess odontoid, lateral masses, prevertebral tissues, anterior/posterior/spinolaminar lines, body height, discs, facets, foramina, and posterior elements.","Search fracture, subluxation, dislocation, degenerative disease, segmentation anomaly, erosive lesion, and prevertebral swelling."],
+"Thoracic Spine Radiograph":["Trace every thoracic vertebral body, endplate, disc, posterior element, pedicle, rib, and costovertebral joint for height, alignment, fracture, lesion, and sclerosis.","Assess kyphosis, scoliosis, paraspinal lines, paravertebral mass, and visible lungs/mediastinum."],
+"Lumbar Spine Radiograph":["Trace body heights, alignment, disc spaces, endplates, pedicles, pars, facets, transverse/spinous processes, sacrum, and SI joints.","Search compression fracture, spondylolisthesis, pars defect, degenerative change, erosion, lytic/sclerotic lesion, sacral abnormality, and paraspinal mass."],
+"CT Head":["Brain: assess hemorrhage, extra-axial collection, infarct, edema, mass, hydrocephalus, ventricles, cisterns, sulci, gray-white differentiation, basal ganglia, thalami, brainstem, and cerebellum.","Check midline, herniation, basal cisterns, vascular hyperdensity, skull, skull base, facial bones, orbits, sinuses, mastoids, scalp, and foreign body."],
+"CT Temporal Bones":["Review external canals, tympanic membranes, middle ears, ossicles, scutum, tegmen, facial canal, cochlea, vestibule, semicircular canals, IACs, mastoids, jugular bulbs, carotid canals, sigmoid plates, and skull base.","Search soft tissue, fluid, erosion, ossicular disruption, fracture, dehiscence, cholesteatoma pattern, mass, congenital abnormality, and postoperative change; compare sides."],
+"CT Soft Tissue Neck":["Review nasopharynx, oropharynx, hypopharynx, larynx, airway, tongue base, floor of mouth, salivary glands, thyroid, and retropharyngeal/parapharyngeal spaces.","Search mass, abscess, edema, gas, foreign body, airway compromise, cartilage destruction, vascular encasement, cervical node levels, vessels, spine, bones, muscles, and skin."],
+"CT Cervical Spine":["Trace occiput-C1, C1 ring, dens, lateral masses, C2, every vertebra through C7-T1, facets, discs, transverse foramina, posterior elements, canal, foramina, and prevertebral tissues.","Search fracture, burst injury, translation, rotation, facet dislocation, ligamentous widening, erosive lesion, infection, mass, and hardware complication."],
+"CT Thoracic Spine":["Trace every body, endplate, disc, pedicle, lamina, transverse/spinous process, facet, rib, and costovertebral joint.","Assess alignment, kyphosis, fracture, compression, lytic/sclerotic lesion, infection, paraspinal mass, canal, foramina, lungs, pleura, and mediastinum."],
+"CT Lumbar Spine":["Trace bodies, endplates, discs, pedicles, pars, facets, transverse/spinous processes, sacrum, SI joints, pelvis, canal, lateral recesses, and foramina.","Search alignment, listhesis, fracture, compression, marrow lesion, infection, degenerative narrowing, disc extrusion, epidural process, psoas, paraspinal, bowel, kidneys, and vessels."],
+"CTA Head and Neck":["Trace arch, great-vessel origins, brachiocephalic, subclavian, common/internal/external carotid, vertebral, and cervical vessels for plaque, stenosis, occlusion, dissection, aneurysm, thrombus, and variant origin.","Trace intracranial ICA, MCA, ACA/ACom, PCA/PCom, basilar, vertebral, SCA, AICA, PICA, and major venous structures for occlusion, aneurysm, malformation, vasospasm, and asymmetry.","Review brain, ventricles, cisterns, skull, sinuses, orbits, neck soft tissues, nodes, thyroid, bones, and lungs."],
+"MRI Brain":["Review cortex, white matter, deep gray nuclei, corpus callosum, hippocampi, brainstem, cerebellum, cranial nerves, ventricles, cisterns, pituitary, orbits, and posterior fossa.","Search acute infarct, hemorrhage, mass, edema, demyelination, encephalitis, hydrocephalus, atrophy, vascular abnormality, extra-axial collection, skull, sinuses, and mastoids."],
+"MRI Brain for Seizure Focus":["Compare hippocampi, temporal lobes, fornices, mammillary bodies, temporal horns, and mesial temporal signal/architecture.","Search cortex, gray-white junction, thickness, sulcation, polymicrogyria, heterotopia, dysplasia, encephalocele, tumor, vascular malformation, gliosis, infarct, infection, and trauma."],
+"MRI Orbits":["Assess globes, lenses, chambers, vitreous, sclera/choroid, optic nerves/sheaths/chiasm, muscles, orbital fat, lacrimal glands, eyelids, and orbital apex.","Search mass, inflammation, enhancement, diffusion restriction, optic-nerve process, proptosis, muscle enlargement, intraconal/extraconal lesion, foreign body, cavernous sinus, skull base, and sinuses."],
+"MRI Internal Auditory Canals":["Compare IACs, cochleae, vestibules, semicircular canals, facial/vestibulocochlear nerves, labyrinthine segments, and cerebellopontine angles.","Search vestibular schwannoma, meningioma, facial-nerve lesion, inflammatory enhancement, labyrinthitis, infarct, hemorrhage, congenital anomaly, brainstem, cerebellum, mastoids, and vascular loops."],
+"MRI Sella and Pituitary Gland":["Assess pituitary signal, height, stalk, posterior bright spot, optic chiasm, cavernous sinuses, carotids, sphenoid sinus, clivus, sellar floor, and suprasellar cistern.","Search micro/macroadenoma, hemorrhage, cyst, inflammation, stalk thickening, invasion, mass effect, postoperative change, and dynamic/delayed enhancement pattern."],
+"MRI Neck":["Review nasopharynx, oropharynx, hypopharynx, larynx, oral cavity, tongue, floor of mouth, salivary glands, thyroid, airway, and deep neck spaces.","Search mass, infiltration, perineural spread, cartilage involvement, abscess, edema, necrosis, vascular encasement, node levels, brachial plexus, spine, marrow, muscle, skin, and postoperative change."],
+"MRI Cervical Spine":["Assess craniocervical junction, alignment, bodies, marrow, discs, facets, uncovertebral joints, ligaments, canal, foramina, roots, cord, and paraspinal tissues.","Search fracture, infection, degenerative stenosis, disc herniation, epidural process, tumor, cord signal change, syrinx, myelomalacia, and postoperative change."],
+"MRI Thoracic Spine":["Trace every body, marrow, disc, endplate, facet, posterior element, canal, foramen, cord, and paraspinal tissue.","Search fracture, metastasis, infection, disc disease, epidural collection, cord lesion, syrinx, vascular malformation, paraspinal mass, lungs, pleura, and mediastinum."],
+"MRI Lumbar Spine":["Trace alignment, body height, marrow, endplates, discs, facets, pars, canal, lateral recesses, foramina, conus, cauda equina, and roots.","Search fracture, marrow lesion, infection, extrusion, stenosis, synovial cyst, epidural process, arachnoiditis, tumor, postoperative change, sacrum, SI joints, psoas, and retroperitoneum."],
+"MRI Total Spine":["Sweep sagittal images from craniocervical junction through sacrum for alignment, vertebral height, marrow lesion, disc disease, cord signal, canal compromise, epidural process, and paraspinal mass.","Use axial images at abnormalities and key levels for cord, roots, lateral recesses, foramina, facets, ligaments, conus, cauda equina, sacrum, SI joints, and body edges."],
+"Considerations for All MSK Radiographs":["Match views to the indication; confirm the entire joint, adjacent joint, relevant soft-tissue envelope, and comparison side when needed.","Use a repeatable trace of alignment/cortex, then trabeculae, joint spaces, periosteum, and soft tissues.","Search normal variants, accessory ossicles, growth plates, enthesopathy, degenerative change, infection, neoplasm, and subtle trauma; identify the next study when radiographs are negative but suspicion remains."],
+"Shoulder Radiograph":["Assess humeral head/neck/tuberosities, glenoid, coracoid, acromion, clavicle, scapula, ribs, glenohumeral and AC alignment, joint spaces, high-riding humeral head, and calcific tendinopathy.","Search fracture, dislocation, AC separation, sternoclavicular injury, greater-tuberosity lesion, os acromiale, soft-tissue swelling, and lung-apex lesion."],
+"Elbow Radiograph":["Trace distal humerus, capitellum, trochlea, epicondyles, radial head/neck, ulna, olecranon, coronoid, and proximal forearm.","Assess radiocapitellar/ulnotrochlear alignment, anterior humeral line, fat pads, effusion, osteochondral lesion, and loose body; search coronoid, capitellum, radial-head, olecranon, Monteggia, and fracture-dislocation patterns."],
+"Wrist and Hand Radiograph":["Trace distal radius/ulna, carpal rows, scaphoid, lunate, triquetrum, pisiform, hamate/hook, capitate, trapezoid, trapezium, metacarpals, phalanges, and sesamoids.","Assess carpal arcs, SL/LT intervals, radiocarpal/DRUJ/CMC alignment, joint spaces, distal radius, scaphoid, lunate/perilunate, triquetral, hamate, CMC, thumb, mallet, volar-plate, tuft/nail-bed, infection, and soft tissues."],
+"Pelvis and Hip Radiograph":["Trace iliac wings, ring, pubic rami, acetabular columns/walls, sacrum, SI joints, ischia, hips, femoral necks, and trochanters.","Search pelvic/acetabular fracture pattern, hip dislocation, subcapital/greater-trochanter fracture, avulsion, sacral insufficiency, stress reaction, osteochondral lesion, osteonecrosis, bisphosphonate fracture, pelvic lines, and calcific tendinitis."],
+"Knee Radiograph":["Trace distal femur, tibial plateau/spines, proximal fibula, patella, cortical margins, marrow, joint spaces, fat pads, and alignment.","Search effusion, Segond fracture, tibial stress/plateau fracture, subchondral insufficiency fracture, periosteal reaction, prepatellar bursitis, patellofemoral dislocation, patellar fracture, extensor mechanism disruption, osteochondral lesion, and calcification."],
+"Ankle Radiograph":["Trace distal tibia/fibula/malleoli, talus, calcaneus, navicular, base of fifth, and midfoot; assess mortise, tibiofibular relationship, talar tilt, subtalar alignment, and joint spaces.","Search high ankle sprain, talar lateral-process, distal fibular, peroneal-retinaculum, extensor-digitorum-brevis, calcaneal anterior-process fractures, avulsions, and soft-tissue swelling/gas/foreign body."],
+"Foot Radiograph":["Trace phalanges, metatarsals, tarsals, calcaneus, talus, navicular, cuboid, cuneiforms, and sesamoids.","Assess Lisfranc/tarsometatarsal alignment, arches, MTP/IP joints, osteochondral lesion, fifth-metatarsal/Jones fracture, first-metatarsal dislocation, ligament injury, stress fracture, infection, foreign body, gas, and plantar soft tissues."],
+"MRI Shoulder":["Assess rotator-cuff tendons/muscles, deltoid, biceps and anchor, labrum, cartilage, capsule, ligaments, bursa, humeral head, tuberosities, glenoid, AC joint, and marrow.","Search tendinopathy, partial/full tear, retraction/atrophy, labral tear, instability, cartilage defect, impingement, bursitis, adhesive capsulitis, occult fracture, marrow lesion, infection, and mass."],
+"MRI Elbow":["Assess distal biceps/triceps, flexor/extensor origins, UCL, LCL complex, annular ligament, bones, marrow, cartilage, synovium, loose bodies, and alignment.","Search tendon/ligament tear, instability, osteochondral lesion, fracture, marrow edema, stress injury, infection, synovitis, mass, nerve abnormality, and bursitis."],
+"MRI Wrist":["Trace carpal bones/alignment, marrow, SL/LT ligaments, TFCC, DRUJ, intrinsic/extrinsic ligaments, tendons, tendon sheaths, carpal tunnel, and Guyon canal.","Search occult fracture, osteonecrosis, marrow lesion, ligament tear, TFCC injury, cartilage defect, ganglion, infection, synovitis, and soft-tissue mass."],
+"MRI Hip and Pelvis":["Assess femoral heads/necks, acetabula, labra, cartilage, capsules, ligaments, trochanters, tendons, muscles, pelvic ring, sacrum, SI joints, and pubic symphysis.","Search fracture, stress reaction, osteonecrosis, osteochondral lesion, arthritis, labral tear, impingement, tendon injury, bursitis, infection, tumor, nodes, pelvic organs, and body wall."],
+"MRI Knee":["Assess ACL/PCL, MCL/LCL, posterolateral corner, menisci, extensor mechanism, retinacula, muscles, femur, tibia, fibula, patella, cartilage, marrow, synovium, and alignment.","Search ligament/meniscal tear, osteochondral lesion, stress/insufficiency fracture, marrow lesion, synovitis, effusion, Baker cyst, bursitis, infection, mass, neurovascular and tendon abnormality."],
+"MRI Ankle":["Trace lateral/syndesmotic/deltoid/spring ligaments, plantar fascia, Achilles, peroneal/flexor/extensor tendons, joints, talus, calcaneus, malleoli, midfoot, marrow, and cartilage.","Search occult fracture, stress reaction, tendon tear/tenosynovitis, instability, plantar-fascia injury, impingement, infection, marrow lesion, mass, tarsal tunnel, and soft tissues."],
+"MSK MRI for Infection":["Map the abnormality across skin, subcutaneous tissue, fascia, muscle, tendon, bursa, joint, cartilage, marrow, and cortex.","Search cellulitis, phlegmon, abscess, sinus tract, gas, septic arthritis, osteomyelitis, periostitis, pyomyositis, tenosynovitis, necrosis, devitalized tissue, cortical breach, and neurovascular involvement."],
+"CTA Coronary":["Confirm ECG gating, heart-rate control, contrast timing, calcium blooming, motion, and diagnostic quality.","Trace left main, LAD/diagonals, circumflex/OM, RCA, PDA, and posterolateral branches for origin, course, dominance, plaque, calcification, stenosis, occlusion, dissection, aneurysm, bridge, anomalous/interarterial course, stent, and graft patency.","Assess chambers, myocardium, valves, pericardium, pulmonary veins, aorta, pulmonary arteries, lungs, pleura, nodes, chest wall, and upper abdomen for extracoronary findings."],
+"CTA Aorta (Dissection Study)":["Trace aortic root, ascending aorta, arch, descending thoracic, abdominal, and iliac arteries for flap, intramural hematoma, penetrating ulcer, aneurysm, pseudoaneurysm, rupture, thrombus, and plaque.","Assess true/false lumen, coronary ostia, branch origins, celiac/SMA/renal/IMA/iliac perfusion, malperfusion, periaortic hematoma, hemopericardium, hemothorax, retroperitoneal hemorrhage, and active extravasation."],
+"MRI Heart (General Approach)":["Confirm gating, cine coverage, ventricular volumes/function, flow, mapping, perfusion, late enhancement, and artifacts.","Assess LV/RV size and function, wall thickness, septa, valves, inflow/outflow, great vessels, coronary origins, pulmonary veins, myocardium for edema/infarct/scar/infiltration/mass/thrombus, and pericardium."],
+"MRI Heart: Specific Indications":["Ischemia/viability: assess perfusion, defect, infarct distribution/transmurality, microvascular obstruction, and viable myocardium.","Inflammation/cardiomyopathy: assess edema, mapping, non-ischemic enhancement, chamber morphology, hypertrophy, infiltration, scar/fibrosis, RV pattern, and pericardium.","Congenital/mass: trace septa, shunts, valves, anomalous return, postoperative pathways, attachment, mobility, perfusion, enhancement, invasion, and thrombus."],
+"CTA Iliofemoral Runoff and Lower Extremities":["Trace aorta, iliacs, common/profunda/superficial femoral, popliteal, anterior tibial, tibioperoneal trunk, posterior tibial, peroneal, dorsalis pedis, and plantar vessels.","Assess patency, stenosis, occlusion, dissection, aneurysm, pseudoaneurysm, thrombus, calcium, collateralization, distal reconstitution, contrast timing, venous contamination, and runoff.","Review muscles, fascia, soft tissues, skin, ulcers, abscess, gas, hematoma, compartment swelling, bone, fracture, infection, and hardware."],
+"CTA Upper Extremity":["Trace arch, subclavian, axillary, brachial, radial, ulnar, palmar arches, and digital branches for stenosis, occlusion, thrombus, dissection, aneurysm, pseudoaneurysm, vasospasm, embolus, and extravasation.","Assess timing, venous overlap, motion, hardware streak, distal visualization, bones, joints, muscles, tendons, skin, ulcers, gas, hematoma, abscess, and foreign body."],
+"US Abdomen":["Assess liver size/contour/echogenicity/lesions, portal/hepatic veins and flow, gallbladder wall/stones/sludge/polyps/Murphy sign/fluid, bile ducts, pancreas, spleen, kidneys, aorta, IVC, bowel, ascites, pleural bases, and abdominal wall."],
+"US Appendix":["Find the appendix from cecal base to blind tip; assess diameter, compressibility, wall layers, hyperemia, appendicolith, periappendiceal fat/fluid, abscess, perforation, and focal tenderness.","Search terminal ileum, cecum, nodes, adnexa/urinary tract as relevant, and free fluid; document nonvisualization and limitations."],
+"US Renal and Retroperitoneum":["Measure both kidneys; assess position, contour, cortex, echogenicity, differentiation, lesions, hydronephrosis, hydroureter, stones/twinkle, urothelium, cysts, masses, scarring, infarct, and perinephric collection.","Assess bladder volume/wall/jets/stones/mass/residual and review aorta, IVC, renal vessels, adrenals, nodes, psoas, retroperitoneal masses, and flank soft tissues."],
+"US Pelvis and Transvaginal":["Assess uterus, myometrium, endometrium, cervix, ovaries, follicles, adnexa, masses, cysts, solid components, septa, vascularity, torsion, hemorrhage, bladder, and free fluid.","Correlate transabdominal/transvaginal views with pain and prior studies; document dimensions, location, tenderness, and ectopic/infectious process when relevant."],
+"US First Trimester Pregnancy":["Confirm intrauterine/extrauterine location; identify sac, yolk sac, embryo, cardiac activity, crown-rump length, mean sac diameter, and dating as appropriate.","Assess uterus, cervix, endometrium, ovaries, adnexa, corpus luteum, free fluid/hemoperitoneum, subchorionic hemorrhage, abnormal implantation, ectopic pregnancy, torsion, and pregnancy of uncertain location."],
+"US Scrotum":["Measure and compare testes; assess contour, echogenicity, microlithiasis, focal lesion, vascularity, epididymides, and spermatic cord.","Search torsion, infarct, trauma, hematoma, tumor, infection, abscess, hydrocele/pyocele, varicocele with maneuvers, inguinal canal, and scrotal wall."],
+"US Thyroid":["Assess thyroid size, contour, echogenicity, vascularity, diffuse change, and focal nodules.","For each nodule document three dimensions, composition, echogenicity, shape, margins, calcification, vascularity, and extrathyroidal extension; search central/lateral nodes, strap muscles, trachea, esophagus, parathyroids, and vessels."],
+"US Lower Extremity for DVT":["Compress common femoral, saphenofemoral junction, femoral, profunda origin, popliteal, posterior tibial, peroneal, and indicated calf segments.","Assess echogenicity, color filling, augmentation, phasicity, flow symmetry, acute/chronic recanalization, superficial thrombosis, iliac extension, cyst, hematoma, edema, and alternate soft-tissue diagnosis."],
+"US Extremity Arterial Doppler":["Trace indicated arterial segments; assess plaque, intimal thickening, stenosis, occlusion, thrombus, aneurysm, pseudoaneurysm, dissection, graft/stent, and collateralization.","Obtain required velocities/waveforms/ratios and pressures; assess waveform morphology, acceleration, distal flow, ischemic tissue, ulcer, collection, and hematoma."],
+"US Hemodialysis Access":["Identify inflow artery, anastomosis, fistula/graft body, venous outflow, central direction, stents, and revisions.","Assess patency, flow, stenosis, thrombus, aneurysm/pseudoaneurysm, hematoma, perigraft fluid, infection, steal, venous hypertension, and compare flow/velocities with priors."],
+"US Carotid":["Assess bilateral CCA, bulbs, ICA/ECA, vertebral arteries, and subclavian origins for plaque, intimal thickening, calcification, ulceration, dissection, thrombus, occlusion, and stent appearance.","Obtain required grayscale/color/spectral velocities and ratios; assess waveform, flow direction, and vertebral patency, then compare with priors and symptoms."],
+"US Transcranial Doppler":["Use temporal, transorbital, suboccipital, and submandibular windows; document limited/absent windows.","Sample MCA, ACA, PCA, terminal ICA, vertebral, and basilar arteries; record depth, direction, velocities, waveforms, vasospasm, stenosis, occlusion, embolic signals, collateral flow, and trend."],
+"US Liver Doppler":["Assess liver morphology, lesions, ducts, perihepatic fluid, portal direction/velocity/patency/thrombus/collaterals, hepatic veins/IVC waveforms, hepatic artery waveform/RI, and TIPS/device velocities when present."],
+"US Renal Doppler":["Assess kidneys, parenchyma, perfusion, renal arteries from origin to hilum, velocities, waveforms, renal-aortic ratio, stenosis, occlusion, aneurysm/dissection, intrarenal RIs, and renal veins/IVC."],
+"US Liver Transplant":["Assess graft contour/parenchyma/lesions, bile ducts, collections/hematoma/free fluid, hepatic artery, portal vein, hepatic veins, IVC, anastomoses, TIPS/stents, patency, direction, velocities, and waveforms.","Search arterial/portal/venous complications, biliary leak/stricture, abscess, infarct, post-biopsy complication, and interval change."],
+"US Renal Transplant":["Measure graft; assess contour, cortex, differentiation, perfusion, hydronephrosis, collecting system, perinephric fluid, and focal lesion.","Trace transplant artery/anastomosis/hilar vessels/vein/IVC/iliacs; obtain RIs and waveforms and search stenosis, thrombosis, kinking, infarct, infection, abscess, urinoma, lymphocele, and hematoma."],
+"V/Q Scan":["Review ventilation distribution, deposition, defects, perfusion in all projections, and match/mismatch against the chest radiograph/CT.","Classify segmental/subsegmental, matched, mismatched, reverse-mismatched, non-embolic, technical, and alternative lung patterns using the local probability framework."],
+"GI Bleeding Study":["Review dynamic frames for first vascular activity; follow every new focus over time for increasing intensity and antegrade/retrograde bowel movement.","Localize to stomach, small bowel, colon, urinary tract, or other mimic using delayed/oblique/lateral correlation; document earliest convincing bleeding site."],
+"HIDA Hepatobiliary Scintigraphy":["Assess hepatic uptake/clearance, ducts, gallbladder filling, common duct, bowel transit, nonvisualization, delayed transit, cystic obstruction, chronic/postoperative patterns, and bile leak.","If ejection fraction is measured, confirm stimulant, curve, symptoms, value, and technical validity."],
+"Brain Death Study":["Confirm tracer, injection quality, timing, attenuation, and clinical protocol; assess anterior/lateral and delayed/SPECT images for intracranial arterial and cerebral perfusion.","Distinguish absent cerebral flow from scalp/nasal/sagittal-sinus/external-carotid activity and state technical limitations."],
+"Bone Scan":["Review whole-body anterior/posterior images skull-to-feet systematically: skull, spine, ribs, sternum, shoulders, arms, pelvis/hips, femora, knees, tibiae, ankles, feet.","Correlate each focus with CT/MRI/radiographs for fracture, degenerative disease, infection, tumor, metabolic disease, postoperative change; review kidneys/bladder, injection site, contamination, extraskeletal uptake, and targeted SPECT/CT."],
+"Three-Phase Bone Scan":["Compare flow, blood-pool, and delayed phases for perfusion, hyperemia, soft-tissue inflammation, fluid, osseous uptake, joint involvement, and phase concordance.","Correlate with radiographs/CT/MRI and classify infection, fracture, prosthesis complication, cellulitis, complex regional pain, tumor, and postoperative pattern."],
+"Gallbladder Ejection Fraction Study":["Confirm fasting/medications, tracer, stimulant, infusion, timing, gallbladder filling, hepatic clearance, biliary transit, and duodenal activity.","Review valid baseline and time-activity curve, calculated EF, symptom reproduction, delayed transit, nonvisualization, leak, obstruction, and limitations."],
+"Gastric Emptying Study":["Confirm standardized meal, fasting, medications, glucose, completion, intervals, position, and stomach coverage.","Review retention at every time point, curve/half-time, delayed or rapid emptying, reflux, vomiting, incomplete meal, attenuation, and standardized classification."],
+"I-123 Iodine Uptake Test":["Confirm medication/iodine/contrast history, dose, uptake timing, and reference range; measure uptake.","Review thyroid size/location, diffuse versus focal uptake, hot/cold areas, ectopia, suppression, Graves/toxic/thyroiditis patterns, and nodules; correlate labs."],
+"Parathyroid Imaging with Tc99m-Sestamibi":["Review early and delayed thyroid/parathyroid images for focal persistent uptake, ectopic sites, SPECT/CT localization, thyroid nodules, salivary activity, nodes, and mediastinum."],
+"Combined Sulfur Colloid and Tagged WBC Scan":["Compare sulfur-colloid liver/spleen/marrow distribution with tagged-WBC images; search focal WBC accumulation outside expected reticuloendothelial sites.","Assess mismatch/match at prostheses, bowel, bone, soft tissue, and surgery; correlate with CT/MRI and contamination/artifact."],
+"F18 FDG PET/CT Whole Body":["Review physiologic uptake and pathology in brain, head/neck, thyroid, chest, breast, nodes, lungs, pleura, heart, liver, spleen, adrenals, pancreas, kidneys, bowel, peritoneum, pelvis, bone, marrow, muscle, skin, and injection site.","For each focus assess CT correlate, size, intensity/SUV, distribution, response, new disease, treatment effect, inflammatory/infectious/traumatic alternative, and non-avid structural lesion."],
+"Gallium-68 Dotatate PET/CT":["Recognize physiologic pituitary, salivary/lacrimal, thyroid, liver, spleen, adrenal, renal/urinary, bowel, and gallbladder activity.","Search receptor-avid head/neck, chest, nodes, pancreas, bowel/mesentery, liver, peritoneum, retroperitoneum, bones, and soft tissues; correlate CT, benign mimics, burden, intensity, and therapy relevance."],
+"Fluciclovine F18 (Axumin) PET/CT":["Review expected pancreas/liver/marrow/urinary activity and artifacts; search prostate bed/seminal vesicles, pelvic/retroperitoneal/mediastinal/supraclavicular nodes, liver, lungs, bone, and marrow.","Correlate focal uptake with CT lesion, PSA/treatment history, prior imaging, postsurgical/inflammatory change, intensity, and distribution."],
+"Neonatal Chest Radiograph":["Assess lung volume/aeration, diffuse/focal opacity, air bronchograms, edema, aspiration, atelectasis, congenital abnormality, pneumothorax, pneumomediastinum, pleural fluid, interstitial emphysema, heart, thymus, diaphragms, bones, and soft tissues.","Trace ETT, enteric tube, umbilical arterial/venous catheter, central line, chest tube, and every device for tip position and complication."],
+"Neonatal Abdominal Radiograph":["Assess stomach, small/large bowel, rectum, distention, obstruction, transition, malrotation/volvulus, meconium pattern, pneumatosis, portal venous gas, free air, fluid levels, bowel wall, solid organs, kidneys, bladder, bones, and soft tissues.","Trace every line, tube, drain, ostomy, and hardware."],
+"Scoliosis Series":["Confirm standing/specified positioning and complete spine/pelvis coverage; trace bodies/posterior elements for hemivertebra, segmentation anomaly, lesion, fracture, and dysraphism.","Assess coronal/sagittal alignment, primary/compensatory curves, rotation, kyphosis/lordosis, pelvic tilt, shoulder balance, ribs, hips, and measure/document Cobb angle and levels."],
+"Fluoroscopic Upper GI for Midgut Volvulus":["Observe stomach, pyloric passage, duodenal sweep, DJ junction position, midline relationship, obstruction, malrotation, corkscrew configuration, abnormal jejunal position, reflux, aspiration, leak, and perforation."],
+"Pediatric Contrast Enema":["Assess anus, rectum, rectosigmoid ratio, transition zone, colon caliber/haustra/mucosa, cecum, terminal-ileal reflux, appendix, microcolon, meconium plug, Hirschsprung pattern, obstruction, volvulus, stricture, leak, perforation, and decompression."],
+"US Abdomen for Complications of Malrotation":["Assess SMA/SMV relationship, duodenum, DJ region, mesenteric-root whirlpool, bowel obstruction, wall thickening, perfusion, pneumatosis, and free fluid; communicate suspected volvulus/ischemia immediately.","Review stomach, pylorus, bowel, appendix, solid organs, vessels, and peritoneum for associated disease."],
+"US for Intussusception":["Sweep all quadrants/ileocecal region for target/doughnut and pseudokidney signs; assess length, lead point, bowel layers, mesenteric fat/vessels, trapped fluid, perfusion, obstruction, free fluid, and perforation."],
+"US for Pyloric Stenosis":["Identify pylorus in longitudinal/transverse planes; assess muscle thickness, channel length, mucosa, gastric emptying, dynamic opening, position, and equivocal limitation; review alternate abdominal causes."],
+"Pediatric US Renal and Retroperitoneum":["Measure age-appropriate kidneys and assess position, contour, echogenicity, differentiation, collecting systems, ureters, bladder, jets, residual, hydronephrosis, duplication, ectopia, cyst, mass, scar, adrenal regions, aorta, IVC, nodes, bowel, and retroperitoneum."],
+"US Neonatal Head":["Use fontanelle windows to assess ventricles, caudothalamic grooves, germinal matrix, choroid, periventricular white matter, corpus callosum, thalami, basal ganglia, posterior fossa, extra-axial spaces, hemorrhage, hydrocephalus, PVL, infarct, cyst, infection, anomaly, and midline shift."],
+"US Neonatal Spine":["Assess skin, subcutaneous tissues, posterior elements, canal, cord, conus, filum, roots, and CSF; search low conus, tethering, thick filum, lipoma, sinus, meningocele, myelomeningocele, split cord, mass, and hemorrhage."],
+"US Hips for Hip Dysplasia":["Position infant and assess acetabular roof, labrum, femoral head, triradiate cartilage, iliac line, coverage, alpha/beta angles, stability, subluxation, dislocation, ossification, and stress maneuver in both hips."],
+"CT Chest in Pediatric Patients":["Confirm age/size-adjusted protocol, dose, contrast, motion, breath-hold, and coverage; review age-appropriate thymus and incomplete ossification.","Search airways, lungs, pleura, heart, mediastinum, thymus, vessels, nodes, chest wall, bones, upper abdomen, devices, congenital abnormality, infection, aspiration, trauma, mass, effusion, pneumothorax, and vascular catastrophe."],
+"MR Enterography":["Confirm oral contrast distention, antiperistaltic medication, IV contrast, timing, coverage, and motion.","Trace stomach, duodenum, small bowel, terminal ileum, ileocecal valve, and colon for mural thickness, T2 edema, enhancement, diffusion, ulcer, stricture, fistula, abscess, obstruction, active/chronic inflammation, comb sign, creeping fat, nodes, peritoneum, and extraintestinal organs."],
+"MR Urogram":["Assess kidneys, parenchyma, collecting systems, ureters, UVJs, bladder, urethra, and sex-specific pelvic anatomy for hydronephrosis, hydroureter, duplication, ectopia, stricture, stone, filling defect, mass, infection, reflux-related change, and postoperative anatomy.","Review excretory/delayed function/transit, obstruction, leak, abdomen/pelvis, nodes, retroperitoneum, bones, and soft-tissue cause of urinary symptoms."],
+"Mammogram and Breast Tomosynthesis":["Confirm indication, priors, laterality, positioning, compression, exposure, pectoral muscle, posterior tissue, skin folds, nipple profile, implants, motion, and complete coverage.","Search both breasts from skin to chest wall for mass, asymmetry, developing asymmetry, architectural distortion, focal density, calcification, skin/nipple retraction, edema, trabecular thickening, nodes, and interval change; localize in three dimensions and recommend diagnostic workup."],
+"US Breast":["Scan the entire breast/axilla; document clock-face/location and nipple distance.","For each finding assess three-dimensional size, shape, orientation, margins, echoes, posterior features, vascularity, elasticity, skin/duct/chest-wall relationship, solid/cystic character, abscess, implant, and nodes; correlate with mammogram/priors and recommend next step."],
+"MRI Breast":["Confirm indication, cycle/menopausal context, contrast, timing, subtraction, motion, background enhancement, and complete coverage.","Assess both breasts/axillae for mass and non-mass enhancement, morphology, distribution, kinetics, diffusion, ductal/segmental extent, skin/nipple/chest-wall involvement, multifocal/multicentric disease, nodes, internal mammary chain, pectoral muscle, ribs, sternum, liver, and lungs."],
+"MRI Breast for Implant Evaluation":["Identify implant type/side/position/shape, shell, folds, capsule, fluid, mass, and contracture; search intracapsular rupture, linguine sign, extracapsular silicone, gel bleed, silicone nodes, and migration.","Evaluate breast tissue, enhancement, axilla, internal mammary chain, chest wall, ribs, skin, and postoperative/malignant process; correlate with mammography, ultrasound, surgery, and symptoms."]
+};
 
-    // DOM elements
-    const mainC = document.getElementById('mainContainer');
-    const totalDisplay = document.getElementById('totalTimeDisplay');
-    const startPauseBtn = document.getElementById('startPauseBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const sectionListEl = document.getElementById('sectionList');
+const defs=[
+["chest-radiograph","Chest Radiograph","Chest","Radiograph","2-9"],["ct-chest","CT Chest","Chest","CT","11-18"],["cta-pe","CTA Pulmonary Embolus","Chest","CTA","19-20"],["mri-chest","MRI Chest","Chest","MRI","22-23"],["abd-radiograph","Abdominal Radiograph","Body","Radiograph","49-51"],["esophagram","Fluoroscopic Esophagram","Body","Fluoroscopy","53-61"],["upper-gi","Fluoroscopic Upper GI Study","Body","Fluoroscopy","62-66"],["ct-cap","CT Chest Abdomen Pelvis","Body","CT","71-76"],["ct-ap","CT Abdomen Pelvis","Body","CT","78-80"],["mri-abd","MRI Abdomen (General Approach)","Body","MRI","82-87"],["mri-pelvis","MRI Pelvis (General Approach)","Body","MRI","89-91"],["mri-prostate","MRI Pelvis (Prostate)","Body","MRI","91-96"],
+["skull-xr","Skull Radiograph","Neuro","Radiograph","82-88"],["cspine-xr","Cervical Spine Radiograph","Neuro","Radiograph","89-92"],["tspine-xr","Thoracic Spine Radiograph","Neuro","Radiograph","93-96"],["lspine-xr","Lumbar Spine Radiograph","Neuro","Radiograph","97-103"],["ct-head","CT Head","Neuro","CT","104-112"],["ct-temporal","CT Temporal Bones","Neuro","CT","113-118"],["ct-neck","CT Soft Tissue Neck","Neuro","CT","119-120"],["ct-cspine","CT Cervical Spine","Neuro","CT","121-123"],["ct-tspine","CT Thoracic Spine","Neuro","CT","125-129"],["ct-lspine","CT Lumbar Spine","Neuro","CT","130-134"],["cta-head-neck","CTA Head and Neck","Neuro","CTA","135-141"],["mri-brain","MRI Brain","Neuro","MRI","142-147"],["mri-seizure","MRI Brain for Seizure Focus","Neuro","MRI","148-152"],["mri-orbits","MRI Orbits","Neuro","MRI","153-154"],["mri-iac","MRI Internal Auditory Canals","Neuro","MRI","155-156"],["mri-sella","MRI Sella and Pituitary Gland","Neuro","MRI","157-158"],["mri-neck","MRI Neck","Neuro","MRI","159-160"],["mri-cspine","MRI Cervical Spine","Neuro","MRI","161-166"],["mri-tspine","MRI Thoracic Spine","Neuro","MRI","167-170"],["mri-lspine","MRI Lumbar Spine","Neuro","MRI","171-174"],["mri-total-spine","MRI Total Spine","Neuro","MRI","175-179"],
+["all-msk-xr","Considerations for All MSK Radiographs","MSK","Radiograph","182-185"],["shoulder-xr","Shoulder Radiograph","MSK","Radiograph","186-188"],["elbow-xr","Elbow Radiograph","MSK","Radiograph","189-192"],["wrist-hand-xr","Wrist and Hand Radiograph","MSK","Radiograph","193-196"],["pelvis-hip-xr","Pelvis and Hip Radiograph","MSK","Radiograph","197-202"],["knee-xr","Knee Radiograph","MSK","Radiograph","203-206"],["ankle-xr","Ankle Radiograph","MSK","Radiograph","207-209"],["foot-xr","Foot Radiograph","MSK","Radiograph","210-212"],["mri-shoulder","MRI Shoulder","MSK","MRI","213-216"],["mri-elbow","MRI Elbow","MSK","MRI","217-219"],["mri-wrist","MRI Wrist","MSK","MRI","220-222"],["mri-hip-pelvis","MRI Hip and Pelvis","MSK","MRI","223-226"],["mri-knee","MRI Knee","MSK","MRI","227-230"],["mri-ankle","MRI Ankle","MSK","MRI","231-234"],["msk-infection","MSK MRI for Infection","MSK","MRI","235-236"],
+["cta-coronary","CTA Coronary","Cardiac","CTA","237-239"],["cta-aorta","CTA Aorta (Dissection Study)","Cardiac","CTA","240-243"],["mri-heart","MRI Heart (General Approach)","Cardiac","MRI","244-247"],["mri-heart-specific","MRI Heart: Specific Indications","Cardiac","MRI","248-252"],["cta-iliofemoral","CTA Iliofemoral Runoff and Lower Extremities","Vascular","CTA","253-255"],["cta-upper","CTA Upper Extremity","Vascular","CTA","256-259"],
+["us-general","General Ultrasound Approach","Ultrasound","Ultrasound","262-264"],["us-abdomen","US Abdomen","Ultrasound","Ultrasound","265-267"],["us-appendix","US Appendix","Ultrasound","Ultrasound","268-269"],["us-renal","US Renal and Retroperitoneum","Ultrasound","Ultrasound","270-272"],["us-pelvis","US Pelvis and Transvaginal","Ultrasound","Ultrasound","273-275"],["us-first","US First Trimester Pregnancy","Ultrasound","Ultrasound","276-278"],["us-scrotum","US Scrotum","Ultrasound","Ultrasound","279-281"],["us-thyroid","US Thyroid","Ultrasound","Ultrasound","282-284"],["us-dvt","US Lower Extremity for DVT","Vascular","Ultrasound","285-287"],["us-arterial","US Extremity Arterial Doppler","Vascular","Ultrasound","288-290"],["us-access","US Hemodialysis Access","Vascular","Ultrasound","291-293"],["us-carotid","US Carotid","Vascular","Ultrasound","294-296"],["us-tcd","US Transcranial Doppler","Vascular","Ultrasound","297-299"],["us-liver-doppler","US Liver Doppler","Vascular","Ultrasound","300-302"],["us-renal-doppler","US Renal Doppler","Vascular","Ultrasound","303-305"],["us-liver-transplant","US Liver Transplant","Transplant","Ultrasound","306-309"],["us-renal-transplant","US Renal Transplant","Transplant","Ultrasound","310-312"],
+["vq","V/Q Scan","Nuclear Medicine","Nuclear Medicine","314-315"],["gi-bleed","GI Bleeding Study","Nuclear Medicine","Nuclear Medicine","316-317"],["hida","HIDA Hepatobiliary Scintigraphy","Nuclear Medicine","Nuclear Medicine","318-319"],["brain-death","Brain Death Study","Nuclear Medicine","Nuclear Medicine","320-321"],["bone-scan","Bone Scan","Nuclear Medicine","Nuclear Medicine","322-323"],["three-phase","Three-Phase Bone Scan","Nuclear Medicine","Nuclear Medicine","324-325"],["gb-ef","Gallbladder Ejection Fraction Study","Nuclear Medicine","Nuclear Medicine","326"],["gastric-emptying","Gastric Emptying Study","Nuclear Medicine","Nuclear Medicine","327"],["i123","I-123 Iodine Uptake Test","Nuclear Medicine","Nuclear Medicine","328"],["parathyroid","Parathyroid Imaging with Tc99m-Sestamibi","Nuclear Medicine","Nuclear Medicine","329-330"],["sulfur-wbc","Combined Sulfur Colloid and Tagged WBC Scan","Nuclear Medicine","Nuclear Medicine","331-332"],["fdg","F18 FDG PET/CT Whole Body","Nuclear Medicine","PET/CT","333-335"],["dotatate","Gallium-68 Dotatate PET/CT","Nuclear Medicine","PET/CT","336-337"],["axumin","Fluciclovine F18 (Axumin) PET/CT","Nuclear Medicine","PET/CT","338-340"],
+["neonatal-cxr","Neonatal Chest Radiograph","Pediatrics","Radiograph","341-343"],["neonatal-abd","Neonatal Abdominal Radiograph","Pediatrics","Radiograph","344-346"],["scoliosis","Scoliosis Series","Pediatrics","Radiograph","347-348"],["peds-ugi","Fluoroscopic Upper GI for Midgut Volvulus","Pediatrics","Fluoroscopy","349-351"],["peds-enema","Pediatric Contrast Enema","Pediatrics","Fluoroscopy","352-354"],["malrotation-us","US Abdomen for Complications of Malrotation","Pediatrics","Ultrasound","355-357"],["intussusception","US for Intussusception","Pediatrics","Ultrasound","358-359"],["pylorus","US for Pyloric Stenosis","Pediatrics","Ultrasound","360-361"],["peds-renal","Pediatric US Renal and Retroperitoneum","Pediatrics","Ultrasound","362-364"],["neonatal-head","US Neonatal Head","Pediatrics","Ultrasound","365-366"],["neonatal-spine","US Neonatal Spine","Pediatrics","Ultrasound","367-368"],["peds-hips","US Hips for Hip Dysplasia","Pediatrics","Ultrasound","369-371"],["peds-ct-chest","CT Chest in Pediatric Patients","Pediatrics","CT","372-373"],["mr-enterography","MR Enterography","Pediatrics","MRI","374-375"],["mr-urogram","MR Urogram","Pediatrics","MRI","376-377"],
+["mammogram","Mammogram and Breast Tomosynthesis","Breast","Mammography","378-383"],["us-breast","US Breast","Breast","Ultrasound","384-386"],["mri-breast","MRI Breast","Breast","MRI","387-390"],["mri-implant","MRI Breast for Implant Evaluation","Breast","MRI","391-392"]
+];
+const workflow=[
+["breaks","Managing Breaks in the Search Pattern","Workflow","Workflow","393-395",["Stop at an anatomic checkpoint; record the last completed and next section before leaving.","After interruption, re-form gestalt, restart at the checkpoint, complete the remaining search, and perform the final second look."]],
+["final-checks","Final Checks for Every Study","Workflow","Workflow","396-398",["Confirm the indication, priors, full field of view, localizer/scout, edges, devices, foreign bodies, bones, soft tissues, vessels, and modality blind spots.","Recheck life-threatening hemorrhage, infarct, obstruction, infection, ischemia, pneumothorax, free air, malposition, and acute vascular disease.","Ensure the impression answers the question, states limitations, recommends next steps, communicates urgent results, and is proofread."]],
+["prelims","Rules of Thumb for Preliminary Reports","Workflow","Workflow","399-401",["Confirm patient, study, indication, and expected communication; perform enough search to avoid anchoring and identify urgent findings.","Give a concise useful preliminary impression, state limitations/senior review, and directly communicate time-sensitive findings through the proper channel."]],
+["follow-cases","Rules of Thumb for Following Cases","Workflow","Workflow","402-403",["Choose cases where outcome will teach you; record the question and expected follow-up.","Review the outcome against the original interpretation and convert misses, overcalls, and uncertainty into a specific pattern update."]],
+["improvement","Suggestions for Constant Improvement","Workflow","Workflow","404-405",["Record misses, near misses, and recurring uncertainty; convert each lesson into a concrete checkpoint.","Periodically review omissions, redundancy, technology changes, speed/completeness, and attending feedback.","When a Notion edit should reach the repository, check “Repository update requested,” update the repository, verify the count/order, and clear the flag."]]
+];
+const baseFor=mod=>BASE[mod]||(mod==="Mammography"?BASE.Radiograph:BASE.CT);
+const patterns=defs.map(([id,title,region,modality,pages])=>{const b=modality==="PET/CT"?BASE["PET/CT"]:baseFor(modality);const custom=specific[title]||["Follow the study-specific anatomy and technique in the source chapter; expand the sweep to every visible structure."];return {id,title,region,modality,pages,keywords:[title,region,modality],groups:[G("Universal setup and first pass",b),G("Study-specific ordered search",custom),G("Last checks",LAST)]};});
+patterns.push(...workflow.map(([id,title,region,modality,pages,items])=>({id,title,region,modality,pages,keywords:[title,region,"checklist"],groups:[G("Ordered workflow",items),G("Last checks",LAST)]})));
 
-    // Initialize section tracking and list item event listeners
-    Array.from(sectionListEl.children).forEach(li => {
-      const sectionName = li.dataset.section;
-      sectionTimes[sectionName] = 0;
-
-      li.addEventListener('click', () => {
-        if (currentSection === sectionName) {
-          // No change if clicking the already active section
-        } else {
-          const currentlyActiveLi = sectionListEl.querySelector('li.active');
-          if (currentlyActiveLi) {
-            currentlyActiveLi.classList.remove('active');
-          }
-          li.classList.add('active');
-          currentSection = sectionName;
-        }
-      });
-    });
-
-    function formatTime(totalSeconds) {
-      const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-      const s = (totalSeconds % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
-    }
-
-    function updateDisplay() {
-      totalDisplay.textContent = formatTime(stopwatchElapsed);
-      Array.from(sectionListEl.children).forEach(li => {
-        const sectionName = li.dataset.section;
-        const timeSpan = li.querySelector('.sectionItemTime');
-        if (timeSpan) {
-          timeSpan.textContent = formatTime(sectionTimes[sectionName] || 0);
-        }
-      });
-    }
-
-    function updateBackground() {
-        mainC.classList.remove('running-state', 'paused-state');
-        if (running) {
-            mainC.classList.add('running-state');
-        } else if (isPaused) {
-            mainC.classList.add('paused-state');
-        }
-    }
-
-
-    function tick() {
-      if (!running) return;
-      stopwatchElapsed++;
-      if (currentSection) {
-        sectionTimes[currentSection]++;
-      }
-      updateDisplay();
-    }
-
-    function start() {
-      if (running) return;
-      clearInterval(stopwatchInterval);
-      running = true;
-      isPaused = false;
-      startPauseBtn.textContent = 'Pause';
-      stopwatchInterval = setInterval(tick, 1000);
-      updateBackground();
-    }
-
-    function pause() {
-      if (!running) return;
-      clearInterval(stopwatchInterval);
-      running = false;
-      isPaused = true;
-      startPauseBtn.textContent = 'Resume';
-      updateBackground();
-    }
-
-    function reset() {
-      clearInterval(stopwatchInterval);
-      running = false;
-      isPaused = false;
-      stopwatchElapsed = 0;
-      currentSection = null;
-      Object.keys(sectionTimes).forEach(sec => sectionTimes[sec] = 0);
-      startPauseBtn.textContent = 'Start';
-      Array.from(sectionListEl.children).forEach(li => li.classList.remove('active'));
-      updateDisplay();
-      updateBackground();
-    }
-
-    startPauseBtn.addEventListener('click', () => {
-      if (running) {
-        pause();
-      } else {
-        start();
-      }
-    });
-    resetBtn.addEventListener('click', reset);
-
-    // Initialization
-    updateDisplay();
-    updateBackground();
-  </script>
-</body>
-</html>
+const KEY="search-pattern-library-v2";const state=JSON.parse(localStorage.getItem(KEY)||"{}");state.progress ||= {};state.notes ||= {};state.history ||= {};let selected=state.selected||patterns[0].id;let seconds=0,running=false,interval=null;const $=id=>document.getElementById(id);const current=()=>patterns.find(p=>p.id===selected)||patterns[0];const items=p=>p.groups.flatMap(g=>g.items);const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");const save=()=>localStorage.setItem(KEY,JSON.stringify(state));const time=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+function toast(s){const e=$("toast");e.textContent=s;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),2500)}
+function fillFilters(){for(const [id,vals] of [["modality",[...new Set(patterns.map(p=>p.modality))].sort()],["region",[...new Set(patterns.map(p=>p.region))].sort()]])$(id).innerHTML+=""+vals.map(v=>`<option>${esc(v)}</option>`).join("")}
+function filtered(){const q=norm($("search").value.trim()),m=$("modality").value,r=$("region").value;return patterns.filter(p=>(!m||p.modality===m)&&(!r||p.region===r)&&(!q||norm([p.title,p.region,p.modality,p.pages,...p.keywords,...items(p)].join(" ")).includes(q)))}
+function stats(p){const set=new Set(state.progress[p.id]||[]);return {set,total:items(p).length,done:set.size}}
+function renderList(){const list=filtered();$("count").textContent=`${list.length} matching`;$("total").textContent=`${patterns.length} patterns`;$("list").innerHTML=list.length?list.map(p=>{const s=stats(p),pct=s.total?Math.round(s.done/s.total*100):0;return `<button class="card ${p.id===selected?"active":""}" data-id="${esc(p.id)}"><strong>${esc(p.title)}</strong><small>${esc(p.region)} · ${esc(p.modality)} · pp. ${esc(p.pages)} · ${s.done}/${s.total}</small><div class="bar"><span style="width:${pct}%"></span></div></button>`}).join(""):"<div class='empty'>No studies match.</div>";document.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>select(b.dataset.id))}
+function history(p){const rows=(state.history[p.id]||[]).slice().reverse();if(!rows.length)return `<div class="history"><details><summary>No prior saved sessions yet</summary></details></div>`;return `<div class="history"><details><summary>Compare prior sessions (${rows.length})</summary><table><thead><tr><th>Date</th><th>Time</th><th>Checks</th><th>Note</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(new Date(r.date).toLocaleString())}</td><td>${time(r.seconds)}</td><td>${r.done}/${r.total}</td><td>${esc(r.note||"")}</td></tr>`).join("")}</tbody></table></details></div>`}
+function render(){const p=current(),s=stats(p),pct=s.total?Math.round(s.done/s.total*100):0;$("detail").innerHTML=`<div class="head"><div class="title"><div class="badges"><span class="badge">${esc(p.modality)}</span><span class="badge region">${esc(p.region)}</span><span class="badge">Tu 2020 · pp. ${esc(p.pages)}</span></div><h2>${esc(p.title)}</h2><p class="intro">Follow this pattern in order. Each item is an explicit check extracted or expanded from the source chapter rather than a collapsed “usual pattern” reference.</p></div><div class="headbuttons"><button class="btn primary" id="saveSession">Save completed session</button><button class="btn ghost" id="resetStudy">Reset checks</button></div></div><div class="progresswrap"><div class="progresslabel"><span>${s.done} of ${s.total} checks complete</span><span>${pct}%</span></div><div class="progress"><span style="width:${pct}%"></span></div></div><div class="timerbar"><span class="timer" id="timer">${time(seconds)}</span><button class="btn" id="toggle">${running?"Pause timer":"Start timer"}</button><button class="btn ghost" id="resetTimer">Reset timer</button><span class="hint">Space checks the next unfinished item. Press T to start/pause the timer.</span></div><div class="checklist">${p.groups.map((g,gi)=>`<section class="group"><h3>${gi+1}. ${esc(g.title)}</h3>${g.items.map(item=>{const i=items(p).indexOf(item);return `<div class="check ${s.set.has(i)?"done":""}" data-check="${i}"><input id="c${i}" type="checkbox" ${s.set.has(i)?"checked":""}><label for="c${i}">${esc(item)}</label></div>`}).join("")}</section>`).join("")}</div><div class="notes"><label for="note">Session note (saved locally with this study)</label><textarea id="note" placeholder="Missed finding, timing observation, or an edit you want to make in Notion…">${esc(state.notes[p.id]||"")}</textarea>${history(p)}</div>`;document.querySelectorAll("[data-check]").forEach(row=>row.querySelector("input").onchange=e=>toggle(+row.dataset.check,e.target.checked));$("note").oninput=e=>{state.notes[p.id]=e.target.value;save()};$("toggle").onclick=toggleTimer;$("resetTimer").onclick=()=>{stopTimer();seconds=0;renderTimer()};$("resetStudy").onclick=()=>{if(confirm("Reset every checkbox for this study?")){state.progress[p.id]=[];save();renderList();render();toast("Study checks reset")}};$("saveSession").onclick=saveSession}
+function renderTimer(){if($("timer"))$("timer").textContent=time(seconds);if($("toggle"))$("toggle").textContent=running?"Pause timer":"Start timer"}function toggleTimer(){running?stopTimer():(running=true,interval=setInterval(()=>{seconds++;renderTimer()},1000),renderTimer())}function stopTimer(){running=false;clearInterval(interval);interval=null;renderTimer()}function select(id){stopTimer();selected=id;state.selected=id;seconds=0;save();renderList();render();scrollTo({top:0,behavior:"smooth"})}
+function toggle(i,checked){const p=current(),set=new Set(state.progress[p.id]||[]);checked?set.add(i):set.delete(i);state.progress[p.id]=[...set].sort((a,b)=>a-b);save();renderList();render()}
+function saveSession(){const p=current(),s=stats(p);stopTimer();state.history[p.id] ||= [];state.history[p.id].push({date:new Date().toISOString(),seconds,done:s.done,total:s.total,note:state.notes[p.id]||""});state.progress[p.id]=[];save();toast(`Saved ${time(seconds)} session for ${p.title}`);seconds=0;renderList();render()}
+function exportData(){const out={version:2,exportedAt:new Date().toISOString(),source:"Search Pattern Library",progress:state.progress,notes:state.notes,history:state.history,selected};const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="search-pattern-library-progress.json";a.click();URL.revokeObjectURL(a.href);toast("Progress exported")}
+function importData(file){const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);state.progress=x.progress||{};state.notes=x.notes||{};state.history=x.history||{};if(x.selected&&patterns.some(p=>p.id===x.selected))selected=x.selected;state.selected=selected;save();renderList();render();toast("Progress imported")}catch{toast("That file was not recognized")}};r.readAsText(file)}
+$("search").oninput=renderList;$("modality").onchange=renderList;$("region").onchange=renderList;$("export").onclick=exportData;$("import").onclick=()=>$("file").click();$("file").onchange=e=>e.target.files[0]&&importData(e.target.files[0]);$("clear").onclick=()=>{if(confirm("Clear all local checks, notes, and saved sessions? Export first if you want a backup.")){localStorage.removeItem(KEY);location.reload()}};document.onkeydown=e=>{if(e.target.matches("input,textarea,select"))return;if(e.code==="Space"){e.preventDefault();const n=document.querySelector(".check:not(.done) input");if(n){n.checked=true;n.dispatchEvent(new Event("change"))}}if(e.key.toLowerCase()==="t")toggleTimer()};fillFilters();renderList();render();
+</script></body></html>

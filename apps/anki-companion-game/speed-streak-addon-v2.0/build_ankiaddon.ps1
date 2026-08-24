@@ -23,6 +23,7 @@ $excludeNames = @(
     "build_ankiaddon.ps1",
     "install_to_anki.sh",
     "build_ankiaddon.sh",
+    "trim_audio_to_trimmed.ps1",
     "generate_web_assets.py"
 )
 
@@ -78,7 +79,38 @@ Get-ChildItem -Path $source -Force | Where-Object {
 }
 
 $zipPath = [System.IO.Path]::ChangeExtension($output, ".zip")
-Compress-Archive -Path (Join-Path $staging "*") -DestinationPath $zipPath -Force
+if (Test-Path -LiteralPath $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+try {
+    $archive = [System.IO.Compression.ZipFile]::Open(
+        $zipPath,
+        [System.IO.Compression.ZipArchiveMode]::Create
+    )
+    try {
+        $stagingPrefix = [System.IO.Path]::GetFullPath($staging).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+        Get-ChildItem -LiteralPath $staging -Recurse -File | ForEach-Object {
+            $entryName = $_.FullName.Substring($stagingPrefix.Length).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive,
+                $_.FullName,
+                $entryName,
+                [System.IO.Compression.CompressionLevel]::Optimal
+            ) | Out-Null
+        }
+    } finally {
+        $archive.Dispose()
+    }
+} catch {
+    Remove-Item -Path $staging -Recurse -Force
+    if (Test-Path -LiteralPath $zipPath) {
+        Remove-Item -LiteralPath $zipPath -Force
+    }
+    Write-Error "Failed to create a root-level ZIP package: $($_.Exception.Message)"
+    exit 1
+}
 Move-Item -Path $zipPath -Destination $output -Force
 Remove-Item -Path $staging -Recurse -Force
 
