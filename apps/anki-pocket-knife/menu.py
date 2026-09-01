@@ -107,6 +107,7 @@ from .review_image_overlay import (
     set_review_image_overlay_enabled,
     set_review_image_overlay_remember_position_enabled,
 )
+from .review_later_publish import publish_review_later_manual
 from .return_non_new import open_return_non_new_dialog
 from .suspended_browser import open_suspended_cards_browser
 from .tts_audio import is_tts_audio_enabled, set_tts_audio_enabled
@@ -1406,6 +1407,10 @@ def _register_menu() -> None:
     study_repair_action = QAction("Open Study Repair", mw)
     study_repair_action.triggered.connect(lambda *_args: open_hard_cards_dialog())
     pocket_menu.addAction(study_repair_action)
+
+    review_later_publish_action = QAction("Publish Review Later Website", mw)
+    review_later_publish_action.triggered.connect(publish_review_later_manual)
+    pocket_menu.addAction(review_later_publish_action)
 
     recent_leeches_action = QAction("Open Recent Leeches In Browser", mw)
     recent_leeches_action.triggered.connect(lambda *_args: open_recent_leeches_browser())

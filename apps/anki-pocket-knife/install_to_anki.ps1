@@ -17,6 +17,7 @@ $excludeNames = @(
     "build_ankiaddon.sh"
 )
 $preserveDirectories = @("user_files")
+$obsoleteFiles = @("coaching_export.py")
 
 if (-not (Test-Path $manifestPath)) {
     Write-Error "Could not find manifest.json at $manifestPath."
@@ -45,6 +46,13 @@ if (-not (Test-Path $target)) {
     New-Item -ItemType Directory -Path $target | Out-Null
 }
 
+foreach ($obsoleteName in $obsoleteFiles) {
+    $obsoletePath = Join-Path $target $obsoleteName
+    if (Test-Path -LiteralPath $obsoletePath -PathType Leaf) {
+        Remove-Item -LiteralPath $obsoletePath -Force
+    }
+}
+
 Get-ChildItem -Path $source -Force | Where-Object {
     $excludeNames -notcontains $_.Name -and
     $_.Name -notlike "*.ankiaddon"
@@ -70,4 +78,5 @@ Get-ChildItem -Path $source -Force | Where-Object {
 
 Write-Host "Installed add-on to: $target"
 Write-Host "Preserved add-on data folders: $($preserveDirectories -join ', ')"
+Write-Host "Removed obsolete add-on files: $($obsoleteFiles -join ', ')"
 Write-Host "Restart Anki to load the add-on."

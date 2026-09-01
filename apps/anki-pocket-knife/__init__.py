@@ -3,7 +3,6 @@ from .ai_tools import install as install_ai_tools
 from .card_safety import install as install_card_safety
 from .card_tracker import install as install_card_tracker
 from .clipboard_json_cards import install as install_clipboard_json_cards
-from .coaching_export import install as install_coaching_export
 from .ctrl_click_links import install as install_ctrl_click_links
 from .draw_on_image import install as install_draw_on_image
 from .due_today import install as install_due_today
@@ -16,6 +15,7 @@ from .no_image_today import install as install_no_image_today
 from .recent_leeches import install as install_recent_leeches
 from .recent_new_cards import install as install_recent_new_cards
 from .review_image_overlay import install as install_review_image_overlay
+from .review_later_publish import install as install_review_later_publish
 from .return_non_new import install as install_return_non_new
 from .restore_tracker import install as install_restore_tracker
 from .saved_cards_audio import install as install_saved_cards_audio
@@ -33,7 +33,6 @@ install_ai_tools()
 install_card_safety()
 install_card_tracker()
 install_clipboard_json_cards()
-install_coaching_export()
 install_ctrl_click_links()
 install_draw_on_image()
 install_due_today()
@@ -45,6 +44,7 @@ install_no_image_today()
 install_recent_leeches()
 install_recent_new_cards()
 install_review_image_overlay()
+install_review_later_publish()
 install_return_non_new()
 install_restore_tracker()
 install_saved_cards_audio()

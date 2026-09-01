@@ -7,6 +7,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Early Review Deck`: reuses the existing early-review behavior and builds a filtered deck from tomorrow's review cards, prioritizing the longest intervals first.
 - `Create Due-Day Decks`: builds audio, visual, separate, or combined filtered decks for an exact date or date range. The calendar supports past, current, and future scheduling dates, with Previous Range and Next Range controls for quick navigation. Named presets persist as rolling presets; custom selections persist as offsets from today, so a range such as six days ago through tomorrow advances by one day the next time the dialog opens.
 - `Study Repair`: adds a button above the main deck list and a launcher/menu action that ranks cards reviewed in the last configurable hours by recent instability, shows why each card ranked highly, opens that exact set in the Browser, and copies clean note-field content for a separate tutor workflow without changing scheduling.
+- `Publish Review Later Website`: reads the complete active Speed Streak Review Later queue, generates `review-later/index.html`, `chat.md`, and `data.json` in this GitHub Pages repository, copies referenced Anki media, and commits/pushes only when those generated files changed. The page includes one-tap `Copy for ChatGPT` and `Copy Cards Only` buttons. Publishing runs in the background after Anki sync and can also be invoked manually. It uses ordinary local Git authentication and no AI or API service.
 - `Clipboard -> New saCloze++ Cards`: adds `Make New Cards From Clipboard` to the deck-browser right-click menu and the Pocket Knife Tools menu, reads either a clipboard JSON array of objects with `html` or `content` plus optional `tags` or one cloze card per non-empty line, and imports each entry into the exact `Saved Cards` deck as a new `saCloze++` note with the card text placed directly into `Text`.
 - `Browser -> Export Selected Cards`: adds a submenu at the bottom of the Browser card-row right-click menu. Export the exact selected cards as an `.apkg` package with referenced media (without scheduling history), or as a readable `.txt` file containing each card's rendered front, rendered back, metadata, tags, and every named note field.
 - `Missed Today -> Copy Text`: copies the front/back text of every card you missed in the current Anki day.
@@ -42,6 +43,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Tools -> Anki Pocket Knife -> Build Recent New Cards Deck`
 - `Tools -> Anki Pocket Knife -> Make New Cards From Clipboard`
 - `Tools -> Anki Pocket Knife -> Open Study Repair`
+- `Tools -> Anki Pocket Knife -> Publish Review Later Website`
 - `Tools -> Anki Pocket Knife -> Open Recent Leeches In Browser`
 - `Tools -> Anki Pocket Knife -> Open Suspended Cards In Browser`
 - `Tools -> Anki Pocket Knife -> Send Filtered Deck Non-New Cards Home`
@@ -82,6 +84,24 @@ powershell -ExecutionPolicy Bypass -File .\install_to_anki.ps1
 That copies the add-on into Anki's default `addons21` directory as `anki_pocket_knife`.
 
 The installer preserves `user_files`, so saved exports and generated viewer files survive reinstalls.
+
+## Review Later publishing
+
+The default destination is `%USERPROFILE%\Documents\GitHub\The-Library\review-later`. Pocket Knife uses the Review Later export function already loaded by Speed Streak; Speed Streak remains unchanged and is the single source of truth.
+
+To edit the standing ChatGPT prompt, change `review_later_chat_prompt.txt` in the add-on source and reinstall. Runtime publishing settings are in `user_files\review_later_publish_config.json`; the add-on creates that file with these defaults:
+
+```json
+{
+  "repository_path": "%USERPROFILE%\\Documents\\GitHub\\The-Library",
+  "output_directory": "review-later",
+  "commit_message": "Update Anki Review Later",
+  "git_publish": true,
+  "auto_publish_after_sync": true
+}
+```
+
+After a collection sync finishes, Pocket Knife waits for media sync to become idle, snapshots Review Later on Anki's main thread, and performs file and Git work in a background task. No-content-change runs do not commit. Git/network failures are written to `user_files\review_later_publish.log`, never fail Anki sync, and are retried by a later manual publish or sync. The public GitHub Pages URL is `https://starfox1230.github.io/The-Library/review-later/`.
 
 ## Manual install
 

@@ -9,8 +9,8 @@ At 9 p.m. local time, create one concise coaching report that helps Sterling und
 ## Sources
 
 1. **Notion Radiology Notes** whose `Anki Card` status is `Needed`.
-2. **Anki Speed Streak — Review Later** entries exported in `C:\Users\sterl\OneDrive\Study OS Private\anki-coaching\latest.json`.
-3. **Anki Pocket Knife — Study Repair** entries in that same snapshot.
+2. **Anki Speed Streak — Review Later** entries exported by Pocket Knife to `C:\Users\sterl\Documents\GitHub\The-Library\review-later\data.json` and published at `https://starfox1230.github.io/The-Library/review-later/data.json`.
+3. **Anki Pocket Knife — Study Repair** entries, when separately supplied. Study Repair is no longer bundled into the Review Later export.
 
 Treat a card that appears in both Review Later and Study Repair as one item. Preserve its source labels and reasons, but do not repeat the teaching.
 
@@ -18,9 +18,9 @@ Keep the source counts independent from deduplication. `sourceCounts.reviewLater
 
 ### Review Later date scope
 
-The Review Later export is a cumulative pool. **Do not coach the entire exported pool.** For a nightly report, include only Review Later entries whose `addedAt` timestamp falls on the report's `studyDate` after conversion to `America/Chicago`. This source means cards placed into or seen in Review Later during that local study day, not every card still present in Review Later.
+The Review Later export is a cumulative pool. **Do not coach the entire exported pool.** For a nightly report, include only Review Later entries whose `flagged_at` timestamp falls on the report's `studyDate` after conversion to `America/Chicago`. This source means cards placed into or seen in Review Later during that local study day, not every card still present in Review Later.
 
-- Parse every `addedAt` value as an absolute timestamp before converting it to `America/Chicago`; never compare the raw UTC date string directly.
+- Parse every `flagged_at` value as an absolute timestamp before converting it to `America/Chicago`; never compare the raw date string directly.
 - Exclude older Review Later entries even if they remain in `latest.json`.
 - If the same card was added more than once that day, keep its most recent entry.
 - If a same-day Review Later card also appears in Study Repair, coach it once and retain both source labels.
