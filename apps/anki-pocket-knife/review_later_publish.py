@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import Future
-from datetime import datetime
+from datetime import datetime, timedelta
 from html import escape as html_escape, unescape
 import json
 import os
@@ -41,6 +41,7 @@ DEFAULT_CONFIG = {
     "commit_message": "Update Anki Review Later",
     "git_publish": True,
     "auto_publish_after_sync": True,
+    "history_days": 45,
 }
 _LOCAL_MEDIA_ATTR_RE = re.compile(
     r'(?P<prefix>\s(?:src|href)=["\'])(?P<url>[^"\']+)(?P<suffix>["\'])',
@@ -248,22 +249,56 @@ def _existing_document(output: Path) -> dict[str, Any]:
         return {}
 
 
+def _local_datetime(value: Any) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value or ""))
+        return parsed.astimezone() if parsed.tzinfo is not None else parsed.astimezone()
+    except Exception:
+        return None
+
+
+def _recent_cards(cards: list[dict[str, Any]], history_days: int) -> list[dict[str, Any]]:
+    today = datetime.now().astimezone().date()
+    cutoff = today - timedelta(days=max(1, int(history_days or 1)) - 1)
+    return [
+        card
+        for card in cards
+        if (seen := _local_datetime(card.get("last_seen_at"))) is not None
+        and cutoff <= seen.date() <= today
+    ]
+
+
+def _today_cards(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    today = datetime.now().astimezone().date()
+    result = [
+        card
+        for card in cards
+        if (seen := _local_datetime(card.get("last_seen_at"))) is not None and seen.date() == today
+    ]
+    return sorted(result, key=lambda card: str(card.get("last_seen_at", "") or ""), reverse=True)
+
+
 def _generate(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=True)
     media_output = output / "media"
     media_dir_text = str(snapshot.get("media_directory", "") or "")
     media_directory = Path(media_dir_text) if media_dir_text else None
     referenced_names: set[str] = set()
+    source_cards = _recent_cards(
+        [dict(card) for card in snapshot.get("cards", [])],
+        int(dict(snapshot.get("config", {}) or {}).get("history_days", 45) or 45),
+    )
     cards = [
         _rewrite_card_media(
-            dict(card),
+            card,
             media_directory=media_directory,
             media_output=media_output,
             referenced_names=referenced_names,
         )
-        for card in snapshot.get("cards", [])
+        for card in source_cards
     ]
     _prune_generated_media(media_output, referenced_names)
+    default_cards = _today_cards(cards)
 
     instructions = str(snapshot.get("standing_instructions", "") or "").strip()
     source_addon = str(snapshot.get("source_addon", "") or "")
@@ -280,13 +315,14 @@ def _generate(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
     if unchanged:
         return {
             "generated_changed": False,
-            "count": len(cards),
+            "count": len(default_cards),
+            "retained_count": len(cards),
             "content_hash": digest,
             "updated_at": str(existing.get("updated_at", "") or ""),
         }
 
     updated_at = display_timestamp()
-    cards_only = cards_markdown(cards, updated_at)
+    cards_only = cards_markdown(default_cards, updated_at)
     chat = chat_markdown(instructions, cards_only)
     document = data_document(
         cards,
@@ -295,12 +331,16 @@ def _generate(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
         source_addon=source_addon,
         review_later_flag=flag,
     )
-    _atomic_text(output / "index.html", page_html(cards, updated_at=updated_at, chat_payload=chat, cards_payload=cards_only))
+    _atomic_text(
+        output / "index.html",
+        page_html(cards, updated_at=updated_at, standing_instructions=instructions),
+    )
     _atomic_text(output / "chat.md", chat)
     _atomic_text(output / "data.json", data_json(document))
     return {
         "generated_changed": True,
-        "count": len(cards),
+        "count": len(default_cards),
+        "retained_count": len(cards),
         "content_hash": digest,
         "updated_at": updated_at,
     }

@@ -2,12 +2,57 @@ from __future__ import annotations
 
 from datetime import datetime
 from hashlib import sha256
-from html import escape
+from html import unescape
+from html.parser import HTMLParser
 import json
+import re
 from typing import Any, Iterable
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+_ANSWER_SEPARATOR_RE = re.compile(
+    r"<hr\b[^>]*\bid\s*=\s*(?:[\"']answer[\"']|answer)[^>]*>",
+    flags=re.IGNORECASE,
+)
+_SCRIPT_STYLE_RE = re.compile(
+    r"<(script|style)\b[^>]*>.*?</\1\s*>",
+    flags=re.IGNORECASE | re.DOTALL,
+)
+_AUDIO_ELEMENT_RE = re.compile(
+    r"<(audio|video)\b[^>]*>.*?</\1\s*>",
+    flags=re.IGNORECASE | re.DOTALL,
+)
+_PLAY_ELEMENT_RE = re.compile(
+    r"<(?:button|a)\b[^>]*(?:replay-button|replaybutton|soundLink|playsound:)[^>]*>.*?</(?:button|a)\s*>",
+    flags=re.IGNORECASE | re.DOTALL,
+)
+_ANKI_PLAY_RE = re.compile(r"\[(?:anki:play:[^\]]+|sound:[^\]]+)\]", flags=re.IGNORECASE)
+
+
+class _TextParser(HTMLParser):
+    BLOCKS = {
+        "address", "article", "aside", "blockquote", "br", "div", "figcaption",
+        "figure", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header",
+        "hr", "li", "main", "ol", "p", "pre", "section", "table", "td", "th",
+        "tr", "ul",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.casefold() in self.BLOCKS:
+            self.parts.append("\n")
+        if tag.casefold() == "li":
+            self.parts.append("- ")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.casefold() in self.BLOCKS:
+            self.parts.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
 
 
 def _clean_text(value: Any, fallback: str = "") -> str:
@@ -15,14 +60,42 @@ def _clean_text(value: Any, fallback: str = "") -> str:
     return text or fallback
 
 
+def answer_side_only(value: str) -> str:
+    text = str(value or "")
+    match = _ANSWER_SEPARATOR_RE.search(text)
+    return text[match.end() :] if match else text
+
+
+def sanitize_card_html(value: str) -> str:
+    text = str(value or "")
+    text = _SCRIPT_STYLE_RE.sub("", text)
+    text = _AUDIO_ELEMENT_RE.sub("", text)
+    text = _PLAY_ELEMENT_RE.sub("", text)
+    text = _ANKI_PLAY_RE.sub("", text)
+    return text.strip()
+
+
+def html_to_text(value: str) -> str:
+    parser = _TextParser()
+    parser.feed(str(value or ""))
+    parser.close()
+    text = unescape("".join(parser.parts)).replace("\xa0", " ")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 def _canonical_cards(cards: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     for card in cards:
+        front_html = sanitize_card_html(str(card.get("front_html", "") or ""))
+        back_html = sanitize_card_html(answer_side_only(str(card.get("back_html", "") or "")))
         normalized.append(
             {
                 "card_id": int(card.get("card_id", 0) or 0),
                 "note_id": int(card.get("note_id", 0) or 0),
                 "flagged_at": str(card.get("flagged_at", "") or ""),
+                "last_seen_at": str(card.get("last_seen_at", "") or ""),
                 "deck": str(card.get("deck", "") or ""),
                 "note_type": str(card.get("note_type", "") or ""),
                 "tags": [str(tag) for tag in card.get("tags", []) or []],
@@ -30,11 +103,14 @@ def _canonical_cards(cards: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
                     str(name): str(value or "")
                     for name, value in dict(card.get("fields", {}) or {}).items()
                 },
-                "front_html": str(card.get("front_html", "") or ""),
-                "back_html": str(card.get("back_html", "") or ""),
-                "front_text": str(card.get("front_text", "") or ""),
-                "back_text": str(card.get("back_text", "") or ""),
+                "front_html": front_html,
+                "back_html": back_html,
+                "front_text": html_to_text(front_html)
+                or str(card.get("front_text", "") or "").strip(),
+                "back_text": html_to_text(back_html)
+                or str(card.get("back_text", "") or "").strip(),
                 "media": sorted(str(item) for item in card.get("media", []) or []),
+                "tracked_by_speed_streak": bool(card.get("tracked_by_speed_streak", True)),
             }
         )
     return normalized
@@ -59,7 +135,7 @@ def content_hash(
 
 
 def cards_markdown(cards: Iterable[dict[str, Any]], updated_at: str) -> str:
-    cards_list = list(cards)
+    cards_list = _canonical_cards(cards)
     lines = [
         "# Anki Speed Streak — Review Later",
         "",
@@ -67,37 +143,37 @@ def cards_markdown(cards: Iterable[dict[str, Any]], updated_at: str) -> str:
         f"Cards: {len(cards_list)}",
     ]
     if not cards_list:
-        lines.extend(["", "No cards are currently flagged for Review Later."])
+        lines.extend(["", "No currently blue cards were seen in this period."])
         return "\n".join(lines).rstrip() + "\n"
 
     for index, card in enumerate(cards_list, start=1):
-        tags = ", ".join(str(tag) for tag in card.get("tags", []) or []) or "None"
+        tags = ", ".join(card["tags"]) or "None"
         lines.extend(
             [
                 "",
                 f"## Card {index}",
                 "",
-                f"Deck: {_clean_text(card.get('deck'), 'Unknown Deck')}",
+                f"Deck: {_clean_text(card['deck'], 'Unknown Deck')}",
                 f"Tags: {tags}",
-                f"Flagged: {_clean_text(card.get('flagged_at'), 'Unknown')}",
-                f"Card ID: {int(card.get('card_id', 0) or 0)}",
-                f"Note ID: {int(card.get('note_id', 0) or 0)}",
+                f"Flagged: {_clean_text(card['flagged_at'], 'Unknown')}",
+                f"Last seen: {_clean_text(card['last_seen_at'], 'Unknown')}",
+                f"Card ID: {card['card_id']}",
+                f"Note ID: {card['note_id']}",
                 "",
                 "Question:",
-                _clean_text(card.get("front_text"), "(empty)"),
+                _clean_text(card["front_text"], "(empty)"),
                 "",
                 "Answer:",
-                _clean_text(card.get("back_text"), "(empty)"),
+                _clean_text(card["back_text"], "(empty)"),
             ]
         )
     return "\n".join(lines).rstrip() + "\n"
 
 
 def chat_markdown(standing_instructions: str, cards_only_markdown: str) -> str:
-    instructions = str(standing_instructions).strip()
     return (
         "# Standing instructions\n\n"
-        f"{instructions}\n\n"
+        f"{str(standing_instructions).strip()}\n\n"
         "---\n\n"
         f"{cards_only_markdown.strip()}\n"
     )
@@ -129,121 +205,190 @@ def data_json(document: dict[str, Any]) -> str:
     return json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
-def _card_html(card: dict[str, Any], index: int) -> str:
-    tags = card.get("tags", []) or []
-    tags_html = "".join(f"<span>{escape(str(tag))}</span>" for tag in tags)
-    if not tags_html:
-        tags_html = "<span>No tags</span>"
-    deck = escape(_clean_text(card.get("deck"), "Unknown Deck"))
-    flagged = escape(_clean_text(card.get("flagged_at"), "Unknown"))
-    front = str(card.get("front_html", "") or "<em>(empty)</em>")
-    back = str(card.get("back_html", "") or "<em>(empty)</em>")
-    return f"""
-      <article class="entry">
-        <div class="entry-head">
-          <div>
-            <div class="card-number">Card {index}</div>
-            <h2>{deck}</h2>
-          </div>
-          <div class="flagged">Flagged {flagged}</div>
-        </div>
-        <div class="tags">{tags_html}</div>
-        <section class="face">
-          <div class="face-label">Question</div>
-          <div class="card-preview">{front}</div>
-        </section>
-        <section class="face">
-          <div class="face-label">Answer</div>
-          <div class="card-preview">{back}</div>
-        </section>
-        <details class="ids"><summary>Card details</summary><div>Card ID {int(card.get('card_id', 0) or 0)} · Note ID {int(card.get('note_id', 0) or 0)}</div></details>
-      </article>"""
+_PAGE_TEMPLATE = r'''<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1020">
+  <title>Anki Review Later</title>
+  <style>
+    :root { color-scheme:dark; --bg:#090e1c; --panel:#141b2d; --line:rgba(142,169,235,.18); --text:#f5f7ff; --muted:#96a7ca; --blue:#6288ff; --green:#45d7a1; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-snap-type:y proximity; scroll-padding-top:78px; }
+    body { margin:0; min-height:100%; background:radial-gradient(circle at 50% -20%,#172342 0,transparent 42%),var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,select,input { font:inherit; }
+    .toolbar { position:sticky; top:0; z-index:20; padding:max(5px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) 5px max(8px,env(safe-area-inset-left)); background:rgba(9,14,28,.94); border-bottom:1px solid var(--line); backdrop-filter:blur(15px); }
+    .controls { width:min(100%,980px); margin:auto; display:flex; align-items:center; gap:5px; min-height:36px; }
+    .brand { font-size:12px; font-weight:800; letter-spacing:.02em; white-space:nowrap; margin-right:auto; }
+    select,input,button { height:32px; border:1px solid var(--line); border-radius:8px; padding:0 8px; background:#1b253b; color:var(--text); font-size:12px; }
+    select { max-width:112px; }
+    input[type=date] { width:124px; }
+    button { font-weight:750; cursor:pointer; touch-action:manipulation; white-space:nowrap; }
+    button.primary { background:#4f73e8; border-color:#7190ef; }
+    button.secondary { background:#202b43; }
+    .summary { width:min(100%,980px); height:18px; margin:1px auto 0; color:var(--muted); font-size:10.5px; display:flex; gap:8px; align-items:center; overflow:hidden; white-space:nowrap; }
+    #status { color:var(--green); margin-left:auto; }
+    .shell { width:min(100%,980px); margin:auto; padding:12px max(10px,env(safe-area-inset-right)) 42px max(10px,env(safe-area-inset-left)); }
+    .entries { display:grid; gap:14px; }
+    .entry { scroll-snap-align:start; border:1px solid var(--line); border-radius:17px; padding:11px; background:linear-gradient(180deg,rgba(27,38,64,.95),rgba(14,21,38,.97)); box-shadow:0 14px 35px rgba(0,0,0,.25); overflow:hidden; }
+    .entry-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px; margin:0 2px 9px; }
+    .deck { font-size:13px; font-weight:780; overflow-wrap:anywhere; }
+    .number { color:#91a7d9; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+    .times { color:var(--muted); text-align:right; font-size:10px; line-height:1.35; white-space:nowrap; }
+    .stage { position:relative; height:clamp(330px,62svh,590px); border:1px solid rgba(255,255,255,.075); border-radius:14px; background:linear-gradient(180deg,#090e1a,#111827); overflow:hidden; cursor:pointer; outline:none; }
+    .stage:focus-visible { box-shadow:0 0 0 2px var(--blue); }
+    .side { position:absolute; inset:0; padding:13px 12px 38px; overflow:auto; overscroll-behavior:contain; opacity:0; visibility:hidden; transform:translateY(8px) scale(.995); transition:opacity .18s ease,transform .22s ease,visibility 0s linear .22s; }
+    .side.active { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
+    .face-label { position:sticky; top:-13px; z-index:2; margin:-13px -12px 10px; padding:7px 12px; background:rgba(9,14,26,.9); color:#8fa6db; font-size:10px; font-weight:850; letter-spacing:.11em; text-transform:uppercase; backdrop-filter:blur(8px); }
+    .card-preview { line-height:1.5; overflow-wrap:anywhere; font-size:15px; }
+    .card-preview img { display:block; max-width:100%; max-height:46svh; width:auto; height:auto; object-fit:contain; margin:10px auto; border-radius:8px; }
+    .card-preview table { display:block; max-width:100%; overflow:auto; }
+    .card-preview script,.card-preview style,.card-preview audio,.card-preview video,.card-preview [role="timer"],.card-preview .tbar,.replay-button,.replaybutton,.soundLink,[href^="playsound:"] { display:none!important; }
+    .flip-hint { position:absolute; z-index:3; left:50%; bottom:7px; transform:translateX(-50%); border-radius:999px; padding:5px 10px; background:rgba(28,39,65,.92); color:#b9c8eb; font-size:10px; pointer-events:none; box-shadow:0 2px 12px rgba(0,0,0,.25); }
+    .tags { display:flex; gap:5px; overflow:auto; padding:8px 1px 0; scrollbar-width:none; }
+    .tags::-webkit-scrollbar { display:none; }
+    .tag { flex:none; border-radius:999px; padding:4px 7px; background:rgba(98,136,255,.12); color:#b9c9f6; font-size:9px; }
+    .empty { padding:50px 18px; border:1px solid var(--line); border-radius:16px; color:var(--muted); text-align:center; background:var(--panel); }
+    @media (max-width:620px) {
+      html { scroll-padding-top:82px; }
+      .controls { gap:4px; }
+      .brand { width:18px; overflow:hidden; color:transparent; position:relative; }
+      .brand::after { content:"RL"; color:var(--text); position:absolute; left:0; }
+      select,input,button { height:30px; padding:0 6px; font-size:11px; border-radius:7px; }
+      select { max-width:94px; }
+      input[type=date] { width:113px; }
+      .entry { padding:9px; border-radius:14px; }
+      .stage { height:clamp(320px,64svh,560px); }
+      .card-preview { font-size:14px; }
+    }
+    @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <header class="toolbar">
+    <div class="controls">
+      <div class="brand">Review Later</div>
+      <select id="period" aria-label="Date period">
+        <option value="1">Today</option><option value="2">2 days</option><option value="3">3 days</option>
+        <option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option>
+        <option value="date">On date…</option>
+      </select>
+      <input id="date" type="date" aria-label="Review date" hidden>
+      <select id="sort" aria-label="Sort cards"><option value="seen">Seen ↓</option><option value="flagged">Flagged ↓</option></select>
+      <button class="primary" type="button" id="copyChat" title="Copy standing conversation instructions and the visible cards">ChatGPT</button>
+      <button class="secondary" type="button" id="copyCards" title="Copy only the visible cards, without standing instructions">Cards</button>
+    </div>
+    <div class="summary"><span id="count"></span><span>Updated __UPDATED_TEXT__</span><span id="status" role="status" aria-live="polite"></span></div>
+  </header>
+  <main class="shell"><section class="entries" id="entries"></section></main>
+  <script>
+    const MODEL = __MODEL_JSON__;
+    const STORAGE_KEY = 'anki-review-later-view-v2';
+    const entries = document.getElementById('entries');
+    const period = document.getElementById('period');
+    const dateInput = document.getElementById('date');
+    const sort = document.getElementById('sort');
+    const count = document.getElementById('count');
+    const status = document.getElementById('status');
+    const DAY = 86400000;
+
+    function localDay(date) { return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+    function addDays(date, days) { const result = new Date(date); result.setDate(result.getDate() + days); return result; }
+    function dateValue(date) { const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0'); return `${y}-${m}-${d}`; }
+    function parseDate(value) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? null : parsed; }
+    function esc(value) { const node=document.createElement('div'); node.textContent=String(value??''); return node.innerHTML; }
+    function pretty(value) { const parsed=parseDate(value); return parsed ? parsed.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Unknown'; }
+    function loadSettings() { try { return {...{mode:'range',days:1,dateOffset:0,sort:'seen'},...JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')}; } catch (_) { return {mode:'range',days:1,dateOffset:0,sort:'seen'}; } }
+    let settings = loadSettings();
+    function saveSettings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); }
+    function applySettings() {
+      period.value = settings.mode === 'date' ? 'date' : String(settings.days || 1);
+      dateInput.hidden = settings.mode !== 'date';
+      dateInput.value = dateValue(addDays(localDay(new Date()), Number(settings.dateOffset)||0));
+      sort.value = settings.sort === 'flagged' ? 'flagged' : 'seen';
+    }
+    function visibleCards() {
+      const today=localDay(new Date());
+      const filtered=MODEL.cards.filter(card => {
+        const seen=parseDate(card.last_seen_at); if (!seen) return false;
+        const seenDay=localDay(seen);
+        if (settings.mode === 'date') return seenDay.getTime() === addDays(today, Number(settings.dateOffset)||0).getTime();
+        const start=addDays(today, -(Math.max(1,Number(settings.days)||1)-1));
+        return seenDay >= start && seenDay <= today;
+      });
+      const key=settings.sort === 'flagged' ? 'flagged_at' : 'last_seen_at';
+      return filtered.sort((a,b)=>(parseDate(b[key])?.getTime()||0)-(parseDate(a[key])?.getTime()||0));
+    }
+    function cardHtml(card,index) {
+      const tags=(card.tags||[]).map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
+      return `<article class="entry" data-card-id="${card.card_id}">
+        <header class="entry-head"><div><div class="number">Card ${index+1}</div><div class="deck">${esc(card.deck||'Unknown Deck')}</div></div>
+        <div class="times">Seen ${esc(pretty(card.last_seen_at))}<br>Flagged ${esc(pretty(card.flagged_at))}</div></header>
+        <div class="stage" tabindex="0" role="button" aria-label="Show answer" aria-pressed="false">
+          <section class="side front active"><div class="face-label">Question</div><div class="card-preview">${card.front_html||'<em>(empty)</em>'}</div></section>
+          <section class="side back"><div class="face-label">Answer</div><div class="card-preview">${card.back_html||'<em>(empty)</em>'}</div></section>
+          <div class="flip-hint">Question · tap for answer</div></div><div class="tags">${tags}</div></article>`;
+    }
+    function toggle(stage) {
+      const front=stage.querySelector('.front'),back=stage.querySelector('.back');
+      const showingAnswer=back.classList.contains('active');
+      front.classList.toggle('active',showingAnswer); back.classList.toggle('active',!showingAnswer);
+      (showingAnswer?front:back).scrollTop=0;
+      stage.setAttribute('aria-pressed',String(!showingAnswer)); stage.setAttribute('aria-label',showingAnswer?'Show answer':'Show question');
+      stage.querySelector('.flip-hint').textContent=showingAnswer?'Question · tap for answer':'Answer · tap for question';
+    }
+    function render() {
+      const cards=visibleCards(); count.textContent=`${cards.length} card${cards.length===1?'':'s'}`;
+      entries.innerHTML=cards.length ? cards.map(cardHtml).join('') : '<div class="empty">No currently blue cards were seen in this period.</div>';
+      entries.querySelectorAll('.stage').forEach(stage => {
+        stage.addEventListener('click',event=>{ if (!event.target.closest('a,button,input,select,textarea')) toggle(stage); });
+        stage.addEventListener('keydown',event=>{ if (event.key==='Enter'||event.key===' ') { event.preventDefault(); toggle(stage); } });
+      });
+    }
+    function cardsMarkdown(cards) {
+      const lines=['# Anki Speed Streak — Review Later','',`Cards: ${cards.length}`];
+      if (!cards.length) return lines.concat(['','No currently blue cards were seen in this period.']).join('\n')+'\n';
+      cards.forEach((card,index)=>lines.push('',`## Card ${index+1}`,'',`Deck: ${card.deck||'Unknown Deck'}`,`Tags: ${(card.tags||[]).join(', ')||'None'}`,`Flagged: ${card.flagged_at||'Unknown'}`,`Last seen: ${card.last_seen_at||'Unknown'}`,`Card ID: ${card.card_id}`,`Note ID: ${card.note_id}`,'','Question:',card.front_text||'(empty)','','Answer:',card.back_text||'(empty)'));
+      return lines.join('\n')+'\n';
+    }
+    async function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+      const area=document.createElement('textarea'); area.value=text; area.readOnly=true; area.style.cssText='position:fixed;opacity:0'; document.body.appendChild(area); area.select();
+      if (!document.execCommand('copy')) throw new Error('copy unavailable'); area.remove();
+    }
+    async function copy(kind,button) {
+      const cards=visibleCards(),body=cardsMarkdown(cards); const payload=kind==='chat'?`# Standing instructions\n\n${MODEL.instructions.trim()}\n\n---\n\n${body}`:body;
+      try { await copyText(payload); status.textContent=`Copied ${cards.length} visible card${cards.length===1?'':'s'}`; button.textContent='Copied'; }
+      catch (_) { status.textContent='Copy blocked'; }
+      setTimeout(()=>{ button.textContent=kind==='chat'?'ChatGPT':'Cards'; status.textContent=''; },1600);
+    }
+    period.addEventListener('change',()=>{ if(period.value==='date'){settings.mode='date';}else{settings.mode='range';settings.days=Number(period.value);} applySettings();saveSettings();render(); });
+    dateInput.addEventListener('change',()=>{ const chosen=new Date(`${dateInput.value}T12:00:00`); settings.dateOffset=Math.round((localDay(chosen)-localDay(new Date()))/DAY);saveSettings();render(); });
+    sort.addEventListener('change',()=>{ settings.sort=sort.value;saveSettings();render(); });
+    document.getElementById('copyChat').addEventListener('click',event=>copy('chat',event.currentTarget));
+    document.getElementById('copyCards').addEventListener('click',event=>copy('cards',event.currentTarget));
+    applySettings(); render();
+  </script>
+</body>
+</html>'''
 
 
 def page_html(
     cards: Iterable[dict[str, Any]],
     *,
     updated_at: str,
-    chat_payload: str,
-    cards_payload: str,
+    standing_instructions: str,
 ) -> str:
-    cards_list = list(cards)
-    entries = "\n".join(_card_html(card, index) for index, card in enumerate(cards_list, 1))
-    if not entries:
-        entries = '<div class="empty">No cards are currently flagged for Review Later.</div>'
-    chat_json = json.dumps(str(chat_payload), ensure_ascii=False).replace("</", "<\\/")
-    cards_json = json.dumps(str(cards_payload), ensure_ascii=False).replace("</", "<\\/")
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111827">
-  <title>Anki Review Later</title>
-  <style>
-    :root {{ color-scheme: dark; --bg:#0b1020; --panel:#151c2e; --panel2:#0e1527; --text:#f5f7ff; --muted:#9fb0d8; --blue:#4f7cff; --green:#34d399; }}
-    * {{ box-sizing:border-box; }}
-    html,body {{ margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }}
-    body {{ padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }}
-    .shell {{ width:min(960px,100%); margin:0 auto; padding:18px 14px 48px; }}
-    .hero {{ position:sticky; top:0; z-index:10; margin:-18px -14px 16px; padding:18px 14px 14px; background:linear-gradient(180deg,rgba(11,16,32,.98) 78%,rgba(11,16,32,0)); backdrop-filter:blur(12px); }}
-    h1 {{ margin:0; font-size:clamp(24px,7vw,38px); letter-spacing:-.03em; }}
-    .summary {{ color:var(--muted); margin:7px 0 14px; font-size:14px; }}
-    .actions {{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }}
-    button {{ min-height:50px; border:0; border-radius:14px; padding:12px 16px; font:700 15px/1.15 inherit; cursor:pointer; touch-action:manipulation; }}
-    .primary {{ background:linear-gradient(135deg,#3b82f6,#6558f5); color:white; box-shadow:0 10px 26px rgba(61,93,246,.28); }}
-    .secondary {{ background:#263149; color:#e8edff; border:1px solid rgba(255,255,255,.09); }}
-    .status {{ min-height:22px; margin-top:8px; color:var(--green); font-size:13px; }}
-    .entries {{ display:grid; gap:16px; }}
-    .entry {{ border:1px solid rgba(136,169,255,.16); border-radius:20px; padding:16px; background:radial-gradient(circle at top,rgba(71,117,255,.13),transparent 44%),linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02)); box-shadow:0 14px 32px rgba(0,0,0,.24); overflow:hidden; }}
-    .entry-head {{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }}
-    .card-number,.face-label {{ color:#8ea0cc; font-size:11px; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }}
-    h2 {{ margin:4px 0 0; font-size:17px; overflow-wrap:anywhere; }}
-    .flagged {{ color:var(--muted); font-size:12px; text-align:right; }}
-    .tags {{ display:flex; gap:6px; flex-wrap:wrap; margin:12px 0; }}
-    .tags span {{ border-radius:999px; padding:5px 9px; background:rgba(79,124,255,.13); color:#cad7ff; font-size:11px; overflow-wrap:anywhere; }}
-    .face {{ margin-top:10px; border-radius:16px; padding:13px; background:linear-gradient(180deg,rgba(8,12,22,.92),rgba(24,28,40,.94)); border:1px solid rgba(255,255,255,.07); }}
-    .card-preview {{ margin-top:9px; line-height:1.55; overflow-wrap:anywhere; max-width:100%; }}
-    .card-preview img {{ display:block; max-width:100%; height:auto; margin:10px auto; border-radius:10px; }}
-    .card-preview table {{ max-width:100%; overflow:auto; display:block; }}
-    .ids {{ margin-top:12px; color:#7888ae; font-size:11px; }}
-    .ids summary {{ cursor:pointer; }}
-    .empty {{ padding:36px 18px; border-radius:18px; text-align:center; color:var(--muted); background:var(--panel); }}
-    @media (max-width:560px) {{ .actions {{ grid-template-columns:1fr; }} .hero {{ padding-bottom:10px; }} .entry {{ padding:13px; border-radius:17px; }} .entry-head {{ display:block; }} .flagged {{ margin-top:6px; text-align:left; }} }}
-  </style>
-</head>
-<body>
-  <main class="shell">
-    <header class="hero">
-      <h1>Review Later</h1>
-      <div class="summary">{len(cards_list)} active card{'s' if len(cards_list) != 1 else ''} · Updated {escape(updated_at)}</div>
-      <div class="actions">
-        <button class="primary" type="button" data-copy="chat">Copy for ChatGPT</button>
-        <button class="secondary" type="button" data-copy="cards">Copy Cards Only</button>
-      </div>
-      <div class="status" role="status" aria-live="polite"></div>
-    </header>
-    <section class="entries">{entries}</section>
-  </main>
-  <script>
-    const payloads = {{ chat: {chat_json}, cards: {cards_json} }};
-    const status = document.querySelector('.status');
-    async function copyText(text) {{
-      if (navigator.clipboard && window.isSecureContext) {{ await navigator.clipboard.writeText(text); return; }}
-      const area = document.createElement('textarea'); area.value = text; area.setAttribute('readonly',''); area.style.position='fixed'; area.style.opacity='0'; document.body.appendChild(area); area.select();
-      if (!document.execCommand('copy')) throw new Error('Copy was not available');
-      area.remove();
-    }}
-    document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', async () => {{
-      const original = button.textContent;
-      try {{ await copyText(payloads[button.dataset.copy]); button.textContent='Copied'; status.textContent = button.dataset.copy === 'chat' ? 'ChatGPT-ready prompt copied.' : 'Cards copied.'; }}
-      catch (error) {{ button.textContent='Copy failed'; status.textContent='Your browser blocked clipboard access. Open chat.md as a fallback.'; }}
-      window.setTimeout(() => {{ button.textContent=original; }}, 1800);
-    }}));
-  </script>
-</body>
-</html>
-"""
+    model = {
+        "cards": _canonical_cards(cards),
+        "instructions": str(standing_instructions).strip(),
+    }
+    model_json = json.dumps(model, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    return (
+        _PAGE_TEMPLATE.replace("__UPDATED_TEXT__", str(updated_at))
+        .replace("__MODEL_JSON__", model_json)
+    )
 
 
 def display_timestamp(now: datetime | None = None) -> str:
