@@ -91,6 +91,17 @@ def _load_config() -> dict[str, Any]:
     return config
 
 
+def _prepare_config_for_startup() -> dict[str, Any]:
+    config = _load_config()
+    if bool(config.pop("enable_auto_publish_on_next_start", False)):
+        config["auto_publish_after_sync"] = True
+        try:
+            _atomic_json(CONFIG_PATH, config)
+        except Exception as exc:
+            _append_log(f"Could not enable automatic publishing on startup: {exc}")
+    return config
+
+
 def _load_status() -> dict[str, Any]:
     try:
         value = json.loads(STATUS_PATH.read_text(encoding="utf-8"))
@@ -524,7 +535,7 @@ def install() -> None:
     global _INSTALLED
     if _INSTALLED:
         return
-    _load_config()
+    _prepare_config_for_startup()
     sync_finished = getattr(gui_hooks, "sync_did_finish", None)
     if sync_finished is not None:
         sync_finished.append(_on_sync_did_finish)
