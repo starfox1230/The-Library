@@ -62,6 +62,8 @@ def test_markdown_is_plain_and_chat_contains_one_prompt_copy() -> None:
     assert "## Card 1" in cards
     assert "Question:\nQuestion" in cards
     assert "Answer:\nAnswer" in cards
+    assert "Tags:" not in cards
+    assert "review-later" not in cards
     assert "<b>" not in cards
     assert chat.count("Standing prompt") == 1
     assert chat.endswith("Answer\n")
@@ -78,15 +80,23 @@ def test_data_document_has_stable_snake_case_fields() -> None:
     )
 
     assert document["schema_version"] == 2
+    assert document["publish_format_version"] == 3
     assert document["count"] == 1
     assert document["cards"][0]["card_id"] == 123
     assert document["cards"][0]["flagged_at"].endswith("-05:00")
     assert document["cards"][0]["last_seen_at"].endswith("-05:00")
+    assert document["cards"][0]["tags"] == ["chest", "review-later"]
 
 
 def test_mobile_page_embeds_both_copy_payloads_safely() -> None:
     module = _load_module()
-    card = _card(front_html="<script>bad()</script>[anki:play:q:0]<b>Question</b>")
+    card = _card(
+        front_html=(
+            "<style>.card{color:red}.tags{display:flex}</style>"
+            "<script>bad()</script>[anki:play:q:0]"
+            '<div class="tags">spoiler-tag</div><b>Question</b>'
+        )
+    )
     page = module.page_html(
         [card],
         updated_at="2026-08-31 18:00 CDT",
@@ -99,9 +109,36 @@ def test_mobile_page_embeds_both_copy_payloads_safely() -> None:
     assert "navigator.clipboard" in page
     assert "dateOffset" in page
     assert "Seen ↓" in page
-    assert "height:clamp(330px,62svh,590px)" in page
+    assert "scroll-snap-type" not in page
+    assert "overscroll-behavior:contain" not in page
+    assert 'class="side back" hidden' in page
+    assert 'class="card-preview card"' in page
+    assert ".card{color:red}" in page
+    assert ".card-preview .tags" in page
     assert "bad()" not in page
     assert "[anki:play:q:0]" not in page
+
+
+def test_note_css_and_tags_are_excluded_from_copy_text() -> None:
+    module = _load_module()
+    document = module.data_document(
+        [
+            _card(
+                front_html=(
+                    "<style>.card{font-size:20px}</style>"
+                    '<div class="tags"><span>spoiler</span></div><b>Question</b>'
+                )
+            )
+        ],
+        updated_at="now",
+        digest="abc",
+        source_addon="speed_streak_v2_04",
+        review_later_flag=4,
+    )
+
+    card = document["cards"][0]
+    assert ".card{font-size:20px}" in card["front_html"]
+    assert card["front_text"] == "Question"
 
 
 def test_empty_queue_is_a_valid_publishable_page() -> None:

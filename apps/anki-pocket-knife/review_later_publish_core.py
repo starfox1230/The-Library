@@ -10,12 +10,13 @@ from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 2
+PUBLISH_FORMAT_VERSION = 3
 _ANSWER_SEPARATOR_RE = re.compile(
     r"<hr\b[^>]*\bid\s*=\s*(?:[\"']answer[\"']|answer)[^>]*>",
     flags=re.IGNORECASE,
 )
-_SCRIPT_STYLE_RE = re.compile(
-    r"<(script|style)\b[^>]*>.*?</\1\s*>",
+_SCRIPT_RE = re.compile(
+    r"<script\b[^>]*>.*?</script\s*>",
     flags=re.IGNORECASE | re.DOTALL,
 )
 _AUDIO_ELEMENT_RE = re.compile(
@@ -36,23 +37,49 @@ class _TextParser(HTMLParser):
         "hr", "li", "main", "ol", "p", "pre", "section", "table", "td", "th",
         "tr", "ul",
     }
+    VOID_ELEMENTS = {
+        "area", "base", "br", "col", "embed", "hr", "img", "input",
+        "link", "meta", "param", "source", "track", "wbr",
+    }
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.parts: list[str] = []
+        self._ignored_elements: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.casefold() in self.BLOCKS:
+        normalized = tag.casefold()
+        attributes = {name.casefold(): str(value or "") for name, value in attrs}
+        classes = {item.casefold() for item in attributes.get("class", "").split()}
+        is_tag_metadata = (
+            attributes.get("id", "").casefold() == "tags"
+            or bool(classes.intersection({"tags", "tag-container", "tagcontainer"}))
+        )
+        if self._ignored_elements:
+            if normalized not in self.VOID_ELEMENTS:
+                self._ignored_elements.append(normalized)
+            return
+        if normalized in {"script", "style"} or is_tag_metadata:
+            if normalized not in self.VOID_ELEMENTS:
+                self._ignored_elements.append(normalized)
+            return
+        if normalized in self.BLOCKS:
             self.parts.append("\n")
-        if tag.casefold() == "li":
+        if normalized == "li":
             self.parts.append("- ")
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.casefold() in self.BLOCKS:
+        normalized = tag.casefold()
+        if self._ignored_elements:
+            if normalized == self._ignored_elements[-1]:
+                self._ignored_elements.pop()
+            return
+        if normalized in self.BLOCKS:
             self.parts.append("\n")
 
     def handle_data(self, data: str) -> None:
-        self.parts.append(data)
+        if not self._ignored_elements:
+            self.parts.append(data)
 
 
 def _clean_text(value: Any, fallback: str = "") -> str:
@@ -68,7 +95,9 @@ def answer_side_only(value: str) -> str:
 
 def sanitize_card_html(value: str) -> str:
     text = str(value or "")
-    text = _SCRIPT_STYLE_RE.sub("", text)
+    # Keep each note type's CSS so the web card matches its Anki rendering.
+    # Executable scripts and audio controls are unnecessary on this read-only page.
+    text = _SCRIPT_RE.sub("", text)
     text = _AUDIO_ELEMENT_RE.sub("", text)
     text = _PLAY_ELEMENT_RE.sub("", text)
     text = _ANKI_PLAY_RE.sub("", text)
@@ -125,6 +154,7 @@ def content_hash(
 ) -> str:
     payload = {
         "schema_version": SCHEMA_VERSION,
+        "publish_format_version": PUBLISH_FORMAT_VERSION,
         "source_addon": str(source_addon),
         "review_later_flag": int(review_later_flag),
         "standing_instructions": str(standing_instructions).strip(),
@@ -147,14 +177,12 @@ def cards_markdown(cards: Iterable[dict[str, Any]], updated_at: str) -> str:
         return "\n".join(lines).rstrip() + "\n"
 
     for index, card in enumerate(cards_list, start=1):
-        tags = ", ".join(card["tags"]) or "None"
         lines.extend(
             [
                 "",
                 f"## Card {index}",
                 "",
                 f"Deck: {_clean_text(card['deck'], 'Unknown Deck')}",
-                f"Tags: {tags}",
                 f"Flagged: {_clean_text(card['flagged_at'], 'Unknown')}",
                 f"Last seen: {_clean_text(card['last_seen_at'], 'Unknown')}",
                 f"Card ID: {card['card_id']}",
@@ -190,6 +218,7 @@ def data_document(
     cards_list = _canonical_cards(cards)
     return {
         "schema_version": SCHEMA_VERSION,
+        "publish_format_version": PUBLISH_FORMAT_VERSION,
         "updated_at": str(updated_at),
         "content_hash": str(digest),
         "source": {
@@ -215,7 +244,7 @@ _PAGE_TEMPLATE = r'''<!doctype html>
   <style>
     :root { color-scheme:dark; --bg:#090e1c; --panel:#141b2d; --line:rgba(142,169,235,.18); --text:#f5f7ff; --muted:#96a7ca; --blue:#6288ff; --green:#45d7a1; }
     * { box-sizing:border-box; }
-    html { scroll-behavior:smooth; scroll-snap-type:y proximity; scroll-padding-top:78px; }
+    html { scroll-behavior:smooth; scroll-padding-top:78px; }
     body { margin:0; min-height:100%; background:radial-gradient(circle at 50% -20%,#172342 0,transparent 42%),var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     button,select,input { font:inherit; }
     .toolbar { position:sticky; top:0; z-index:20; padding:max(5px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) 5px max(8px,env(safe-area-inset-left)); background:rgba(9,14,28,.94); border-bottom:1px solid var(--line); backdrop-filter:blur(15px); }
@@ -231,24 +260,22 @@ _PAGE_TEMPLATE = r'''<!doctype html>
     #status { color:var(--green); margin-left:auto; }
     .shell { width:min(100%,980px); margin:auto; padding:12px max(10px,env(safe-area-inset-right)) 42px max(10px,env(safe-area-inset-left)); }
     .entries { display:grid; gap:14px; }
-    .entry { scroll-snap-align:start; border:1px solid var(--line); border-radius:17px; padding:11px; background:linear-gradient(180deg,rgba(27,38,64,.95),rgba(14,21,38,.97)); box-shadow:0 14px 35px rgba(0,0,0,.25); overflow:hidden; }
+    .entry { border:1px solid var(--line); border-radius:17px; padding:11px; background:linear-gradient(180deg,rgba(27,38,64,.95),rgba(14,21,38,.97)); box-shadow:0 14px 35px rgba(0,0,0,.25); overflow:hidden; }
     .entry-head { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:8px; margin:0 2px 9px; }
     .deck { font-size:13px; font-weight:780; overflow-wrap:anywhere; }
     .number { color:#91a7d9; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
     .times { color:var(--muted); text-align:right; font-size:10px; line-height:1.35; white-space:nowrap; }
-    .stage { position:relative; height:clamp(330px,62svh,590px); border:1px solid rgba(255,255,255,.075); border-radius:14px; background:linear-gradient(180deg,#090e1a,#111827); overflow:hidden; cursor:pointer; outline:none; }
+    .stage { position:relative; height:auto; border:1px solid rgba(255,255,255,.075); border-radius:14px; background:linear-gradient(180deg,#090e1a,#111827); overflow:hidden; cursor:pointer; outline:none; transition:height .22s ease; }
     .stage:focus-visible { box-shadow:0 0 0 2px var(--blue); }
-    .side { position:absolute; inset:0; padding:13px 12px 38px; overflow:auto; overscroll-behavior:contain; opacity:0; visibility:hidden; transform:translateY(8px) scale(.995); transition:opacity .18s ease,transform .22s ease,visibility 0s linear .22s; }
-    .side.active { opacity:1; visibility:visible; transform:none; transition-delay:0s; }
-    .face-label { position:sticky; top:-13px; z-index:2; margin:-13px -12px 10px; padding:7px 12px; background:rgba(9,14,26,.9); color:#8fa6db; font-size:10px; font-weight:850; letter-spacing:.11em; text-transform:uppercase; backdrop-filter:blur(8px); }
-    .card-preview { line-height:1.5; overflow-wrap:anywhere; font-size:15px; }
-    .card-preview img { display:block; max-width:100%; max-height:46svh; width:auto; height:auto; object-fit:contain; margin:10px auto; border-radius:8px; }
+    .side { position:relative; padding:13px 12px 38px; overflow:visible; opacity:0; transform:translateY(6px); transition:opacity .18s ease,transform .22s ease; }
+    .side[hidden] { display:none; }
+    .side.active { opacity:1; transform:none; }
+    .face-label { position:static; margin:-13px -12px 10px; padding:7px 12px; background:rgba(9,14,26,.9); color:#8fa6db; font-size:10px; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
+    .card-preview { overflow-wrap:anywhere; }
+    .card-preview img { display:block; max-width:100%; width:auto; height:auto; margin:10px auto; border-radius:8px; }
     .card-preview table { display:block; max-width:100%; overflow:auto; }
-    .card-preview script,.card-preview style,.card-preview audio,.card-preview video,.card-preview [role="timer"],.card-preview .tbar,.replay-button,.replaybutton,.soundLink,[href^="playsound:"] { display:none!important; }
+    .card-preview script,.card-preview style,.card-preview audio,.card-preview video,.card-preview [role="timer"],.card-preview .tbar,.card-preview .tags,.card-preview #tags,.card-preview .tag-container,.card-preview .tagcontainer,.replay-button,.replaybutton,.soundLink,[href^="playsound:"] { display:none!important; }
     .flip-hint { position:absolute; z-index:3; left:50%; bottom:7px; transform:translateX(-50%); border-radius:999px; padding:5px 10px; background:rgba(28,39,65,.92); color:#b9c8eb; font-size:10px; pointer-events:none; box-shadow:0 2px 12px rgba(0,0,0,.25); }
-    .tags { display:flex; gap:5px; overflow:auto; padding:8px 1px 0; scrollbar-width:none; }
-    .tags::-webkit-scrollbar { display:none; }
-    .tag { flex:none; border-radius:999px; padding:4px 7px; background:rgba(98,136,255,.12); color:#b9c9f6; font-size:9px; }
     .empty { padding:50px 18px; border:1px solid var(--line); border-radius:16px; color:var(--muted); text-align:center; background:var(--panel); }
     @media (max-width:620px) {
       html { scroll-padding-top:82px; }
@@ -259,8 +286,6 @@ _PAGE_TEMPLATE = r'''<!doctype html>
       select { max-width:94px; }
       input[type=date] { width:113px; }
       .entry { padding:9px; border-radius:14px; }
-      .stage { height:clamp(320px,64svh,560px); }
-      .card-preview { font-size:14px; }
     }
     @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto!important; transition:none!important; } }
   </style>
@@ -321,20 +346,27 @@ _PAGE_TEMPLATE = r'''<!doctype html>
       return filtered.sort((a,b)=>(parseDate(b[key])?.getTime()||0)-(parseDate(a[key])?.getTime()||0));
     }
     function cardHtml(card,index) {
-      const tags=(card.tags||[]).map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
       return `<article class="entry" data-card-id="${card.card_id}">
         <header class="entry-head"><div><div class="number">Card ${index+1}</div><div class="deck">${esc(card.deck||'Unknown Deck')}</div></div>
         <div class="times">Seen ${esc(pretty(card.last_seen_at))}<br>Flagged ${esc(pretty(card.flagged_at))}</div></header>
         <div class="stage" tabindex="0" role="button" aria-label="Show answer" aria-pressed="false">
-          <section class="side front active"><div class="face-label">Question</div><div class="card-preview">${card.front_html||'<em>(empty)</em>'}</div></section>
-          <section class="side back"><div class="face-label">Answer</div><div class="card-preview">${card.back_html||'<em>(empty)</em>'}</div></section>
-          <div class="flip-hint">Question · tap for answer</div></div><div class="tags">${tags}</div></article>`;
+          <section class="side front active"><div class="face-label">Question</div><div class="card-preview card">${card.front_html||'<em>(empty)</em>'}</div></section>
+          <section class="side back" hidden><div class="face-label">Answer</div><div class="card-preview card">${card.back_html||'<em>(empty)</em>'}</div></section>
+          <div class="flip-hint">Question · tap for answer</div></div></article>`;
     }
     function toggle(stage) {
       const front=stage.querySelector('.front'),back=stage.querySelector('.back');
       const showingAnswer=back.classList.contains('active');
-      front.classList.toggle('active',showingAnswer); back.classList.toggle('active',!showingAnswer);
-      (showingAnswer?front:back).scrollTop=0;
+      const current=showingAnswer?back:front,next=showingAnswer?front:back;
+      const startHeight=stage.getBoundingClientRect().height;
+      stage.style.height=`${startHeight}px`;
+      current.classList.remove('active'); current.hidden=true;
+      next.hidden=false; next.classList.add('active');
+      const targetHeight=next.getBoundingClientRect().height;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ stage.style.height=`${targetHeight}px`; }));
+      const release=()=>{ stage.style.height='auto'; };
+      stage.addEventListener('transitionend',release,{once:true});
+      window.setTimeout(release,280);
       stage.setAttribute('aria-pressed',String(!showingAnswer)); stage.setAttribute('aria-label',showingAnswer?'Show answer':'Show question');
       stage.querySelector('.flip-hint').textContent=showingAnswer?'Question · tap for answer':'Answer · tap for question';
     }
@@ -349,7 +381,7 @@ _PAGE_TEMPLATE = r'''<!doctype html>
     function cardsMarkdown(cards) {
       const lines=['# Anki Speed Streak — Review Later','',`Cards: ${cards.length}`];
       if (!cards.length) return lines.concat(['','No currently blue cards were seen in this period.']).join('\n')+'\n';
-      cards.forEach((card,index)=>lines.push('',`## Card ${index+1}`,'',`Deck: ${card.deck||'Unknown Deck'}`,`Tags: ${(card.tags||[]).join(', ')||'None'}`,`Flagged: ${card.flagged_at||'Unknown'}`,`Last seen: ${card.last_seen_at||'Unknown'}`,`Card ID: ${card.card_id}`,`Note ID: ${card.note_id}`,'','Question:',card.front_text||'(empty)','','Answer:',card.back_text||'(empty)'));
+      cards.forEach((card,index)=>lines.push('',`## Card ${index+1}`,'',`Deck: ${card.deck||'Unknown Deck'}`,`Flagged: ${card.flagged_at||'Unknown'}`,`Last seen: ${card.last_seen_at||'Unknown'}`,`Card ID: ${card.card_id}`,`Note ID: ${card.note_id}`,'','Question:',card.front_text||'(empty)','','Answer:',card.back_text||'(empty)'));
       return lines.join('\n')+'\n';
     }
     async function copyText(text) {
