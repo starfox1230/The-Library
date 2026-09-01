@@ -10,7 +10,7 @@ from typing import Any, Iterable
 
 
 SCHEMA_VERSION = 2
-PUBLISH_FORMAT_VERSION = 3
+PUBLISH_FORMAT_VERSION = 4
 _ANSWER_SEPARATOR_RE = re.compile(
     r"<hr\b[^>]*\bid\s*=\s*(?:[\"']answer[\"']|answer)[^>]*>",
     flags=re.IGNORECASE,
@@ -272,6 +272,7 @@ _PAGE_TEMPLATE = r'''<!doctype html>
     .side.active { opacity:1; transform:none; }
     .face-label { position:static; margin:-13px -12px 10px; padding:7px 12px; background:rgba(9,14,26,.9); color:#8fa6db; font-size:10px; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
     .card-preview { overflow-wrap:anywhere; }
+    .card-preview.card { background:transparent!important; background-color:transparent!important; }
     .card-preview img { display:block; max-width:100%; width:auto; height:auto; margin:10px auto; border-radius:8px; }
     .card-preview table { display:block; max-width:100%; overflow:auto; }
     .card-preview script,.card-preview style,.card-preview audio,.card-preview video,.card-preview [role="timer"],.card-preview .tbar,.card-preview .tags,.card-preview #tags,.card-preview .tag-container,.card-preview .tagcontainer,.replay-button,.replaybutton,.soundLink,[href^="playsound:"] { display:none!important; }

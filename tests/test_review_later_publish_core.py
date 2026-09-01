@@ -80,7 +80,7 @@ def test_data_document_has_stable_snake_case_fields() -> None:
     )
 
     assert document["schema_version"] == 2
-    assert document["publish_format_version"] == 3
+    assert document["publish_format_version"] == 4
     assert document["count"] == 1
     assert document["cards"][0]["card_id"] == 123
     assert document["cards"][0]["flagged_at"].endswith("-05:00")
@@ -113,6 +113,7 @@ def test_mobile_page_embeds_both_copy_payloads_safely() -> None:
     assert "overscroll-behavior:contain" not in page
     assert 'class="side back" hidden' in page
     assert 'class="card-preview card"' in page
+    assert ".card-preview.card { background:transparent!important;" in page
     assert ".card{color:red}" in page
     assert ".card-preview .tags" in page
     assert "bad()" not in page
