@@ -44,10 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-01 22:44 Central Daylight Time
-Cards: 1
+Updated: 2026-09-01 23:53 Central Daylight Time
+Cards: 2
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-07-11T10:04:05-05:00
+Last seen: 2026-09-01T23:45:54-05:00
+Card ID: 1783397643342
+Note ID: 1783397643341
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
+
+Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
+
+Full source page:
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-08-20T12:43:54-05:00
