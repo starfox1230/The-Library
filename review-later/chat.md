@@ -44,7 +44,145 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-02 05:52 Central Daylight Time
-Cards: 0
+Updated: 2026-09-02 07:38 Central Daylight Time
+Cards: 6
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-02T06:51:48-05:00
+Last seen: 2026-09-02T06:51:48-05:00
+Card ID: 1777318729119
+Note ID: 1777318729119
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Most likely diagnosis?
+
+enteric duplication cyst
+
+1/2
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-02T06:14:33-05:00
+Last seen: 2026-09-02T06:50:28-05:00
+Card ID: 1760542763450
+Note ID: 1760542763450
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+lipomyelomeningocele
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-02T06:40:58-05:00
+Last seen: 2026-09-02T06:40:58-05:00
+Card ID: 1760470701774
+Note ID: 1760470701773
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+Glomus caroticum paraganglioma
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-09-02T06:23:34-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-07-10T16:22:13-05:00
+Last seen: 2026-09-02T06:21:56-05:00
+Card ID: 1783397643324
+Note ID: 1783397643323
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+pseudohypoparathyroidism vs pseudo-pseudohypoparathyroidism -- Short fourth metacarpal
+
+Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classic radiographic finding of pseudohypoparathyroidism and pseudo-pseudohypoparathyroidism.
+
+Full source page:
+
+## Card 6
+
+Deck: .NEW::Visual
+Flagged: 2026-07-11T10:04:05-05:00
+Last seen: 2026-09-02T05:55:50-05:00
+Card ID: 1783397643342
+Note ID: 1783397643341
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
+
+Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
+
+Full source page:
