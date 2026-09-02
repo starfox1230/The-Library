@@ -44,7 +44,23 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-01 06:43 Central Daylight Time
-Cards: 0
+Updated: 2026-09-01 22:44 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-08-20T12:43:54-05:00
+Last seen: 2026-09-01T08:42:26-05:00
+Card ID: 1776883789576
+Note ID: 1776883789575
+
+Question:
+00:12
+
+In a 1.5D transducer array, elevational focusing is usually achieved with [...].
+
+Answer:
+00:12
+
+In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
