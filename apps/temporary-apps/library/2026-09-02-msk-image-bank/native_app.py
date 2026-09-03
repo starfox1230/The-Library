@@ -148,7 +148,7 @@ class ImageCard(QFrame):
         super().__init__(parent); self.image = image; self.root = root
         self.setObjectName("ImageCard"); self.setStyleSheet("QFrame#ImageCard { background:#0b141f; border:1px solid #26364a; border-radius:7px; }")
         layout = QVBoxLayout(self); layout.setContentsMargins(7, 7, 7, 7); layout.setSpacing(6)
-        self.preview = ResponsiveImageLabel(); self.preview.setMinimumSize(100, 115); self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
+        self.preview = ResponsiveImageLabel(); self.preview.setMinimumWidth(100); self.preview.setFixedHeight(170); self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
         self.preview.setToolTip("Click to view full screen"); self.preview.clicked.connect(lambda: self.opened.emit(self.image["id"])); layout.addWidget(self.preview)
         self.preview.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu); self.preview.customContextMenuRequested.connect(self._copy_menu)
         self.caption = QLineEdit(image.get("caption", "")); self.caption.setPlaceholderText("Caption / source note"); self.caption.textChanged.connect(self._caption_changed); layout.addWidget(self.caption)
@@ -172,6 +172,35 @@ class ImageCard(QFrame):
 
     def _caption_changed(self, value): self.image["caption"] = value; self.changed.emit()
     def _favorite_changed(self, value): self.image["favorite"] = bool(value); self.changed.emit()
+
+
+class ResponsiveImageGrid(QWidget):
+    """Tile image cards into as many readable columns as the panel allows."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.grid = QGridLayout(self); self.grid.setContentsMargins(0, 0, 0, 0); self.grid.setSpacing(9)
+        self.cards = []; self._column_count = 0
+
+    def add_card(self, card):
+        self.cards.append(card); self._relayout()
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt API name
+        self._relayout(); super().resizeEvent(event)
+
+    def _relayout(self):
+        if not self.cards or self.width() < 1:
+            return
+        columns = max(1, min(3, (self.width() + 9) // 150))
+        if columns == self._column_count:
+            return
+        self._column_count = columns
+        for card in self.cards:
+            self.grid.removeWidget(card)
+        for index, card in enumerate(self.cards):
+            self.grid.addWidget(card, index // columns, index % columns)
+        for column in range(3):
+            self.grid.setColumnStretch(column, 1 if column < columns else 0)
 
 
 class ModalityPanel(QGroupBox):
@@ -281,13 +310,11 @@ class MainWindow(QMainWindow):
         for key, label, query in MODALITIES:
             panel = ModalityPanel(key, label); panel.focused.connect(self.set_active_modality); panel.dropped.connect(self.handle_drop); layout = QVBoxLayout(panel); links = QPushButton("Google Images ↗"); links.setToolTip("Open this modality's Google Images search in your existing Chrome"); links.clicked.connect(lambda _=False, k=key, q=query: self.open_search(p, k, q)); layout.addWidget(links)
             findings = QTextEdit(); findings.setPlainText(r["findings"].get(key, "")); findings.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); QTimer.singleShot(0, lambda editor=findings: fit_finding_editor(editor)); layout.addWidget(findings)
-            hint = QLabel("Drop images anywhere in this panel · click an image to view full screen"); hint.setStyleSheet("color:#6f849d;font-size:10px;"); hint.setWordWrap(True); layout.addWidget(hint)
-            grid_host = QWidget(); grid = QGridLayout(grid_host); grid.setContentsMargins(0,0,0,0); grid.setSpacing(9); images = r["images"][key]
-            grid.setColumnStretch(0, 1)
+            grid_host = ResponsiveImageGrid(); images = r["images"][key]
             for index, image in enumerate(images):
-                card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid.addWidget(card, index, 0)
+                card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid_host.add_card(card)
             if not images:
-                empty = QLabel("No images collected yet."); empty.setStyleSheet("color:#6f849d;padding:12px 0;"); grid.addWidget(empty, 0, 0)
+                empty = QLabel("No images collected yet."); empty.setStyleSheet("color:#6f849d;padding:12px 0;"); grid_host.grid.addWidget(empty, 0, 0)
             layout.addWidget(grid_host); panels.append((label, panel))
         self._layout_mode = self.layout_mode()
         if self._layout_mode == "tabs":
