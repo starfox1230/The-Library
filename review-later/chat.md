@@ -44,216 +44,67 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-02 19:38 Central Daylight Time
-Cards: 9
+Updated: 2026-09-03 05:05 Central Daylight Time
+Cards: 3
 
 ## Card 1
 
-Deck: ..Due 2026-08-27 to 2026-09-03 Combined
-Flagged: 2026-09-02T18:18:33-05:00
-Last seen: 2026-09-02T18:18:33-05:00
-Card ID: 1752168044213
-Note ID: 1752168044213
+Deck: .NEW::Audio
+Flagged: 2026-05-22T05:25:28-05:00
+Last seen: 2026-09-03T04:59:47-05:00
+Card ID: 1776433474557
+Note ID: 1776433474556
 
 Question:
 00:12
 
-Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
-
-[...]
+[What equation] results in the DLP.
 
 Answer:
 00:08
 
-Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
-
-squamous cell carcinoma
+Multiplying CTDIvol by the scan length results in the DLP.
 
 ## Card 2
 
 Deck: .NEW::Audio
-Flagged: 2026-08-23T07:49:34-05:00
-Last seen: 2026-09-02T18:08:50-05:00
-Card ID: 1745603777408
-Note ID: 1745603777407
+Flagged: 2026-08-24T06:15:09-05:00
+Last seen: 2026-09-03T04:54:25-05:00
+Card ID: 1706766611199
+Note ID: 1706766611198
 
 Question:
 00:12
 
-The [...] lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+If the spinoglenoid notch is compressed, [...] would be denervated.
 
 Answer:
 00:08
 
-The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+If the spinoglenoid notch is compressed, the infraspinatus muscle would be denervated.
+
+A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperintense cystic lesion is seen centered on the spinoglenoid notch, contiguous with the posterior glenoid labrum and connecting to a focal posterior labral tear/detachment "paralabral cyst". The suprascapular notch appears normal. Swollen infraspinatus muscle elicits abnormal bright signal in STIR
+
+https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
 
 ## Card 3
 
-Deck: Other::Radiology (All)::.Visual::Everything Else
-Flagged: 2026-07-29T16:52:20-05:00
-Last seen: 2026-09-02T17:57:37-05:00
-Card ID: 1715571329867
-Note ID: 1715571329865
-
-Question:
-#image-occlusion-canvas {
-    --inactive-shape-color: #ffeba2;
-    --active-shape-color: #ff8e8e;
-    --inactive-shape-border: 1px #212121;
-    --active-shape-border: 1px #212121;
-}
-.card {
-    font-family: arial;
-    font-size: 20px;
-    text-align: center;
-    color: black;
-    background-color: white;
-}
-try {
-    anki.setupImageCloze();
-} catch (exc) {
-    document.getElementById("err").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;
-}
-
-Answer:
-Toggle Masks
-
-## Card 4
-
-Deck: .NEW::Visual
-Flagged: 2026-09-02T06:51:48-05:00
-Last seen: 2026-09-02T06:51:48-05:00
-Card ID: 1777318729119
-Note ID: 1777318729119
+Deck: Saved Cards
+Flagged: 2026-07-22T18:02:09-05:00
+Last seen: 2026-09-03T04:52:02-05:00
+Card ID: 1784115991316
+Note ID: 1784115991315
 
 Question:
 00:12
 
-Most likely diagnosis?
-
-[...]
-
-1/2
-
-Answer:
-00:08
-
-Most likely diagnosis?
-
-enteric duplication cyst
-
-1/2
-
-## Card 5
-
-Deck: .NEW::Visual
-Flagged: 2026-09-02T06:14:33-05:00
-Last seen: 2026-09-02T06:50:28-05:00
-Card ID: 1760542763450
-Note ID: 1760542763450
-
-Question:
-00:12
-
-Diagnosis?
-
-[...]
-
-Answer:
-00:08
-
-Diagnosis?
-
-lipomyelomeningocele
-
-## Card 6
-
-Deck: .NEW::Visual
-Flagged: 2026-09-02T06:40:58-05:00
-Last seen: 2026-09-02T06:40:58-05:00
-Card ID: 1760470701774
-Note ID: 1760470701773
-
-Question:
-00:12
-
-Diagnosis?
-
-[...]
-
-Answer:
-00:08
-
-Diagnosis?
-
-Glomus caroticum paraganglioma
-
-## Card 7
-
-Deck: .NEW::Audio
-Flagged: 2026-08-01T07:27:54-05:00
-Last seen: 2026-09-02T06:23:34-05:00
-Card ID: 1779082174695
-Note ID: 1779082174694
-
-Question:
-00:12
-
-The [...] is the collateral connection between the middle colic artery and the left colic artery.
+On the [...] PET response scale, score 1 is no uptake, 2 is uptake no greater than mediastinum, 3 is above mediastinum but no greater than liver, 4 is moderately above liver, and 5 is markedly above liver or a new lesion.
 
 Answer:
 00:12
 
-The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+On the Deauville PET response scale, score 1 is no uptake, 2 is uptake no greater than mediastinum, 3 is above mediastinum but no greater than liver, 4 is moderately above liver, and 5 is markedly above liver or a new lesion.
 
-## Card 8
+Deauville scoring is a metabolic response system, distinct from the anatomic Lugano/Ann Arbor stage.
 
-Deck: .NEW::Visual
-Flagged: 2026-07-10T16:22:13-05:00
-Last seen: 2026-09-02T06:21:56-05:00
-Card ID: 1783397643324
-Note ID: 1783397643323
-
-Question:
-00:12
-
-Most likely diagnosis?
-
-[...]
-
-Answer:
-00:12
-
-Most likely diagnosis?
-
-pseudohypoparathyroidism vs pseudo-pseudohypoparathyroidism -- Short fourth metacarpal
-
-Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classic radiographic finding of pseudohypoparathyroidism and pseudo-pseudohypoparathyroidism.
-
-Full source page:
-
-## Card 9
-
-Deck: .NEW::Visual
-Flagged: 2026-07-11T10:04:05-05:00
-Last seen: 2026-09-02T05:55:50-05:00
-Card ID: 1783397643342
-Note ID: 1783397643341
-
-Question:
-00:12
-
-Most likely diagnosis?
-
-[...]
-
-Answer:
-00:12
-
-Most likely diagnosis?
-
-Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
-
-Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
-
-Full source page:
+Source note: Lymphoma grading/staging systems
