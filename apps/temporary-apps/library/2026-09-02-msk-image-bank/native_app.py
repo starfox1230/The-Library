@@ -20,13 +20,13 @@ import uuid
 import webbrowser
 import zipfile
 
-from PySide6.QtCore import QEvent, QMimeData, QObject, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QMimeData, QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QFont, QImage, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
     QMessageBox, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout,
-    QWidget, QInputDialog,
+    QWidget, QInputDialog, QMenu, QTabWidget,
 )
 
 
@@ -75,17 +75,37 @@ class ClickableLabel(QLabel):
         super().mousePressEvent(event)
 
 
+class ResponsiveImageLabel(ClickableLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent); self.source_pixmap = QPixmap()
+
+    def set_source_pixmap(self, pixmap):
+        self.source_pixmap = pixmap; self._rescale()
+
+    def clear_source_pixmap(self):
+        self.source_pixmap = QPixmap(); self.clear()
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt API name
+        self._rescale(); super().resizeEvent(event)
+
+    def _rescale(self):
+        if not self.source_pixmap.isNull() and self.width() > 1 and self.height() > 1:
+            self.setPixmap(self.source_pixmap.scaled(self.size() - QSize(10, 10), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+
+
 class ImageViewer(QDialog):
     def __init__(self, image_path: Path | None, source_url: str = "", parent=None):
         super().__init__(parent)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setStyleSheet("QDialog { background: #03070d; } QLabel { color: #b7c5d8; }")
         self.image_path, self.source_url = image_path, source_url
-        self.label = ClickableLabel("", self)
+        self.label = ResponsiveImageLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setStyleSheet("background:#03070d;")
         self.label.setMouseTracking(True)
         self.label.clicked.connect(self.close)
+        self.label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.label.customContextMenuRequested.connect(self._copy_menu)
         layout = QVBoxLayout(self); layout.setContentsMargins(0, 0, 0, 0); layout.addWidget(self.label)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self._refresh()
@@ -94,11 +114,19 @@ class ImageViewer(QDialog):
         if self.image_path and self.image_path.exists():
             pixmap = QPixmap(str(self.image_path))
             target = QSize(max(1, int(self.width() * .92)), max(1, int(self.height() * .92)))
-            self.label.setPixmap(pixmap.scaled(target, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.label.set_source_pixmap(pixmap)
         elif self.source_url:
             self.label.setText(f"Image URL\n{self.source_url}\n\nClick anywhere or press Esc to close")
         else:
             self.label.setText("Image unavailable\n\nClick anywhere or press Esc to close")
+
+    def _copy_menu(self, position):
+        menu = QMenu(self); copy = menu.addAction("Copy image")
+        copy.triggered.connect(self._copy_image); menu.exec(self.label.mapToGlobal(position))
+
+    def _copy_image(self):
+        if not self.label.source_pixmap.isNull(): QApplication.clipboard().setImage(self.label.source_pixmap.toImage())
+        elif self.source_url: QApplication.clipboard().setText(self.source_url)
 
     def resizeEvent(self, event):  # noqa: N802 - Qt API name
         self._refresh(); super().resizeEvent(event)
@@ -120,8 +148,9 @@ class ImageCard(QFrame):
         super().__init__(parent); self.image = image; self.root = root
         self.setObjectName("ImageCard"); self.setStyleSheet("QFrame#ImageCard { background:#0b141f; border:1px solid #26364a; border-radius:7px; }")
         layout = QVBoxLayout(self); layout.setContentsMargins(7, 7, 7, 7); layout.setSpacing(6)
-        self.preview = ClickableLabel(); self.preview.setMinimumSize(100, 115); self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
+        self.preview = ResponsiveImageLabel(); self.preview.setMinimumSize(100, 115); self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
         self.preview.setToolTip("Click to view full screen"); self.preview.clicked.connect(lambda: self.opened.emit(self.image["id"])); layout.addWidget(self.preview)
+        self.preview.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu); self.preview.customContextMenuRequested.connect(self._copy_menu)
         self.caption = QLineEdit(image.get("caption", "")); self.caption.setPlaceholderText("Caption / source note"); self.caption.textChanged.connect(self._caption_changed); layout.addWidget(self.caption)
         row = QHBoxLayout(); self.favorite = QCheckBox("Favorite"); self.favorite.setChecked(bool(image.get("favorite"))); self.favorite.stateChanged.connect(self._favorite_changed); row.addWidget(self.favorite); row.addStretch()
         remove = QPushButton("Remove"); remove.setFixedWidth(60); remove.clicked.connect(lambda: self.removed.emit(self.image["id"])); row.addWidget(remove); layout.addLayout(row)
@@ -129,9 +158,17 @@ class ImageCard(QFrame):
 
     def _load_pixmap(self):
         path = self.root / self.image.get("path", "") if self.image.get("path") else None
-        if path and path.exists(): self.preview.setPixmap(QPixmap(str(path)).scaled(self.preview.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        if path and path.exists(): self.preview.set_source_pixmap(QPixmap(str(path)))
         elif self.image.get("source_url"): self.preview.setText("URL saved\n(click to open)"); self.preview.setStyleSheet("color:#67e8f9; background:#050a11; border:0;")
         else: self.preview.setText("Image unavailable")
+
+    def _copy_menu(self, position):
+        menu = QMenu(self); copy = menu.addAction("Copy image")
+        copy.triggered.connect(self._copy_image); menu.exec(self.preview.mapToGlobal(position))
+
+    def _copy_image(self):
+        if not self.preview.source_pixmap.isNull(): QApplication.clipboard().setImage(self.preview.source_pixmap.toImage())
+        elif self.image.get("source_url"): QApplication.clipboard().setText(self.image["source_url"])
 
     def _caption_changed(self, value): self.image["caption"] = value; self.changed.emit()
     def _favorite_changed(self, value): self.image["favorite"] = bool(value); self.changed.emit()
@@ -159,9 +196,16 @@ class ModalityPanel(QGroupBox):
         self.focused.emit(self.key); super().mousePressEvent(event)
 
 
+def fit_finding_editor(editor: QTextEdit):
+    width = max(120, editor.viewport().width() - 12); metrics = editor.fontMetrics(); lines = 0
+    for line in (editor.toPlainText() or "").splitlines() or [""]:
+        lines += max(1, (metrics.horizontalAdvance(line) + width - 1) // width)
+    editor.setFixedHeight(max(42, min(120, lines * metrics.lineSpacing() + 18)))
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle("MSK Image Bank"); self.resize(1380, 900); self.active_id = None; self.active_modality = "xr"; self._building = False
+        super().__init__(); self.setWindowTitle("MSK Image Bank"); self.resize(1380, 900); self.active_id = None; self.active_modality = "xr"; self._building = False; self._layout_mode = None
         self.data_root = LOCAL_ROOT; self.images_root = self.data_root / "images"; self.data_root.mkdir(parents=True, exist_ok=True); self.images_root.mkdir(parents=True, exist_ok=True)
         self.pathologies = parse_seed_data(); self.records, self.custom = {}, []
         self.state_path = self.data_root / "state.json"; self._load_state()
@@ -189,10 +233,10 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         central = QWidget(); outer = QHBoxLayout(central); outer.setContentsMargins(0,0,0,0); outer.setSpacing(0); self.setCentralWidget(central)
-        sidebar = QWidget(); sidebar.setFixedWidth(260); side = QVBoxLayout(sidebar); side.setContentsMargins(10,12,8,10)
+        sidebar = QWidget(); sidebar.setFixedWidth(260); self.sidebar = sidebar; side = QVBoxLayout(sidebar); side.setContentsMargins(10,12,8,10)
         title = QLabel("MSK Image Bank"); title.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold)); side.addWidget(title); subtitle = QLabel("Fast visual curation · saved on this computer"); subtitle.setStyleSheet("color:#8ea0b6;font-size:11px;"); side.addWidget(subtitle); side.addSpacing(8)
-        self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
-        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
+        self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.setWordWrap(True); self.list.setTextElideMode(Qt.TextElideMode.ElideNone); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
+        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.sidebar_toggle = QPushButton("‹"); self.sidebar_toggle.setFixedWidth(28); self.sidebar_toggle.setToolTip("Hide or show the diagnosis panel"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); status_row.addWidget(self.sidebar_toggle); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
         self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); self.detail = QWidget(); self.detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.detail_layout = QVBoxLayout(self.detail); self.detail_layout.setContentsMargins(12,10,12,28); self.scroll.setWidget(self.detail); right_layout.addWidget(self.scroll); outer.addWidget(right, 1)
 
     def refresh_list(self):
@@ -221,10 +265,10 @@ class MainWindow(QMainWindow):
         if not self.active_id: return
         self.clear_detail(); p = next(item for item in self.pathologies if item["id"] == self.active_id); r = self.record(self.active_id)
         head = QHBoxLayout(); info = QVBoxLayout(); eyebrow = QLabel(p["group"].upper()); eyebrow.setStyleSheet("color:#67e8f9;font-size:10px;font-weight:600;letter-spacing:1px;"); info.addWidget(eyebrow); heading = QLabel(p["name"]); heading.setFont(QFont("Segoe UI", 22, QFont.Weight.DemiBold)); info.addWidget(heading); helper = QLabel("Search, curate, and keep multiple images per modality."); helper.setStyleSheet("color:#8ea0b6;font-size:11px;"); info.addWidget(helper); head.addLayout(info); head.addStretch(); favorite = QPushButton("★ Favorited" if r.get("favorite") else "☆ Favorite pathology"); favorite.setObjectName("primary" if r.get("favorite") else ""); favorite.clicked.connect(self.toggle_pathology_favorite); head.addWidget(favorite); self.detail_layout.addLayout(head)
-        columns = QHBoxLayout(); columns.setSpacing(12)
+        panels = []
         for key, label, query in MODALITIES:
             panel = ModalityPanel(key, label); panel.focused.connect(self.set_active_modality); panel.dropped.connect(self.handle_drop); layout = QVBoxLayout(panel); links = QPushButton("Google Images ↗"); links.setToolTip("Open this modality's Google Images search in your existing Chrome"); links.clicked.connect(lambda _=False, k=key, q=query: self.open_search(p, k, q)); layout.addWidget(links)
-            findings = QTextEdit(); findings.setPlainText(r["findings"].get(key, "")); findings.setMinimumHeight(92); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); layout.addWidget(findings)
+            findings = QTextEdit(); findings.setPlainText(r["findings"].get(key, "")); findings.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); QTimer.singleShot(0, lambda editor=findings: fit_finding_editor(editor)); layout.addWidget(findings)
             hint = QLabel("Drop images anywhere in this panel · click an image to view full screen"); hint.setStyleSheet("color:#6f849d;font-size:10px;"); hint.setWordWrap(True); layout.addWidget(hint)
             grid_host = QWidget(); grid = QGridLayout(grid_host); grid.setContentsMargins(0,0,0,0); grid.setSpacing(9); images = r["images"][key]
             grid.setColumnStretch(0, 1)
@@ -232,11 +276,32 @@ class MainWindow(QMainWindow):
                 card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid.addWidget(card, index, 0)
             if not images:
                 empty = QLabel("No images collected yet."); empty.setStyleSheet("color:#6f849d;padding:12px 0;"); grid.addWidget(empty, 0, 0)
-            layout.addWidget(grid_host); columns.addWidget(panel, 1)
-        self.detail_layout.addLayout(columns); notes_label = QLabel("Personal note"); notes_label.setStyleSheet("color:#8ea0b6;font-size:11px;"); self.detail_layout.addWidget(notes_label); notes = QTextEdit(); notes.setPlainText(r.get("notes", "")); notes.setMinimumHeight(65); notes.setPlaceholderText("Optional memory hook, differential, or Anki cue…"); notes.textChanged.connect(lambda editor=notes: self.update_notes(editor)); self.detail_layout.addWidget(notes); tip = QLabel("Paste: click a modality first, then Ctrl/Cmd+V. Export creates a ZIP containing favorites.json plus the actual favorite image files."); tip.setStyleSheet("color:#6f849d;font-size:10px;"); tip.setWordWrap(True); self.detail_layout.addWidget(tip); self.refresh_list()
+            layout.addWidget(grid_host); panels.append((label, panel))
+        self._layout_mode = self.layout_mode()
+        if self._layout_mode == "tabs":
+            tabs = QTabWidget(); tabs.setDocumentMode(True)
+            for label, panel in panels: tabs.addTab(panel, label)
+            self.detail_layout.addWidget(tabs)
+        else:
+            columns = QHBoxLayout(); columns.setSpacing(10)
+            for _, panel in panels: columns.addWidget(panel, 1)
+            self.detail_layout.addLayout(columns)
+        notes_label = QLabel("Personal note"); notes_label.setStyleSheet("color:#8ea0b6;font-size:11px;"); self.detail_layout.addWidget(notes_label); notes = QTextEdit(); notes.setPlainText(r.get("notes", "")); notes.setMinimumHeight(65); notes.setPlaceholderText("Optional memory hook, differential, or Anki cue…"); notes.textChanged.connect(lambda editor=notes: self.update_notes(editor)); self.detail_layout.addWidget(notes); tip = QLabel("Paste: click a modality first, then Ctrl/Cmd+V. Export creates a ZIP containing favorites.json plus the actual favorite image files."); tip.setStyleSheet("color:#6f849d;font-size:10px;"); tip.setWordWrap(True); self.detail_layout.addWidget(tip); self.refresh_list()
+
+    def layout_mode(self):
+        available_width = self.width() - (self.sidebar.width() if self.sidebar.isVisible() else 0)
+        return "tabs" if available_width < 900 else "columns"
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt API name
+        super().resizeEvent(event)
+        if hasattr(self, "_layout_mode") and self._layout_mode != self.layout_mode(): self.render_detail()
+
+    def toggle_sidebar(self):
+        visible = not self.sidebar.isVisible(); self.sidebar.setVisible(visible); self.sidebar_toggle.setText("‹" if visible else "›"); self.render_detail()
 
     def set_active_modality(self, key): self.active_modality = key
     def update_finding(self, key, editor):
+        fit_finding_editor(editor)
         if self.active_id and not self._building: self.record(self.active_id)["findings"][key] = editor.toPlainText(); self.save_state()
     def update_notes(self, editor):
         if self.active_id and not self._building: self.record(self.active_id)["notes"] = editor.toPlainText(); self.save_state()
