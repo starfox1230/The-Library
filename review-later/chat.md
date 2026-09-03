@@ -44,10 +44,56 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-03 05:47 Central Daylight Time
-Cards: 10
+Updated: 2026-09-03 05:57 Central Daylight Time
+Cards: 11
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:22:42-05:00
+Last seen: 2026-09-03T05:54:30-05:00
+Card ID: 1779744469985
+Note ID: 1779744469984
+
+Question:
+00:12
+
+What named distal radius fracture is shown?
+
+[...]
+
+Answer:
+00:12
+
+What named distal radius fracture is shown?
+
+Type II Smith fracture (reverse Barton fracture)
+
+Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-02T19:53:08-05:00
+Last seen: 2026-09-03T05:50:16-05:00
+Card ID: 1749147094501
+Note ID: 1749147094498
+
+Question:
+00:12
+
+Diagnosis in patient with recent spine surgery?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis in patient with recent spine surgery?
+
+remote cerebellar hemorrhage
+
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -71,7 +117,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -89,7 +135,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -113,7 +159,7 @@ marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
 
-## Card 4
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -131,7 +177,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 5
+## Card 7
 
 Deck: Other::Default
 Flagged: 2026-07-08T06:19:45-05:00
@@ -271,7 +317,7 @@ SHOW ALL
 
 Remarks
 
-## Card 6
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
@@ -297,31 +343,7 @@ Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
 
-## Card 7
-
-Deck: .NEW::Visual
-Flagged: 2026-09-03T05:22:42-05:00
-Last seen: 2026-09-03T05:23:08-05:00
-Card ID: 1779744469985
-Note ID: 1779744469984
-
-Question:
-00:12
-
-What named distal radius fracture is shown?
-
-[...]
-
-Answer:
-00:12
-
-What named distal radius fracture is shown?
-
-Type II Smith fracture (reverse Barton fracture)
-
-Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
-
-## Card 8
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-05-22T05:25:28-05:00
@@ -339,7 +361,7 @@ Answer:
 
 Multiplying CTDIvol by the scan length results in the DLP.
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-08-24T06:15:09-05:00
@@ -361,7 +383,7 @@ A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperinte
 
 https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
 
-## Card 10
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-07-22T18:02:09-05:00
