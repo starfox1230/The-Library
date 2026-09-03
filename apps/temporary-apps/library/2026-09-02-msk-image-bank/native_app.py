@@ -22,12 +22,12 @@ import webbrowser
 import zipfile
 
 from PySide6.QtCore import QEvent, QMimeData, QObject, QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QAction, QColor, QFont, QImage, QKeySequence, QPixmap
+from PySide6.QtGui import QAction, QColor, QFont, QImage, QKeySequence, QPainter, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
-    QMessageBox, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout,
-    QWidget, QInputDialog, QMenu, QTabWidget,
+    QMessageBox, QPushButton, QScrollArea, QSizePolicy, QStyledItemDelegate, QTextEdit, QVBoxLayout,
+    QWidget, QInputDialog, QMenu, QTabWidget, QStyle, QStyleOptionViewItem,
 )
 
 
@@ -74,6 +74,30 @@ class ClickableLabel(QLabel):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         super().mousePressEvent(event)
+
+
+class FavoriteListDelegate(QStyledItemDelegate):
+    def paint(self, painter, option, index):  # noqa: N802 - Qt API name
+        if index.data(Qt.ItemDataRole.UserRole) is None:
+            super().paint(painter, option, index)
+            return
+        item_option = QStyleOptionViewItem(option)
+        self.initStyleOption(item_option, index)
+        text = str(index.data(Qt.ItemDataRole.DisplayRole) or "")
+        star = "★" if text.startswith("★") else "☆"
+        name = text[2:] if len(text) > 1 and text[1] == " " else text
+        item_option.text = ""
+        QApplication.style().drawControl(QStyle.ControlElement.CE_ItemViewItem, item_option, painter)
+        painter.save()
+        star_color = QColor("#facc15") if star == "★" else QColor("#53667e")
+        painter.setPen(star_color)
+        painter.setFont(QFont("Segoe UI Symbol", 15))
+        painter.drawText(option.rect.adjusted(8, 0, 0, 0), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), star)
+        text_color = option.palette.color(QPalette.ColorRole.HighlightedText if option.state & QStyle.StateFlag.State_Selected else QPalette.ColorRole.Text)
+        painter.setPen(text_color)
+        painter.setFont(option.font)
+        painter.drawText(option.rect.adjusted(29, 0, -7, 0), int(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter), name)
+        painter.restore()
 
 
 class ResponsiveImageLabel(ClickableLabel):
@@ -284,7 +308,7 @@ class MainWindow(QMainWindow):
         central = QWidget(); outer = QHBoxLayout(central); outer.setContentsMargins(0,0,0,0); outer.setSpacing(0); self.setCentralWidget(central)
         sidebar = QWidget(); sidebar.setFixedWidth(260); self.sidebar = sidebar; side = QVBoxLayout(sidebar); side.setContentsMargins(10,12,8,10)
         title = QLabel("MSK Image Bank"); title.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold)); side.addWidget(title); subtitle = QLabel("Fast visual curation · saved on this computer"); subtitle.setStyleSheet("color:#8ea0b6;font-size:11px;"); side.addWidget(subtitle); side.addSpacing(8)
-        self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.setWordWrap(True); self.list.setTextElideMode(Qt.TextElideMode.ElideNone); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
+        self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.setWordWrap(True); self.list.setTextElideMode(Qt.TextElideMode.ElideNone); self.list.setItemDelegate(FavoriteListDelegate(self.list)); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
         right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.sidebar_toggle = QPushButton("‹"); self.sidebar_toggle.setFixedWidth(28); self.sidebar_toggle.setToolTip("Hide or show the diagnosis panel"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); status_row.addWidget(self.sidebar_toggle); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
         self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); self.detail = QWidget(); self.detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.detail_layout = QVBoxLayout(self.detail); self.detail_layout.setContentsMargins(12,10,12,28); self.scroll.setWidget(self.detail); right_layout.addWidget(self.scroll); outer.addWidget(right, 1)
 

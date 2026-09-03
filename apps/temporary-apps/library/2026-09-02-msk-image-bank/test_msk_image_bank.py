@@ -32,3 +32,4 @@ def test_native_launcher_and_runtime_are_wired():
     assert "AlignTop" in native
     assert "favorite-active" in native
     assert "favorite-active" in browser
+    assert "FavoriteListDelegate" in native
