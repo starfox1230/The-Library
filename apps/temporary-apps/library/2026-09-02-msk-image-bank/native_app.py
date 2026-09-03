@@ -1,7 +1,7 @@
 """Native desktop MSK image curation bank.
 
 PySide6 is the only runtime dependency. Image files live under the user's
-    local app-data directory; the repository contains only the 51-item seed list.
+    local app-data directory; the repository contains only the 52-item seed list.
 """
 from __future__ import annotations
 
@@ -46,8 +46,8 @@ def parse_seed_data() -> list[dict]:
         r'q:"(?P<q>[^"]+)",findings:\{xr:"(?P<xr>[^"]*)",ct:"(?P<ct>[^"]*)",mri:"(?P<mri>[^"]*)"\}\}'
     )
     items = [match.groupdict() for match in pattern.finditer(text)]
-    if len(items) != 51:
-        raise RuntimeError(f"Expected 51 seed diagnoses, found {len(items)}")
+    if len(items) != 52:
+        raise RuntimeError(f"Expected 52 seed diagnoses, found {len(items)}")
     for item in items:
         item["findings"] = {key: item.pop(key) for key in ("xr", "ct", "mri")}
     return items
