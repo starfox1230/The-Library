@@ -1,6 +1,6 @@
 # MSK Image Bank
 
-The MSK Image Bank is a native PySide6 desktop curation tool for the 50 visually memorable MSK diagnoses in the starter list. It is deliberately small and fast: choose a diagnosis, open the XR/CT/MRI searches in your existing Chrome, then paste screenshots or drop image files/URLs anywhere in the matching modality panel.
+The MSK Image Bank is a native PySide6 desktop curation tool for the 51 visually memorable MSK diagnoses in the starter list. It is deliberately small and fast: choose a diagnosis, open the XR/CT/MRI searches in your existing Chrome, then paste screenshots or drop image files/URLs anywhere in the matching modality panel.
 
 ## Run locally on Windows
 
