@@ -22,3 +22,5 @@ def test_native_launcher_and_runtime_are_wired():
     assert "from native_app import main" in launcher
     assert "QMainWindow" in native
     assert "open_in_chrome" in native
+    assert "dragActive" in native
+    assert "ZipFile" in native

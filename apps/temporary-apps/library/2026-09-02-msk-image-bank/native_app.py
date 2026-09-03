@@ -6,6 +6,7 @@ local app-data directory; the repository contains only the 50-item seed list.
 from __future__ import annotations
 
 import json
+import html
 import os
 from pathlib import Path
 import re
@@ -119,7 +120,7 @@ class ImageCard(QFrame):
         super().__init__(parent); self.image = image; self.root = root
         self.setObjectName("ImageCard"); self.setStyleSheet("QFrame#ImageCard { background:#0b141f; border:1px solid #26364a; border-radius:7px; }")
         layout = QVBoxLayout(self); layout.setContentsMargins(7, 7, 7, 7); layout.setSpacing(6)
-        self.preview = ClickableLabel(); self.preview.setFixedSize(190, 145); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
+        self.preview = ClickableLabel(); self.preview.setMinimumSize(100, 115); self.preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.preview.setAlignment(Qt.AlignmentFlag.AlignCenter); self.preview.setStyleSheet("background:#050a11; border:0;")
         self.preview.setToolTip("Click to view full screen"); self.preview.clicked.connect(lambda: self.opened.emit(self.image["id"])); layout.addWidget(self.preview)
         self.caption = QLineEdit(image.get("caption", "")); self.caption.setPlaceholderText("Caption / source note"); self.caption.textChanged.connect(self._caption_changed); layout.addWidget(self.caption)
         row = QHBoxLayout(); self.favorite = QCheckBox("Favorite"); self.favorite.setChecked(bool(image.get("favorite"))); self.favorite.stateChanged.connect(self._favorite_changed); row.addWidget(self.favorite); row.addStretch()
@@ -142,13 +143,17 @@ class ModalityPanel(QGroupBox):
 
     def __init__(self, key: str, label: str, parent=None):
         super().__init__(label, parent); self.key = key; self.setAcceptDrops(True); self.setObjectName("ModalityPanel")
-        self.setStyleSheet("QGroupBox#ModalityPanel { border:1px solid #26364a; border-radius:9px; margin-top:8px; padding:10px; background:#111925; } QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#e7edf5; font-weight:600; }")
+        self.setStyleSheet("QGroupBox#ModalityPanel { border:1px solid #26364a; border-radius:9px; margin-top:8px; padding:10px; background:#111925; } QGroupBox#ModalityPanel[dragActive=\"true\"] { border:2px solid #22d3ee; background:#102b38; } QGroupBox::title { subcontrol-origin:margin; left:10px; padding:0 5px; color:#e7edf5; font-weight:600; }")
+
+    def set_drag_active(self, active: bool):
+        self.setProperty("dragActive", active)
+        self.style().unpolish(self); self.style().polish(self); self.update()
 
     def dragEnterEvent(self, event):  # noqa: N802 - Qt API name
-        if event.mimeData().hasUrls() or event.mimeData().hasImage() or event.mimeData().hasText(): event.acceptProposedAction(); self.focused.emit(self.key)
+        if event.mimeData().hasUrls() or event.mimeData().hasImage() or event.mimeData().hasText(): self.set_drag_active(True); event.acceptProposedAction(); self.focused.emit(self.key)
 
     def dropEvent(self, event):  # noqa: N802 - Qt API name
-        self.focused.emit(self.key); self.dropped.emit(self.key, event.mimeData()); event.acceptProposedAction()
+        self.set_drag_active(False); self.focused.emit(self.key); self.dropped.emit(self.key, event.mimeData()); event.acceptProposedAction()
 
     def mousePressEvent(self, event):  # noqa: N802 - Qt API name
         self.focused.emit(self.key); super().mousePressEvent(event)
@@ -184,11 +189,11 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self):
         central = QWidget(); outer = QHBoxLayout(central); outer.setContentsMargins(0,0,0,0); outer.setSpacing(0); self.setCentralWidget(central)
-        sidebar = QWidget(); sidebar.setFixedWidth(305); side = QVBoxLayout(sidebar); side.setContentsMargins(12,14,10,12)
+        sidebar = QWidget(); sidebar.setFixedWidth(260); side = QVBoxLayout(sidebar); side.setContentsMargins(10,12,8,10)
         title = QLabel("MSK Image Bank"); title.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold)); side.addWidget(title); subtitle = QLabel("Fast visual curation · saved on this computer"); subtitle.setStyleSheet("color:#8ea0b6;font-size:11px;"); side.addWidget(subtitle); side.addSpacing(8)
         self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
-        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); self.toolbar = QHBoxLayout(); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); self.toolbar.addWidget(self.status); self.toolbar.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); self.toolbar.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); self.toolbar.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); self.toolbar.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); self.toolbar.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); self.toolbar.addWidget(self.import_button); right_layout.addLayout(self.toolbar)
-        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.detail = QWidget(); self.detail_layout = QVBoxLayout(self.detail); self.detail_layout.setContentsMargins(22,18,22,40); self.scroll.setWidget(self.detail); right_layout.addWidget(self.scroll); outer.addWidget(right, 1)
+        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); self.detail = QWidget(); self.detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.detail_layout = QVBoxLayout(self.detail); self.detail_layout.setContentsMargins(12,10,12,28); self.scroll.setWidget(self.detail); right_layout.addWidget(self.scroll); outer.addWidget(right, 1)
 
     def refresh_list(self):
         if not hasattr(self, "list"): return
@@ -222,8 +227,9 @@ class MainWindow(QMainWindow):
             findings = QTextEdit(); findings.setPlainText(r["findings"].get(key, "")); findings.setMinimumHeight(92); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); layout.addWidget(findings)
             hint = QLabel("Drop images anywhere in this panel · click an image to view full screen"); hint.setStyleSheet("color:#6f849d;font-size:10px;"); hint.setWordWrap(True); layout.addWidget(hint)
             grid_host = QWidget(); grid = QGridLayout(grid_host); grid.setContentsMargins(0,0,0,0); grid.setSpacing(9); images = r["images"][key]
+            grid.setColumnStretch(0, 1)
             for index, image in enumerate(images):
-                card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid.addWidget(card, index // 2, index % 2)
+                card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid.addWidget(card, index, 0)
             if not images:
                 empty = QLabel("No images collected yet."); empty.setStyleSheet("color:#6f849d;padding:12px 0;"); grid.addWidget(empty, 0, 0)
             layout.addWidget(grid_host); columns.addWidget(panel, 1)
@@ -260,13 +266,22 @@ class MainWindow(QMainWindow):
         self.active_modality = key; count = 0
         if mime.hasImage():
             image = mime.imageData(); qimage = image if isinstance(image, QImage) else QImage(image); count += self.add_qimage(key, qimage)
+        candidates = [] if mime.hasImage() else [url.toString() for url in mime.urls() if url.scheme() in ("http", "https")]
         for url in mime.urls():
             if url.isLocalFile(): count += self.add_file(key, Path(url.toLocalFile()))
-            elif url.scheme() in ("http", "https"): count += self.add_url(key, url.toString())
-        if not mime.urls() and mime.text().strip().startswith(("http://", "https://")):
-            count += self.add_url(key, mime.text().strip())
+        if not mime.hasImage() and mime.hasHtml(): candidates.extend(re.findall(r'(?:src|data-src)=["\']([^"\']+)', html.unescape(mime.html())))
+        if not candidates and mime.text().strip().startswith(("http://", "https://")): candidates.append(mime.text().strip())
+        seen = set()
+        for url in candidates:
+            url = html.unescape(url).strip()
+            if url.startswith("//"): url = "https:" + url
+            if url in seen or not url.startswith(("http://", "https://")): continue
+            seen.add(url); added = self.add_url(key, url)
+            if added: count += added; break
         if count:
             self.render_detail(); self.status.setText(f"Added {count} image{'s' if count != 1 else ''} to {dict((key, label) for key, label, _ in MODALITIES)[key]}")
+        elif candidates:
+            self.status.setText("No downloadable image found in that drop")
 
     def add_qimage(self, key, qimage: QImage):
         if qimage.isNull(): return 0
@@ -274,11 +289,23 @@ class MainWindow(QMainWindow):
     def add_file(self, key, path: Path):
         image = QImage(str(path)); return self._save_qimage(key, image, str(path)) if not image.isNull() else 0
     def add_url(self, key, url: str):
+        image = self._download_image(url, set())
+        return self._save_qimage(key, image, url) if image is not None else 0
+    def _download_image(self, url: str, visited: set[str]) -> QImage | None:
+        if url in visited or len(visited) > 5: return None
+        visited.add(url)
         try:
-            request = Request(url, headers={"User-Agent":"Mozilla/5.0"}); data = urlopen(request, timeout=12).read(); image = QImage.fromData(data); return self._save_qimage(key, image, url) if not image.isNull() else self._save_url_only(key, url)
-        except Exception: return self._save_url_only(key, url)
-    def _save_url_only(self, key, url):
-        image = {"id":now_id(),"path":"","source_url":url,"caption":"","favorite":self.record(self.active_id).get("favorite",False),"createdAt":datetime.now().isoformat()}; self.record(self.active_id)["images"][key].append(image); self.save_state(); return 1
+            request = Request(url, headers={"User-Agent":"Mozilla/5.0"}); data = urlopen(request, timeout=12).read(); image = QImage.fromData(data)
+            if not image.isNull(): return image
+            page = data.decode("utf-8", errors="ignore")
+            for candidate in re.findall(r'(?:src|data-src)=["\']([^"\']+)', html.unescape(page))[:8]:
+                candidate = html.unescape(candidate).strip()
+                if candidate.startswith("//"): candidate = "https:" + candidate
+                if candidate.startswith(("http://", "https://")):
+                    image = self._download_image(candidate, visited)
+                    if image is not None: return image
+        except Exception: return None
+        return None
     def _save_qimage(self, key, qimage: QImage, source: str):
         image_id = now_id(); folder = self.images_root / self.active_id; folder.mkdir(parents=True, exist_ok=True); path = folder / f"{image_id}.png"; qimage.save(str(path), "PNG"); relative = str(path.relative_to(self.data_root)); image = {"id":image_id,"path":relative,"source_url":source if source.startswith("http") else "","caption":"","favorite":self.record(self.active_id).get("favorite",False),"createdAt":datetime.now().isoformat()}; self.record(self.active_id)["images"][key].append(image); self.save_state(); return 1
 
@@ -340,6 +367,19 @@ class MainWindow(QMainWindow):
         except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error: QMessageBox.warning(self, "Import failed", str(error))
 
     def eventFilter(self, watched: QObject, event):  # noqa: N802 - Qt API name
+        if event.type() in (QEvent.Type.DragEnter, QEvent.Type.DragMove):
+            panel = self._panel_for(watched)
+            if panel and (event.mimeData().hasUrls() or event.mimeData().hasImage() or event.mimeData().hasText()):
+                self.active_modality = panel.key; panel.set_drag_active(True); event.acceptProposedAction()
+                return False
+        if event.type() == QEvent.Type.DragLeave:
+            panel = self._panel_for(watched)
+            if panel: panel.set_drag_active(False)
+        if event.type() == QEvent.Type.Drop:
+            panel = self._panel_for(watched)
+            if panel:
+                self.active_modality = panel.key; panel.set_drag_active(False); self.handle_drop(panel.key, event.mimeData()); event.acceptProposedAction()
+                return True
         if event.type() == QEvent.Type.MouseButtonPress:
             widget = watched
             while widget is not None:
@@ -353,6 +393,13 @@ class MainWindow(QMainWindow):
             text = clipboard.text().strip()
             if text.startswith(("http://", "https://")): self.add_url(self.active_modality, text); self.render_detail(); return True
         return super().eventFilter(watched, event)
+
+    @staticmethod
+    def _panel_for(widget):
+        while widget is not None:
+            if isinstance(widget, ModalityPanel): return widget
+            widget = widget.parent()
+        return None
 
 
 def main() -> int:

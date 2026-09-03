@@ -27,7 +27,7 @@ The launcher opens a native Python window. It does not open Chrome automatically
 ## Workflow
 
 - Click **Google Images** for any modality. **Open all searches** opens XR, CT, and MRI together in Chrome.
-- Click anywhere in a modality panel before pressing `Ctrl/Cmd+V` so the screenshot lands in the intended column. Dragging a local image or a browser image/URL anywhere inside that same panel adds it there.
+- Click anywhere in a modality panel before pressing `Ctrl/Cmd+V` so the screenshot lands in the intended column. Dragging a local image or a browser image/URL anywhere inside that same panel highlights the whole panel and adds the resolved image there.
 - Each modality accepts multiple images. Add a caption/source note, favorite individual images, or favorite the entire pathology.
 - Click an image preview to open a full-screen viewer; click anywhere or press `Esc` to close it. **Remove** is available on every image; there is no extra Open button.
 - **Copy favorites** copies favorite metadata to the clipboard. **Export** creates a ZIP containing `favorites.json` plus the actual favorite image files. **Import** restores that ZIP later.
