@@ -16,7 +16,9 @@ def test_starter_list_has_50_unique_diagnoses_and_three_modalities():
     assert app.count('key: "mri"') == 1
 
 
-def test_local_launcher_uses_standard_library_only():
+def test_native_launcher_and_runtime_are_wired():
     launcher = (ROOT / "run_app.py").read_text(encoding="utf-8")
-    assert "http.server.ThreadingHTTPServer" in launcher
-    assert "127.0.0.1" in launcher
+    native = (ROOT / "native_app.py").read_text(encoding="utf-8")
+    assert "from native_app import main" in launcher
+    assert "QMainWindow" in native
+    assert "open_in_chrome" in native

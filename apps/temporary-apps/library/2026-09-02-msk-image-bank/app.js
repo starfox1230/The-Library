@@ -68,7 +68,7 @@ async function imageHtml(image) {
   return `<img src="${esc(src)}" alt="${esc(image.caption || "Collected image")}">`;
 }
 async function renderImageCard(image) {
-  return `<article class="image-card" data-image-id="${esc(image.id)}"><div class="preview">${await imageHtml(image)}</div><div class="image-info"><input class="caption" value="${esc(image.caption)}" placeholder="Caption / source note"><div class="image-actions"><label class="toggle-row"><input class="image-favorite" type="checkbox" ${image.favorite ? "checked" : ""}> Favorite</label><button class="open-image" type="button">Open</button><button class="remove-image" type="button">Remove</button></div></div></article>`;
+  return `<article class="image-card" data-image-id="${esc(image.id)}"><div class="preview image-preview" tabindex="0" title="Click to view full screen">${await imageHtml(image)}</div><div class="image-info"><input class="caption" value="${esc(image.caption)}" placeholder="Caption / source note"><div class="image-actions"><label class="toggle-row"><input class="image-favorite" type="checkbox" ${image.favorite ? "checked" : ""}> Favorite</label><button class="remove-image" type="button">Remove</button></div></div></article>`;
 }
 async function renderDetail() {
   objectUrls.forEach((url) => URL.revokeObjectURL(url)); objectUrls = [];
@@ -77,19 +77,25 @@ async function renderDetail() {
   const r = recordFor(p.id);
   const columns = await Promise.all(MODALITIES.map(async (m) => {
     const images = r.images[m.key];
-    return `<section class="modality" data-modality="${m.key}"><div class="modality-head"><h3>${m.label}</h3><span class="subtle">${images.length} image${images.length === 1 ? "" : "s"}</span></div><div class="search-links"><a href="${searchUrl(p,m)}" target="_blank" rel="noopener">Google images ↗</a><a href="https://radiopaedia.org/search?scope=articles&query=${encodeURIComponent(p.q || p.name)}" target="_blank" rel="noopener">Radiopaedia ↗</a></div><div class="findings"><label>Classic report finding <span class="subtle">(editable)</span></label><textarea class="finding" data-finding-key="${m.key}">${esc(r.findings[m.key])}</textarea></div><div class="dropzone" data-drop-modality="${m.key}"><strong>Paste</strong> a screenshot or drop image files/URLs here</div><div class="image-grid">${(await Promise.all(images.map(renderImageCard))).join("") || `<div class="subtle">No images collected yet.</div>`}</div></section>`;
+    return `<section class="modality" data-modality="${m.key}"><div class="modality-head"><h3>${m.label}</h3><span class="subtle">${images.length} image${images.length === 1 ? "" : "s"}</span></div><div class="search-links"><a href="${searchUrl(p,m)}" target="_blank" rel="noopener">Google images ↗</a></div><div class="findings"><label>Classic report finding <span class="subtle">(editable)</span></label><textarea class="finding" data-finding-key="${m.key}">${esc(r.findings[m.key])}</textarea></div><div class="image-grid">${(await Promise.all(images.map(renderImageCard))).join("") || `<div class="subtle">Drop images anywhere in this panel.</div>`}</div></section>`;
   }));
   el.innerHTML = `<div class="detail-head"><div><div class="eyebrow">${esc(p.group)}</div><h2>${esc(p.name)}</h2><div class="subtle">Search, curate, and keep multiple images per modality.</div></div><div class="actions"><button id="pathologyFavorite" class="${r.favorite ? "primary" : ""}">${r.favorite ? "★ Favorited" : "☆ Favorite pathology"}</button></div></div><div class="modality-grid">${columns.join("")}</div><div class="notes"><label>Personal note</label><textarea id="personalNotes" placeholder="Optional memory hook, differential, or Anki cue…">${esc(r.notes)}</textarea></div><div class="tip">Shortcuts: <b>/</b> search · <b>Ctrl/Cmd+V</b> paste an image · pathology favorite toggles all images in that pathology.</div>`;
-  bindDropzones();
+  bindModalityPanels();
 }
 function render() { renderList(); renderDetail(); updateStatus(); }
-function bindDropzones() {
-  document.querySelectorAll(".dropzone").forEach((zone) => {
-    zone.addEventListener("click", () => { activeModality = zone.dataset.dropModality; document.querySelector("#imagePicker").click(); });
-    zone.addEventListener("dragover", (event) => { event.preventDefault(); activeModality = zone.dataset.dropModality; zone.classList.add("drag"); });
-    zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
-    zone.addEventListener("drop", async (event) => { event.preventDefault(); zone.classList.remove("drag"); await handleTransfer(event.dataTransfer, zone.dataset.dropModality); });
+function bindModalityPanels() {
+  document.querySelectorAll(".modality").forEach((panel) => {
+    panel.addEventListener("click", () => { activeModality = panel.dataset.modality; });
+    panel.addEventListener("dragover", (event) => { event.preventDefault(); activeModality = panel.dataset.modality; panel.classList.add("drag"); });
+    panel.addEventListener("dragleave", (event) => { if (event.target === panel) panel.classList.remove("drag"); });
+    panel.addEventListener("drop", async (event) => { event.preventDefault(); panel.classList.remove("drag"); activeModality = panel.dataset.modality; await handleTransfer(event.dataTransfer, panel.dataset.modality); });
   });
+}
+async function openLightbox(image) {
+  let src = safeUrl(image.url);
+  if (image.kind === "blob") { const blob = await idbGet(image.id); if (blob) src = URL.createObjectURL(blob); }
+  if (!src) return;
+  const box = document.createElement("div"); box.className = "lightbox"; box.innerHTML = `<img src="${esc(src)}" alt="${esc(image.caption || "Collected image")}">`; box.addEventListener("click", () => { if (src.startsWith("blob:")) URL.revokeObjectURL(src); box.remove(); }); document.body.appendChild(box);
 }
 async function handleTransfer(transfer, modality) {
   const files = [...(transfer.files || [])].filter((file) => file.type.startsWith("image/"));
@@ -154,7 +160,7 @@ document.querySelector("#detail").addEventListener("click", (event) => {
   const card = event.target.closest(".image-card"), modality = event.target.closest("[data-modality]")?.dataset.modality; if (!card || !modality) return;
   const image = recordFor(activeId).images[modality].find((item) => item.id === card.dataset.imageId); if (!image) return;
   if (event.target.classList.contains("remove-image")) return removeImage(modality,image.id);
-  if (event.target.classList.contains("open-image")) { const url = image.kind === "url" ? image.url : card.querySelector("img")?.src; if (url) window.open(url,"_blank"); }
+  if (event.target.closest(".image-preview")) return openLightbox(image);
 });
 document.querySelector("#detail").addEventListener("input", (event) => {
   const r = recordFor(activeId);
