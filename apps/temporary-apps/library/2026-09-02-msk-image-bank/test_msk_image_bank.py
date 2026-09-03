@@ -19,6 +19,7 @@ def test_starter_list_has_51_unique_diagnoses_and_three_modalities():
 def test_native_launcher_and_runtime_are_wired():
     launcher = (ROOT / "run_app.py").read_text(encoding="utf-8")
     native = (ROOT / "native_app.py").read_text(encoding="utf-8")
+    browser = (ROOT / "app.js").read_text(encoding="utf-8") + (ROOT / "index.html").read_text(encoding="utf-8")
     assert "from native_app import main" in launcher
     assert "QMainWindow" in native
     assert "open_in_chrome" in native
@@ -29,3 +30,5 @@ def test_native_launcher_and_runtime_are_wired():
     assert "ResponsiveImageGrid" in native
     assert "FindingEditor" in native
     assert "AlignTop" in native
+    assert "favorite-active" in native
+    assert "favorite-active" in browser
