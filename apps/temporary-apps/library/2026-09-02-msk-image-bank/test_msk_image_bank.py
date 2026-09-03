@@ -24,3 +24,5 @@ def test_native_launcher_and_runtime_are_wired():
     assert "open_in_chrome" in native
     assert "dragActive" in native
     assert "ZipFile" in native
+    assert "QTabWidget" in native
+    assert "def _clear_layout" in native

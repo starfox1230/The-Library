@@ -26,7 +26,7 @@ from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QGridLayout, QGroupBox,
     QHBoxLayout, QLabel, QLineEdit, QListWidget, QListWidgetItem, QMainWindow,
     QMessageBox, QPushButton, QScrollArea, QSizePolicy, QTextEdit, QVBoxLayout,
-    QWidget, QInputDialog, QMenu,
+    QWidget, QInputDialog, QMenu, QTabWidget,
 )
 
 
@@ -205,7 +205,8 @@ def fit_finding_editor(editor: QTextEdit):
 
 class MainWindow(QMainWindow):
     def __init__(self):
-        super().__init__(); self.setWindowTitle("MSK Image Bank"); self.resize(1380, 900); self.active_id = None; self.active_modality = "xr"; self._building = False
+        super().__init__(); self.setWindowTitle("MSK Image Bank"); self.resize(1380, 900); self.active_id = None; self.active_modality = "xr"; self._building = False; self._layout_mode = None
+        self._resize_timer = QTimer(self); self._resize_timer.setSingleShot(True); self._resize_timer.setInterval(120); self._resize_timer.timeout.connect(self._apply_width_layout_mode)
         self.data_root = LOCAL_ROOT; self.images_root = self.data_root / "images"; self.data_root.mkdir(parents=True, exist_ok=True); self.images_root.mkdir(parents=True, exist_ok=True)
         self.pathologies = parse_seed_data(); self.records, self.custom = {}, []
         self.state_path = self.data_root / "state.json"; self._load_state()
@@ -257,9 +258,20 @@ class MainWindow(QMainWindow):
         if pid: self.active_id = pid; self.render_detail()
 
     def clear_detail(self):
-        while self.detail_layout.count():
-            widget = self.detail_layout.takeAt(0).widget()
-            if widget: widget.deleteLater()
+        self._clear_layout(self.detail_layout)
+
+    def _clear_layout(self, layout):
+        while layout.count():
+            item = layout.takeAt(0)
+            child_layout = item.layout()
+            if child_layout is not None:
+                self._clear_layout(child_layout)
+                child_layout.deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
 
     def render_detail(self):
         if not self.active_id: return
@@ -277,10 +289,31 @@ class MainWindow(QMainWindow):
             if not images:
                 empty = QLabel("No images collected yet."); empty.setStyleSheet("color:#6f849d;padding:12px 0;"); grid.addWidget(empty, 0, 0)
             layout.addWidget(grid_host); panels.append((label, panel))
-        columns = QHBoxLayout(); columns.setSpacing(10)
-        for _, panel in panels: columns.addWidget(panel, 1)
-        self.detail_layout.addLayout(columns)
+        self._layout_mode = self.layout_mode()
+        if self._layout_mode == "tabs":
+            tabs = QTabWidget(); tabs.setDocumentMode(True)
+            for label, panel in panels: tabs.addTab(panel, label)
+            self.detail_layout.addWidget(tabs)
+        else:
+            columns = QHBoxLayout(); columns.setSpacing(10)
+            for _, panel in panels: columns.addWidget(panel, 1)
+            self.detail_layout.addLayout(columns)
         notes_label = QLabel("Personal note"); notes_label.setStyleSheet("color:#8ea0b6;font-size:11px;"); self.detail_layout.addWidget(notes_label); notes = QTextEdit(); notes.setPlainText(r.get("notes", "")); notes.setMinimumHeight(65); notes.setPlaceholderText("Optional memory hook, differential, or Anki cue…"); notes.textChanged.connect(lambda editor=notes: self.update_notes(editor)); self.detail_layout.addWidget(notes); tip = QLabel("Paste: click a modality first, then Ctrl/Cmd+V. Export creates a ZIP containing favorites.json plus the actual favorite image files."); tip.setStyleSheet("color:#6f849d;font-size:10px;"); tip.setWordWrap(True); self.detail_layout.addWidget(tip); self.refresh_list()
+
+    def layout_mode(self):
+        available_width = self.width() - (self.sidebar.width() if self.sidebar.isVisible() else 0)
+        return "tabs" if available_width < 900 else "columns"
+
+    def _apply_width_layout_mode(self):
+        if not self.active_id or self._building:
+            return
+        if self.layout_mode() != self._layout_mode:
+            self.render_detail()
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt API name
+        super().resizeEvent(event)
+        if hasattr(self, "detail") and self.active_id and not self._building and self.layout_mode() != self._layout_mode:
+            self._resize_timer.start()
 
     def toggle_sidebar(self):
         visible = not self.sidebar.isVisible(); self.sidebar.setVisible(visible); self.sidebar_toggle.setText("‹" if visible else "›"); self.render_detail()
