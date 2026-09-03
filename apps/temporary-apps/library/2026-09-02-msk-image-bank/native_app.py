@@ -320,6 +320,7 @@ class MainWindow(QMainWindow):
         if self._layout_mode == "tabs":
             tabs = QTabWidget(); tabs.setDocumentMode(True)
             for label, panel in panels: tabs.addTab(panel, label)
+            tabs.setCurrentIndex(next((index for index, (key, _, _) in enumerate(MODALITIES) if key == self.active_modality), 0))
             self.detail_layout.addWidget(tabs)
         else:
             columns = QHBoxLayout(); columns.setSpacing(10)
