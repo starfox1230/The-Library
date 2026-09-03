@@ -44,10 +44,81 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-02 17:45 Central Daylight Time
-Cards: 6
+Updated: 2026-09-02 19:38 Central Daylight Time
+Cards: 9
 
 ## Card 1
+
+Deck: ..Due 2026-08-27 to 2026-09-03 Combined
+Flagged: 2026-09-02T18:18:33-05:00
+Last seen: 2026-09-02T18:18:33-05:00
+Card ID: 1752168044213
+Note ID: 1752168044213
+
+Question:
+00:12
+
+Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
+
+[...]
+
+Answer:
+00:08
+
+Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
+
+squamous cell carcinoma
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-08-23T07:49:34-05:00
+Last seen: 2026-09-02T18:08:50-05:00
+Card ID: 1745603777408
+Note ID: 1745603777407
+
+Question:
+00:12
+
+The [...] lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+
+Answer:
+00:08
+
+The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+
+## Card 3
+
+Deck: Other::Radiology (All)::.Visual::Everything Else
+Flagged: 2026-07-29T16:52:20-05:00
+Last seen: 2026-09-02T17:57:37-05:00
+Card ID: 1715571329867
+Note ID: 1715571329865
+
+Question:
+#image-occlusion-canvas {
+    --inactive-shape-color: #ffeba2;
+    --active-shape-color: #ff8e8e;
+    --inactive-shape-border: 1px #212121;
+    --active-shape-border: 1px #212121;
+}
+.card {
+    font-family: arial;
+    font-size: 20px;
+    text-align: center;
+    color: black;
+    background-color: white;
+}
+try {
+    anki.setupImageCloze();
+} catch (exc) {
+    document.getElementById("err").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;
+}
+
+Answer:
+Toggle Masks
+
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:51:48-05:00
@@ -73,7 +144,7 @@ enteric duplication cyst
 
 1/2
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:14:33-05:00
@@ -95,7 +166,7 @@ Diagnosis?
 
 lipomyelomeningocele
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:40:58-05:00
@@ -117,7 +188,7 @@ Diagnosis?
 
 Glomus caroticum paraganglioma
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -135,7 +206,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 5
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T16:22:13-05:00
@@ -161,7 +232,7 @@ Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classi
 
 Full source page:
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
