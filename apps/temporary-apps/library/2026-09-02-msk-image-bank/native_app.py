@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import html
+import math
 import os
 from pathlib import Path
 import re
@@ -153,7 +154,7 @@ class ImageCard(QFrame):
         self.preview.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu); self.preview.customContextMenuRequested.connect(self._copy_menu)
         self.caption = QLineEdit(image.get("caption", "")); self.caption.setPlaceholderText("Caption / source note"); self.caption.textChanged.connect(self._caption_changed); layout.addWidget(self.caption)
         row = QHBoxLayout(); self.favorite = QCheckBox("Favorite"); self.favorite.setChecked(bool(image.get("favorite"))); self.favorite.stateChanged.connect(self._favorite_changed); row.addWidget(self.favorite); row.addStretch()
-        remove = QPushButton("Remove"); remove.setFixedWidth(60); remove.clicked.connect(lambda: self.removed.emit(self.image["id"])); row.addWidget(remove); layout.addLayout(row)
+        remove = QPushButton("Remove"); remove.setFixedWidth(76); remove.clicked.connect(lambda: self.removed.emit(self.image["id"])); row.addWidget(remove); layout.addLayout(row)
         self._load_pixmap()
 
     def _load_pixmap(self):
@@ -226,10 +227,28 @@ class ModalityPanel(QGroupBox):
 
 
 def fit_finding_editor(editor: QTextEdit):
-    width = max(120, editor.viewport().width() - 12); metrics = editor.fontMetrics(); lines = 0
-    for line in (editor.toPlainText() or "").splitlines() or [""]:
-        lines += max(1, (metrics.horizontalAdvance(line) + width - 1) // width)
-    editor.setFixedHeight(max(42, min(120, lines * metrics.lineSpacing() + 18)))
+    width = max(120, editor.viewport().width() - 4)
+    document = editor.document(); document.setTextWidth(width)
+    height = math.ceil(document.size().height()) + 18
+    editor.setFixedHeight(max(42, height))
+
+
+class FindingEditor(QTextEdit):
+    def __init__(self, parent=None):
+        super().__init__(parent); self._fitting = False; self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.textChanged.connect(self._fit)
+
+    def _fit(self):
+        if self._fitting:
+            return
+        self._fitting = True
+        try:
+            fit_finding_editor(self)
+        finally:
+            self._fitting = False
+
+    def resizeEvent(self, event):  # noqa: N802 - Qt API name
+        super().resizeEvent(event); self._fit()
 
 
 class MainWindow(QMainWindow):
@@ -309,7 +328,7 @@ class MainWindow(QMainWindow):
         panels = []
         for key, label, query in MODALITIES:
             panel = ModalityPanel(key, label); panel.focused.connect(self.set_active_modality); panel.dropped.connect(self.handle_drop); layout = QVBoxLayout(panel); links = QPushButton("Google Images ↗"); links.setToolTip("Open this modality's Google Images search in your existing Chrome"); links.clicked.connect(lambda _=False, k=key, q=query: self.open_search(p, k, q)); layout.addWidget(links)
-            findings = QTextEdit(); findings.setPlainText(r["findings"].get(key, "")); findings.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); QTimer.singleShot(0, lambda editor=findings: fit_finding_editor(editor)); layout.addWidget(findings)
+            findings = FindingEditor(); findings.setPlainText(r["findings"].get(key, "")); findings.setPlaceholderText("Classic report finding"); findings.setToolTip("Editable personal reference text"); findings.textChanged.connect(lambda k=key, editor=findings: self.update_finding(k, editor)); QTimer.singleShot(0, findings._fit); layout.addWidget(findings)
             grid_host = ResponsiveImageGrid(); images = r["images"][key]
             for index, image in enumerate(images):
                 card = ImageCard(image, self.data_root); card.changed.connect(self.save_state); card.removed.connect(lambda image_id, k=key: self.remove_image(k, image_id)); card.opened.connect(self.open_image_viewer); grid_host.add_card(card)
@@ -324,7 +343,7 @@ class MainWindow(QMainWindow):
             self.detail_layout.addWidget(tabs)
         else:
             columns = QHBoxLayout(); columns.setSpacing(10)
-            for _, panel in panels: columns.addWidget(panel, 1)
+            for _, panel in panels: columns.addWidget(panel, 1, Qt.AlignmentFlag.AlignTop)
             self.detail_layout.addLayout(columns)
         notes_label = QLabel("Personal note"); notes_label.setStyleSheet("color:#8ea0b6;font-size:11px;"); self.detail_layout.addWidget(notes_label); notes = QTextEdit(); notes.setPlainText(r.get("notes", "")); notes.setMinimumHeight(65); notes.setPlaceholderText("Optional memory hook, differential, or Anki cue…"); notes.textChanged.connect(lambda editor=notes: self.update_notes(editor)); self.detail_layout.addWidget(notes); tip = QLabel("Paste: click a modality first, then Ctrl/Cmd+V. Export creates a ZIP containing favorites.json plus the actual favorite image files."); tip.setStyleSheet("color:#6f849d;font-size:10px;"); tip.setWordWrap(True); self.detail_layout.addWidget(tip); self.refresh_list()
 

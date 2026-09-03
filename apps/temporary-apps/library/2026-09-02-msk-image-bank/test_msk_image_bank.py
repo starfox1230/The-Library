@@ -26,3 +26,6 @@ def test_native_launcher_and_runtime_are_wired():
     assert "ZipFile" in native
     assert "QTabWidget" in native
     assert "def _clear_layout" in native
+    assert "ResponsiveImageGrid" in native
+    assert "FindingEditor" in native
+    assert "AlignTop" in native
