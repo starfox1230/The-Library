@@ -32,6 +32,9 @@ from PySide6.QtWidgets import (
 
 
 APP_DIR = Path(__file__).resolve().parent
+REPO_ROOT = APP_DIR.parents[3]
+MOBILE_DIR = APP_DIR / "mobile"
+MOBILE_REL = MOBILE_DIR.relative_to(REPO_ROOT).as_posix()
 LOCAL_ROOT = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "MSK Image Bank"
 MODALITIES = [("xr", "Radiograph", "radiograph radiology"), ("ct", "CT", "CT radiology"), ("mri", "MRI", "MRI radiology")]
 
@@ -309,7 +312,7 @@ class MainWindow(QMainWindow):
         sidebar = QWidget(); sidebar.setFixedWidth(260); self.sidebar = sidebar; side = QVBoxLayout(sidebar); side.setContentsMargins(10,12,8,10)
         title = QLabel("MSK Image Bank"); title.setFont(QFont("Segoe UI", 16, QFont.Weight.DemiBold)); side.addWidget(title); subtitle = QLabel("Fast visual curation · saved on this computer"); subtitle.setStyleSheet("color:#8ea0b6;font-size:11px;"); side.addWidget(subtitle); side.addSpacing(8)
         self.search = QLineEdit(); self.search.setPlaceholderText("Search pathology…"); self.search.textChanged.connect(self.refresh_list); side.addWidget(self.search); self.favorites_only = QCheckBox("Favorites only"); self.favorites_only.stateChanged.connect(self.refresh_list); side.addWidget(self.favorites_only); self.list = QListWidget(); self.list.setWordWrap(True); self.list.setTextElideMode(Qt.TextElideMode.ElideNone); self.list.setItemDelegate(FavoriteListDelegate(self.list)); self.list.itemClicked.connect(self.select_item); side.addWidget(self.list); outer.addWidget(sidebar)
-        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.sidebar_toggle = QPushButton("‹"); self.sidebar_toggle.setFixedWidth(28); self.sidebar_toggle.setToolTip("Hide or show the diagnosis panel"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); status_row.addWidget(self.sidebar_toggle); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
+        right = QWidget(); right_layout = QVBoxLayout(right); right_layout.setContentsMargins(0,0,0,0); right_layout.setSpacing(5); self.toolbar = QVBoxLayout(); status_row = QHBoxLayout(); self.sidebar_toggle = QPushButton("‹"); self.sidebar_toggle.setFixedWidth(28); self.sidebar_toggle.setToolTip("Hide or show the diagnosis panel"); self.sidebar_toggle.clicked.connect(self.toggle_sidebar); status_row.addWidget(self.sidebar_toggle); self.status = QLabel(); self.status.setStyleSheet("color:#8ea0b6;font-size:11px;"); status_row.addWidget(self.status); status_row.addStretch(); self.toolbar.addLayout(status_row); action_row = QHBoxLayout(); action_row.addStretch(); self.add_button = QPushButton("＋ Diagnosis"); self.add_button.setObjectName("primary"); self.add_button.clicked.connect(self.add_diagnosis); action_row.addWidget(self.add_button); self.open_all = QPushButton("Open all searches"); self.open_all.setToolTip("Open XR, CT, and MRI Google Images searches in your existing Chrome"); self.open_all.clicked.connect(self.open_all_searches); action_row.addWidget(self.open_all); self.copy_button = QPushButton("Copy favorites"); self.copy_button.clicked.connect(self.copy_favorites); action_row.addWidget(self.copy_button); self.export_button = QPushButton("Export"); self.export_button.clicked.connect(self.export_favorites); action_row.addWidget(self.export_button); self.import_button = QPushButton("Import"); self.import_button.clicked.connect(self.import_backup); action_row.addWidget(self.import_button); self.publish_button = QPushButton("Publish mobile"); self.publish_button.setToolTip("Export all local pathologies and images to the mobile GitHub Pages app and push the update"); self.publish_button.clicked.connect(self.publish_mobile_app); action_row.addWidget(self.publish_button); self.toolbar.addLayout(action_row); right_layout.addLayout(self.toolbar)
         self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff); self.detail = QWidget(); self.detail.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred); self.detail_layout = QVBoxLayout(self.detail); self.detail_layout.setContentsMargins(12,10,12,28); self.scroll.setWidget(self.detail); right_layout.addWidget(self.scroll); outer.addWidget(right, 1)
 
     def refresh_list(self):
@@ -520,6 +523,71 @@ class MainWindow(QMainWindow):
                         r["images"][key].append(saved)
             self.save_state(); self.render_detail(); QMessageBox.information(self, "MSK Image Bank", "Import complete.")
         except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error: QMessageBox.warning(self, "Import failed", str(error))
+
+    @staticmethod
+    def _safe_web_name(value):
+        return re.sub(r"[^A-Za-z0-9._-]+", "-", str(value)).strip("-._") or "image"
+
+    @staticmethod
+    def _optimize_mobile_image(source: Path, destination: Path):
+        image = QImage(str(source))
+        if image.isNull():
+            fallback = destination.with_suffix(source.suffix.lower() or ".png")
+            shutil.copy2(source, fallback)
+            return fallback
+        if max(image.width(), image.height()) > 1600:
+            image = image.scaled(1600, 1600, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if image.save(str(destination), "JPG", 85):
+            return destination
+        fallback = destination.with_suffix(source.suffix.lower() or ".png")
+        shutil.copy2(source, fallback)
+        return fallback
+
+    def _write_mobile_bundle(self):
+        MOBILE_DIR.mkdir(parents=True, exist_ok=True)
+        web_images = MOBILE_DIR / "images"; web_images.mkdir(parents=True, exist_ok=True)
+        expected_files = set(); diagnoses = []
+        for pathology in self.pathologies:
+            record = self.record(pathology["id"]); exported = {"id":pathology["id"],"name":pathology["name"],"group":pathology["group"],"findings":record["findings"],"notes":record.get("notes", ""),"favorite":bool(record.get("favorite")),"images":{}}
+            for key, _, _ in MODALITIES:
+                exported["images"][key] = []
+                for image in record["images"][key]:
+                    source = self.data_root / image.get("path", "") if image.get("path") else None; src = image.get("source_url", "")
+                    if source and source.exists():
+                        safe_path = Path("images") / self._safe_web_name(pathology["id"]); safe_file = self._safe_web_name(image.get("id", now_id())) + ".jpg"; destination = web_images / safe_path.name / safe_file; actual = self._optimize_mobile_image(source, destination); relative = actual.relative_to(MOBILE_DIR); expected_files.add(relative.as_posix()); src = relative.as_posix()
+                    if not src: continue
+                    exported["images"][key].append({"id":image.get("id", now_id()),"src":src,"caption":image.get("caption", ""),"favorite":bool(image.get("favorite")),"sourceUrl":image.get("source_url", "")})
+            diagnoses.append(exported)
+        for file in web_images.rglob("*"):
+            if file.is_file() and file.relative_to(MOBILE_DIR).as_posix() not in expected_files: file.unlink()
+        payload = {"format":"msk-image-bank-mobile","version":1,"generatedAt":datetime.now().isoformat(),"pathologies":diagnoses}
+        (MOBILE_DIR / "data.json").write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        return len(diagnoses), sum(len(images) for pathology in diagnoses for images in pathology["images"].values())
+
+    def _git(self, *arguments):
+        result = subprocess.run(["git", *arguments], cwd=REPO_ROOT, capture_output=True, text=True)
+        if result.returncode:
+            raise RuntimeError((result.stderr or result.stdout or "Git command failed").strip())
+        return result.stdout.strip()
+
+    def publish_mobile_app(self):
+        try:
+            if not (REPO_ROOT / ".git").exists(): raise RuntimeError(f"Git repository not found at {REPO_ROOT}")
+            staged = self._git("diff", "--cached", "--name-only").splitlines()
+            unexpected = [path for path in staged if path and path != MOBILE_REL and not path.startswith(MOBILE_REL + "/")]
+            if unexpected: raise RuntimeError("Unrelated staged changes are present; commit or unstage them before publishing.")
+            self.save_state(); diagnosis_count, image_count = self._write_mobile_bundle(); self._git("add", "--", MOBILE_REL)
+            changed = subprocess.run(["git", "diff", "--cached", "--quiet", "--", MOBILE_REL], cwd=REPO_ROOT).returncode != 0
+            if not changed:
+                self.status.setText("Mobile app is already up to date")
+                QMessageBox.information(self, "MSK Image Bank", "The mobile GitHub Pages bundle is already up to date.")
+                return
+            branch = self._git("branch", "--show-current") or "main"; self._git("commit", "-m", "Publish MSK mobile image bank"); self._git("-c", "lfs.https://github.com/starfox1230/The-Library.git/info/lfs.locksverify=false", "push", "origin", branch)
+            self.status.setText(f"Published mobile app · {image_count} images"); QMessageBox.information(self, "MSK Image Bank", f"Published {diagnosis_count} pathologies and {image_count} images to GitHub.")
+        except (OSError, RuntimeError) as error:
+            self.status.setText("Mobile publish failed")
+            QMessageBox.warning(self, "Mobile publish failed", str(error))
 
     def eventFilter(self, watched: QObject, event):  # noqa: N802 - Qt API name
         if event.type() in (QEvent.Type.DragEnter, QEvent.Type.DragMove):

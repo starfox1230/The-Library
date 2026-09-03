@@ -36,3 +36,7 @@ The launcher opens a native Python window. It does not open Chrome automatically
 Images and metadata are stored under `%LOCALAPPDATA%\MSK Image Bank` (normally `C:\Users\<you>\AppData\Local\MSK Image Bank`). Nothing is uploaded to this repository or to a server. Export periodically for backup.
 
 The findings are concise educational report-style prompts, editable for personal use; they are not a substitute for clinical reference material.
+
+## iPhone review app
+
+After clicking **Publish mobile** in the native app, open the [MSK Image Bank Mobile Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-02-msk-image-bank/mobile/) page on an iPhone. The publisher writes an optimized mobile bundle to the repository, including the current pathologies, findings, captions, and local images, then commits and pushes it to GitHub.

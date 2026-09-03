@@ -33,3 +33,7 @@ def test_native_launcher_and_runtime_are_wired():
     assert "favorite-active" in native
     assert "favorite-active" in browser
     assert "FavoriteListDelegate" in native
+    mobile = (ROOT / "mobile" / "app.js").read_text(encoding="utf-8")
+    assert "touchmove" in mobile
+    assert "data.json" in mobile
+    assert "Publish mobile" in native
