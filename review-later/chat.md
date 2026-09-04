@@ -44,10 +44,50 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-03 22:17 Central Daylight Time
-Cards: 13
+Updated: 2026-09-03 23:34 Central Daylight Time
+Cards: 15
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-07-12T17:19:26-05:00
+Last seen: 2026-09-03T23:32:52-05:00
+Card ID: 1775059527673
+Note ID: 1775059527673
+
+Question:
+00:12
+
+A type [...] choledochal cyst is also known as a choledochocele
+
+Answer:
+00:08
+
+A type 3 choledochal cyst is also known as a choledochocele
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-16T22:46:16-05:00
+Last seen: 2026-09-03T23:32:29-05:00
+Card ID: 1761622373528
+Note ID: 1761622373527
+
+Question:
+00:12
+
+What is the annual average effective dose to the U.S. population from all radiation sources (including background)?
+
+[...]
+
+Answer:
+00:12
+
+What is the annual average effective dose to the U.S. population from all radiation sources (including background)?
+
+5 to 6 mSv (500 to 600 mrem)
+
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -71,7 +111,7 @@ Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
@@ -97,7 +137,7 @@ Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy scl
 
 Full source page:
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -121,7 +161,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T19:53:08-05:00
@@ -143,7 +183,7 @@ Diagnosis in patient with recent spine surgery?
 
 remote cerebellar hemorrhage
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -167,7 +207,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -185,7 +225,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -209,7 +249,7 @@ marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
 
-## Card 8
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -227,7 +267,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 9
+## Card 11
 
 Deck: Other::Default
 Flagged: 2026-07-08T06:19:45-05:00
@@ -367,7 +407,7 @@ SHOW ALL
 
 Remarks
 
-## Card 10
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
@@ -393,7 +433,7 @@ Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-05-22T05:25:28-05:00
@@ -411,7 +451,7 @@ Answer:
 
 Multiplying CTDIvol by the scan length results in the DLP.
 
-## Card 12
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-08-24T06:15:09-05:00
@@ -433,7 +473,7 @@ A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperinte
 
 https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
 
-## Card 13
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-07-22T18:02:09-05:00
