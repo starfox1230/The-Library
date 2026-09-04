@@ -44,7 +44,27 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-04 00:14 Central Daylight Time
-Cards: 0
+Updated: 2026-09-04 12:37 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: ..Due 2026-08-28 to 2026-09-03 Audio
+Flagged: 2026-09-04T07:36:58-05:00
+Last seen: 2026-09-04T07:36:58-05:00
+Card ID: 1782588006937
+Note ID: 1782588006936
+
+Question:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as [...].
+
+Answer:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as osteoporosis or osseous hemangioma.
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
