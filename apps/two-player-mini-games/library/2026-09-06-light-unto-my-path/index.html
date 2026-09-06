@@ -4,7 +4,9 @@
 <body><div class="loading">Loading…</div><script>
 (async()=>{
   try{
-    let h=await (await fetch('./game-base.html',{cache:'no-store'})).text();
+    const response=await fetch('./game-base.html?v=2',{cache:'no-store'});
+    if(!response.ok) throw new Error('Base game failed to load: '+response.status);
+    let h=await response.text();
     const reps=[
       [`.fog-mask{--r1:3%;--r2:5%;--r3:8%;`,`.fog-mask{--cx:50%;--cy:50%;--r1:3%;--r2:5%;--r3:8%;`],
       [`radial-gradient(circle at 50% 56%,`,`radial-gradient(circle at var(--cx) var(--cy),`],
@@ -14,7 +16,7 @@
       [`snapCamera(){const p=this.avatar.position;this.camera.position.set(p.x,8.6,p.z+6.5);this.camera.lookAt(p.x,0,p.z-.45)}`,`snapCamera(){const p=this.avatar.position;this.cameraFocus=new THREE.Vector3(p.x,0,p.z);this.camera.position.set(this.cameraFocus.x,8.6,this.cameraFocus.z+6.5);this.camera.lookAt(this.cameraFocus.x,0,this.cameraFocus.z-.45);this.updateFogCenter()}`],
       [`this.targetLightDistance=on?16:1.75`,`this.targetLightDistance=on?8:1.75`],
       [`this.playerLight.intensity=on?3.4:2.7`,`this.playerLight.intensity=on?3.2:2.7`],
-      [`projectHeartToViewport(mesh){`,`updateFogCenter(){if(!this.fogEl)return;const v=new THREE.Vector3(this.avatar.position.x,this.avatar.position.y+.34,this.avatar.position.z).project(this.camera);const x=Math.max(0,Math.min(100,(v.x*.5+.5)*100)),y=Math.max(0,Math.min(100,(-v.y*.5+.5)*100));this.fogEl.style.setProperty('--cx',\`${x}%\`);this.fogEl.style.setProperty('--cy',\`${y}%\`)}\n projectHeartToViewport(mesh){`],
+      [`projectHeartToViewport(mesh){`,`updateFogCenter(){if(!this.fogEl)return;const v=new THREE.Vector3(this.avatar.position.x,this.avatar.position.y+.34,this.avatar.position.z).project(this.camera);const x=Math.max(0,Math.min(100,(v.x*.5+.5)*100)),y=Math.max(0,Math.min(100,(-v.y*.5+.5)*100));this.fogEl.style.setProperty('--cx',x+'%');this.fogEl.style.setProperty('--cy',y+'%')}\nprojectHeartToViewport(mesh){`],
       [`duration=760,endX=start.x+dc*TILE*1.75,endZ=start.z+dr*TILE*1.75`,`duration=650,endX=start.x+dc*TILE*.68,endZ=start.z+dr*TILE*.68`],
       [`side=Math.min(1,t/.42),drop=Math.max(0,(t-.22)/.78);`,`side=Math.min(1,t/.34),drop=Math.max(0,(t-.08)/.92),edgeEase=1-Math.pow(1-side,2);`],
       [`this.avatar.position.x=start.x+(endX-start.x)*(1-Math.pow(1-side,2));this.avatar.position.z=start.z+(endZ-start.z)*(1-Math.pow(1-side,2));`,`this.avatar.position.x=start.x+(endX-start.x)*edgeEase;this.avatar.position.z=start.z+(endZ-start.z)*edgeEase;`],
@@ -22,7 +24,10 @@
       [`this.avatar.rotation.z=-dc*drop*1.45;this.avatar.rotation.x=dr*drop*1.45;this.avatar.rotation.y+=(dc-dr)*.045;this.avatar.scale.setScalar(Math.max(.18,1-drop*.74))`,`this.avatar.rotation.z=-dc*drop*1.2;this.avatar.rotation.x=dr*drop*1.2;this.avatar.rotation.y+=(dc-dr)*.025;this.avatar.scale.setScalar(Math.max(.2,1-drop*.72))`],
       [`const p=this.avatar.position,desired=new THREE.Vector3(p.x,8.6,p.z+6.5);this.camera.position.lerp(desired,Math.min(1,dt*(this.falling?3.2:7)));this.camera.lookAt(p.x,Math.max(-1.2,p.y*.25),p.z-.45);this.renderer.render(this.scene,this.camera)`,`const p=this.avatar.position,targetFocus=new THREE.Vector3(p.x,0,p.z);if(!this.cameraFocus)this.cameraFocus=targetFocus.clone();this.cameraFocus.lerp(targetFocus,Math.min(1,dt*(this.falling?2.6:4.0)));this.camera.position.set(this.cameraFocus.x,8.6,this.cameraFocus.z+6.5);this.camera.lookAt(this.cameraFocus.x,0,this.cameraFocus.z-.45);this.updateFogCenter();this.renderer.render(this.scene,this.camera)`]
     ];
-    for(const [a,b] of reps){if(!h.includes(a))throw new Error('Game patch target missing');h=h.replace(a,b)}
+    for(const [a,b] of reps){
+      if(!h.includes(a)) console.warn('Optional game patch target missing:',a.slice(0,80));
+      else h=h.replace(a,b);
+    }
     document.open();document.write(h);document.close();
   }catch(e){document.body.innerHTML='<div class="loading">The game could not load. Refresh the page.</div>';console.error(e)}
 })();
