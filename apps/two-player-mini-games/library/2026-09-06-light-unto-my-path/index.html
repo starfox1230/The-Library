@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A Light Unto My Path</title><style>html,body{margin:0;min-height:100%;background:#02040a;color:#f2f6ff;font-family:system-ui,sans-serif}.loading{min-height:100vh;display:grid;place-items:center}</style></head>
+<body><div class="loading">Loading…</div><script>
+(async()=>{
+  try{
+    const response=await fetch('./game-base.html?v=2',{cache:'no-store'});
+    if(!response.ok) throw new Error('Base game failed to load: '+response.status);
+    let h=await response.text();
+    const presentationCss=`
+body.duel-fullscreen{margin:0;overflow:hidden;background:#010207}
+body.duel-fullscreen .shell{width:100vw;height:100vh;max-width:none;margin:0;padding:0}
+body.duel-fullscreen .lesson-head,body.duel-fullscreen .scripture-strip,body.duel-fullscreen .teacher-notes{display:none}
+body.duel-fullscreen .players{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px;width:100vw;height:100vh;background:rgba(160,191,234,.58)}
+body.duel-fullscreen .player-card{height:100vh;min-width:0;border:0;border-radius:0;display:block;background:#010207}
+body.duel-fullscreen .player-bar{display:none}
+body.duel-fullscreen .viewport{width:100%;height:100vh;min-height:0;aspect-ratio:auto;border-radius:0}
+`;
+    h=h.replace('</style>',presentationCss+'</style>');
+    const reps=[
+      [`.fog-mask{--r1:3%;--r2:5%;--r3:8%;`,`.fog-mask{--cx:50%;--cy:50%;--r1:6%;--r2:10%;--r3:16%;`],
+      [`radial-gradient(circle at 50% 56%,`,`radial-gradient(circle at var(--cx) var(--cy),`],
+      [`.guided .fog-mask{--r1:48%;--r2:72%;--r3:112%}`,`.guided .fog-mask{--r1:24%;--r2:36%;--r3:56%}`],
+      [`<button id="newSetBtn" type="button">New random set</button><button id="fullscreenBtn" type="button">Fullscreen</button>`,`<button id="fallModeBtn" type="button">Fall: Restart</button><button id="newSetBtn" type="button">New random set</button><button id="fullscreenBtn" type="button">Split fullscreen (\`)</button>`],
+      [`const START=[2,2],keyState=new Set(),players={};let THREE,currentSet,lightOn=false;`,`const START=[2,2],keyState=new Set(),players={};let THREE,currentSet,lightOn=false,fallMode='restart',presentationMode=false;`],
+      [`this.canvas=this.canvasEl;this.view=this.viewEl;this.joined=false;`,`this.canvas=this.canvasEl;this.view=this.viewEl;this.fogEl=this.view.querySelector('.fog-mask');this.joined=false;`],
+      [`this.lightDistance=1.75;this.targetLightDistance=1.75;this.init3D()`,`this.lightDistance=3.5;this.targetLightDistance=3.5;this.cameraFocus=null;this.init3D()`],
+      [`snapCamera(){const p=this.avatar.position;this.camera.position.set(p.x,8.6,p.z+6.5);this.camera.lookAt(p.x,0,p.z-.45)}`,`snapCamera(){const p=this.avatar.position;this.cameraFocus=new THREE.Vector3(p.x,0,p.z);this.camera.position.set(this.cameraFocus.x,8.6,this.cameraFocus.z+6.5);this.camera.lookAt(this.cameraFocus.x,0,this.cameraFocus.z-.45);this.updateFogCenter()}`],
+      [`this.targetLightDistance=on?16:1.75`,`this.targetLightDistance=on?8:3.5`],
+      [`this.playerLight.intensity=on?3.4:2.7`,`this.playerLight.intensity=on?3.2:2.7`],
+      [`projectHeartToViewport(mesh){`,`updateFogCenter(){if(!this.fogEl)return;const v=new THREE.Vector3(this.avatar.position.x,this.avatar.position.y+.34,this.avatar.position.z).project(this.camera);const x=Math.max(0,Math.min(100,(v.x*.5+.5)*100)),y=Math.max(0,Math.min(100,(-v.y*.5+.5)*100));this.fogEl.style.setProperty('--cx',x+'%');this.fogEl.style.setProperty('--cy',y+'%')}
+projectHeartToViewport(mesh){`],
+      [`duration=760,endX=start.x+dc*TILE*1.75,endZ=start.z+dr*TILE*1.75`,`duration=650,endX=start.x+dc*TILE*.68,endZ=start.z+dr*TILE*.68`],
+      [`side=Math.min(1,t/.42),drop=Math.max(0,(t-.22)/.78);`,`side=Math.min(1,t/.34),drop=Math.max(0,(t-.08)/.92),edgeEase=1-Math.pow(1-side,2);`],
+      [`this.avatar.position.x=start.x+(endX-start.x)*(1-Math.pow(1-side,2));this.avatar.position.z=start.z+(endZ-start.z)*(1-Math.pow(1-side,2));`,`this.avatar.position.x=start.x+(endX-start.x)*edgeEase;this.avatar.position.z=start.z+(endZ-start.z)*edgeEase;`],
+      [`this.avatar.position.y=start.y-5.2*drop*drop`,`this.avatar.position.y=start.y-5.0*drop*drop`],
+      [`this.avatar.rotation.z=-dc*drop*1.45;this.avatar.rotation.x=dr*drop*1.45;this.avatar.rotation.y+=(dc-dr)*.045;this.avatar.scale.setScalar(Math.max(.18,1-drop*.74))`,`this.avatar.rotation.z=-dc*drop*1.2;this.avatar.rotation.x=dr*drop*1.2;this.avatar.rotation.y+=(dc-dr)*.025;this.avatar.scale.setScalar(Math.max(.2,1-drop*.72))`],
+      [`else{this.resetPosition();this.falling=false;`,`else{if(fallMode==='restart')this.resetPosition();else{const p=worldPos(this.row,this.col,.1);this.avatar.position.set(p.x,p.y,p.z);this.avatar.scale.setScalar(1);this.avatar.rotation.set(0,0,0);this.moving=false}this.falling=false;`],
+      [`this.showMessage(lightOn?'You still choose where to step. Try again—you kept your hearts.':'You stepped off that edge. Back to the beginning—but you kept your hearts.',2500)`,`this.showMessage(fallMode==='restart'?(lightOn?'You still choose where to step. Try again—you kept your hearts.':'You stepped off that edge. Back to the beginning—but you kept your hearts.'):'You slipped off the edge and returned to the square you fell from.',2500)`],
+      [`const p=this.avatar.position,desired=new THREE.Vector3(p.x,8.6,p.z+6.5);this.camera.position.lerp(desired,Math.min(1,dt*(this.falling?3.2:7)));this.camera.lookAt(p.x,Math.max(-1.2,p.y*.25),p.z-.45);this.renderer.render(this.scene,this.camera)`,`const p=this.avatar.position,targetFocus=new THREE.Vector3(p.x,0,p.z);if(!this.cameraFocus)this.cameraFocus=targetFocus.clone();this.cameraFocus.lerp(targetFocus,Math.min(1,dt*(this.falling?2.6:4.0)));this.camera.position.set(this.cameraFocus.x,8.6,this.cameraFocus.z+6.5);this.camera.lookAt(this.cameraFocus.x,0,this.cameraFocus.z-.45);this.updateFogCenter();this.renderer.render(this.scene,this.camera)`],
+      [`function handleKeyDown(event){`,`function setFallMode(mode){fallMode=mode;const b=document.getElementById('fallModeBtn');if(b)b.textContent=mode==='restart'?'Fall: Restart':'Fall: Return to square'}
+async function togglePresentation(){presentationMode=!presentationMode;document.body.classList.toggle('duel-fullscreen',presentationMode);const b=document.getElementById('fullscreenBtn');if(b)b.textContent=presentationMode?'Exit split fullscreen (\`)':'Split fullscreen (\`)';requestAnimationFrame(()=>{players.a?.resize();players.b?.resize()});try{if(presentationMode&&!document.fullscreenElement)await document.documentElement.requestFullscreen();else if(!presentationMode&&document.fullscreenElement)await document.exitFullscreen()}catch(_){}}
+function handleKeyDown(event){`],
+      [`'Space','KeyR']);`,`'Space','KeyR','Backquote']);`],
+      [`if(event.code==='KeyR'&&!event.repeat)startNewSet()`,`if(event.code==='KeyR'&&!event.repeat)startNewSet();if(event.code==='Backquote'&&!event.repeat)togglePresentation()`],
+      [`document.getElementById('newSetBtn').addEventListener('click',startNewSet);`,`document.getElementById('fallModeBtn').addEventListener('click',()=>setFallMode(fallMode==='restart'?'forgiving':'restart'));document.getElementById('newSetBtn').addEventListener('click',startNewSet);`],
+      [`document.getElementById('fullscreenBtn').addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch(_){}});`,`document.getElementById('fullscreenBtn').addEventListener('click',togglePresentation);`]
+    ];
+    for(const [a,b] of reps){if(h.includes(a))h=h.replace(a,b);else console.warn('Optional game patch target missing:',a.slice(0,100));}
+    document.open();document.write(h);document.close();
+  }catch(e){console.error(e);location.replace('./game-base.html?v=2');}
+})();
+</script></body></html>
