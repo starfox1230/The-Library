@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>A Light Unto My Path</title>
+  <style>
+    @property --r1 { syntax: '<percentage>'; inherits: false; initial-value: 17%; }
+    @property --r2 { syntax: '<percentage>'; inherits: false; initial-value: 30%; }
+    @property --r3 { syntax: '<percentage>'; inherits: false; initial-value: 48%; }
+
+    :root {
+      --bg: #02040a;
+      --panel: rgba(8, 13, 25, 0.92);
+      --panel-soft: rgba(12, 20, 36, 0.76);
+      --line: rgba(160, 191, 234, 0.2);
+      --text: #f2f6ff;
+      --muted: #aebbd0;
+      --gold: #ffd778;
+      --blue: #86bcff;
+      --green: #9ce8bb;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(93, 132, 198, 0.18), transparent 40rem),
+        linear-gradient(180deg, #070b14 0%, var(--bg) 65%);
+      overflow-x: hidden;
+    }
+
+    button { font: inherit; }
+
+    .shell {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: 0.8rem;
+    }
+
+    .lesson-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.8rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(7, 12, 23, 0.82);
+      backdrop-filter: blur(10px);
+    }
+
+    .lesson-title { margin: 0; font-size: clamp(1.3rem, 2.5vw, 2.15rem); letter-spacing: 0.01em; }
+    .lesson-subtitle { margin: 0.18rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+    .teacher-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: flex-end; }
+    .teacher-actions button,
+    .join-button {
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 999px;
+      color: #f8fbff;
+      background: rgba(255,255,255,0.07);
+      padding: 0.5rem 0.8rem;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 150ms ease, background 150ms ease;
+    }
+    .teacher-actions button:hover,
+    .join-button:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.34); background: rgba(255,255,255,0.11); }
+    #bothLightBtn { border-color: rgba(255, 215, 120, 0.4); color: #ffe5a7; }
+
+    .players {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .player-card {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      background: var(--panel);
+      box-shadow: 0 18px 45px rgba(0,0,0,0.28);
+    }
+
+    .player-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.7rem;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--line);
+      background: rgba(10, 16, 30, 0.94);
+    }
+
+    .player-name { margin: 0; font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .controls { color: var(--muted); font-size: 0.76rem; text-align: right; }
+
+    .viewport {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      min-height: 300px;
+      overflow: hidden;
+      background: #010207;
+      isolation: isolate;
+      transition: box-shadow 1.2s ease;
+    }
+
+    .viewport.guided { box-shadow: inset 0 0 80px rgba(255, 215, 120, 0.08); }
+
+    canvas { width: 100%; height: 100%; display: block; }
+
+    .fog-mask {
+      --r1: 17%;
+      --r2: 30%;
+      --r3: 48%;
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+      background: radial-gradient(
+        circle at 50% 56%,
+        rgba(2,4,9,0) 0 var(--r1),
+        rgba(2,4,9,0.18) var(--r2),
+        rgba(2,4,9,0.96) var(--r3),
+        rgba(2,4,9,1) 78%
+      );
+      transition: --r1 1.6s cubic-bezier(.2,.7,.15,1), --r2 1.6s cubic-bezier(.2,.7,.15,1), --r3 1.6s cubic-bezier(.2,.7,.15,1);
+    }
+
+    .guided .fog-mask { --r1: 54%; --r2: 78%; --r3: 118%; }
+
+    .hud {
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      pointer-events: none;
+      padding: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .hud-chip {
+      padding: 0.34rem 0.52rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.13);
+      background: rgba(3, 7, 15, 0.65);
+      backdrop-filter: blur(6px);
+      font-size: 0.72rem;
+      color: #dce7f8;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.16);
+    }
+
+    .mode-chip { transition: color 500ms ease, border-color 500ms ease, box-shadow 500ms ease; }
+    .guided .mode-chip { color: #ffe6a8; border-color: rgba(255,215,120,0.4); box-shadow: 0 0 18px rgba(255,215,120,0.1); }
+
+    .message {
+      position: absolute;
+      left: 50%;
+      bottom: 0.75rem;
+      z-index: 10;
+      width: min(88%, 560px);
+      transform: translate(-50%, 16px);
+      opacity: 0;
+      pointer-events: none;
+      text-align: center;
+      padding: 0.65rem 0.85rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(5, 9, 18, 0.9);
+      color: #f4f7ff;
+      font-size: clamp(0.76rem, 1.4vw, 0.92rem);
+      line-height: 1.35;
+      transition: opacity 220ms ease, transform 220ms ease;
+      backdrop-filter: blur(8px);
+    }
+    .message.show { opacity: 1; transform: translate(-50%, 0); }
+    .message strong { color: var(--gold); }
+
+    .start-overlay,
+    .finish-overlay,
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 12;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: linear-gradient(180deg, rgba(2,4,9,0.54), rgba(2,4,9,0.88));
+      transition: opacity 220ms ease;
+    }
+    .start-overlay.hidden,
+    .finish-overlay.hidden,
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .overlay-card {
+      width: min(92%, 400px);
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 16px;
+      background: rgba(7, 12, 23, 0.9);
+      padding: 1rem;
+      box-shadow: 0 18px 50px rgba(0,0,0,0.38);
+    }
+    .overlay-card h3 { margin: 0 0 0.35rem; font-size: 1.08rem; }
+    .overlay-card p { margin: 0.25rem 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
+    .join-button { margin-top: 0.65rem; background: rgba(134, 188, 255, 0.13); border-color: rgba(134, 188, 255, 0.32); }
+
+    .finish-overlay .overlay-card { border-color: rgba(156,232,187,0.35); }
+    .finish-overlay h3 { color: #b7f2ce; }
+
+    .scripture-strip {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.7rem;
+      align-items: center;
+      margin-top: 0.75rem;
+      padding: 0.65rem 0.8rem;
+      border: 1px solid rgba(255, 215, 120, 0.18);
+      border-radius: 14px;
+      background: rgba(24, 20, 10, 0.27);
+      color: #f8edcf;
+    }
+    .lamp { font-size: 1.45rem; }
+    .scripture-strip p { margin: 0; line-height: 1.35; font-size: 0.86rem; }
+    .scripture-strip span { color: #cdbf9c; }
+
+    details.teacher-notes {
+      margin-top: 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(7, 12, 23, 0.7);
+      color: var(--muted);
+      overflow: hidden;
+    }
+    details.teacher-notes summary { cursor: pointer; padding: 0.65rem 0.8rem; color: #dbe7f8; font-weight: 700; }
+    .notes-body { padding: 0 0.9rem 0.8rem; font-size: 0.85rem; line-height: 1.5; }
+    .notes-body ol { margin: 0.25rem 0 0; padding-left: 1.2rem; }
+
+    .error { color: #ffd0d0; }
+
+    @media (max-width: 900px) {
+      .lesson-head { grid-template-columns: 1fr; }
+      .teacher-actions { justify-content: flex-start; }
+      .players { grid-template-columns: 1fr; }
+      .viewport { aspect-ratio: 16 / 9; }
+    }
+
+    @media (max-height: 760px) and (min-width: 901px) {
+      .viewport { aspect-ratio: 16 / 8.6; }
+      .lesson-head { padding-block: 0.45rem; }
+      details.teacher-notes, .scripture-strip { margin-top: 0.45rem; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="lesson-head">
+      <div>
+        <h1 class="lesson-title">A Light Unto My Path</h1>
+        <p class="lesson-subtitle">A two-player object lesson for Psalm 119:105</p>
+      </div>
+      <div class="teacher-actions">
+        <button id="bothLightBtn" type="button">Turn on the Lord's light for both</button>
+        <button id="resetBtn" type="button">Reset lesson</button>
+        <button id="fullscreenBtn" type="button">Fullscreen</button>
+      </div>
+    </header>
+
+    <section class="players">
+      <article class="player-card">
+        <div class="player-bar">
+          <h2 class="player-name">Player 1</h2>
+          <div class="controls">Move: W A S D · Join: 3 · Light: 1</div>
+        </div>
+        <div class="viewport" id="view-a">
+          <canvas id="canvas-a"></canvas>
+          <div class="fog-mask"></div>
+          <div class="hud">
+            <span class="hud-chip mode-chip" id="mode-a">Small light</span>
+            <span class="hud-chip" id="falls-a">Falls: 0</span>
+          </div>
+          <div class="message" id="message-a"></div>
+          <div class="loading-overlay" id="loading-a">
+            <div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div>
+          </div>
+          <div class="start-overlay" id="start-a">
+            <div class="overlay-card">
+              <h3>Find the way home</h3>
+              <p>You can only see a little of the path at a time. Try to reach the light at the end without stepping into the dark.</p>
+              <button class="join-button" type="button" data-join="a">Press 3 to begin</button>
+            </div>
+          </div>
+          <div class="finish-overlay hidden" id="finish-a">
+            <div class="overlay-card">
+              <h3>You made it home</h3>
+              <p>The path was still yours to walk, but light helped you see where to go.</p>
+              <button class="join-button" type="button" data-replay="a">Play again</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="player-card">
+        <div class="player-bar">
+          <h2 class="player-name">Player 2</h2>
+          <div class="controls">Move: Arrow Keys · Join: Numpad 3 · Light: Numpad 1</div>
+        </div>
+        <div class="viewport" id="view-b">
+          <canvas id="canvas-b"></canvas>
+          <div class="fog-mask"></div>
+          <div class="hud">
+            <span class="hud-chip mode-chip" id="mode-b">Small light</span>
+            <span class="hud-chip" id="falls-b">Falls: 0</span>
+          </div>
+          <div class="message" id="message-b"></div>
+          <div class="loading-overlay" id="loading-b">
+            <div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div>
+          </div>
+          <div class="start-overlay" id="start-b">
+            <div class="overlay-card">
+              <h3>Find the way home</h3>
+              <p>You can only see a little of the path at a time. Try to reach the light at the end without stepping into the dark.</p>
+              <button class="join-button" type="button" data-join="b">Press Numpad 3 to begin</button>
+            </div>
+          </div>
+          <div class="finish-overlay hidden" id="finish-b">
+            <div class="overlay-card">
+              <h3>You made it home</h3>
+              <p>The path was still yours to walk, but light helped you see where to go.</p>
+              <button class="join-button" type="button" data-replay="b">Play again</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <div class="scripture-strip">
+      <div class="lamp">☀</div>
+      <p>“Thy word is a lamp unto my feet, and a light unto my path.” <span>— Psalm 119:105</span></p>
+    </div>
+
+    <details class="teacher-notes">
+      <summary>Teacher flow</summary>
+      <div class="notes-body">
+        <ol>
+          <li>Let both children try with the small light. Allow a fall or two; every fall automatically returns them to the beginning.</li>
+          <li>Ask: “What would make this easier? What helps us know where to go in real life?” Read Psalm 119:105.</li>
+          <li>Have each child press the <strong>Light</strong> button (1 / Numpad 1), or use “Turn on the Lord's light for both.” The visible area expands dramatically, but the maze itself does not change.</li>
+          <li>After they reach the goal, emphasize: the Lord does not always remove the path, choices, or challenges. His light helps us see the next steps and where the path leads.</li>
+        </ol>
+      </div>
+    </details>
+  </main>
+
+  <script type="module">
+    const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+
+    const keyState = new Set();
+    const players = {};
+    let THREE;
+
+    const CONFIG = {
+      a: {
+        canvas: 'canvas-a', view: 'view-a', loading: 'loading-a', start: 'start-a', finish: 'finish-a',
+        mode: 'mode-a', falls: 'falls-a', message: 'message-a', join: 'Digit3', light: 'Digit1',
+        controls: { KeyW: [-1, 0], KeyS: [1, 0], KeyA: [0, -1], KeyD: [0, 1] },
+        ordered: ['KeyW', 'KeyS', 'KeyA', 'KeyD'],
+        joinLabel: '3', lightLabel: '1'
+      },
+      b: {
+        canvas: 'canvas-b', view: 'view-b', loading: 'loading-b', start: 'start-b', finish: 'finish-b',
+        mode: 'mode-b', falls: 'falls-b', message: 'message-b', join: 'Numpad3', light: 'Numpad1',
+        controls: { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] },
+        ordered: ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'],
+        joinLabel: 'Numpad 3', lightLabel: 'Numpad 1'
+      }
+    };
+
+    const ROWS = 21;
+    const COLS = 25;
+    const TILE = 1.06;
+    const START = [1, 1];
+    const GOAL = [ROWS - 2, COLS - 2];
+
+    function seededRandom(seed = 119105) {
+      let value = seed >>> 0;
+      return () => {
+        value += 0x6D2B79F5;
+        let t = value;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function makeMaze() {
+      const rng = seededRandom();
+      const grid = Array.from({ length: ROWS }, () => Array(COLS).fill(false));
+      const stack = [[1, 1]];
+      grid[1][1] = true;
+      const dirs = [[-2,0],[2,0],[0,-2],[0,2]];
+
+      while (stack.length) {
+        const [r, c] = stack[stack.length - 1];
+        const choices = dirs
+          .map(([dr, dc]) => [r + dr, c + dc, dr, dc])
+          .filter(([nr, nc]) => nr > 0 && nr < ROWS - 1 && nc > 0 && nc < COLS - 1 && !grid[nr][nc]);
+
+        if (!choices.length) {
+          stack.pop();
+          continue;
+        }
+
+        const pick = choices[Math.floor(rng() * choices.length)];
+        const [nr, nc, dr, dc] = pick;
+        grid[r + dr / 2][c + dc / 2] = true;
+        grid[nr][nc] = true;
+        stack.push([nr, nc]);
+      }
+
+      // Widen a few safe places so turns feel more natural and children do not need pixel-perfect timing.
+      [[1,2],[2,1],[GOAL[0], GOAL[1]-1],[GOAL[0]-1, GOAL[1]]].forEach(([r,c]) => { if (r > 0 && c > 0 && r < ROWS && c < COLS) grid[r][c] = true; });
+      return grid;
+    }
+
+    const MAZE = makeMaze();
+
+    function worldPos(row, col, y = 0.1) {
+      return {
+        x: (col - (COLS - 1) / 2) * TILE,
+        y,
+        z: (row - (ROWS - 1) / 2) * TILE
+      };
+    }
+
+    class MazePlayer {
+      constructor(id, config) {
+        this.id = id;
+        this.config = config;
+        this.canvas = document.getElementById(config.canvas);
+        this.view = document.getElementById(config.view);
+        this.loadingEl = document.getElementById(config.loading);
+        this.startEl = document.getElementById(config.start);
+        this.finishEl = document.getElementById(config.finish);
+        this.modeEl = document.getElementById(config.mode);
+        this.fallsEl = document.getElementById(config.falls);
+        this.messageEl = document.getElementById(config.message);
+
+        this.joined = false;
+        this.guided = false;
+        this.won = false;
+        this.falling = false;
+        this.fallCount = 0;
+        this.row = START[0];
+        this.col = START[1];
+        this.targetRow = this.row;
+        this.targetCol = this.col;
+        this.moveStart = 0;
+        this.moveDuration = 115;
+        this.moving = false;
+        this.lastStep = 0;
+        this.messageTimer = null;
+        this.lightDistance = 4.0;
+        this.targetLightDistance = 4.0;
+
+        this.init3D();
+      }
+
+      init3D() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x010207);
+        this.scene.fog = new THREE.FogExp2(0x02040a, 0.032);
+
+        this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, powerPreference: 'high-performance' });
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.05;
+
+        this.camera = new THREE.PerspectiveCamera(48, 1, 0.1, 100);
+
+        const hemi = new THREE.HemisphereLight(0x7ea8e6, 0x080b12, 0.62);
+        this.scene.add(hemi);
+
+        const fill = new THREE.DirectionalLight(0x7fa7d7, 0.52);
+        fill.position.set(-8, 12, 5);
+        this.scene.add(fill);
+
+        this.pathGroup = new THREE.Group();
+        const tileGeo = new THREE.BoxGeometry(TILE * 0.86, 0.18, TILE * 0.86);
+        const tileMat = new THREE.MeshStandardMaterial({ color: 0x24344d, roughness: 0.84, metalness: 0.08, emissive: 0x06101d, emissiveIntensity: 0.45 });
+        const startMat = new THREE.MeshStandardMaterial({ color: 0x335b65, roughness: 0.76, emissive: 0x092428, emissiveIntensity: 0.65 });
+        const goalMat = new THREE.MeshStandardMaterial({ color: 0x71623a, roughness: 0.66, emissive: 0x5a4310, emissiveIntensity: 0.95 });
+
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (!MAZE[r][c]) continue;
+            const isStart = r === START[0] && c === START[1];
+            const isGoal = r === GOAL[0] && c === GOAL[1];
+            const mesh = new THREE.Mesh(tileGeo, isStart ? startMat : isGoal ? goalMat : tileMat);
+            const p = worldPos(r, c, 0);
+            mesh.position.set(p.x, p.y, p.z);
+            this.pathGroup.add(mesh);
+          }
+        }
+        this.scene.add(this.pathGroup);
+
+        const underGeo = new THREE.PlaneGeometry(60, 50);
+        const underMat = new THREE.MeshBasicMaterial({ color: 0x010207, transparent: true, opacity: 0.96 });
+        const under = new THREE.Mesh(underGeo, underMat);
+        under.rotation.x = -Math.PI / 2;
+        under.position.y = -3.3;
+        this.scene.add(under);
+
+        const starsGeo = new THREE.BufferGeometry();
+        const starPositions = [];
+        const starRng = seededRandom(this.id === 'a' ? 31 : 73);
+        for (let i = 0; i < 240; i++) {
+          starPositions.push((starRng() - 0.5) * 50, -2.5 - starRng() * 8, (starRng() - 0.5) * 44);
+        }
+        starsGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+        const starsMat = new THREE.PointsMaterial({ color: 0x52698c, size: 0.035, transparent: true, opacity: 0.56 });
+        this.scene.add(new THREE.Points(starsGeo, starsMat));
+
+        this.avatar = new THREE.Group();
+        const body = new THREE.Mesh(
+          new THREE.SphereGeometry(0.27, 24, 16),
+          new THREE.MeshStandardMaterial({ color: this.id === 'a' ? 0x8fc8ff : 0xa7efc2, roughness: 0.34, metalness: 0.05, emissive: this.id === 'a' ? 0x14324d : 0x133d28, emissiveIntensity: 0.55 })
+        );
+        body.position.y = 0.34;
+        this.avatar.add(body);
+        const halo = new THREE.Mesh(
+          new THREE.TorusGeometry(0.34, 0.026, 10, 36),
+          new THREE.MeshBasicMaterial({ color: 0xffda7a, transparent: true, opacity: 0.78 })
+        );
+        halo.rotation.x = Math.PI / 2;
+        halo.position.y = 0.14;
+        this.avatar.add(halo);
+        const start = worldPos(this.row, this.col, 0.1);
+        this.avatar.position.set(start.x, start.y, start.z);
+        this.scene.add(this.avatar);
+
+        this.playerLight = new THREE.PointLight(0xffdda0, 2.1, this.lightDistance, 1.7);
+        this.playerLight.position.set(0, 1.15, 0);
+        this.avatar.add(this.playerLight);
+
+        this.goalGroup = new THREE.Group();
+        const goalPos = worldPos(GOAL[0], GOAL[1], 0.12);
+        this.goalGroup.position.set(goalPos.x, goalPos.y, goalPos.z);
+        const pillar = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.28, 2.9, 28, 1, true),
+          new THREE.MeshBasicMaterial({ color: 0xffdc83, transparent: true, opacity: 0.18, side: THREE.DoubleSide })
+        );
+        pillar.position.y = 1.5;
+        this.goalGroup.add(pillar);
+        const beacon = new THREE.PointLight(0xffd06f, 3.8, 9, 1.5);
+        beacon.position.y = 1.35;
+        this.goalGroup.add(beacon);
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.38, 0.05, 10, 42),
+          new THREE.MeshBasicMaterial({ color: 0xffdf8a })
+        );
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.22;
+        this.goalGroup.add(ring);
+        this.scene.add(this.goalGroup);
+
+        this.resize();
+        this.snapCamera();
+        this.loadingEl.classList.add('hidden');
+      }
+
+      resize() {
+        const rect = this.view.getBoundingClientRect();
+        const w = Math.max(320, Math.floor(rect.width));
+        const h = Math.max(240, Math.floor(rect.height));
+        this.renderer.setSize(w, h, false);
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+      }
+
+      snapCamera() {
+        const p = this.avatar.position;
+        this.camera.position.set(p.x, 8.6, p.z + 6.5);
+        this.camera.lookAt(p.x, 0, p.z - 0.45);
+      }
+
+      join() {
+        if (this.joined && !this.won) return;
+        this.joined = true;
+        this.won = false;
+        this.startEl.classList.add('hidden');
+        this.finishEl.classList.add('hidden');
+        this.showMessage('Find the light at the end. Be careful—the path disappears into the dark.', 2300);
+      }
+
+      replay() {
+        this.won = false;
+        this.joined = true;
+        this.finishEl.classList.add('hidden');
+        this.resetPosition();
+      }
+
+      resetLesson() {
+        this.guided = false;
+        this.won = false;
+        this.falling = false;
+        this.fallCount = 0;
+        this.fallsEl.textContent = 'Falls: 0';
+        this.modeEl.textContent = 'Small light';
+        this.view.classList.remove('guided');
+        this.targetLightDistance = 4.0;
+        this.playerLight.intensity = 2.1;
+        this.finishEl.classList.add('hidden');
+        this.resetPosition();
+        if (!this.joined) this.startEl.classList.remove('hidden');
+        this.showMessage('The path is the same. Only the amount of light has changed.', 1900);
+      }
+
+      resetPosition() {
+        this.row = START[0];
+        this.col = START[1];
+        this.targetRow = this.row;
+        this.targetCol = this.col;
+        this.moving = false;
+        const p = worldPos(this.row, this.col, 0.1);
+        this.avatar.position.set(p.x, p.y, p.z);
+        this.avatar.scale.setScalar(1);
+        this.avatar.rotation.set(0,0,0);
+        this.snapCamera();
+      }
+
+      activateLight() {
+        if (!this.joined || this.guided || this.won) return;
+        this.guided = true;
+        this.view.classList.add('guided');
+        this.modeEl.textContent = "The Lord's light";
+        this.targetLightDistance = 15;
+        this.playerLight.intensity = 3.0;
+        this.showMessage('<strong>“Thy word is a lamp unto my feet, and a light unto my path.”</strong> — Psalm 119:105', 4300);
+      }
+
+      showMessage(html, duration = 2400) {
+        clearTimeout(this.messageTimer);
+        this.messageEl.innerHTML = html;
+        this.messageEl.classList.add('show');
+        this.messageTimer = setTimeout(() => this.messageEl.classList.remove('show'), duration);
+      }
+
+      tryStep(dr, dc, now) {
+        if (!this.joined || this.won || this.falling || this.moving) return;
+        if (now - this.lastStep < 105) return;
+        this.lastStep = now;
+        const nr = this.row + dr;
+        const nc = this.col + dc;
+
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || !MAZE[nr][nc]) {
+          this.fall();
+          return;
+        }
+
+        this.targetRow = nr;
+        this.targetCol = nc;
+        this.moveFrom = this.avatar.position.clone();
+        const p = worldPos(nr, nc, 0.1);
+        this.moveTo = new THREE.Vector3(p.x, p.y, p.z);
+        this.moveStart = now;
+        this.moving = true;
+      }
+
+      fall() {
+        this.falling = true;
+        this.fallCount += 1;
+        this.fallsEl.textContent = `Falls: ${this.fallCount}`;
+        const startY = this.avatar.position.y;
+        const started = performance.now();
+        const duration = 620;
+
+        const animateFall = (now) => {
+          const t = Math.min(1, (now - started) / duration);
+          this.avatar.position.y = startY - 4.3 * t * t;
+          this.avatar.rotation.z = t * 2.5;
+          this.avatar.scale.setScalar(Math.max(0.2, 1 - t * 0.72));
+          if (t < 1) {
+            requestAnimationFrame(animateFall);
+          } else {
+            this.resetPosition();
+            this.falling = false;
+            if (!this.guided) {
+              this.showMessage(`It is hard to plan a path you cannot see. Press <strong>${this.config.lightLabel}</strong> when you are ready to use the Lord's light.`, 3600);
+            } else {
+              this.showMessage('Even with light, we still choose where to step. Try again.', 2100);
+            }
+          }
+        };
+        requestAnimationFrame(animateFall);
+      }
+
+      finish() {
+        if (this.won) return;
+        this.won = true;
+        this.finishEl.classList.remove('hidden');
+        this.showMessage('<strong>The light did not move the path—it helped you see it.</strong>', 4200);
+      }
+
+      update(now, dt) {
+        if (this.guided) {
+          this.lightDistance += (this.targetLightDistance - this.lightDistance) * Math.min(1, dt * 2.5);
+          this.playerLight.distance = this.lightDistance;
+        }
+
+        if (this.joined && !this.won && !this.falling && !this.moving) {
+          for (const code of this.config.ordered) {
+            if (!keyState.has(code)) continue;
+            const [dr, dc] = this.config.controls[code];
+            this.tryStep(dr, dc, now);
+            break;
+          }
+        }
+
+        if (this.moving) {
+          const t = Math.min(1, (now - this.moveStart) / this.moveDuration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          this.avatar.position.lerpVectors(this.moveFrom, this.moveTo, eased);
+          if (t >= 1) {
+            this.moving = false;
+            this.row = this.targetRow;
+            this.col = this.targetCol;
+            if (this.row === GOAL[0] && this.col === GOAL[1]) this.finish();
+          }
+        }
+
+        this.goalGroup.rotation.y += dt * 0.42;
+        const p = this.avatar.position;
+        const desired = new THREE.Vector3(p.x, 8.6, p.z + 6.5);
+        this.camera.position.lerp(desired, Math.min(1, dt * 7));
+        this.camera.lookAt(p.x, 0, p.z - 0.45);
+        this.renderer.render(this.scene, this.camera);
+      }
+    }
+
+    function handleKeyDown(event) {
+      const used = new Set([
+        'KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight',
+        'Digit1','Digit3','Numpad1','Numpad3','Space','KeyR'
+      ]);
+      if (used.has(event.code)) event.preventDefault();
+      keyState.add(event.code);
+
+      if (event.code === CONFIG.a.join) players.a?.join();
+      if (event.code === CONFIG.b.join) players.b?.join();
+      if (event.code === CONFIG.a.light) players.a?.activateLight();
+      if (event.code === CONFIG.b.light) players.b?.activateLight();
+      if (event.code === 'Space') {
+        players.a?.activateLight();
+        players.b?.activateLight();
+      }
+      if (event.code === 'KeyR') {
+        players.a?.resetLesson();
+        players.b?.resetLesson();
+      }
+    }
+
+    function handleKeyUp(event) { keyState.delete(event.code); }
+
+    async function boot() {
+      try {
+        THREE = await import(THREE_URL);
+      } catch (error) {
+        document.querySelectorAll('.loading-overlay .overlay-card').forEach((card) => {
+          card.innerHTML = '<h3 class="error">3D library could not load</h3><p>This game needs an internet connection once when the page opens so Three.js can load.</p>';
+        });
+        console.error(error);
+        return;
+      }
+
+      players.a = new MazePlayer('a', CONFIG.a);
+      players.b = new MazePlayer('b', CONFIG.b);
+
+      document.addEventListener('keydown', handleKeyDown, { passive: false });
+      document.addEventListener('keyup', handleKeyUp);
+      window.addEventListener('blur', () => keyState.clear());
+      window.addEventListener('resize', () => {
+        players.a.resize();
+        players.b.resize();
+      });
+
+      document.querySelectorAll('[data-join]').forEach((button) => {
+        button.addEventListener('click', () => players[button.dataset.join].join());
+      });
+      document.querySelectorAll('[data-replay]').forEach((button) => {
+        button.addEventListener('click', () => players[button.dataset.replay].replay());
+      });
+
+      document.getElementById('bothLightBtn').addEventListener('click', () => {
+        if (!players.a.joined) players.a.join();
+        if (!players.b.joined) players.b.join();
+        players.a.activateLight();
+        players.b.activateLight();
+      });
+
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        players.a.resetLesson();
+        players.b.resetLesson();
+      });
+
+      document.getElementById('fullscreenBtn').addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+          else await document.exitFullscreen();
+        } catch (_) {}
+      });
+
+      let last = performance.now();
+      function frame(now) {
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        players.a.update(now, dt);
+        players.b.update(now, dt);
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    }
+
+    boot();
+  </script>
+</body>
+</html>
