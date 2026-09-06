@@ -9,7 +9,7 @@ For BoardVitals-specific quiz capture, card generation, and local HTML quiz revi
 The strongest existing implementation is:
 
 ```text
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\radiographics-review
+C:\Users\sterl\Documents\GitHub\The-Library\apps\radiographics-review
 ```
 
 Key files:
@@ -72,6 +72,7 @@ Fields:
 Do not put long explanations in `Extra`.
 For quiz-derived cards, `Extra` must include a short one-sentence explanation of the tested point after the question number/result metadata. Keep it useful for immediate review: identify what the image/device/finding is and why the answer follows when that context is not obvious.
 Do not generate quiz-derived APKGs as an automatic tail step of quiz capture unless the user explicitly requests cards, a deck, Anki generation, or an APKG. Capture/review and card-writing are separate passes.
+Card wording and Text-versus-Extra decisions follow the current `CARD_STYLE_GUIDE.md`, including simple fact first and the smallest-edit ambiguity procedure. The packaging step preserves approved wording and learning targets; it must not add clozes, expand scope, or move essential conditions off the front to satisfy a mechanical format preference.
 Do not create card fronts by truncating source stems. Rewrite concise, complete prompts. No prompt should end mid-sentence.
 When the user or source note already provides a concise, grammatical card prompt, preserve that wording unless there is a concrete defect to fix, such as ambiguity, excessive length, missing required context, source provenance on the front, or broken grammar. Do not convert a clear question into a telegraphic label-fragment style merely to make it shorter.
 When a user-authored Notion/database note already lays out a card in question/answer form, treat that wording as the primary specification rather than raw source material. Preserve the prompt structure and answer wording exactly when it is already intelligible, especially for intentionally parallel series such as `How does X appear on bone scintigraphy? -> normal activity`. If the user writes `similar cards for the following`, create cards using the same preceding structure so the cards remain parallel and do not leak clues through inconsistent wording. Curly-brace/cloze-like markup in the source note is a clue to keep the enclosed content together unless there is a clear technical reason not to.

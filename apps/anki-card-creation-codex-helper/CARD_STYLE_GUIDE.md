@@ -6,6 +6,38 @@ For BoardVitals-specific quiz capture, Anki generation, and local HTML quiz revi
 
 For the Radiology Study OS visual feed, textbook figure extraction, reviewer image behavior, and image-aware export, also use `VISUAL_STUDY_AND_ANKI_SPEC.md`.
 
+## Simple fact first; cloze second
+
+Revision: 2026-09-05. Apply this writing policy across central Codex card-generation routes. Source selection remains governed by the relevant workflow.
+
+First identify the smallest useful generalizable fact, then choose what to hide. The unblanked sentence should itself teach a clear fact. Remove incidental case numbers, laterality, narrative, and antecedents unless they define the rule. Prefer the missing threshold, relationship, term, or discriminator over the answer to one incidental example. Preserve a clear user-authored card rather than re-generalizing it unnecessarily.
+
+Default to one retrieval target. Add another cloze only when that second retrieval direction is independently useful and still unambiguous; do not automatically hide both the subject and its property. A comparison may stay together when the distinction itself is the lesson; use parallel wording. Otherwise split independently useful targets within the selected scope.
+
+### Keep truth on the front and explanation in Extra
+
+- `Text` contains the minimal accurate statement and the information needed to identify the requested answer. It stands alone without Extra, the source conversation, or a neighboring card.
+- `Extra` usually adds one or two short sentences explaining why, a useful exception, or a secondary nuance. Required source quotations and media can follow separately; they are not reasons to lengthen the front.
+- Keep a condition on the front if removing it changes the truth or intended answer: the relevant population, anatomy, modality, timing, or threshold. An exception belongs in Extra only when the front remains accurate as written.
+- Use a precise relationship rather than a blanket disclaimer. For a supported non-universal pattern, a single word such as `typically`, `usually`, or `classically` can distinguish a characteristic pattern from an absolute rule. Use it only when the source supports that meaning; do not add hedges to every card, stack them, invent a probability, or convert uncertainty into a confident fact.
+- `May` alone rarely makes a good retrieval cue: many findings may occur. Specify the attribute being recalled rather than asking the learner to guess one possible finding.
+- If accuracy requires many qualifications, narrow the claim or split the learning targets. Do not settle for a knowingly false simplification or a paragraph on the front. Unresolved source uncertainty remains pending for verification.
+- Supplemental nuance does not automatically authorize more cards. In selected conversation facts, Extra never supplies additional tested knowledge. Other routes keep their own explicit selection rules.
+
+### Resolve ambiguity with the smallest edit
+
+Check whether the visible prompt identifies the relationship or attribute being tested. Accept equivalent wording for the same answer; do not demand one unique string.
+
+When a different substantive answer also fits, try in this order:
+1. Narrow or move the cloze boundary, exposing the attribute or structure already in the source.
+2. Rewrite as a short direct question if that identifies the target more clearly.
+3. Add only the missing discriminating context.
+4. Split an overloaded fact, or leave an unresolved fact pending.
+
+Do not expand the stem with a list of exclusions just to force one answer. Do not put the disambiguating information only in Extra.
+
+Nonclinical example: `The sky is {{c1::blue}}` leaves the attribute unspecified. `A clear daytime sky is typically {{c1::blue::color}}` identifies the requested attribute with little added text. Extra can explain sunset colors without turning the front into a list of exceptions. For medical cards, verify the actual claim rather than borrowing facts from this example.
+
 ## Default Style
 
 - Default to cloze notes, not basic cards.
@@ -28,6 +60,8 @@ For the Radiology Study OS visual feed, textbook figure extraction, reviewer ima
 - Do not create cards just because text exists. Skip low-yield filler.
 
 ## Saved Items and User-Selected Key Points
+
+For Radiology Conversation Card Sources, use `RADIOLOGY_CONVERSATION_ANKI_WORKFLOW.md`: tested knowledge comes only from the selected row's Card Source. Extra and row-body context remain supplemental, and the general permission below to add further high-yield cards does not expand that selection.
 
 Treat a save or highlight as an explicit signal of what the user wants to retrieve later, not merely as background context.
 
@@ -212,7 +246,7 @@ Every card must pass the Smart Student Test:
 Could a smart student fill in this blank with a different answer that is also factually true?
 ```
 
-If yes, add locking context or skip the card.
+If a different substantive answer fits, use the smallest-edit sequence above. Equivalent synonyms are acceptable. Prefer a narrower cloze or clearer question before lengthening the front; Extra cannot supply missing answer cues.
 
 Final validation checklist:
 

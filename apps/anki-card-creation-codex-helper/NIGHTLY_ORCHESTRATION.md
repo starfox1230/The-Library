@@ -2,6 +2,8 @@
 
 This is the execution contract for the single 9 p.m. Study OS automation. The automation must work sequentially, persist its progress, and give the bedtime-sensitive card work first priority without allowing one failed artifact to consume or block the rest of the nightly packet.
 
+For user-requested one-time runs, start with `RUN_RADIOLOGY_CARDS.md`. A full nightly run executes the phases below once without changing scheduler status; a Notion-only or cards-only run executes only the requested scope. Read current canonical files afresh, and record their resolved paths/hashes. Apply the launcher's cross-date reconciliation and preserve existing user edits, saves, and discards before generating or upserting candidates.
+
 ## Known local resources
 
 - Canonical Core Radiology PDF: `G:\My Drive\0. Radiology\Core Radiology 2nd ed.pdf`
@@ -29,12 +31,20 @@ The ledger is coordination state, not proof by itself. Database/API/media readba
 
 ## Phase 1 — Cards first
 
+The `Anki Card` status controls Radiology Notes eligibility. Process every admitted Radiology Notes page whose status is exactly `Needed`, including a page titled `Radiology Daily Learning`; never exclude an eligible page because of its title, page type, or because it contains a linked database.
+
+For an eligible Daily Learning page, follow that page's own instructions and its dated linked view. Process only rows in that view with `Make Anki?` checked and `Anki Created?` unchecked. Use `RADIOLOGY_CONVERSATION_ANKI_WORKFLOW.md` for the row-level source, wording, stable identity, and completion rules. A linked view of the deprecated Radiology Learning Points database is still an authorized source when it is embedded in an eligible Daily Learning page; this does not authorize mining the rest of the legacy backlog.
+
+Do not pull unrelated Notion entries into the daily synthesis page. The Daily Workflow prompt governs what the learning conversation captures; this card phase only consumes the content and selections already present in the eligible page. The Daily Workflow instruction page itself is processed only if its own `Anki Card` status is `Needed`.
+
 Before beginning quiz, audio, or visual generation, process the bedtime-sensitive Anki material:
 
 - unprocessed saved questions and key points from any date;
 - unprocessed visual saves from any date;
 - newly eligible Notion Radiology entries whose `Created time`, interpreted in `America/Chicago`, falls on the current study date or one of the preceding six local calendar dates and whose `Anki Card` property is `Needed`;
 - previously admitted Notion page ids that remain unresolved in the run ledger, even if they have since aged beyond that seven-date window.
+
+For an eligible Daily Learning page, the outer `Needed` status admits the page and the inner `Make Anki?` checks select the facts. After every selected row has verified output and has been marked `Anki Created?`, update the parent Daily Learning page to `Created` and verify it. If no rows are selected, or any selected row is unresolved, leave the parent page `Needed` and record the reason.
 
 Generate candidates under the canonical card instructions, upload required media, GET-verify candidates and media, and publish the usable candidates to the Study OS reviewer as soon as this phase is complete. Mark incorporated study-event ids processed only after verification.
 

@@ -13,9 +13,9 @@ G:\My Drive\0. Radiology\Core Radiology 2nd ed.pdf
 Before making cards, read:
 
 ```text
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\VISUAL_STUDY_AND_ANKI_SPEC.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\VISUAL_STUDY_AND_ANKI_SPEC.md
 ```
 
 ## Default Behavior

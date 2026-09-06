@@ -2,12 +2,18 @@
 
 ## Anki card work
 
+For the plain-language study-route menu, start with `apps/anki-card-creation-codex-helper/RADIOLOGY_STUDY_START_HERE.md`.
+
+For one-time Notion-to-Anki or StudyOS runs, start with `apps/anki-card-creation-codex-helper/RUN_RADIOLOGY_CARDS.md`; it routes the requested scope to the current source contracts and records instruction provenance.
+
 Before creating, editing, packaging, exporting, or reviewing Anki cards, read these files first and treat them as the source of truth:
 
 1. `apps/anki-card-creation-codex-helper/CARD_STYLE_GUIDE.md`
 2. `apps/anki-card-creation-codex-helper/APKG_PACKAGING.md`
 3. `apps/anki-card-creation-codex-helper/BOARDVITALS_WORKFLOW.md` when the source is BoardVitals or quiz capture/review
 4. `apps/anki-card-creation-codex-helper/CORE_RADIOLOGY_WORKFLOW.md` and `apps/anki-card-creation-codex-helper/CORE_RADIOLOGY_ANKI_WORKFLOW.md` when the source is Core Radiology
+5. `apps/anki-card-creation-codex-helper/RADIOLOGY_CONVERSATION_ANKI_WORKFLOW.md` when handling radiology daily-learning pages or selected conversation facts. Daily Learning pages marked `Anki Card = Needed` are included in the ordinary Notion-to-Anki run; their inner `Make Anki?` checks select the facts.
+6. `apps/anki-card-creation-codex-helper/YOUTUBE_ANATOMY_ANKI_WORKFLOW.md` for timestamped YouTube anatomy image cards.
 
 Do not infer the user's desired card type from an old script, a generated manifest, or a previous package. The default is always the user's existing `saCloze++` note type unless the user explicitly says otherwise.
 

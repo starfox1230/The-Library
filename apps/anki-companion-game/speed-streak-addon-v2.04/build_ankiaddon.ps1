@@ -1,0 +1,131 @@
+param(
+    [string]$OutputName = "speed_streak_v2_04.ankiaddon"
+)
+
+$source = Split-Path -Parent $MyInvocation.MyCommand.Path
+$output = Join-Path $source $OutputName
+$staging = Join-Path $source ".ankiaddon-build"
+$generator = Join-Path $source "generate_web_assets.py"
+$requiredPaths = @(
+    "reviewer_overlay.py",
+    "web_assets.py",
+    "web\\overlay.css",
+    "web\\overlay.js",
+    "web\\card_timer.css",
+    "web\\card_timer.js",
+    "web\\audio_feedback.js"
+)
+$excludeNames = @(
+    ".ankiaddon-build",
+    ".pytest_cache",
+    "__pycache__",
+    ".DS_Store",
+    "user_files",
+    "install_to_anki.ps1",
+    "build_ankiaddon.ps1",
+    "install_to_anki.sh",
+    "build_ankiaddon.sh",
+    "apply_event_wav_fade.ps1",
+    "trim_audio_to_trimmed.ps1",
+    "generate_web_assets.py",
+    "tests"
+)
+
+if (-not (Test-Path $generator)) {
+    Write-Error "Cannot build package because the asset generator is missing: $generator"
+    exit 1
+}
+
+$pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+if ($pythonCommand) {
+    & $pythonCommand.Source $generator
+} else {
+    $pyLauncher = Get-Command py -ErrorAction SilentlyContinue
+    if (-not $pyLauncher) {
+        Write-Error "Cannot build package because Python was not found to generate web_assets.py."
+        exit 1
+    }
+    & $pyLauncher.Source -3 $generator
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to generate web_assets.py before build."
+    exit 1
+}
+
+$missing = $requiredPaths | Where-Object { -not (Test-Path (Join-Path $source $_)) }
+if ($missing.Count -gt 0) {
+    Write-Error "Cannot build package because required add-on files are missing: $($missing -join ', ')"
+    exit 1
+}
+
+if (Test-Path $staging) {
+    Remove-Item -Path $staging -Recurse -Force
+}
+
+if (Test-Path $output) {
+    Remove-Item -Path $output -Force
+}
+
+New-Item -ItemType Directory -Path $staging | Out-Null
+
+Get-ChildItem -Path $source -Force | Where-Object {
+    $excludeNames -notcontains $_.Name -and
+    $_.Name -notlike "*.ankiaddon" -and
+    $_.Name -notlike "*.zip"
+} | ForEach-Object {
+    $destination = Join-Path $staging $_.Name
+    if ($_.PSIsContainer) {
+        Copy-Item -Path $_.FullName -Destination $destination -Recurse -Force
+    } else {
+        Copy-Item -Path $_.FullName -Destination $destination -Force
+    }
+}
+
+Get-ChildItem -LiteralPath $staging -Directory -Recurse -Force | Where-Object {
+    $_.Name -in @("__pycache__", ".pytest_cache", ".build-poc", ".build-release")
+} | Sort-Object { $_.FullName.Length } -Descending | ForEach-Object {
+    Remove-Item -LiteralPath $_.FullName -Recurse -Force
+}
+Get-ChildItem -LiteralPath $staging -File -Recurse -Force | Where-Object {
+    $_.Extension -eq ".pyc" -or $_.Name -eq "SpeedStreakHaptics-diagnostic.json"
+} | Remove-Item -Force
+
+$zipPath = [System.IO.Path]::ChangeExtension($output, ".zip")
+if (Test-Path -LiteralPath $zipPath) {
+    Remove-Item -LiteralPath $zipPath -Force
+}
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+try {
+    $archive = [System.IO.Compression.ZipFile]::Open(
+        $zipPath,
+        [System.IO.Compression.ZipArchiveMode]::Create
+    )
+    try {
+        $stagingPrefix = [System.IO.Path]::GetFullPath($staging).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+        Get-ChildItem -LiteralPath $staging -Recurse -File | ForEach-Object {
+            $entryName = $_.FullName.Substring($stagingPrefix.Length).Replace('\', '/')
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                $archive,
+                $_.FullName,
+                $entryName,
+                [System.IO.Compression.CompressionLevel]::Optimal
+            ) | Out-Null
+        }
+    } finally {
+        $archive.Dispose()
+    }
+} catch {
+    Remove-Item -Path $staging -Recurse -Force
+    if (Test-Path -LiteralPath $zipPath) {
+        Remove-Item -LiteralPath $zipPath -Force
+    }
+    Write-Error "Failed to create a root-level ZIP package: $($_.Exception.Message)"
+    exit 1
+}
+Move-Item -Path $zipPath -Destination $output -Force
+Remove-Item -Path $staging -Recurse -Force
+
+Write-Host "Built package: $output"
+Write-Host "Upload this .ankiaddon file at https://ankiweb.net/shared/addons/"

@@ -9,8 +9,8 @@ This file preserves the Notion-specific workflow and historical observations fro
 Before generating cards, read the canonical files:
 
 ```text
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 ```
 
 If card-writing taste changes, edit `CARD_STYLE_GUIDE.md`. If packaging/media behavior changes, edit `APKG_PACKAGING.md`.
@@ -101,7 +101,7 @@ Confirmed field behavior:
 The detailed observed rules from the 2026-04-20 backup sample have been promoted into the canonical style guide:
 
 ```text
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
 ```
 
 Keep the verified observations above as historical evidence, but do not add new card-style rules here.
@@ -205,7 +205,7 @@ If package generation fails, do not update the page status.
 The canonical packaging rules live in:
 
 ```text
-C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 ```
 
 For this Notion workflow, the run should still produce a machine-readable card manifest before building the package.
@@ -296,8 +296,8 @@ Build today's radiology Anki package from the Notion Radiology Notes Database.
 
 Before generating cards, read:
 
-- C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
-- C:\Users\sterl\OneDrive\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
+- C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\CARD_STYLE_GUIDE.md
+- C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-card-creation-codex-helper\APKG_PACKAGING.md
 
 Select candidate pages from the user's Notion Radiology Notes Database where:
 

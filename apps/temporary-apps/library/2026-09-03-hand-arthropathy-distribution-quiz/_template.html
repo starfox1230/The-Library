@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b111b">
+  <title>Hand Arthropathy Distribution Lab</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080d15; --panel:#101927; --panel2:#152336; --line:#26384e; --text:#e9f0f7; --muted:#8fa3ba; --accent:#5eead4; --blue:#2b8df0; --good:#52d59b; --bad:#fb7185; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 15% 0%,#12253a 0,#080d15 42%); color:var(--text); font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    button,input { font:inherit; }
+    button { color:var(--text); background:#17263a; border:1px solid var(--line); border-radius:9px; padding:8px 11px; cursor:pointer; transition:.15s ease; }
+    button:hover { border-color:var(--accent); background:#1b3446; transform:translateY(-1px); }
+    button.primary { color:#06201d; background:var(--accent); border-color:var(--accent); font-weight:800; }
+    button.primary:hover { background:#99f6e4; }
+    button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+    .app { display:grid; grid-template-columns:285px minmax(0,1fr); min-height:100vh; }
+    aside { border-right:1px solid var(--line); background:rgba(9,16,27,.9); display:flex; flex-direction:column; min-height:100vh; }
+    .brand { padding:21px 18px 16px; border-bottom:1px solid var(--line); }
+    .kicker { color:var(--accent); text-transform:uppercase; letter-spacing:.14em; font-size:10px; font-weight:800; }
+    .brand h1 { margin:5px 0 5px; font-size:20px; line-height:1.15; }
+    .brand p { color:var(--muted); margin:0; font-size:12px; }
+    .side-tools { display:grid; gap:9px; padding:13px 14px; border-bottom:1px solid var(--line); }
+    .mode-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .mode-row button.active { color:#06201d; background:var(--accent); border-color:var(--accent); font-weight:800; }
+    .side-label { color:var(--muted); font-size:11px; }
+    .progress { height:7px; border-radius:99px; background:#1b2b3d; overflow:hidden; }
+    .progress span { display:block; height:100%; background:linear-gradient(90deg,var(--accent),#38bdf8); border-radius:inherit; transition:width .25s ease; }
+    .nav { overflow:auto; padding:10px 9px; }
+    .nav button { width:100%; display:grid; grid-template-columns:28px 1fr auto; gap:8px; align-items:center; text-align:left; background:transparent; border-color:transparent; padding:9px 8px; }
+    .nav button:hover,.nav button.active { background:var(--panel2); border-color:var(--line); }
+    .num { color:var(--muted); font-variant-numeric:tabular-nums; }
+    .nav .site { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#3a4d62; }
+    .dot.done { background:var(--good); box-shadow:0 0 8px #52d59b77; }
+    .dot.missed { background:var(--bad); }
+    main { min-width:0; }
+    .topbar { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; padding:13px 21px; border-bottom:1px solid var(--line); background:rgba(8,13,21,.82); backdrop-filter:blur(10px); position:sticky; top:0; z-index:3; }
+    .status { color:var(--muted); font-size:12px; }
+    .actions { display:flex; flex-wrap:wrap; gap:7px; }
+    .content { width:min(1120px,94vw); margin:0 auto; padding:27px 0 58px; }
+    .hero { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:22px; }
+    .hero h2 { margin:5px 0 5px; font-size:clamp(26px,4vw,44px); letter-spacing:-.04em; line-height:1; }
+    .hero p { max-width:710px; margin:0; color:var(--muted); }
+    .hero-note { max-width:235px; border:1px solid #27506a; background:#0c2230; color:#b9e9f1; border-radius:12px; padding:11px 13px; font-size:12px; }
+    .question-card { background:linear-gradient(145deg,rgba(16,25,39,.97),rgba(12,20,32,.97)); border:1px solid var(--line); border-radius:17px; overflow:hidden; box-shadow:0 22px 70px #0005; }
+    .question-head { display:flex; justify-content:space-between; gap:15px; padding:20px 22px 16px; border-bottom:1px solid var(--line); }
+    .question-head h3 { margin:5px 0 0; font-size:22px; }
+    .q-count { color:var(--muted); white-space:nowrap; font-size:12px; }
+    .stage-wrap { padding:22px; background:radial-gradient(circle at 50% 25%,#1a2b3d 0,#0d1521 56%,#0a1018 100%); }
+    .stage { position:relative; width:min(630px,100%); margin:0 auto; border:1px solid #314961; border-radius:13px; overflow:hidden; cursor:zoom-in; background:#000; box-shadow:0 14px 35px #0008; }
+    .stage img { display:block; width:100%; height:auto; }
+    .stage .overlay { position:absolute; inset:0; pointer-events:none; }
+    .target-chip { display:flex; justify-content:center; margin-top:13px; }
+    .target-chip span { display:inline-flex; align-items:center; gap:7px; color:#c8f6ff; background:#0c2635; border:1px solid #27627a; border-radius:999px; padding:6px 11px; font-size:12px; font-weight:700; }
+    .target-chip i { width:9px; height:9px; border-radius:50%; background:var(--blue); box-shadow:0 0 10px #2b8df0; }
+    .prompt { padding:22px 24px 3px; }
+    .prompt p { margin:0; font-size:17px; line-height:1.45; }
+    .choice-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; padding:17px 24px 22px; }
+    .choice { display:flex; align-items:center; gap:10px; min-height:55px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; background:#0d1724; cursor:pointer; }
+    .choice:hover { border-color:#4b7a98; background:#122338; }
+    .choice input { accent-color:var(--accent); width:17px; height:17px; flex:0 0 auto; }
+    .choice.correct { border-color:#2fbb83; background:#0b2a24; }
+    .choice.incorrect { border-color:#be5369; background:#321a27; }
+    .choice .mark { margin-left:auto; font-size:12px; font-weight:800; }
+    .mark.good { color:var(--good); } .mark.bad { color:var(--bad); }
+    .foot { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:0 24px 22px; }
+    .foot .left,.foot .right { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .feedback { margin:0 24px 20px; border-radius:11px; padding:14px 15px; border:1px solid var(--line); background:#0c1622; }
+    .feedback.good { border-color:#2fbb83; background:#0a2922; } .feedback.bad { border-color:#be5369; background:#321a27; }
+    .feedback strong { display:block; margin-bottom:4px; } .feedback p { margin:0; color:#cbd5e1; font-size:13px; }
+    .source-panel { margin-top:18px; border:1px solid var(--line); border-radius:14px; background:rgba(15,24,37,.88); padding:16px; }
+    .source-panel summary { cursor:pointer; color:var(--accent); font-weight:800; }
+    .source-panel p { color:var(--muted); font-size:12px; }
+    .source-panel a { color:#8fe8ff; }
+    .sources { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+    .sources figure { margin:0; color:var(--muted); font-size:10px; text-align:center; }
+    .sources img { width:100%; border:1px solid var(--line); border-radius:7px; display:block; margin-bottom:4px; cursor:zoom-in; }
+    .lightbox { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; padding:3vh 3vw; background:#000e; cursor:zoom-out; }
+    .lightbox.show { display:flex; }
+    .lightbox-stage { position:relative; max-width:94vw; max-height:94vh; }
+    .lightbox img { display:block; max-width:94vw; max-height:94vh; object-fit:contain; }
+    .lightbox .overlay { position:absolute; inset:0; width:100%; height:100%; }
+    .toast { position:fixed; right:18px; bottom:18px; z-index:12; opacity:0; transform:translateY(8px); pointer-events:none; padding:10px 13px; border-radius:9px; border:1px solid #2c7e93; background:#0d3040; color:#d7fbff; transition:.18s ease; }
+    .toast.show { opacity:1; transform:none; }
+    @media (max-width:850px) { .app { grid-template-columns:1fr; } aside { min-height:auto; max-height:none; border-right:0; border-bottom:1px solid var(--line); } .nav { max-height:225px; } .hero { align-items:flex-start; flex-direction:column; } .hero-note { max-width:none; } .choice-grid { grid-template-columns:1fr; padding-left:15px; padding-right:15px; } .prompt { padding-left:15px; padding-right:15px; } .foot { padding-left:15px; padding-right:15px; } .feedback { margin-left:15px; margin-right:15px; } .stage-wrap { padding:13px; } .sources { grid-template-columns:repeat(3,minmax(0,1fr)); } .topbar { position:static; padding:11px 13px; } .content { width:min(100% - 22px,1120px); padding-top:19px; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand"><div class="kicker">visual pattern lab</div><h1>Hand arthropathy distribution</h1><p>One target at a time · select all that apply</p></div>
+      <div class="side-tools"><div class="mode-row"><button id="tutorMode" class="active">Tutor</button><button id="quizMode">Quiz</button></div><div class="side-label" id="progressLabel">0 / 9 reviewed</div><div class="progress"><span id="progressBar" style="width:0%"></span></div></div>
+      <nav class="nav" id="questionNav" aria-label="Question navigation"></nav>
+    </aside>
+    <main>
+      <header class="topbar"><div class="status" id="status">Local save ready</div><div class="actions"><button id="copyTextBtn">Copy question</button><button id="copyCardBtn">Copy card image</button><button id="exportBtn">Export save</button><button id="importBtn">Import save</button><button id="resetBtn">Reset</button><input id="importInput" type="file" accept="application/json" hidden></div></header>
+      <div class="content">
+        <section class="hero"><div><div class="kicker">reconstruct · isolate · identify</div><h2>Where does it go?</h2><p>The supplied labeled diagrams have been spliced into a clean hand radiograph. Each round reveals only one annotated region; use the distribution pattern to choose every diagnosis that includes it.</p></div><div class="hero-note"><strong>Reading rule</strong><br>Blue marks are location prompts only. The answer key follows the supplied distribution diagram and is not a substitute for a complete clinical differential.</div></section>
+        <section class="question-card" aria-live="polite">
+          <div class="question-head"><div><div class="kicker" id="qKicker">Target 01</div><h3 id="siteLabel">Loading…</h3></div><div class="q-count" id="qCount">Question 1 of 9</div></div>
+          <div class="stage-wrap"><div class="stage" id="stage" title="Open image"><img src="assets/blank-hand.png" alt="Clean hand radiograph diagram"><img class="overlay" id="overlay" alt="Blue target overlay"></div><div class="target-chip"><span><i></i><span id="chipText">Target region</span></span></div></div>
+          <div class="prompt"><p id="stem">Loading question…</p></div>
+          <div class="choice-grid" id="choices"></div>
+          <div class="feedback" id="feedback" hidden><strong id="feedbackTitle"></strong><p id="feedbackText"></p></div>
+          <div class="foot"><div class="left"><button id="checkBtn" class="primary">Check pattern</button><button id="clearBtn">Clear choices</button></div><div class="right"><button id="prevBtn">← Previous</button><button id="nextBtn">Next →</button></div></div>
+        </section>
+        <details class="source-panel"><summary>Source images and reconstruction notes</summary><p>Source: <a href="https://radiopaedia.org/cases/hand-arthropathies-distribution-diagram-1#image-49954625" target="_blank" rel="noreferrer">Radiopaedia · Hand arthropathies distribution diagram 1</a>. The blank image is a local composite made from the six supplied variants: unannotated grayscale pixels were retained, blue annotations were removed, and the visible labels/credit were masked. The original labeled images remain below for provenance.</p><div class="sources" id="sources"></div></details>
+      </div>
+    </main>
+  </div>
+  <div class="lightbox" id="lightbox"><div class="lightbox-stage"><img id="lightboxBase" alt="Expanded hand radiograph"><img class="overlay" id="lightboxOverlay" alt="Expanded target overlay"></div></div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const QUESTIONS = __QUESTIONS_JSON__;
+    const APP_ID = "hand-arthropathy-distribution-quiz";
+    const STATE_KEY = `${APP_ID}:v${__VERSION__}`;
+    const DIAGNOSES = {"oa":"Osteoarthritis","erosive-oa":"Erosive osteoarthritis","ra":"Rheumatoid arthritis","psa":"Psoriatic arthritis","cppd":"Pyrophosphate arthropathy","gout":"Gout"};
+    const SOURCES = [{file:"source-oa.png",label:"OA"},{file:"source-erosive-oa.png",label:"Erosive OA"},{file:"source-ra.png",label:"RA"},{file:"source-psa.png",label:"PsA"},{file:"source-cppd.png",label:"CPPD"},{file:"source-gout.png",label:"Gout"}];
+    const DEFAULT_STATE = {mode:"tutor", index:0, selected:{}, checked:{}, completed:{}};
+    let state = loadState();
+    const $ = (id) => document.getElementById(id);
+    function loadState() { try { const raw = JSON.parse(localStorage.getItem(STATE_KEY) || "null"); return raw ? {...DEFAULT_STATE,...raw,selected:raw.selected||{},checked:raw.checked||{},completed:raw.completed||{}} : structuredClone(DEFAULT_STATE); } catch { return structuredClone(DEFAULT_STATE); } }
+    function saveState() { localStorage.setItem(STATE_KEY, JSON.stringify(state)); }
+    function current() { return QUESTIONS[state.index]; }
+    function isCorrect(q) { const a=[...(state.selected[q.id]||[])].sort(); return JSON.stringify(a)===JSON.stringify([...q.answer].sort()); }
+    function reviewedCount() { return Object.keys(state.checked).filter((id)=>state.checked[id]).length; }
+    function toast(message) { $("toast").textContent=message; $("toast").classList.add("show"); clearTimeout(toast.timer); toast.timer=setTimeout(()=>$("toast").classList.remove("show"),1900); }
+    function renderNav() { $("questionNav").innerHTML=QUESTIONS.map((q,i)=>{ const status=state.checked[q.id]?(state.completed[q.id]?"done":"missed"):""; return `<button class="${i===state.index?"active":""}" data-index="${i}"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="site">${q.siteLabel}</span><span class="dot ${status}"></span></button>`; }).join(""); document.querySelectorAll("#questionNav button").forEach((b)=>b.addEventListener("click",()=>{state.index=Number(b.dataset.index);saveState();render();})); }
+    function render() { const q=current(); const selected=new Set(state.selected[q.id]||[]); const checked=!!state.checked[q.id]; $("qKicker").textContent=`Target ${String(state.index+1).padStart(2,"0")}`; $("siteLabel").textContent=q.siteLabel; $("chipText").textContent=q.siteLabel; $("qCount").textContent=`Question ${state.index+1} of ${QUESTIONS.length}`; $("stem").textContent=q.stem; $("overlay").src=`assets/site-${q.siteKey}.png`; $("overlay").alt=`Blue overlay for ${q.siteLabel}`; $("choices").innerHTML=q.choices.map((choice)=>{ const chosen=selected.has(choice.id); const right=q.answer.includes(choice.id); let cls="choice"; let mark=""; if(checked&&state.mode==="tutor"){ if(right){cls+=" correct";mark=`<span class="mark good">✓ key</span>`;} else if(chosen){cls+=" incorrect";mark=`<span class="mark bad">×</span>`;} } return `<label class="${cls}"><input type="checkbox" value="${choice.id}" ${chosen?"checked":""}><span>${choice.label}</span>${mark}</label>`; }).join(""); document.querySelectorAll("#choices input").forEach((input)=>input.addEventListener("change",()=>{state.selected[q.id]=[...document.querySelectorAll("#choices input:checked")].map((x)=>x.value);state.checked[q.id]=false;state.completed[q.id]=false;saveState();render();})); const feedback=$("feedback"); feedback.hidden=!checked; feedback.className="feedback"; if(checked){const good=!!state.completed[q.id];feedback.classList.add(good?"good":"bad");$("feedbackTitle").textContent=good?(state.mode==="quiz"?"Correct pattern":"Nice — every marked diagnosis is selected."):(state.mode==="quiz"?"Pattern mismatch":"Not quite yet");$("feedbackText").textContent=state.mode==="tutor"?q.explanation:(good?"Your selection matches the source distribution. Review the explanation in Tutor mode if you want the teaching point.":"Use Tutor mode to see the marked answer set and explanation.");} $("progressLabel").textContent=`${reviewedCount()} / ${QUESTIONS.length} reviewed`;$("progressBar").style.width=`${Math.round(reviewedCount()/QUESTIONS.length*100)}%`;$("status").textContent=`${state.mode==="tutor"?"Tutor":"Quiz"} mode · ${reviewedCount()} reviewed · saved locally`;$("tutorMode").classList.toggle("active",state.mode==="tutor");$("quizMode").classList.toggle("active",state.mode==="quiz");$("prevBtn").disabled=state.index===0;$("nextBtn").textContent=state.index===QUESTIONS.length-1?"Finish →":"Next →";renderNav(); }
+    function check() { const q=current();if(!(state.selected[q.id]||[]).length){toast("Choose at least one diagnosis first.");return;}state.checked[q.id]=true;state.completed[q.id]=isCorrect(q);saveState();render(); }
+    function formatQuestion(q) { const picked=(state.selected[q.id]||[]).map((id)=>DIAGNOSES[id]).join(", ")||"(none)";return `${q.siteLabel}\n\n${q.stem}\n\nChoices:\n${q.choices.map((c)=>`- ${c.label}${q.answer.includes(c.id)?" [answer key]":""}`).join("\n")}\n\nSelected: ${picked}\n\nAnswer: ${q.answer.map((id)=>DIAGNOSES[id]).join(", ")}\n\nExplanation: ${q.explanation}\n\nSource: Radiopaedia hand arthropathy distribution diagram`; }
+    async function copyText() { try { await navigator.clipboard.writeText(formatQuestion(current()));toast("Question copied."); } catch { toast("Clipboard permission was blocked."); } }
+    function drawWrapped(ctx,text,x,y,maxWidth,lineHeight,font) { ctx.font=font;const words=text.split(/\s+/);let line="";for(const word of words){const test=line?`${line} ${word}`:word;if(ctx.measureText(test).width>maxWidth&&line){ctx.fillText(line,x,y);y+=lineHeight;line=word;}else line=test;}if(line){ctx.fillText(line,x,y);y+=lineHeight;}return y; }
+    async function copyCard() { const q=current();const canvas=document.createElement("canvas");canvas.width=900;canvas.height=1600;const ctx=canvas.getContext("2d");ctx.fillStyle="#0b1220";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#5eead4";ctx.font="800 24px system-ui";ctx.fillText("HAND ARTHROPATHY · TARGET",54,68);ctx.fillStyle="#e9f0f7";ctx.font="800 36px system-ui";let y=125;y=drawWrapped(ctx,q.siteLabel,54,y,790,45,"800 36px system-ui");ctx.fillStyle="#cbd5e1";y+=20;y=drawWrapped(ctx,q.stem,54,y,790,31,"24px system-ui");y+=18;ctx.fillStyle="#8fa3ba";ctx.font="700 20px system-ui";ctx.fillText("OPTIONS",54,y);y+=35;ctx.fillStyle="#e9f0f7";for(const c of q.choices)y=drawWrapped(ctx,`${q.answer.includes(c.id)?"✓":"○"}  ${c.label}`,65,y,765,29,"22px system-ui");y+=28;ctx.fillStyle="#5eead4";ctx.font="700 20px system-ui";ctx.fillText("ANSWER",54,y);y+=31;ctx.fillStyle="#e9f0f7";y=drawWrapped(ctx,q.answer.map((id)=>DIAGNOSES[id]).join(", "),54,y,790,30,"22px system-ui");y+=28;ctx.fillStyle="#8fa3ba";ctx.font="700 20px system-ui";ctx.fillText("EXPLANATION",54,y);y+=31;ctx.fillStyle="#cbd5e1";y=drawWrapped(ctx,q.explanation,54,y,790,27,"20px system-ui");canvas.height=Math.max(420,y+55);const blob=await new Promise((res)=>canvas.toBlob(res,"image/png"));try{await navigator.clipboard.write([new ClipboardItem({"image/png":blob})]);toast("Portrait card image copied.");}catch{const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=`${q.id}-${q.siteKey}.png`;a.click();URL.revokeObjectURL(url);toast("Card image downloaded.");} }
+    function exportSave() { const blob=new Blob([JSON.stringify({appId:APP_ID,version:1,state},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${APP_ID}-save.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);toast("Save exported."); }
+    function importSave(file) { const reader=new FileReader();reader.onload=()=>{try{const data=JSON.parse(reader.result);if(data.appId!==APP_ID)throw Error();state={...DEFAULT_STATE,...data.state};saveState();render();toast("Save imported.");}catch{toast("That file is not a matching quiz save.");}};reader.readAsText(file); }
+    function openLightbox(src,overlaySrc="") { $("lightboxBase").src=src;$("lightboxOverlay").src=overlaySrc;$("lightbox").classList.add("show"); }
+    $("checkBtn").addEventListener("click",check);$("clearBtn").addEventListener("click",()=>{state.selected[current().id]=[];state.checked[current().id]=false;state.completed[current().id]=false;saveState();render();});$("prevBtn").addEventListener("click",()=>{if(state.index){state.index--;saveState();render();}});$("nextBtn").addEventListener("click",()=>{if(state.index<QUESTIONS.length-1){state.index++;saveState();render();}else toast(`${reviewedCount()} of ${QUESTIONS.length} reviewed.`);});$("tutorMode").addEventListener("click",()=>{state.mode="tutor";saveState();render();});$("quizMode").addEventListener("click",()=>{state.mode="quiz";saveState();render();});$("copyTextBtn").addEventListener("click",copyText);$("copyCardBtn").addEventListener("click",copyCard);$("exportBtn").addEventListener("click",exportSave);$("importBtn").addEventListener("click",()=>$("importInput").click());$("importInput").addEventListener("change",(e)=>{if(e.target.files[0])importSave(e.target.files[0]);e.target.value="";});$("resetBtn").addEventListener("click",()=>{if(confirm("Reset this quiz on this device?")){state=structuredClone(DEFAULT_STATE);saveState();render();toast("Quiz reset.");}});$("stage").addEventListener("click",()=>openLightbox("assets/blank-hand.png",`assets/site-${current().siteKey}.png`));$("lightbox").addEventListener("click",()=>$("lightbox").classList.remove("show"));document.addEventListener("keydown",(e)=>{if(e.key==="Escape")$("lightbox").classList.remove("show");});
+    const SOURCES=[{file:"source-oa.png",label:"OA"},{file:"source-erosive-oa.png",label:"Erosive OA"},{file:"source-ra.png",label:"RA"},{file:"source-psa.png",label:"PsA"},{file:"source-cppd.png",label:"CPPD"},{file:"source-gout.png",label:"Gout"}];$("sources").innerHTML=SOURCES.map((s)=>`<figure><img src="assets/${s.file}" alt="${s.label} labeled source diagram" data-src="assets/${s.file}"><figcaption>${s.label}</figcaption></figure>`).join("");document.querySelectorAll("#sources img").forEach((img)=>img.addEventListener("click",()=>openLightbox(img.dataset.src)));render();
+  </script>
+</body>
+</html>
