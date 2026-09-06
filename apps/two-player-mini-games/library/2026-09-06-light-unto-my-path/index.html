@@ -1,292 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>A Light Unto My Path</title>
-  <style>
-    @property --r1 { syntax: '<percentage>'; inherits: false; initial-value: 16%; }
-    @property --r2 { syntax: '<percentage>'; inherits: false; initial-value: 27%; }
-    @property --r3 { syntax: '<percentage>'; inherits: false; initial-value: 45%; }
-
-    :root {
-      --bg: #02040a;
-      --panel: rgba(8, 13, 25, 0.92);
-      --line: rgba(160, 191, 234, 0.20);
-      --text: #f2f6ff;
-      --muted: #aebbd0;
-      --gold: #ffd778;
-      --pink: #ff8fa8;
-    }
-
-    * { box-sizing: border-box; }
-    html, body { min-height: 100%; }
-
-    body {
-      margin: 0;
-      color: var(--text);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-      background:
-        radial-gradient(circle at 50% -10%, rgba(93, 132, 198, 0.18), transparent 40rem),
-        linear-gradient(180deg, #070b14 0%, var(--bg) 65%);
-      overflow-x: hidden;
-    }
-
-    button { font: inherit; }
-    .shell { width: min(1500px, 100%); margin: 0 auto; padding: 0.8rem; }
-
-    .lesson-head {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 0.8rem;
-      align-items: center;
-      margin-bottom: 0.75rem;
-      padding: 0.7rem 0.9rem;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: rgba(7, 12, 23, 0.82);
-      backdrop-filter: blur(10px);
-    }
-
-    .lesson-title { margin: 0; font-size: clamp(1.3rem, 2.5vw, 2.15rem); }
-    .lesson-subtitle { margin: 0.18rem 0 0; color: var(--muted); font-size: 0.9rem; }
-    .teacher-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: flex-end; }
-
-    .teacher-actions button,
-    .join-button {
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 999px;
-      color: #f8fbff;
-      background: rgba(255,255,255,0.07);
-      padding: 0.5rem 0.8rem;
-      cursor: pointer;
-    }
-    #lightBtn { border-color: rgba(255, 215, 120, 0.45); color: #ffe5a7; }
-
-    .players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-    .player-card { min-width: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--panel); }
-    .player-bar { display: flex; justify-content: space-between; gap: 0.7rem; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line); background: rgba(10,16,30,0.94); }
-    .player-name { margin: 0; font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; }
-    .controls { color: var(--muted); font-size: 0.76rem; text-align: right; }
-
-    .viewport {
-      position: relative;
-      aspect-ratio: 16 / 10;
-      min-height: 300px;
-      overflow: hidden;
-      background: #010207;
-      isolation: isolate;
-      transition: box-shadow 1.2s ease;
-    }
-    .viewport.guided { box-shadow: inset 0 0 90px rgba(255,215,120,0.10); }
-    canvas { width: 100%; height: 100%; display: block; }
-
-    .fog-mask {
-      --r1: 16%; --r2: 27%; --r3: 45%;
-      position: absolute; inset: 0; z-index: 4; pointer-events: none;
-      background: radial-gradient(circle at 50% 56%, rgba(2,4,9,0) 0 var(--r1), rgba(2,4,9,0.22) var(--r2), rgba(2,4,9,0.97) var(--r3), rgba(2,4,9,1) 77%);
-      transition: --r1 1.7s cubic-bezier(.2,.7,.15,1), --r2 1.7s cubic-bezier(.2,.7,.15,1), --r3 1.7s cubic-bezier(.2,.7,.15,1);
-    }
-    .guided .fog-mask { --r1: 48%; --r2: 72%; --r3: 112%; }
-
-    .hud { position: absolute; inset: 0; z-index: 7; pointer-events: none; padding: 0.6rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 0.45rem; }
-    .hud-left, .hud-right { display: flex; gap: 0.35rem; flex-wrap: wrap; }
-    .hud-right { justify-content: flex-end; }
-    .hud-chip { padding: 0.34rem 0.52rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.13); background: rgba(3,7,15,0.67); backdrop-filter: blur(6px); font-size: 0.72rem; color: #dce7f8; }
-    .heart-chip { color: #ffc0cd; }
-    .guided .mode-chip { color: #ffe6a8; border-color: rgba(255,215,120,0.4); }
-
-    .message { position: absolute; left: 50%; bottom: 0.75rem; z-index: 10; width: min(88%, 560px); transform: translate(-50%,16px); opacity: 0; pointer-events: none; text-align: center; padding: 0.65rem 0.85rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.16); background: rgba(5,9,18,0.91); transition: opacity 220ms ease, transform 220ms ease; }
-    .message.show { opacity: 1; transform: translate(-50%,0); }
-    .message strong { color: var(--gold); }
-
-    .start-overlay, .finish-overlay, .loading-overlay { position: absolute; inset: 0; z-index: 12; display: grid; place-items: center; padding: 1rem; background: linear-gradient(180deg, rgba(2,4,9,0.54), rgba(2,4,9,0.89)); transition: opacity 220ms ease; }
-    .start-overlay.hidden, .finish-overlay.hidden, .loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .overlay-card { width: min(92%, 410px); text-align: center; border: 1px solid rgba(255,255,255,0.16); border-radius: 16px; background: rgba(7,12,23,0.91); padding: 1rem; }
-    .overlay-card h3 { margin: 0 0 0.35rem; }
-    .overlay-card p { margin: 0.25rem 0; color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
-    .join-button { margin-top: 0.65rem; }
-    .finish-overlay .overlay-card { border-color: rgba(255,143,168,0.35); }
-    .finish-overlay h3 { color: #ffc0cd; }
-
-    .scripture-strip { display: grid; grid-template-columns: auto 1fr; gap: 0.7rem; align-items: center; margin-top: 0.75rem; padding: 0.65rem 0.8rem; border: 1px solid rgba(255,215,120,0.18); border-radius: 14px; background: rgba(24,20,10,0.27); color: #f8edcf; }
-    .lamp { font-size: 1.45rem; }
-    .scripture-strip p { margin: 0; font-size: 0.86rem; }
-    .scripture-strip span { color: #cdbf9c; }
-
-    details.teacher-notes { margin-top: 0.75rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(7,12,23,0.7); color: var(--muted); overflow: hidden; }
-    details.teacher-notes summary { cursor: pointer; padding: 0.65rem 0.8rem; color: #dbe7f8; font-weight: 700; }
-    .notes-body { padding: 0 0.9rem 0.8rem; font-size: 0.85rem; line-height: 1.5; }
-    .notes-body ol { margin: 0.25rem 0 0; padding-left: 1.2rem; }
-    .error { color: #ffd0d0; }
-
-    @media (max-width: 900px) { .lesson-head { grid-template-columns: 1fr; } .teacher-actions { justify-content: flex-start; } .players { grid-template-columns: 1fr; } .viewport { aspect-ratio: 16 / 9; } }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>A Light Unto My Path</title>
+<style>
+@property --r1{syntax:'<percentage>';inherits:false;initial-value:3%}
+@property --r2{syntax:'<percentage>';inherits:false;initial-value:5%}
+@property --r3{syntax:'<percentage>';inherits:false;initial-value:8%}
+:root{--bg:#02040a;--panel:rgba(8,13,25,.93);--line:rgba(160,191,234,.22);--text:#f2f6ff;--muted:#aebbd0;--gold:#ffd778;--pink:#ff8fa8}
+*{box-sizing:border-box}html,body{min-height:100%}body{margin:0;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 50% -10%,rgba(93,132,198,.18),transparent 40rem),linear-gradient(180deg,#070b14 0%,var(--bg) 65%);overflow-x:hidden}button{font:inherit}.shell{width:min(1500px,100%);margin:0 auto;padding:.8rem}.lesson-head{display:grid;grid-template-columns:1fr auto;gap:.8rem;align-items:center;margin-bottom:.75rem;padding:.7rem .9rem;border:1px solid var(--line);border-radius:16px;background:rgba(7,12,23,.84);backdrop-filter:blur(10px)}.lesson-title{margin:0;font-size:clamp(1.3rem,2.5vw,2.15rem)}.lesson-subtitle{margin:.18rem 0 0;color:var(--muted);font-size:.9rem}.teacher-actions{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:flex-end}.teacher-actions button,.join-button{border:1px solid rgba(255,255,255,.16);border-radius:999px;color:#f8fbff;background:rgba(255,255,255,.07);padding:.5rem .8rem;cursor:pointer}.teacher-actions button:hover,.join-button:hover{background:rgba(255,255,255,.12)}#lightBtn{border-color:rgba(255,215,120,.45);color:#ffe5a7}.players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.player-card{min-width:0;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--panel)}.player-bar{display:flex;justify-content:space-between;gap:.7rem;padding:.6rem .75rem;border-bottom:1px solid var(--line);background:rgba(10,16,30,.94)}.player-name{margin:0;font-size:.95rem;letter-spacing:.06em;text-transform:uppercase}.controls{color:var(--muted);font-size:.76rem;text-align:right}.viewport{position:relative;aspect-ratio:16/10;min-height:300px;overflow:hidden;background:#010207;isolation:isolate;transition:box-shadow 1.2s ease}.viewport.guided{box-shadow:inset 0 0 90px rgba(255,215,120,.11)}canvas{width:100%;height:100%;display:block}.fog-mask{--r1:3%;--r2:5%;--r3:8%;position:absolute;inset:0;z-index:4;pointer-events:none;background:radial-gradient(circle at 50% 56%,rgba(2,4,9,0) 0 var(--r1),rgba(2,4,9,.62) var(--r2),rgba(2,4,9,.995) var(--r3),rgba(2,4,9,1) 10%);transition:--r1 1.7s cubic-bezier(.2,.7,.15,1),--r2 1.7s cubic-bezier(.2,.7,.15,1),--r3 1.7s cubic-bezier(.2,.7,.15,1)}.guided .fog-mask{--r1:48%;--r2:72%;--r3:112%}.hud{position:absolute;inset:0;z-index:7;pointer-events:none;padding:.6rem;display:flex;justify-content:space-between;align-items:flex-start;gap:.45rem}.hud-left,.hud-right{display:flex;gap:.35rem;flex-wrap:wrap}.hud-right{justify-content:flex-end}.hud-chip{padding:.34rem .52rem;border-radius:999px;border:1px solid rgba(255,255,255,.13);background:rgba(3,7,15,.72);backdrop-filter:blur(6px);font-size:.72rem;color:#dce7f8}.heart-chip{color:#ffc0cd;transition:transform .2s ease,box-shadow .2s ease}.heart-chip.bump{transform:scale(1.16);box-shadow:0 0 22px rgba(255,105,145,.5)}.guided .mode-chip{color:#ffe6a8;border-color:rgba(255,215,120,.4)}.message{position:absolute;left:50%;bottom:.75rem;z-index:10;width:min(88%,560px);transform:translate(-50%,16px);opacity:0;pointer-events:none;text-align:center;padding:.65rem .85rem;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(5,9,18,.93);transition:opacity 220ms ease,transform 220ms ease}.message.show{opacity:1;transform:translate(-50%,0)}.message strong{color:var(--gold)}.start-overlay,.finish-overlay,.loading-overlay{position:absolute;inset:0;z-index:12;display:grid;place-items:center;padding:1rem;background:linear-gradient(180deg,rgba(2,4,9,.54),rgba(2,4,9,.89));transition:opacity 220ms ease}.start-overlay.hidden,.finish-overlay.hidden,.loading-overlay.hidden{opacity:0;pointer-events:none}.overlay-card{width:min(92%,410px);text-align:center;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(7,12,23,.92);padding:1rem}.overlay-card h3{margin:0 0 .35rem}.overlay-card p{margin:.25rem 0;color:var(--muted);font-size:.85rem;line-height:1.4}.join-button{margin-top:.65rem}.finish-overlay .overlay-card{border-color:rgba(255,143,168,.35)}.finish-overlay h3{color:#ffc0cd}.pickup-heart{position:absolute;z-index:9;pointer-events:none;font-size:30px;line-height:1;color:#ff6d91;text-shadow:0 0 16px rgba(255,92,139,.95);transform:translate(-50%,-50%);will-change:transform,left,top,opacity}.pickup-ring{position:absolute;z-index:8;pointer-events:none;width:18px;height:18px;border:3px solid rgba(255,126,160,.95);border-radius:50%;transform:translate(-50%,-50%);animation:ringBurst .55s ease-out forwards}@keyframes ringBurst{0%{opacity:1;scale:.3}100%{opacity:0;scale:4.2}}.scripture-strip{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;margin-top:.75rem;padding:.65rem .8rem;border:1px solid rgba(255,215,120,.18);border-radius:14px;background:rgba(24,20,10,.27);color:#f8edcf}.lamp{font-size:1.45rem}.scripture-strip p{margin:0;font-size:.86rem}.scripture-strip span{color:#cdbf9c}details.teacher-notes{margin-top:.75rem;border:1px solid var(--line);border-radius:14px;background:rgba(7,12,23,.7);color:var(--muted);overflow:hidden}details.teacher-notes summary{cursor:pointer;padding:.65rem .8rem;color:#dbe7f8;font-weight:700}.notes-body{padding:0 .9rem .8rem;font-size:.85rem;line-height:1.5}.notes-body ol{margin:.25rem 0 0;padding-left:1.2rem}.error{color:#ffd0d0}@media(max-width:900px){.lesson-head{grid-template-columns:1fr}.teacher-actions{justify-content:flex-start}.players{grid-template-columns:1fr}.viewport{aspect-ratio:16/9}}
+</style>
 </head>
 <body>
-  <main class="shell">
-    <header class="lesson-head">
-      <div>
-        <h1 class="lesson-title">A Light Unto My Path</h1>
-        <p class="lesson-subtitle">Collect the hearts. The path is there even when you cannot see very far.</p>
-      </div>
-      <div class="teacher-actions">
-        <button id="lightBtn" type="button">Turn on the Lord's light</button>
-        <button id="newSetBtn" type="button">New random set</button>
-        <button id="fullscreenBtn" type="button">Fullscreen</button>
-      </div>
-    </header>
-
-    <section class="players">
-      <article class="player-card">
-        <div class="player-bar"><h2 class="player-name">Player 1</h2><div class="controls">Move: W A S D · Join: 3</div></div>
-        <div class="viewport" id="view-a">
-          <canvas id="canvas-a"></canvas><div class="fog-mask"></div>
-          <div class="hud"><div class="hud-left"><span class="hud-chip mode-chip" id="mode-a">Small light</span><span class="hud-chip heart-chip" id="hearts-a">♥ 0 / 8</span></div><div class="hud-right"><span class="hud-chip" id="falls-a">Falls: 0</span></div></div>
-          <div class="message" id="message-a"></div>
-          <div class="loading-overlay" id="loading-a"><div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div></div>
-          <div class="start-overlay" id="start-a"><div class="overlay-card"><h3>Collect all the hearts</h3><p>The maze and hearts are different every set. If you fall, you return to the start but keep the hearts you already found.</p><button class="join-button" type="button" data-join="a">Press 3 to begin</button></div></div>
-          <div class="finish-overlay hidden" id="finish-a"><div class="overlay-card"><h3>All hearts collected!</h3><p>You found every heart on this path.</p></div></div>
-        </div>
-      </article>
-
-      <article class="player-card">
-        <div class="player-bar"><h2 class="player-name">Player 2</h2><div class="controls">Move: Arrow Keys · Join: Numpad 3</div></div>
-        <div class="viewport" id="view-b">
-          <canvas id="canvas-b"></canvas><div class="fog-mask"></div>
-          <div class="hud"><div class="hud-left"><span class="hud-chip mode-chip" id="mode-b">Small light</span><span class="hud-chip heart-chip" id="hearts-b">♥ 0 / 8</span></div><div class="hud-right"><span class="hud-chip" id="falls-b">Falls: 0</span></div></div>
-          <div class="message" id="message-b"></div>
-          <div class="loading-overlay" id="loading-b"><div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div></div>
-          <div class="start-overlay" id="start-b"><div class="overlay-card"><h3>Collect all the hearts</h3><p>The maze and hearts are different every set. If you fall, you return to the start but keep the hearts you already found.</p><button class="join-button" type="button" data-join="b">Press Numpad 3 to begin</button></div></div>
-          <div class="finish-overlay hidden" id="finish-b"><div class="overlay-card"><h3>All hearts collected!</h3><p>You found every heart on this path.</p></div></div>
-        </div>
-      </article>
-    </section>
-
-    <div class="scripture-strip"><div class="lamp">☀</div><p>“Thy word is a lamp unto my feet, and a light unto my path.” <span>— Psalm 119:105</span></p></div>
-
-    <details class="teacher-notes">
-      <summary>Teacher flow</summary>
-      <div class="notes-body"><ol>
-        <li>Start a fresh random set and let both children hunt hearts with the small light.</li>
-        <li>After they have played for a little while, ask: “Would this be easier if you could see more of the path?” Then read Psalm 119:105.</li>
-        <li>Use <strong>Turn on the Lord's light</strong> (or press Space). Both players' visibility expands smoothly. The maze and hearts do not move.</li>
-        <li>Let them continue collecting the same hearts. Point out how much easier it is to find good things and avoid falling when they can see the path clearly.</li>
-        <li>Use <strong>New random set</strong> (or R) for a completely new maze and new heart locations.</li>
-      </ol></div>
-    </details>
-  </main>
-
-  <script type="module">
-    const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-    const ROWS = 21, COLS = 25, TILE = 1.06, HEART_COUNT = 8;
-    const START = [1, 1];
-    const keyState = new Set();
-    const players = {};
-    let THREE, currentSet, lightOn = false;
-
-    const CONFIG = {
-      a: { canvas:'canvas-a', view:'view-a', loading:'loading-a', start:'start-a', finish:'finish-a', mode:'mode-a', hearts:'hearts-a', falls:'falls-a', message:'message-a', join:'Digit3', controls:{KeyW:[-1,0],KeyS:[1,0],KeyA:[0,-1],KeyD:[0,1]}, ordered:['KeyW','KeyS','KeyA','KeyD'] },
-      b: { canvas:'canvas-b', view:'view-b', loading:'loading-b', start:'start-b', finish:'finish-b', mode:'mode-b', hearts:'hearts-b', falls:'falls-b', message:'message-b', join:'Numpad3', controls:{ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]}, ordered:['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'] }
-    };
-
-    function randomSeed() {
-      if (globalThis.crypto?.getRandomValues) { const x = new Uint32Array(1); crypto.getRandomValues(x); return x[0]; }
-      return Math.floor(Math.random() * 0xffffffff);
-    }
-    function seededRandom(seed) { let v = seed >>> 0; return () => { v += 0x6D2B79F5; let t=v; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
-    function shuffle(items,rng) { const out=items.slice(); for(let i=out.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[out[i],out[j]]=[out[j],out[i]];} return out; }
-
-    function generateSet() {
-      const rng = seededRandom(randomSeed());
-      const maze = Array.from({length:ROWS},()=>Array(COLS).fill(false));
-      const stack=[[1,1]], dirs=[[-2,0],[2,0],[0,-2],[0,2]];
-      maze[1][1]=true;
-      while(stack.length){
-        const [r,c]=stack[stack.length-1];
-        const choices=shuffle(dirs,rng).map(([dr,dc])=>[r+dr,c+dc,dr,dc]).filter(([nr,nc])=>nr>0&&nr<ROWS-1&&nc>0&&nc<COLS-1&&!maze[nr][nc]);
-        if(!choices.length){stack.pop();continue;}
-        const [nr,nc,dr,dc]=choices[0]; maze[r+dr/2][c+dc/2]=true; maze[nr][nc]=true; stack.push([nr,nc]);
-      }
-      const connectors=[];
-      for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++)if(!maze[r][c]&&((maze[r-1][c]&&maze[r+1][c])||(maze[r][c-1]&&maze[r][c+1])))connectors.push([r,c]);
-      shuffle(connectors,rng).slice(0,16).forEach(([r,c])=>maze[r][c]=true);
-
-      const walkable=[];
-      for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++)if(maze[r][c]&&Math.abs(r-1)+Math.abs(c-1)>=7)walkable.push([r,c]);
-      const candidates=shuffle(walkable,rng), hearts=[];
-      for(const cell of candidates){ if(hearts.length>=HEART_COUNT)break; if(hearts.every(([hr,hc])=>Math.abs(cell[0]-hr)+Math.abs(cell[1]-hc)>=5))hearts.push(cell); }
-      for(const cell of candidates){ if(hearts.length>=HEART_COUNT)break; if(!hearts.some(([r,c])=>r===cell[0]&&c===cell[1]))hearts.push(cell); }
-      return {maze,hearts};
-    }
-
-    function worldPos(row,col,y=0.1){ return {x:(col-(COLS-1)/2)*TILE,y,z:(row-(ROWS-1)/2)*TILE}; }
-
-    function makeHeartGeometry(){
-      const s=new THREE.Shape(); s.moveTo(0,-0.30); s.bezierCurveTo(-0.58,-0.02,-0.62,0.48,-0.24,0.55); s.bezierCurveTo(-0.02,0.60,0,0.38,0,0.30); s.bezierCurveTo(0,0.38,0.02,0.60,0.24,0.55); s.bezierCurveTo(0.62,0.48,0.58,-0.02,0,-0.30);
-      const g=new THREE.ExtrudeGeometry(s,{depth:0.12,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:0.025,bevelThickness:0.025}); g.center(); return g;
-    }
-
-    class MazePlayer {
-      constructor(id,c){
-        this.id=id; this.c=c;
-        for(const k of ['canvas','view','loading','start','finish','mode','hearts','falls','message']) this[k+'El']=document.getElementById(c[k]);
-        this.canvas=this.canvasEl; this.view=this.viewEl; this.joined=false; this.won=false; this.falling=false; this.fallCount=0; this.collected=new Set(); this.heartMeshes=new Map(); this.messageTimer=null; this.moving=false; this.lastStep=0; this.lightDistance=3.7; this.targetLightDistance=3.7; this.init3D();
-      }
-      init3D(){
-        this.scene=new THREE.Scene(); this.scene.background=new THREE.Color(0x010207); this.scene.fog=new THREE.FogExp2(0x02040a,0.032);
-        this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'high-performance'}); this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5)); this.renderer.outputColorSpace=THREE.SRGBColorSpace; this.renderer.toneMapping=THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure=1.05;
-        this.camera=new THREE.PerspectiveCamera(48,1,0.1,100); this.scene.add(new THREE.HemisphereLight(0x7ea8e6,0x080b12,0.62)); const fill=new THREE.DirectionalLight(0x7fa7d7,0.5); fill.position.set(-8,12,5); this.scene.add(fill);
-        this.pathGroup=new THREE.Group(); this.heartGroup=new THREE.Group(); this.scene.add(this.pathGroup,this.heartGroup);
-        const under=new THREE.Mesh(new THREE.PlaneGeometry(60,50),new THREE.MeshBasicMaterial({color:0x010207,transparent:true,opacity:0.97})); under.rotation.x=-Math.PI/2; under.position.y=-3.3; this.scene.add(under);
-        this.avatar=new THREE.Group(); const body=new THREE.Mesh(new THREE.SphereGeometry(0.27,24,16),new THREE.MeshStandardMaterial({color:this.id==='a'?0x8fc8ff:0xa7efc2,roughness:0.34,emissive:this.id==='a'?0x14324d:0x133d28,emissiveIntensity:0.55})); body.position.y=0.34; this.avatar.add(body);
-        const halo=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.026,10,36),new THREE.MeshBasicMaterial({color:0xffda7a,transparent:true,opacity:0.75})); halo.rotation.x=Math.PI/2; halo.position.y=0.14; this.avatar.add(halo);
-        this.playerLight=new THREE.PointLight(0xffdda0,2.0,this.lightDistance,1.7); this.playerLight.position.set(0,1.15,0); this.avatar.add(this.playerLight); this.scene.add(this.avatar);
-        this.resize(); this.loadingEl.classList.add('hidden');
-      }
-      clearGroup(group){ while(group.children.length){ const child=group.children.pop(); child.geometry?.dispose?.(); if(Array.isArray(child.material))child.material.forEach(m=>m.dispose?.()); else child.material?.dispose?.(); } }
-      loadSet(setData,keepJoined=true){
-        this.clearGroup(this.pathGroup); this.clearGroup(this.heartGroup); this.heartMeshes.clear(); this.collected.clear(); this.fallCount=0; this.won=false; this.falling=false; this.moving=false; this.fallsEl.textContent='Falls: 0'; this.heartsEl.textContent=`♥ 0 / ${HEART_COUNT}`; this.finishEl.classList.add('hidden');
-        const tileGeo=new THREE.BoxGeometry(TILE*0.86,0.18,TILE*0.86), tileMat=new THREE.MeshStandardMaterial({color:0x26364f,roughness:0.84,metalness:0.08,emissive:0x06101d,emissiveIntensity:0.42}), startMat=new THREE.MeshStandardMaterial({color:0x385d68,roughness:0.76,emissive:0x092428,emissiveIntensity:0.62});
-        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(setData.maze[r][c]){ const mesh=new THREE.Mesh(tileGeo.clone(),(r===1&&c===1?startMat:tileMat).clone()); const p=worldPos(r,c,0); mesh.position.set(p.x,p.y,p.z); this.pathGroup.add(mesh); }
-        const heartGeo=makeHeartGeometry(); setData.hearts.forEach(([r,c],index)=>{ const heart=new THREE.Mesh(heartGeo.clone(),new THREE.MeshStandardMaterial({color:0xff6d91,roughness:0.3,emissive:0x7d1632,emissiveIntensity:1.15})); const p=worldPos(r,c,0.58); heart.position.set(p.x,p.y,p.z); heart.userData={index,baseY:p.y}; this.heartGroup.add(heart); this.heartMeshes.set(index,heart); const glow=new THREE.PointLight(0xff7197,1.0,2.8,2); glow.position.set(p.x,p.y+0.15,p.z); glow.userData.heartIndex=index; this.heartGroup.add(glow); });
-        this.resetPosition(); this.applyLightState(lightOn,false); if(!keepJoined){this.joined=false;this.startEl.classList.remove('hidden');}else if(this.joined){this.startEl.classList.add('hidden');this.showMessage('New maze. New heart locations. Same goal: collect them all.',2300);}
-      }
-      resize(){ const r=this.view.getBoundingClientRect(); const w=Math.max(320,Math.floor(r.width)), h=Math.max(240,Math.floor(r.height)); this.renderer.setSize(w,h,false); this.camera.aspect=w/h; this.camera.updateProjectionMatrix(); }
-      snapCamera(){ const p=this.avatar.position; this.camera.position.set(p.x,8.6,p.z+6.5); this.camera.lookAt(p.x,0,p.z-0.45); }
-      join(){ if(this.joined&&!this.won)return; this.joined=true; this.won=false; this.startEl.classList.add('hidden'); this.finishEl.classList.add('hidden'); this.showMessage('Collect every heart you can find. Do not step into the dark.',2600); }
-      resetPosition(){ this.row=START[0]; this.col=START[1]; this.targetRow=this.row; this.targetCol=this.col; this.moving=false; const p=worldPos(this.row,this.col,0.1); this.avatar.position.set(p.x,p.y,p.z); this.avatar.scale.setScalar(1); this.avatar.rotation.set(0,0,0); this.snapCamera(); }
-      applyLightState(on,announce=true){ this.view.classList.toggle('guided',on); this.modeEl.textContent=on?"The Lord's light":'Small light'; this.targetLightDistance=on?15:3.7; this.playerLight.intensity=on?3.0:2.0; if(announce&&this.joined)this.showMessage(on?'<strong>“Thy word is a lamp unto my feet, and a light unto my path.”</strong> — Psalm 119:105':'The light is small again. The maze and hearts have not changed.',on?4300:2400); }
-      showMessage(html,duration=2400){ clearTimeout(this.messageTimer); this.messageEl.innerHTML=html; this.messageEl.classList.add('show'); this.messageTimer=setTimeout(()=>this.messageEl.classList.remove('show'),duration); }
-      collectHeartIfPresent(){ const index=currentSet.hearts.findIndex(([r,c])=>r===this.row&&c===this.col); if(index<0||this.collected.has(index))return; this.collected.add(index); const mesh=this.heartMeshes.get(index); if(mesh)mesh.visible=false; this.heartGroup.children.forEach(ch=>{if(ch.isLight&&ch.userData.heartIndex===index)ch.visible=false;}); this.heartsEl.textContent=`♥ ${this.collected.size} / ${HEART_COUNT}`; this.showMessage(this.collected.size===HEART_COUNT?'<strong>You found the last heart!</strong>':`Heart found — ${this.collected.size} of ${HEART_COUNT}.`,1300); if(this.collected.size===HEART_COUNT)this.finish(); }
-      tryStep(dr,dc,now){ if(!this.joined||this.won||this.falling||this.moving||now-this.lastStep<105)return; this.lastStep=now; const nr=this.row+dr,nc=this.col+dc; if(nr<0||nr>=ROWS||nc<0||nc>=COLS||!currentSet.maze[nr][nc]){this.fall();return;} this.targetRow=nr;this.targetCol=nc;this.moveFrom=this.avatar.position.clone();const p=worldPos(nr,nc,0.1);this.moveTo=new THREE.Vector3(p.x,p.y,p.z);this.moveStart=now;this.moving=true; }
-      fall(){ this.falling=true; this.fallCount++; this.fallsEl.textContent=`Falls: ${this.fallCount}`; const startY=this.avatar.position.y, started=performance.now(), duration=620; const animate=(now)=>{const t=Math.min(1,(now-started)/duration);this.avatar.position.y=startY-4.3*t*t;this.avatar.rotation.z=t*2.5;this.avatar.scale.setScalar(Math.max(0.2,1-t*0.72));if(t<1)requestAnimationFrame(animate);else{this.resetPosition();this.falling=false;this.showMessage(lightOn?'You still choose where to step. Try again—you kept the hearts you found.':'Back to the beginning—but you kept your hearts. It is hard to choose a path you cannot see.',2700);}}; requestAnimationFrame(animate); }
-      finish(){ if(this.won)return; this.won=true; this.finishEl.classList.remove('hidden'); }
-      update(now,dt){
-        this.lightDistance+=(this.targetLightDistance-this.lightDistance)*Math.min(1,dt*2.6); this.playerLight.distance=this.lightDistance;
-        if(this.joined&&!this.won&&!this.falling&&!this.moving){for(const code of this.c.ordered){if(keyState.has(code)){const [dr,dc]=this.c.controls[code];this.tryStep(dr,dc,now);break;}}}
-        if(this.moving){const t=Math.min(1,(now-this.moveStart)/115),e=1-Math.pow(1-t,3);this.avatar.position.lerpVectors(this.moveFrom,this.moveTo,e);if(t>=1){this.moving=false;this.row=this.targetRow;this.col=this.targetCol;this.collectHeartIfPresent();}}
-        this.heartMeshes.forEach((heart,index)=>{if(heart.visible){heart.rotation.y+=dt*(0.9+index*0.03);heart.position.y=heart.userData.baseY+Math.sin(now*0.0028+index)*0.09;}});
-        const p=this.avatar.position, desired=new THREE.Vector3(p.x,8.6,p.z+6.5); this.camera.position.lerp(desired,Math.min(1,dt*7)); this.camera.lookAt(p.x,0,p.z-0.45); this.renderer.render(this.scene,this.camera);
-      }
-    }
-
-    function setTeacherLight(on){ lightOn=on; document.getElementById('lightBtn').textContent=on?'Dim the light':"Turn on the Lord's light"; players.a?.applyLightState(on,true); players.b?.applyLightState(on,true); }
-    function startNewSet(){ currentSet=generateSet(); lightOn=false; document.getElementById('lightBtn').textContent="Turn on the Lord's light"; players.a?.loadSet(currentSet,true); players.b?.loadSet(currentSet,true); }
-
-    function handleKeyDown(event){ const used=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Digit3','Numpad3','Space','KeyR']); if(used.has(event.code))event.preventDefault(); keyState.add(event.code); if(event.code===CONFIG.a.join)players.a?.join(); if(event.code===CONFIG.b.join)players.b?.join(); if(event.code==='Space'&&!event.repeat)setTeacherLight(!lightOn); if(event.code==='KeyR'&&!event.repeat)startNewSet(); }
-    function handleKeyUp(event){ keyState.delete(event.code); }
-
-    async function boot(){
-      try{THREE=await import(THREE_URL);}catch(error){document.querySelectorAll('.loading-overlay .overlay-card').forEach(card=>card.innerHTML='<h3 class="error">3D library could not load</h3><p>This game needs an internet connection when the page opens so Three.js can load.</p>');console.error(error);return;}
-      currentSet=generateSet(); players.a=new MazePlayer('a',CONFIG.a); players.b=new MazePlayer('b',CONFIG.b); players.a.loadSet(currentSet,false); players.b.loadSet(currentSet,false);
-      document.addEventListener('keydown',handleKeyDown,{passive:false}); document.addEventListener('keyup',handleKeyUp); window.addEventListener('blur',()=>keyState.clear()); window.addEventListener('resize',()=>{players.a.resize();players.b.resize();});
-      document.querySelectorAll('[data-join]').forEach(button=>button.addEventListener('click',()=>players[button.dataset.join].join()));
-      document.getElementById('lightBtn').addEventListener('click',()=>setTeacherLight(!lightOn)); document.getElementById('newSetBtn').addEventListener('click',startNewSet);
-      document.getElementById('fullscreenBtn').addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(_){}});
-      let last=performance.now(); function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;players.a.update(now,dt);players.b.update(now,dt);requestAnimationFrame(frame);} requestAnimationFrame(frame);
-    }
-    boot();
-  </script>
+<main class="shell">
+<header class="lesson-head"><div><h1 class="lesson-title">A Light Unto My Path</h1><p class="lesson-subtitle">Collect the hearts. The path is there even when you cannot see very far.</p></div><div class="teacher-actions"><button id="lightBtn" type="button">Turn on the Lord's light</button><button id="newSetBtn" type="button">New random set</button><button id="fullscreenBtn" type="button">Fullscreen</button></div></header>
+<section class="players">
+<article class="player-card"><div class="player-bar"><h2 class="player-name">Player 1</h2><div class="controls">Move: W A S D · Join: 3</div></div><div class="viewport" id="view-a"><canvas id="canvas-a"></canvas><div class="fog-mask"></div><div class="hud"><div class="hud-left"><span class="hud-chip mode-chip" id="mode-a">Tiny light</span><span class="hud-chip heart-chip" id="hearts-a">♥ 0 / 8</span></div><div class="hud-right"><span class="hud-chip" id="falls-a">Falls: 0</span></div></div><div class="message" id="message-a"></div><div class="loading-overlay" id="loading-a"><div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div></div><div class="start-overlay" id="start-a"><div class="overlay-card"><h3>Collect all the hearts</h3><p>You can barely see beyond the square beneath you. If you fall, you return to the start but keep the hearts you found.</p><button class="join-button" type="button" data-join="a">Press 3 to begin</button></div></div><div class="finish-overlay hidden" id="finish-a"><div class="overlay-card"><h3>All hearts collected!</h3><p>You found every heart on this path.</p></div></div></div></article>
+<article class="player-card"><div class="player-bar"><h2 class="player-name">Player 2</h2><div class="controls">Move: Arrow Keys · Join: Numpad 3</div></div><div class="viewport" id="view-b"><canvas id="canvas-b"></canvas><div class="fog-mask"></div><div class="hud"><div class="hud-left"><span class="hud-chip mode-chip" id="mode-b">Tiny light</span><span class="hud-chip heart-chip" id="hearts-b">♥ 0 / 8</span></div><div class="hud-right"><span class="hud-chip" id="falls-b">Falls: 0</span></div></div><div class="message" id="message-b"></div><div class="loading-overlay" id="loading-b"><div class="overlay-card"><h3>Preparing the path…</h3><p>Loading the 3D scene.</p></div></div><div class="start-overlay" id="start-b"><div class="overlay-card"><h3>Collect all the hearts</h3><p>You can barely see beyond the square beneath you. If you fall, you return to the start but keep the hearts you found.</p><button class="join-button" type="button" data-join="b">Press Numpad 3 to begin</button></div></div><div class="finish-overlay hidden" id="finish-b"><div class="overlay-card"><h3>All hearts collected!</h3><p>You found every heart on this path.</p></div></div></div></article>
+</section>
+<div class="scripture-strip"><div class="lamp">☀</div><p>“Thy word is a lamp unto my feet, and a light unto my path.” <span>— Psalm 119:105</span></p></div>
+<details class="teacher-notes"><summary>Teacher flow</summary><div class="notes-body"><ol><li>Start a new set and let both children hunt hearts with the tiny light.</li><li>Ask whether it would be easier if they could see more. Read Psalm 119:105.</li><li>Use <strong>Turn on the Lord's light</strong> (or Space). The maze and hearts stay exactly where they were.</li><li>Point out that light helps them see good things and avoid stepping off the path.</li><li>Use <strong>New random set</strong> (or R) for a new maze and heart layout.</li></ol></div></details>
+</main>
+<script type="module">
+const THREE_URL='https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+const COARSE_ROWS=6,COARSE_COLS=8,SPACING=4,ROWS=COARSE_ROWS*SPACING+1,COLS=COARSE_COLS*SPACING+1,TILE=1.06,HEART_COUNT=8;
+const START=[2,2],keyState=new Set(),players={};let THREE,currentSet,lightOn=false;
+const CONFIG={a:{canvas:'canvas-a',view:'view-a',loading:'loading-a',start:'start-a',finish:'finish-a',mode:'mode-a',hearts:'hearts-a',falls:'falls-a',message:'message-a',join:'Digit3',controls:{KeyW:[-1,0],KeyS:[1,0],KeyA:[0,-1],KeyD:[0,1]},ordered:['KeyW','KeyS','KeyA','KeyD']},b:{canvas:'canvas-b',view:'view-b',loading:'loading-b',start:'start-b',finish:'finish-b',mode:'mode-b',hearts:'hearts-b',falls:'falls-b',message:'message-b',join:'Numpad3',controls:{ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]},ordered:['ArrowUp','ArrowDown','ArrowLeft','ArrowRight']}};
+function randomSeed(){if(globalThis.crypto?.getRandomValues){const x=new Uint32Array(1);crypto.getRandomValues(x);return x[0]}return Math.floor(Math.random()*0xffffffff)}
+function seededRandom(seed){let v=seed>>>0;return()=>{v+=0x6D2B79F5;let t=v;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296}}
+function shuffle(items,rng){const out=items.slice();for(let i=out.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[out[i],out[j]]=[out[j],out[i]]}return out}
+function paint3(maze,r,c){for(let rr=r-1;rr<=r+1;rr++)for(let cc=c-1;cc<=c+1;cc++)if(rr>0&&rr<ROWS-1&&cc>0&&cc<COLS-1)maze[rr][cc]=true}
+function paintCorridor(maze,r1,c1,r2,c2){if(r1===r2){for(let c=Math.min(c1,c2);c<=Math.max(c1,c2);c++)for(let r=r1-1;r<=r1+1;r++)if(r>0&&r<ROWS-1&&c>0&&c<COLS-1)maze[r][c]=true}else{for(let r=Math.min(r1,r2);r<=Math.max(r1,r2);r++)for(let c=c1-1;c<=c1+1;c++)if(r>0&&r<ROWS-1&&c>0&&c<COLS-1)maze[r][c]=true}}
+function generateSet(){const rng=seededRandom(randomSeed()),maze=Array.from({length:ROWS},()=>Array(COLS).fill(false));const seen=Array.from({length:COARSE_ROWS},()=>Array(COARSE_COLS).fill(false)),stack=[[0,0]],dirs=[[-1,0],[1,0],[0,-1],[0,1]];seen[0][0]=true;const center=(rr,cc)=>[2+rr*SPACING,2+cc*SPACING];paint3(maze,...center(0,0));while(stack.length){const[rr,cc]=stack[stack.length-1];const choices=shuffle(dirs,rng).map(([dr,dc])=>[rr+dr,cc+dc]).filter(([nr,nc])=>nr>=0&&nr<COARSE_ROWS&&nc>=0&&nc<COARSE_COLS&&!seen[nr][nc]);if(!choices.length){stack.pop();continue}const[nr,nc]=choices[0],[r1,c1]=center(rr,cc),[r2,c2]=center(nr,nc);paint3(maze,r2,c2);paintCorridor(maze,r1,c1,r2,c2);seen[nr][nc]=true;stack.push([nr,nc])}const extra=[];for(let rr=0;rr<COARSE_ROWS;rr++)for(let cc=0;cc<COARSE_COLS;cc++){if(rr+1<COARSE_ROWS)extra.push([[rr,cc],[rr+1,cc]]);if(cc+1<COARSE_COLS)extra.push([[rr,cc],[rr,cc+1]])}shuffle(extra,rng).slice(0,10).forEach(([[a,b],[c,d]])=>paintCorridor(maze,...center(a,b),...center(c,d)));const walkable=[];for(let r=1;r<ROWS-1;r++)for(let c=1;c<COLS-1;c++)if(maze[r][c]&&Math.abs(r-START[0])+Math.abs(c-START[1])>=10)walkable.push([r,c]);const candidates=shuffle(walkable,rng),hearts=[];for(const cell of candidates){if(hearts.length>=HEART_COUNT)break;if(hearts.every(([hr,hc])=>Math.abs(cell[0]-hr)+Math.abs(cell[1]-hc)>=7))hearts.push(cell)}for(const cell of candidates){if(hearts.length>=HEART_COUNT)break;if(!hearts.some(([r,c])=>r===cell[0]&&c===cell[1]))hearts.push(cell)}return{maze,hearts}}
+function worldPos(row,col,y=.1){return{x:(col-(COLS-1)/2)*TILE,y,z:(row-(ROWS-1)/2)*TILE}}
+function makeHeartGeometry(){const s=new THREE.Shape();s.moveTo(0,-.30);s.bezierCurveTo(-.58,-.02,-.62,.48,-.24,.55);s.bezierCurveTo(-.02,.60,0,.38,0,.30);s.bezierCurveTo(0,.38,.02,.60,.24,.55);s.bezierCurveTo(.62,.48,.58,-.02,0,-.30);const g=new THREE.ExtrudeGeometry(s,{depth:.12,bevelEnabled:true,bevelSegments:2,steps:1,bevelSize:.025,bevelThickness:.025});g.center();return g}
+class MazePlayer{
+constructor(id,c){this.id=id;this.c=c;for(const k of['canvas','view','loading','start','finish','mode','hearts','falls','message'])this[k+'El']=document.getElementById(c[k]);this.canvas=this.canvasEl;this.view=this.viewEl;this.joined=false;this.won=false;this.falling=false;this.fallCount=0;this.collected=new Set();this.heartMeshes=new Map();this.messageTimer=null;this.moving=false;this.lastStep=0;this.lightDistance=1.75;this.targetLightDistance=1.75;this.init3D()}
+init3D(){this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0x010207);this.scene.fog=new THREE.FogExp2(0x02040a,.034);this.renderer=new THREE.WebGLRenderer({canvas:this.canvas,antialias:true,powerPreference:'high-performance'});this.renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.08;this.camera=new THREE.PerspectiveCamera(48,1,.1,120);this.scene.add(new THREE.HemisphereLight(0x4c6c91,0x020308,.15));const fill=new THREE.DirectionalLight(0x9fc9ff,.11);fill.position.set(-8,12,5);this.scene.add(fill);this.pathGroup=new THREE.Group();this.heartGroup=new THREE.Group();this.scene.add(this.pathGroup,this.heartGroup);const under=new THREE.Mesh(new THREE.PlaneGeometry(70,55),new THREE.MeshBasicMaterial({color:0x010207,transparent:true,opacity:.98}));under.rotation.x=-Math.PI/2;under.position.y=-3.3;this.scene.add(under);this.avatar=new THREE.Group();const body=new THREE.Mesh(new THREE.SphereGeometry(.27,24,16),new THREE.MeshStandardMaterial({color:this.id==='a'?0x8fc8ff:0xa7efc2,roughness:.34,emissive:this.id==='a'?0x14324d:0x133d28,emissiveIntensity:.55}));body.position.y=.34;this.avatar.add(body);const halo=new THREE.Mesh(new THREE.TorusGeometry(.34,.026,10,36),new THREE.MeshBasicMaterial({color:0xffda7a,transparent:true,opacity:.75}));halo.rotation.x=Math.PI/2;halo.position.y=.14;this.avatar.add(halo);this.playerLight=new THREE.PointLight(0xffe0ad,2.7,this.lightDistance,2);this.playerLight.position.set(0,1.15,0);this.avatar.add(this.playerLight);this.scene.add(this.avatar);this.resize();this.loadingEl.classList.add('hidden')}
+clearGroup(group){while(group.children.length){const child=group.children.pop();child.geometry?.dispose?.();if(Array.isArray(child.material))child.material.forEach(m=>m.dispose?.());else child.material?.dispose?.()}}
+loadSet(setData,keepJoined=true){this.clearGroup(this.pathGroup);this.clearGroup(this.heartGroup);this.heartMeshes.clear();this.collected.clear();this.fallCount=0;this.won=false;this.falling=false;this.moving=false;this.fallsEl.textContent='Falls: 0';this.heartsEl.textContent=`♥ 0 / ${HEART_COUNT}`;this.finishEl.classList.add('hidden');const tileGeo=new THREE.BoxGeometry(TILE*.92,.18,TILE*.92),tileMat=new THREE.MeshStandardMaterial({color:0x7ec8f8,roughness:.74,metalness:.04,emissive:0x15334a,emissiveIntensity:.38}),startMat=new THREE.MeshStandardMaterial({color:0xa5dcff,roughness:.7,emissive:0x1b4763,emissiveIntensity:.55});for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(setData.maze[r][c]){const mesh=new THREE.Mesh(tileGeo.clone(),(r===START[0]&&c===START[1]?startMat:tileMat).clone());const p=worldPos(r,c,0);mesh.position.set(p.x,p.y,p.z);this.pathGroup.add(mesh)}const heartGeo=makeHeartGeometry();setData.hearts.forEach(([r,c],index)=>{const heart=new THREE.Mesh(heartGeo.clone(),new THREE.MeshStandardMaterial({color:0xff6d91,roughness:.28,emissive:0x991d43,emissiveIntensity:1.25,transparent:true,opacity:1}));const p=worldPos(r,c,.58);heart.position.set(p.x,p.y,p.z);heart.userData={index,baseY:p.y};this.heartGroup.add(heart);this.heartMeshes.set(index,heart);const glow=new THREE.PointLight(0xff7197,1.15,2.8,2);glow.position.set(p.x,p.y+.15,p.z);glow.userData.heartIndex=index;this.heartGroup.add(glow)});this.resetPosition();this.applyLightState(lightOn,false);if(!keepJoined){this.joined=false;this.startEl.classList.remove('hidden')}else if(this.joined){this.startEl.classList.add('hidden');this.showMessage('New maze. New heart locations. Same goal: collect them all.',2200)}}
+resize(){const r=this.view.getBoundingClientRect(),w=Math.max(320,Math.floor(r.width)),h=Math.max(240,Math.floor(r.height));this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.updateProjectionMatrix()}
+snapCamera(){const p=this.avatar.position;this.camera.position.set(p.x,8.6,p.z+6.5);this.camera.lookAt(p.x,0,p.z-.45)}
+join(){if(this.joined&&!this.won)return;this.joined=true;this.won=false;this.startEl.classList.add('hidden');this.finishEl.classList.add('hidden');this.showMessage('Collect every heart you can find. Do not step into the dark.',2400)}
+resetPosition(){this.row=START[0];this.col=START[1];this.targetRow=this.row;this.targetCol=this.col;this.moving=false;const p=worldPos(this.row,this.col,.1);this.avatar.position.set(p.x,p.y,p.z);this.avatar.scale.setScalar(1);this.avatar.rotation.set(0,0,0);this.snapCamera()}
+applyLightState(on,announce=true){this.view.classList.toggle('guided',on);this.modeEl.textContent=on?"The Lord's light":'Tiny light';this.targetLightDistance=on?16:1.75;this.playerLight.intensity=on?3.4:2.7;if(announce&&this.joined)this.showMessage(on?'<strong>“Thy word is a lamp unto my feet, and a light unto my path.”</strong> — Psalm 119:105':'The light is tiny again. The maze and hearts have not changed.',on?4300:2300)}
+showMessage(html,duration=2400){clearTimeout(this.messageTimer);this.messageEl.innerHTML=html;this.messageEl.classList.add('show');this.messageTimer=setTimeout(()=>this.messageEl.classList.remove('show'),duration)}
+projectHeartToViewport(mesh){const v=mesh.position.clone().project(this.camera),rect=this.view.getBoundingClientRect();return{x:(v.x*.5+.5)*rect.width,y:(-.5*v.y+.5)*rect.height}}
+animateHeartPickup(index,done){const mesh=this.heartMeshes.get(index);if(!mesh){done();return}const glow=this.heartGroup.children.find(ch=>ch.isLight&&ch.userData.heartIndex===index);const startScreen=this.projectHeartToViewport(mesh),hudRect=this.heartsEl.getBoundingClientRect(),viewRect=this.view.getBoundingClientRect(),target={x:hudRect.left-viewRect.left+hudRect.width/2,y:hudRect.top-viewRect.top+hudRect.height/2};const ring=document.createElement('div');ring.className='pickup-ring';ring.style.left=`${startScreen.x}px`;ring.style.top=`${startScreen.y}px`;this.view.appendChild(ring);setTimeout(()=>ring.remove(),650);const fly=document.createElement('div');fly.className='pickup-heart';fly.textContent='♥';fly.style.left=`${startScreen.x}px`;fly.style.top=`${startScreen.y}px`;this.view.appendChild(fly);const started=performance.now(),duration=620,base=mesh.scale.clone(),baseY=mesh.position.y;const tick=now=>{const t=Math.min(1,(now-started)/duration),pop=t<.28?1+2.1*(t/.28):3.1*(1-(t-.28)/.72)+.08;mesh.scale.copy(base).multiplyScalar(Math.max(.05,pop));mesh.rotation.y+=.36;mesh.rotation.z+=.18;mesh.position.y=baseY+Math.sin(Math.min(1,t)*Math.PI)*.75;mesh.material.opacity=Math.max(0,1-Math.max(0,(t-.35)/.65));if(glow){glow.intensity=1.2+5*Math.sin(Math.PI*t);glow.distance=2.8+3*t}const e=1-Math.pow(1-t,3),arc=-65*Math.sin(Math.PI*t),x=startScreen.x+(target.x-startScreen.x)*e,y=startScreen.y+(target.y-startScreen.y)*e+arc,scale=1+.7*Math.sin(Math.PI*t)-.8*t;fly.style.left=`${x}px`;fly.style.top=`${y}px`;fly.style.opacity=String(1-.15*t);fly.style.transform=`translate(-50%,-50%) scale(${Math.max(.2,scale)}) rotate(${t*540}deg)`;if(t<1)requestAnimationFrame(tick);else{mesh.visible=false;if(glow)glow.visible=false;fly.remove();this.heartsEl.classList.add('bump');setTimeout(()=>this.heartsEl.classList.remove('bump'),220);done()}};requestAnimationFrame(tick)}
+collectHeartIfPresent(){const index=currentSet.hearts.findIndex(([r,c])=>r===this.row&&c===this.col);if(index<0||this.collected.has(index))return;this.collected.add(index);this.animateHeartPickup(index,()=>{});this.heartsEl.textContent=`♥ ${this.collected.size} / ${HEART_COUNT}`;this.showMessage(this.collected.size===HEART_COUNT?'<strong>You found the last heart!</strong>':`Heart found — ${this.collected.size} of ${HEART_COUNT}.`,1250);if(this.collected.size===HEART_COUNT)setTimeout(()=>this.finish(),650)}
+tryStep(dr,dc,now){if(!this.joined||this.won||this.falling||this.moving||now-this.lastStep<105)return;this.lastStep=now;const nr=this.row+dr,nc=this.col+dc;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||!currentSet.maze[nr][nc]){this.fall(dr,dc);return}this.targetRow=nr;this.targetCol=nc;this.moveFrom=this.avatar.position.clone();const p=worldPos(nr,nc,.1);this.moveTo=new THREE.Vector3(p.x,p.y,p.z);this.moveStart=now;this.moving=true}
+fall(dr,dc){this.falling=true;this.fallCount++;this.fallsEl.textContent=`Falls: ${this.fallCount}`;const start=this.avatar.position.clone(),started=performance.now(),duration=760,endX=start.x+dc*TILE*1.75,endZ=start.z+dr*TILE*1.75;const animate=now=>{const t=Math.min(1,(now-started)/duration),side=Math.min(1,t/.42),drop=Math.max(0,(t-.22)/.78);this.avatar.position.x=start.x+(endX-start.x)*(1-Math.pow(1-side,2));this.avatar.position.z=start.z+(endZ-start.z)*(1-Math.pow(1-side,2));this.avatar.position.y=start.y-5.2*drop*drop;this.avatar.rotation.z=-dc*drop*1.45;this.avatar.rotation.x=dr*drop*1.45;this.avatar.rotation.y+=(dc-dr)*.045;this.avatar.scale.setScalar(Math.max(.18,1-drop*.74));if(t<1)requestAnimationFrame(animate);else{this.resetPosition();this.falling=false;this.showMessage(lightOn?'You still choose where to step. Try again—you kept your hearts.':'You stepped off that edge. Back to the beginning—but you kept your hearts.',2500)}};requestAnimationFrame(animate)}
+finish(){if(this.won)return;this.won=true;this.finishEl.classList.remove('hidden')}
+update(now,dt){this.lightDistance+=(this.targetLightDistance-this.lightDistance)*Math.min(1,dt*2.6);this.playerLight.distance=this.lightDistance;if(this.joined&&!this.won&&!this.falling&&!this.moving){for(const code of this.c.ordered){if(keyState.has(code)){const[dr,dc]=this.c.controls[code];this.tryStep(dr,dc,now);break}}}if(this.moving){const t=Math.min(1,(now-this.moveStart)/115),e=1-Math.pow(1-t,3);this.avatar.position.lerpVectors(this.moveFrom,this.moveTo,e);if(t>=1){this.moving=false;this.row=this.targetRow;this.col=this.targetCol;this.collectHeartIfPresent()}}this.heartMeshes.forEach((heart,index)=>{if(heart.visible&&!this.collected.has(index)){heart.rotation.y+=dt*(.9+index*.03);heart.position.y=heart.userData.baseY+Math.sin(now*.0028+index)*.09}});const p=this.avatar.position,desired=new THREE.Vector3(p.x,8.6,p.z+6.5);this.camera.position.lerp(desired,Math.min(1,dt*(this.falling?3.2:7)));this.camera.lookAt(p.x,Math.max(-1.2,p.y*.25),p.z-.45);this.renderer.render(this.scene,this.camera)}}
+function setTeacherLight(on){lightOn=on;document.getElementById('lightBtn').textContent=on?'Dim the light':"Turn on the Lord's light";players.a?.applyLightState(on,true);players.b?.applyLightState(on,true)}
+function startNewSet(){currentSet=generateSet();lightOn=false;document.getElementById('lightBtn').textContent="Turn on the Lord's light";players.a?.loadSet(currentSet,true);players.b?.loadSet(currentSet,true)}
+function handleKeyDown(event){const used=new Set(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Digit3','Numpad3','Space','KeyR']);if(used.has(event.code))event.preventDefault();keyState.add(event.code);if(event.code===CONFIG.a.join)players.a?.join();if(event.code===CONFIG.b.join)players.b?.join();if(event.code==='Space'&&!event.repeat)setTeacherLight(!lightOn);if(event.code==='KeyR'&&!event.repeat)startNewSet()}
+function handleKeyUp(event){keyState.delete(event.code)}
+async function boot(){try{THREE=await import(THREE_URL)}catch(error){document.querySelectorAll('.loading-overlay .overlay-card').forEach(card=>card.innerHTML='<h3 class="error">3D library could not load</h3><p>This game needs an internet connection when the page opens so Three.js can load.</p>');console.error(error);return}currentSet=generateSet();players.a=new MazePlayer('a',CONFIG.a);players.b=new MazePlayer('b',CONFIG.b);players.a.loadSet(currentSet,false);players.b.loadSet(currentSet,false);document.addEventListener('keydown',handleKeyDown,{passive:false});document.addEventListener('keyup',handleKeyUp);window.addEventListener('blur',()=>keyState.clear());window.addEventListener('resize',()=>{players.a.resize();players.b.resize()});document.querySelectorAll('[data-join]').forEach(button=>button.addEventListener('click',()=>players[button.dataset.join].join()));document.getElementById('lightBtn').addEventListener('click',()=>setTeacherLight(!lightOn));document.getElementById('newSetBtn').addEventListener('click',startNewSet);document.getElementById('fullscreenBtn').addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch(_){}});let last=performance.now();function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;players.a.update(now,dt);players.b.update(now,dt);requestAnimationFrame(frame)}requestAnimationFrame(frame)}
+boot();
+</script>
 </body>
 </html>
