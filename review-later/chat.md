@@ -44,10 +44,74 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-06 23:09 Central Daylight Time
-Cards: 4
+Updated: 2026-09-06 23:25 Central Daylight Time
+Cards: 7
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-17T06:49:30-05:00
+Last seen: 2026-09-06T23:24:17-05:00
+Card ID: 1762150707642
+Note ID: 1762150707641
+
+Question:
+00:12
+
+Key imaging features of a solitary intraluminal small bowel GI stromal tumor are [...].
+
+Answer:
+00:12
+
+Key imaging features of a solitary intraluminal small bowel GI stromal tumor are a submucosal lesion that often shows an exophytic component with heterogeneous enhancement and cystic or necrotic change and it can arise anywhere with a proximal tendency.
+
+Gastric Malignancy
+
+Small Intestine Tumors
+
+Cases
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-06T23:19:16-05:00
+Last seen: 2026-09-06T23:19:16-05:00
+Card ID: 1774645598924
+Note ID: 1774645598923
+
+Question:
+00:12
+
+A parapharyngeal mass that widens the stylomandibular tunnel usually arises from the [...].
+
+Answer:
+00:12
+
+A parapharyngeal mass that widens the stylomandibular tunnel usually arises from the deep lobe of the parotid gland.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-06T23:18:41-05:00
+Last seen: 2026-09-06T23:18:41-05:00
+Card ID: 1748259925826
+Note ID: 1748259925825
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+Menetrierre disease
+
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -69,7 +133,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-08-11T23:16:10-05:00
@@ -87,7 +151,7 @@ Answer:
 
 For gestations earlier than 10 weeks, the appropriate thermal index in obstetric ultrasound is TIS.
 
-## Card 3
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-05T06:54:07-05:00
@@ -111,7 +175,7 @@ Contrast outpouching
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 4
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
