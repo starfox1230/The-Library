@@ -27,7 +27,9 @@ ORDER BY "date:Learning Date:start", url
 
 Use the existing saCloze++ model and Saved Cards packaging path from the canonical guides. Save the source row URL, Card Source and Extra snapshots, stable note key based on the row UUID, and output location in the run manifest. Reuse that key on retries. The original conversation is not needed.
 
-Before generating again, reconcile pending rows with prior manifests and verified output by row UUID. After the full card output and its source mapping pass validation, mark only those rows' Anki Created? checked and read back the change. A draft or failed build does not qualify. Preserve Make Anki?. If an output already succeeded but the Notion update failed, repair the status using verified output rather than generating a duplicate. If the fact changed after that output, flag it for reconciliation.
+Before generating again, reconcile pending rows with prior manifests and verified output by row UUID. A generated StudyOS candidate is complete only when its stable ID exists in the New queue with `status = new`, `approved_at = null`, and `deleted_at = null`. Editing content or tags does not approve a card. Read back those fields for the full output set; do not infer visibility from a successful write or total card count.
+
+After the full card output, source mapping, and New-queue state pass validation, mark only those rows' Anki Created? checked and read back the change. A draft, hidden/approved candidate, or failed build does not qualify. Preserve Make Anki?. If an output already succeeded but the Notion update failed, repair the status using verified output rather than generating a duplicate. If the fact changed after that output, flag it for reconciliation.
 
 Run only when the user asks to convert selected conversation facts; this document does not create a schedule or authorize an import into the live Anki collection.
 

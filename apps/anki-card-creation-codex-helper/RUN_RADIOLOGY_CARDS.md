@@ -1,5 +1,5 @@
 # Run radiology cards once
-Revision: 2026-09-05
+Revision: 2026-09-06
 
 This is the entry point for a fresh Codex conversation. Execute the requested work in the current conversation; finding the old StudyOS task is unnecessary. The ChatGPT Anki Card Generator 3.0 project remains separate.
 
@@ -59,9 +59,11 @@ Capture an instruction receipt in the run ledger: scope, actual model/effort if 
 
 ## Finish at the correct boundary
 
-Ordinary notes and saved events produce editable StudyOS candidates with required media; verify full ID sets and media before source status changes. Selected conversation facts follow their own output/checkbox contract. Use that contract's stable row IDs and verify prior output before setting Anki Created?.
+Ordinary notes and saved events produce editable StudyOS candidates with required media. Every newly generated candidate must remain in the human-review queue with `status = new`, `approved_at = null`, and `deleted_at = null`. Creating, correcting, or retagging a candidate is not approval. Only an explicit user review decision may change it to `saved` or `discarded`.
+
+Before source status changes, read back the complete stable candidate ID set and verify content, media, each card's own source-date tag, `status = new`, null approval/deletion timestamps, and visibility in StudyOS's New queue. Mixed-date batches must preserve each card's date tag; never replace the whole batch with the first valid tag. Treat any failed condition as incomplete and repair it before reporting success. Selected conversation facts follow their own output/checkbox contract. Use that contract's stable row IDs and verify prior output before setting Anki Created?.
 Do not import into the live Anki collection as part of this entry point. The user reviews and imports.
-Report source count, note/candidate count, output location, verified status changes, skipped/pending items, and next human action. Distinguish candidate approval, package export, and confirmed Anki import. An empty eligible cohort is a valid result.
+Report source count, note/candidate count, output location, verified status changes, skipped/pending items, and next human action. Do not call a generated candidate saved, approved, or ready to download until the user explicitly approves it. Distinguish generation into the New queue, candidate approval, package export, and confirmed Anki import. An empty eligible cohort is a valid result.
 
 ## Model choice
 
