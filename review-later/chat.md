@@ -44,10 +44,46 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-07 08:53 Central Daylight Time
-Cards: 25
+Updated: 2026-09-07 08:56 Central Daylight Time
+Cards: 27
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-07T08:54:41-05:00
+Last seen: 2026-09-07T08:54:41-05:00
+Card ID: 1788754072562
+Note ID: 1788754072560
+
+Question:
+00:12
+
+A well counter is typically a [...] used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+Answer:
+00:12
+
+A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-07T08:53:42-05:00
+Last seen: 2026-09-07T08:53:42-05:00
+Card ID: 1783362331596
+Note ID: 1783362331595
+
+Question:
+00:12
+
+In a subacute brain infarct with luxury perfusion, [what radiotracer] better shows the true infarct core defect.
+
+Answer:
+00:12
+
+In a subacute brain infarct with luxury perfusion, ECD better shows the true infarct core defect.
+
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-07-25T19:51:45-05:00
@@ -91,7 +127,7 @@ Normal:
 
 Abnormal:
 
-## Card 2
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:18:43-05:00
@@ -109,7 +145,7 @@ Answer:
 
 Malignant transformation of an osteochondroma most commonly produces a secondary peripheral chondrosarcoma.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:56:53-05:00
@@ -127,7 +163,7 @@ Answer:
 
 Temporary embolic agents such as gelfoam typically occlude vessels for hours to weeks before recanalization, which is useful in trauma settings.
 
-## Card 4
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -145,7 +181,7 @@ Answer:
 
 The fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-07-19T07:24:35-05:00
@@ -163,7 +199,7 @@ Answer:
 
 The oral tongue belongs to the oral cavity anatomical region.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
@@ -189,7 +225,7 @@ Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy scl
 
 Full source page:
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-06-25T22:13:05-05:00
@@ -207,7 +243,7 @@ Answer:
 
 A bone density Z-score shows how many standard deviations a patient is above or below healthy people of the SAME AGE, sex, and ethnicity.
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-05:00
@@ -227,7 +263,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:39:17-05:00
@@ -251,7 +287,7 @@ Myelocele = exposed neural placode flush with adjacent skin;
 
 Myelomeningocele = exposed neural placode with CSF protruding beyond expected skin surface
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -269,7 +305,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:22:04-05:00
@@ -287,7 +323,7 @@ Answer:
 
 The main geometric advantage of a phased array is a small transducer footprint that can still create a large field of view through beam steering
 
-## Card 12
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T06:40:12-05:00
@@ -309,7 +345,7 @@ What happens to the location of the focal zone when the active aperture is incre
 
 Deeper into tissue
 
-## Card 13
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-09-05T06:54:07-05:00
@@ -333,7 +369,7 @@ Contrast outpouching
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 14
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-09-07T07:03:38-05:00
@@ -351,7 +387,7 @@ Answer:
 
 A well counter determines whether wipe sample activity exceeds a threshold.
 
-## Card 15
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-04-22T06:27:58-05:00
@@ -369,7 +405,7 @@ Answer:
 
 In suspected cardiac amyloid, a positive PYP scan supports ATTR amyloid.
 
-## Card 16
+## Card 18
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
@@ -391,7 +427,7 @@ This is traumatic rather than an unfused ossification center.
 
 Source: Notion Radiology entry.
 
-## Card 17
+## Card 19
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:40:19-05:00
@@ -413,7 +449,7 @@ Most likely diagnosis in patient with hypogycemia and finger clubbing?
 
 solitary fibrous tumor
 
-## Card 18
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:14:33-05:00
@@ -435,7 +471,7 @@ Diagnosis?
 
 lipomyelomeningocele
 
-## Card 19
+## Card 21
 
 Deck: Saved Cards
 Flagged: 2026-09-07T06:39:44-05:00
@@ -453,7 +489,7 @@ Answer:
 
 Biliary cast syndrome can produce a cholestatic pattern of liver enzyme abnormalities.
 
-## Card 20
+## Card 22
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -476,7 +512,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 21
+## Card 23
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:42:43-05:00
@@ -498,7 +534,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 22
+## Card 24
 
 Deck: .NEW::Visual
 Flagged: 2026-09-05T05:20:27-05:00
@@ -524,7 +560,7 @@ Core Radiology 2nd ed., MSK: 964. Fat interdigitating between nerve fascicles is
 
 Full source page:
 
-## Card 23
+## Card 25
 
 Deck: .Core Backlog
 Flagged: 2026-09-05T05:01:35-05:00
@@ -544,7 +580,7 @@ A nasal wall mass with a cerebriform enhancement pattern is characteristic of in
 
 Q6. Incorrect; difficulty: hard. The CT demonstrates a mass located in the lateral nasal wall with focal coarse calcifications (yellow arrow), as well as bony resorption and extension into the maxillary sinus (green arrow).
 
-## Card 24
+## Card 26
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -562,7 +598,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 25
+## Card 27
 
 Deck: .NEW::Visual
 Flagged: 2026-09-06T23:18:41-05:00
