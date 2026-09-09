@@ -44,14 +44,50 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 11:46 Central Daylight Time
-Cards: 2
+Updated: 2026-09-09 12:25 Central Daylight Time
+Cards: 4
 
 ## Card 1
 
+Deck: .NEW::Audio
+Flagged: 2026-05-16T05:51:27-05:00
+Last seen: 2026-09-09T11:59:15-05:00
+Card ID: 1769539269708
+Note ID: 1769539269707
+
+Question:
+00:12
+
+Of 150 keV x rays, gamma rays, alpha particles, and electrons, the radiation with the steepest cell survival curve and least shoulder is [...].
+
+Answer:
+00:12
+
+Of 150 keV x rays, gamma rays, alpha particles, and electrons, the radiation with the steepest cell survival curve and least shoulder is 150 keV electrons.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-07T08:45:32-05:00
+Last seen: 2026-09-09T11:54:40-05:00
+Card ID: 1788754072534
+Note ID: 1788754072532
+
+Question:
+00:12
+
+In breast ultrasound, the fundamental distinction between a [...] and a [...] is the absence versus presence of a true solid component.
+
+Answer:
+00:12
+
+In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
+
+## Card 3
+
 Deck: Saved Cards
 Flagged: 2026-08-24T06:23:09-05:00
-Last seen: 2026-09-09T06:19:17-05:00
+Last seen: 2026-09-09T11:49:39-05:00
 Card ID: 1786709128376
 Note ID: 1786709128375
 
@@ -73,7 +109,7 @@ Omental infarction is usually a larger heterogeneous area of inflamed fat center
 
 Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
