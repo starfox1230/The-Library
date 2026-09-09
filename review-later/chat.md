@@ -44,14 +44,68 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 12:45 Central Daylight Time
-Cards: 6
+Updated: 2026-09-09 12:50 Central Daylight Time
+Cards: 8
 
 ## Card 1
 
 Deck: .NEW::Visual
+Flagged: 2026-07-29T16:43:26-05:00
+Last seen: 2026-09-09T12:50:34-05:00
+Card ID: 1779744469981
+Note ID: 1779744469980
+
+Question:
+00:12
+
+Asymptomatic patient. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Asymptomatic patient. Most likely diagnosis?
+
+Osteitis pubis
+
+Q7. Correct; difficulty: easy. Vital Concept: Osteitis pubis shows irregular, sclerotic symphyseal margins with possible subchondral cysts on radiographs, representing noninfectious inflammation of the pubic symphysis. In asymptomatic patients, these degenerative-appearing changes are often incidental findings that don't require treatment, distinguishing it from symptomatic athletic pubalgia or infectious osteomyelitis which shows more extensive bone marrow edema and soft-tissue involvement.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-08-22T07:25:29-05:00
+Last seen: 2026-09-09T12:48:22-05:00
+Card ID: 1786411419118
+Note ID: 1786411419117
+
+Question:
+00:12
+
+What is the most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What is the most likely diagnosis?
+
+patellofemoral friction/impingement.
+
+1/2
+
+Sagittal and axial fluid-sensitive MRI show edema in the superolateral Hoffa fat pad.
+
+Source image: Collin et al., BJR Case Reports 2023, Figure 1, CC BY.
+
+## Card 3
+
+Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
-Last seen: 2026-09-09T12:45:51-05:00
+Last seen: 2026-09-09T12:45:58-05:00
 Card ID: 1776199228458
 Note ID: 1776199228458
 
@@ -69,7 +123,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:26:18-05:00
@@ -87,7 +141,7 @@ Answer:
 
 Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-05-16T05:51:27-05:00
@@ -105,7 +159,7 @@ Answer:
 
 Of 150 keV x rays, gamma rays, alpha particles, and electrons, the radiation with the steepest cell survival curve and least shoulder is 150 keV electrons.
 
-## Card 4
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -123,7 +177,7 @@ Answer:
 
 In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 5
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-08-24T06:23:09-05:00
@@ -149,7 +203,7 @@ Omental infarction is usually a larger heterogeneous area of inflamed fat center
 
 Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
