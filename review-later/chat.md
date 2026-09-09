@@ -44,10 +44,50 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 12:44 Central Daylight Time
-Cards: 4
+Updated: 2026-09-09 12:45 Central Daylight Time
+Cards: 6
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-08-13T13:19:44-05:00
+Last seen: 2026-09-09T12:45:51-05:00
+Card ID: 1776199228458
+Note ID: 1776199228458
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+ameloblastoma
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:26:18-05:00
+Last seen: 2026-09-09T12:45:03-05:00
+Card ID: 1779919014286
+Note ID: 1779919014285
+
+Question:
+00:12
+
+Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from [...].
+
+Answer:
+00:12
+
+Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-05-16T05:51:27-05:00
@@ -65,7 +105,7 @@ Answer:
 
 Of 150 keV x rays, gamma rays, alpha particles, and electrons, the radiation with the steepest cell survival curve and least shoulder is 150 keV electrons.
 
-## Card 2
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -83,7 +123,7 @@ Answer:
 
 In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 3
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-08-24T06:23:09-05:00
@@ -109,7 +149,7 @@ Omental infarction is usually a larger heterogeneous area of inflamed fat center
 
 Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
