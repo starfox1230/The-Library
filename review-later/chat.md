@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 12:50 Central Daylight Time
+Updated: 2026-09-09 13:08 Central Daylight Time
 Cards: 8
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:26:18-05:00
+Last seen: 2026-09-09T12:51:49-05:00
+Card ID: 1779919014286
+Note ID: 1779919014285
+
+Question:
+00:12
+
+Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from [...].
+
+Answer:
+00:12
+
+Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-07-29T16:43:26-05:00
@@ -71,7 +89,7 @@ Osteitis pubis
 
 Q7. Correct; difficulty: easy. Vital Concept: Osteitis pubis shows irregular, sclerotic symphyseal margins with possible subchondral cysts on radiographs, representing noninfectious inflammation of the pubic symphysis. In asymptomatic patients, these degenerative-appearing changes are often incidental findings that don't require treatment, distinguishing it from symptomatic athletic pubalgia or infectious osteomyelitis which shows more extensive bone marrow edema and soft-tissue involvement.
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-08-22T07:25:29-05:00
@@ -101,7 +119,7 @@ Sagittal and axial fluid-sensitive MRI show edema in the superolateral Hoffa fat
 
 Source image: Collin et al., BJR Case Reports 2023, Figure 1, CC BY.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -122,24 +140,6 @@ Answer:
 Most likely diagnosis?
 
 ameloblastoma
-
-## Card 4
-
-Deck: .NEW::Audio
-Flagged: 2026-07-10T12:26:18-05:00
-Last seen: 2026-09-09T12:45:03-05:00
-Card ID: 1779919014286
-Note ID: 1779919014285
-
-Question:
-00:12
-
-Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from [...].
-
-Answer:
-00:12
-
-Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
 
 ## Card 5
 
