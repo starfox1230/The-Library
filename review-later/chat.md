@@ -44,10 +44,250 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 13:28 Central Daylight Time
-Cards: 9
+Updated: 2026-09-09 18:41 Central Daylight Time
+Cards: 16
 
 ## Card 1
+
+Deck: Other::Radiology (All)::.Visual::Everything Else
+Flagged: 2026-07-04T08:05:47-05:00
+Last seen: 2026-09-09T18:36:55-05:00
+Card ID: 1691039373328
+Note ID: 1691039373327
+
+Question:
+00:12
+
+MSK Classification Systems
+
+[...]
+
+Answer:
+00:08
+
+MSK Classification Systems
+
+Weber B
+
+-
+type A
+
+-
+below the level of the syndesmosis (infrasyndesmotic)
+
+-
+usually transverse
+
+-
+tibiofibular syndesmosis intact
+
+-
+deltoid ligament intact
+
+-
+medial malleolus occasionally fractured
+
+-
+usually stable if medial malleolus intact; treat with CAM Walker or Moon Boot with crutches and weight bear as tolerated with them for 6 weeks
+
+-
+type B
+
+-
+distal extent at the level of the syndesmosis (trans-syndesmotic); may extend some distance proximally
+
+-
+usually spiral
+
+-
+tibiofibular syndesmosis usually intact, but widening of the distal tibiofibular joint (especially on stressed views) indicates syndesmotic injury
+
+-
+medial malleolus may be fractured
+
+-
+deltoid ligament may be torn, indicated by widening of the space between the medial malleolus and talar dome
+
+-
+variable stability, dependent on the status of medial structures (malleolus/deltoid ligament) and syndesmosis; may require open reduction and internal fixation (ORIF)
+
+-
+Weber B fractures could be further subclassified as 9
+
+-
+B1: isolated
+
+-
+B2: associated with a medial lesion (malleolus or ligament)
+
+-
+B3: associated with a medial lesion and fracture of posterolateral tibia
+
+-
+type C
+
+-
+above the level of the syndesmosis (suprasyndesmotic)
+
+-
+tibiofibular syndesmosis disruption with widening of the distal tibiofibular articulation
+
+-
+medial malleolus fracture or deltoid ligament injury often present
+
+-
+fracture may arise as proximally as the level of fibular neck and not visualized on ankle films, requiring knee or full-length tibia-fibula radiographs (Maisonneuve fracture)
+
+-
+unstable: usually requires ORIF
+
+-
+Weber C fractures can be further subclassified as 6
+
+-
+C1: diaphyseal fracture of the fibula, simple
+
+-
+C2: diaphyseal fracture of the fibula, complex
+
+-
+C3: proximal fracture of the fibula
+
+-
+a fracture above the syndesmosis results from external rotation or abduction forces that also disrupt the joint
+
+-
+usually associated with an injury to the medial side
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-02T06:14:33-05:00
+Last seen: 2026-09-09T18:36:48-05:00
+Card ID: 1760542763450
+Note ID: 1760542763450
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+lipomyelomeningocele
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:34:58-05:00
+Last seen: 2026-09-09T18:34:58-05:00
+Card ID: 1775063675193
+Note ID: 1775063675193
+
+Question:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+[...]
+
+Answer:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+turn on tissue harmonics, reposition the probe
+
+## Card 4
+
+Deck: Saved Cards
+Flagged: 2026-08-30T20:38:04-05:00
+Last seen: 2026-09-09T18:13:13-05:00
+Card ID: 1787278684717
+Note ID: 1787278684716
+
+Question:
+00:12
+
+What imaging sign is shown?
+
+[...]
+
+Answer:
+00:12
+
+What imaging sign is shown?
+
+Goblet sign of right ureteral transitional cell carcinoma
+
+Source: Notion Radiology entry.
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:06:59-05:00
+Last seen: 2026-09-09T18:06:59-05:00
+Card ID: 1768331455467
+Note ID: 1768331455467
+
+Question:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+[...]
+
+Answer:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+Upper lobe predominance with relative sparing of the lung bases
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-07-18T21:31:01-05:00
+Last seen: 2026-09-09T18:01:08-05:00
+Card ID: 1783449197062
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-09-07T07:38:00-05:00
+Last seen: 2026-09-09T17:36:27-05:00
+Card ID: 1780431633231
+Note ID: 1780431633231
+
+Question:
+00:12
+
+Stress perfusion defect with matching LGE suggests [...].
+
+Answer:
+00:08
+
+Stress perfusion defect with matching LGE suggests scar.
+
+Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
+
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-20T12:43:54-05:00
@@ -65,7 +305,7 @@ Answer:
 
 In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
 
-## Card 2
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:26:18-05:00
@@ -83,7 +323,7 @@ Answer:
 
 Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
 
-## Card 3
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-07-29T16:43:26-05:00
@@ -107,7 +347,7 @@ Osteitis pubis
 
 Q7. Correct; difficulty: easy. Vital Concept: Osteitis pubis shows irregular, sclerotic symphyseal margins with possible subchondral cysts on radiographs, representing noninfectious inflammation of the pubic symphysis. In asymptomatic patients, these degenerative-appearing changes are often incidental findings that don't require treatment, distinguishing it from symptomatic athletic pubalgia or infectious osteomyelitis which shows more extensive bone marrow edema and soft-tissue involvement.
 
-## Card 4
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-08-22T07:25:29-05:00
@@ -137,7 +377,7 @@ Sagittal and axial fluid-sensitive MRI show edema in the superolateral Hoffa fat
 
 Source image: Collin et al., BJR Case Reports 2023, Figure 1, CC BY.
 
-## Card 5
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -159,7 +399,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 6
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-05-16T05:51:27-05:00
@@ -177,7 +417,7 @@ Answer:
 
 Of 150 keV x rays, gamma rays, alpha particles, and electrons, the radiation with the steepest cell survival curve and least shoulder is 150 keV electrons.
 
-## Card 7
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -195,7 +435,7 @@ Answer:
 
 In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 8
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-08-24T06:23:09-05:00
@@ -221,7 +461,7 @@ Omental infarction is usually a larger heterogeneous area of inflamed fat center
 
 Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
 
-## Card 9
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
