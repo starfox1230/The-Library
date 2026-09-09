@@ -44,12 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-08 22:01 Central Daylight Time
-Cards: 6
+Updated: 2026-09-08 22:31 Central Daylight Time
+Cards: 7
 
 ## Card 1
 
-Deck: ..Due 2026-09-02 to 2026-09-08 Visual
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:22:42-05:00
+Last seen: 2026-09-08T22:29:57-05:00
+Card ID: 1779744469985
+Note ID: 1779744469984
+
+Question:
+00:12
+
+What named distal radius fracture is shown?
+
+[...]
+
+Answer:
+00:12
+
+What named distal radius fracture is shown?
+
+Type II Smith fracture (reverse Barton fracture)
+
+Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
+
+## Card 2
+
+Deck: .NEW::Visual
 Flagged: 2026-09-08T21:53:03-05:00
 Last seen: 2026-09-08T21:53:03-05:00
 Card ID: 1783397643338
@@ -73,7 +97,7 @@ Core Radiology 2nd ed., MSK: 988. Femoral heads are common sites of infarction i
 
 Full source page:
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -97,7 +121,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T06:40:12-05:00
@@ -119,7 +143,7 @@ What happens to the location of the focal zone when the active aperture is incre
 
 Deeper into tissue
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:05:28-05:00
@@ -137,9 +161,9 @@ Answer:
 
 Pulse repetition period is the transmit time (AKA pulse duration) plus the receive time.
 
-## Card 5
+## Card 6
 
-Deck: ..Due 2026-09-02 to 2026-09-08 Audio
+Deck: .NEW::Audio
 Flagged: 2026-09-08T12:01:05-05:00
 Last seen: 2026-09-08T12:01:05-05:00
 Card ID: 1780603835800
@@ -159,7 +183,7 @@ Q2. Incorrect; difficulty: hard. Vital Concept: CTDIw (mGy) is closer to the hum
 
 Open review Q2
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:39:17-05:00
