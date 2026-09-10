@@ -44,10 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-09 18:41 Central Daylight Time
+Updated: 2026-09-09 23:39 Central Daylight Time
 Cards: 16
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:06:59-05:00
+Last seen: 2026-09-09T18:43:20-05:00
+Card ID: 1768331455467
+Note ID: 1768331455467
+
+Question:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+[...]
+
+Answer:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+Upper lobe predominance with relative sparing of the lung bases
+
+## Card 2
 
 Deck: Other::Radiology (All)::.Visual::Everything Else
 Flagged: 2026-07-04T08:05:47-05:00
@@ -159,7 +181,7 @@ a fracture above the syndesmosis results from external rotation or abduction for
 -
 usually associated with an injury to the medial side
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:14:33-05:00
@@ -181,7 +203,7 @@ Diagnosis?
 
 lipomyelomeningocele
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -203,7 +225,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 4
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -226,28 +248,6 @@ What imaging sign is shown?
 Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
-
-## Card 5
-
-Deck: .NEW::Audio
-Flagged: 2026-09-09T18:06:59-05:00
-Last seen: 2026-09-09T18:06:59-05:00
-Card ID: 1768331455467
-Note ID: 1768331455467
-
-Question:
-00:12
-
-What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
-
-[...]
-
-Answer:
-00:12
-
-What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
-
-Upper lobe predominance with relative sparing of the lung bases
 
 ## Card 6
 
