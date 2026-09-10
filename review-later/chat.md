@@ -44,76 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-10 05:53 Central Daylight Time
+Updated: 2026-09-10 17:24 Central Daylight Time
 Cards: 6
 
 ## Card 1
 
-Deck: .NEW::Audio
-Flagged: 2026-09-07T07:38:00-05:00
-Last seen: 2026-09-10T05:52:05-05:00
-Card ID: 1780431633231
-Note ID: 1780431633231
-
-Question:
-00:12
-
-Stress perfusion defect with matching LGE suggests [...].
-
-Answer:
-00:08
-
-Stress perfusion defect with matching LGE suggests scar.
-
-Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
-
-## Card 2
-
-Deck: Saved Cards
-Flagged: 2026-09-05T06:54:07-05:00
-Last seen: 2026-09-10T05:51:22-05:00
-Card ID: 1785498425560
-Note ID: 1785498425559
-
-Question:
-00:12
-
-How should the focal CTA appearance of an ulcer-like projection be described?
-
-[...]
-
-Answer:
-00:12
-
-How should the focal CTA appearance of an ulcer-like projection be described?
-
-Contrast outpouching
-
-Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
-
-## Card 3
-
-Deck: Saved Cards
-Flagged: 2026-09-07T08:54:41-05:00
-Last seen: 2026-09-10T05:49:22-05:00
-Card ID: 1788754072562
-Note ID: 1788754072560
-
-Question:
-00:12
-
-A well counter is typically a [...] used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
-
-Answer:
-00:12
-
-A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
-
-## Card 4
-
 Deck: .NEW::Visual
 Flagged: 2026-09-10T05:44:13-05:00
-Last seen: 2026-09-10T05:44:13-05:00
+Last seen: 2026-09-10T06:51:35-05:00
 Card ID: 1775678781115
 Note ID: 1775678781115
 
@@ -165,6 +103,68 @@ waveform concepts are best reviewed by perusing
 multiple normal (Fig 11) and abnormal (Fig 12)
 waveforms, each with its corresponding identifying
 characteristics and conventional name.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-07T07:38:00-05:00
+Last seen: 2026-09-10T05:52:05-05:00
+Card ID: 1780431633231
+Note ID: 1780431633231
+
+Question:
+00:12
+
+Stress perfusion defect with matching LGE suggests [...].
+
+Answer:
+00:08
+
+Stress perfusion defect with matching LGE suggests scar.
+
+Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-09-05T06:54:07-05:00
+Last seen: 2026-09-10T05:51:22-05:00
+Card ID: 1785498425560
+Note ID: 1785498425559
+
+Question:
+00:12
+
+How should the focal CTA appearance of an ulcer-like projection be described?
+
+[...]
+
+Answer:
+00:12
+
+How should the focal CTA appearance of an ulcer-like projection be described?
+
+Contrast outpouching
+
+Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
+
+## Card 4
+
+Deck: Saved Cards
+Flagged: 2026-09-07T08:54:41-05:00
+Last seen: 2026-09-10T05:49:22-05:00
+Card ID: 1788754072562
+Note ID: 1788754072560
+
+Question:
+00:12
+
+A well counter is typically a [...] used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+Answer:
+00:12
+
+A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
 
 ## Card 5
 
