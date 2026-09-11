@@ -44,7 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-11 06:45 Central Daylight Time
+Updated: 2026-09-11 06:54 Central Daylight Time
 Cards: 2
 
 ## Card 1
@@ -71,7 +71,7 @@ subpulmonic course of aberrant left coronary artery arising from the right coron
 
 ## Card 2
 
-Deck: ..Due 2026-09-04 to 2026-09-10 Combined
+Deck: .NEW::Audio
 Flagged: 2026-09-11T06:23:18-05:00
 Last seen: 2026-09-11T06:23:18-05:00
 Card ID: 1771375802868
