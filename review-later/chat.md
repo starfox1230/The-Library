@@ -44,10 +44,30 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-11 13:28 Central Daylight Time
+Updated: 2026-09-11 20:49 Central Daylight Time
 Cards: 12
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:09:26-05:00
+Last seen: 2026-09-11T13:44:12-05:00
+Card ID: 1762544589804
+Note ID: 1762544589803
+
+Question:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for [...].
+
+Answer:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for lung cancer.
+
+Notion AIRP Lecture
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -67,7 +87,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -89,7 +109,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 3
+## Card 4
 
 Deck: .Core Backlog
 Flagged: 2026-09-05T05:01:35-05:00
@@ -109,7 +129,7 @@ A nasal wall mass with a cerebriform enhancement pattern is characteristic of in
 
 Q6. Incorrect; difficulty: hard. The CT demonstrates a mass located in the lateral nasal wall with focal coarse calcifications (yellow arrow), as well as bony resorption and extension into the maxillary sinus (green arrow).
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:39:17-05:00
@@ -132,26 +152,6 @@ How do you distinguish a myelocele from a myelomeningocele clinically or on imag
 Myelocele = exposed neural placode flush with adjacent skin;
 
 Myelomeningocele = exposed neural placode with CSF protruding beyond expected skin surface
-
-## Card 5
-
-Deck: .NEW::Audio
-Flagged: 2026-09-11T13:09:26-05:00
-Last seen: 2026-09-11T13:09:26-05:00
-Card ID: 1762544589804
-Note ID: 1762544589803
-
-Question:
-00:12
-
-A metastatic lesion in the hand or foot should raise strong suspicion for [...].
-
-Answer:
-00:12
-
-A metastatic lesion in the hand or foot should raise strong suspicion for lung cancer.
-
-Notion AIRP Lecture
 
 ## Card 6
 
