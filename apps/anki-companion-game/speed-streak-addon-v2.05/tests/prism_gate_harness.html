@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Speed Streak 2.05 · Hypernova preview</title>
+<link rel="stylesheet" href="../web/overlay.css">
+<style>html,body{margin:0;height:100%;background:#090e17;color:#e5f4fa;font:14px system-ui}.demo{padding:40px;max-width:430px;margin-right:400px}.demo h1{font-size:32px}.demo p{color:#96b1c4;line-height:1.6}.demo label{display:block;margin:18px 0}.demo select,.demo input,.demo button{background:#152335;border:1px solid #3a5269;border-radius:8px;color:inherit;padding:9px;margin:4px}.demo button{cursor:pointer}.speed-streak-sidebar{left:auto!important;right:12px!important;width:366px!important} @media(max-width:600px){.demo{display:none}.speed-streak-sidebar{left:12px!important;right:12px!important;width:auto!important}}</style>
+</head><body>
+<div class="demo"><p>SPEED STREAK / 2.05</p><h1>Hypernova</h1><p>Start with a quiet seed. Every answer adds a lasting, rating-colored segment; every ten completes a ring. Earn stars at 20, plasma at 30, a corona at 50, and jets at 60. Build the full hypernova at 100, then reforge its rings one answer at a time.</p>
+<label>Streak <input id="streak" type="number" min="0" value="0"></label>
+<p>Rings rotate from the first answer. Neighboring layers turn in opposite directions; try 17 cards to see the first two rings moving together.</p>
+<label>Motion <select id="quality"><option value="ultra_low_resource">Still</option><option value="low_resource" selected>Smooth · 60 FPS</option><option value="webgl">Rich · 60 FPS</option></select></label>
+<button data-event="good">Good +1</button><button data-event="easy">Easy +1</button><button data-event="time-boost">Boost</button><button data-event="timeout">Timeout</button><button id="pause">Pause / resume</button>
+<button id="next-layer">Next ten-card milestone</button>
+<p>One bounded canvas. No downloaded assets, WebGL requirement, or added runtime dependency.</p></div>
+<script>window.demoCommands=[];window.pycmd=command=>{demoCommands.push(command)};</script>
+<script src="../web/overlay.js"></script>
+<script>
+window.demoState={enabled:true,visualsEnabled:true,displayMode:'compatibility',visualMode:'prism_gate',renderMode:'low_resource',sphereMode:'fusion',streak:0,satelliteColors:[],orbitAnimationEnabled:true,crystalRotationEnabled:true,appearanceMode:'midnight',phase:'idle',eventNonce:1,audioEnabled:false,hapticsEnabled:false,gameplayMode:'time_boost',boostCharges:3,maxBoostCharges:5,cardsPerBoostCharge:10,boostChargeProgress:0,scoreboardLayout:'off',customColors:{},canUseTimeBoost:true,showFocusModeToggles:true};
+window.updateDemoState=patch=>{Object.assign(demoState,patch);SpeedStreak.receiveState({...demoState})};
+window.demoEvent=kind=>{let streak=demoState.streak;const color=kind==='easy'?'blue':kind==='hard'?'yellow':'green';let colors=demoState.satelliteColors.slice();if(['good','easy','hard'].includes(kind)){streak++;colors.push(color);}if(['timeout','again','reset'].includes(kind)){streak=0;colors=[];}updateDemoState({streak,satelliteColors:colors.slice(-100),eventNonce:demoState.eventNonce+1,lastEventType:kind,lastSatelliteColor:color});document.getElementById('streak').value=streak};
+document.querySelectorAll('[data-event]').forEach(b=>b.onclick=()=>demoEvent(b.dataset.event));
+document.getElementById('streak').onchange=e=>{const streak=Math.max(0,Math.floor(Number(e.target.value)||0));updateDemoState({streak,satelliteColors:Array(Math.min(100,streak)).fill('green')});};
+document.getElementById('next-layer').onclick=()=>{const streak=Math.floor(demoState.streak/10)*10+9;updateDemoState({streak,satelliteColors:Array(Math.min(100,streak)).fill('green')});demoEvent('good');};
+document.getElementById('quality').onchange=e=>updateDemoState({renderMode:e.target.value});
+document.getElementById('pause').onclick=()=>updateDemoState({paused:!demoState.paused});
+updateDemoState({});
+</script></body></html>

@@ -10,7 +10,7 @@ Use [RADIOLOGY_STUDY_START_HERE.md](RADIOLOGY_STUDY_START_HERE.md) when deciding
 
 Use [RUN_RADIOLOGY_CARDS.md](RUN_RADIOLOGY_CARDS.md) from any local Codex conversation, or invoke the installed `$radiology-cards` skill. Examples: `Run my Notion-to-Anki pathway once`, `Convert my selected daily facts`, or `Run the full nightly packet once`. These select different scopes; the launcher explains the defaults. The recurring scheduler stays separate.
 
-Card-writing policy belongs in CARD_STYLE_GUIDE.md; eligibility belongs in the source workflow; package mechanics belong in APKG_PACKAGING.md. The launcher and skill point to those files rather than copying their content. ChatGPT Generator 3.0 and YT2's AI rewrite prompts are separately maintained.
+Card-writing policy belongs in CARD_STYLE_GUIDE.md; eligibility belongs in the source workflow; package mechanics belong in APKG_PACKAGING.md. The launcher and skill point to those files rather than copying their content. ChatGPT Generator 3.0 and the YT2 Anki Card Reviewer's AI rewrite prompts are separately maintained.
 
 When card behavior needs to change, edit the smallest relevant canonical file here:
 
@@ -21,6 +21,8 @@ When card behavior needs to change, edit the smallest relevant canonical file he
 - `BOARDVITALS_WORKFLOW.md` for BoardVitals quiz capture, card generation, and local HTML quiz review behavior.
 - `VISUAL_STUDY_AND_ANKI_SPEC.md` for visual feeds, PDF figure handling, image-backed card candidates, reviewer image behavior, and media-aware APKG requirements.
 - `YOUTUBE_ANATOMY_ANKI_WORKFLOW.md` for timestamped frame extraction, image cropping, anatomy card construction, and import verification.
+- `RADIOLOGY_IMAGE_BANK_WORKFLOW.md` for the separate desktop curation and rapid visual-review route built from the current MSK Image Bank prototype.
+- `REVIEW_LATER_WORKFLOW.md` for existing-card dispositions and the new-concept route through self-contained facts, Anki Card Generator 3.0, and the YT2 Anki Card Reviewer.
 
 Other automations, apps, and workflow notes should point here instead of duplicating the rules.
 

@@ -56,6 +56,8 @@ from aqt.qt import (
     QWidget,
 )
 
+from .build_info import BUILD_ID
+from .audio_feedback import native_audio_enabled
 from .anki_flag_colors import get_anki_flag_palette
 from .display_mode import (
     DISPLAY_MODE_INLINE,
@@ -2303,6 +2305,10 @@ class AudioDiagnosticsDialog(QDialog):
         native_button = ModernButton("Play Native", self)
         native_button.setProperty("class", "secondaryAction")
         native_button.clicked.connect(self._play_native)
+        if not native_audio_enabled():
+            native_button.setEnabled(False)
+            native_button.setText("Native disabled on macOS")
+            help_text.setText("This build uses browser audio on macOS to avoid the QtMultimedia crash. Play Browser, then copy the report to verify your build and playback result.")
         compatibility_button = ModernButton("Play Browser", self)
         compatibility_button.setProperty("class", "secondaryAction")
         compatibility_button.clicked.connect(self._play_compatibility)
@@ -2498,7 +2504,7 @@ class SettingsDialog(QDialog):
         self.flag_palette = get_anki_flag_palette()
 
         self.setModal(False)
-        self.setWindowTitle("Speed Streak Settings")
+        self.setWindowTitle(f"Speed Streak Settings - {BUILD_ID}")
         self.setWindowFlag(Qt.WindowType.Window, True)
         self.setWindowFlag(Qt.WindowType.WindowMinMaxButtonsHint, True)
         # Keep the fully built dialog alive after the first close. Reopening

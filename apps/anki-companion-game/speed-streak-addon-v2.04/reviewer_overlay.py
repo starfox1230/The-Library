@@ -20,7 +20,8 @@ from aqt.qt import QAction, QApplication, QByteArray, QEvent, QHBoxLayout, QInpu
 
 from .addon_meta import ensure_meta_json
 from .anki_flag_colors import get_anki_flag_palette
-from .audio_feedback import AudioFeedbackController
+from .audio_feedback import AudioFeedbackController, native_audio_enabled
+from .build_info import BUILD_ID
 from .countdown_audio import (
     DEFAULT_COUNTDOWN_AUDIO_ALIGNMENT_MS,
     DEFAULT_COUNTDOWN_AUDIO_ENABLED,
@@ -745,7 +746,7 @@ class ReviewerOverlayController:
         # short compressed clip can produce a small stutter at the beginning.
         # The review web player is already the proven runtime path for rating
         # MP3s, so use that same smooth, volume-controlled path in the sampler.
-        if path is not None and path.suffix.lower() != ".wav":
+        if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
             if self._play_review_web_audio_feedback(
                 normalized,
                 interrupt=True,
@@ -759,6 +760,8 @@ class ReviewerOverlayController:
         file_name: str,
         volume_percent: int = DEFAULT_AUDIO_VOLUME_PERCENT,
     ) -> bool:
+        if not native_audio_enabled():
+            return self.audio_feedback.play_native_test(file_name, volume_percent)
         # Test the user's actual selection. WAV keeps the persistent
         # QSoundEffect fast path; compressed formats exercise Qt's native
         # decoder rather than being silently replaced by a default WAV.
@@ -799,6 +802,8 @@ class ReviewerOverlayController:
         rows = [
             "Speed Streak audio diagnostic v1",
             f"Speed Streak: {WHATS_NEW_VERSION}",
+            f"Build: {BUILD_ID}",
+            f"Audio policy: {'native-and-browser' if native_audio_enabled() else 'browser-only (macOS)'}",
             f"Operating system: {platform.platform()}",
             f"Anki: {anki_version}",
             f"Qt: {qt_version}",
@@ -829,7 +834,7 @@ class ReviewerOverlayController:
     ) -> bool:
         normalized = self.audio_feedback.normalize_file(file_name)
         path = self.audio_feedback.resolve_path(normalized)
-        if path is not None and path.suffix.lower() != ".wav":
+        if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
             if self._play_review_web_audio_feedback(
                 normalized,
                 interrupt=True,
@@ -847,14 +852,14 @@ class ReviewerOverlayController:
     ) -> bool:
         normalized = self.audio_feedback.normalize_file(file_name)
         path = self.audio_feedback.resolve_path(normalized)
-        if path is not None and path.suffix.lower() != ".wav":
+        if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
             return self._prepare_web_audio_feedback(normalized)
         return self.audio_feedback.prepare_timed(normalized, volume_percent)
 
     def countdown_audio_preview_ready(self, file_name: str) -> bool:
         normalized = self.audio_feedback.normalize_file(file_name)
         path = self.audio_feedback.resolve_path(normalized)
-        if path is not None and path.suffix.lower() != ".wav":
+        if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
             return self._prepare_web_audio_feedback(normalized)
         return self.audio_feedback.timed_ready(normalized)
 
@@ -865,7 +870,7 @@ class ReviewerOverlayController:
     ) -> bool:
         normalized = self.audio_feedback.normalize_file(file_name)
         path = self.audio_feedback.resolve_path(normalized)
-        if path is not None and path.suffix.lower() != ".wav":
+        if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
             if self._play_review_web_audio_feedback(
                 normalized,
                 interrupt=True,
@@ -1090,14 +1095,14 @@ class ReviewerOverlayController:
         native_event_files: list[str] = []
         for selected in selected_event_files:
             path = self.audio_feedback.resolve_path(selected)
-            if path is not None and path.suffix.lower() != ".wav":
+            if path is not None and (not native_audio_enabled() or path.suffix.lower() != ".wav"):
                 self._prepare_web_audio_feedback(selected)
             else:
                 native_event_files.append(selected)
         self.audio_feedback.prepare_files(native_event_files)
         if state.countdown_audio_file:
             countdown_path = self.audio_feedback.resolve_path(state.countdown_audio_file)
-            if countdown_path is not None and countdown_path.suffix.lower() != ".wav":
+            if countdown_path is not None and (not native_audio_enabled() or countdown_path.suffix.lower() != ".wav"):
                 self._prepare_web_audio_feedback(state.countdown_audio_file)
             else:
                 self.audio_feedback.prepare_timed(
@@ -1153,7 +1158,7 @@ class ReviewerOverlayController:
                 self.engine.state.audio_event_volumes.get(event_key, DEFAULT_AUDIO_VOLUME_PERCENT)
             )
             web_fallback = None
-            if event_key in WEBVIEW_AUDIO_EVENT_KEYS:
+            if not native_audio_enabled() or event_key in WEBVIEW_AUDIO_EVENT_KEYS:
                 web_fallback = lambda: self._play_review_web_audio_feedback(
                     selected,
                     interrupt=(event_key != "sync"),
@@ -1166,7 +1171,7 @@ class ReviewerOverlayController:
             # path for every compressed review cue, including Sync. PCM WAV
             # cues retain the persistent QSoundEffect path and lower latency.
             prefer_review_web = (
-                web_fallback is not None and Path(selected).suffix.lower() != ".wav"
+                web_fallback is not None and (not native_audio_enabled() or Path(selected).suffix.lower() != ".wav")
             )
             played = web_fallback() if prefer_review_web else False
             if not played:
@@ -2144,6 +2149,8 @@ class ReviewerOverlayController:
             self.run_history.end_manual_pause()
 
     def on_profile_will_close(self, *_args: Any) -> None:
+        self._cancel_countdown_audio(stop_sound=True)
+        self.audio_feedback.stop_all()
         if self.run_history.active is None:
             return
         if self.resume_run_after_restart_enabled:
@@ -2183,10 +2190,7 @@ class ReviewerOverlayController:
         previous_countdown_audio_file = str(self.engine.state.countdown_audio_file)
         previous_selected_audio_file = str(self.engine.state.selected_audio_file)
         self.data_root = next_root
-        self.audio_feedback = AudioFeedbackController(
-            ADDON_ROOT / AUDIO_TRIMMED_DIRECTORY_NAME,
-            self.data_root,
-        )
+        self.audio_feedback.rebind_user_files_root(self.data_root)
         self._normalize_feedback_preferences()
         preferences_migrated = (
             self.engine.state.audio_event_files != previous_audio_event_files
@@ -2680,7 +2684,7 @@ class ReviewerOverlayController:
             return
         state.countdown_audio_file = selected
         selected_path = self.audio_feedback.resolve_path(selected)
-        if selected_path is not None and selected_path.suffix.lower() != ".wav":
+        if selected_path is not None and (not native_audio_enabled() or selected_path.suffix.lower() != ".wav"):
             self._prepare_web_audio_feedback(selected)
         else:
             self.audio_feedback.prepare_timed(selected, state.countdown_audio_volume)

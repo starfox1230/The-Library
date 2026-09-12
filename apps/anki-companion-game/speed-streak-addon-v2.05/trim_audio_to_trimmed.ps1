@@ -1,0 +1,121 @@
+param(
+    [string]$SourceDir = "Audio",
+    [string]$OutputDir = "Audio_trimmed",
+    [string]$OutputExtension = ".mp3",
+    [double]$StartDurationSeconds = 0.02,
+    [double]$WindowSeconds = 0.02,
+    [double]$StartThresholdDb = -38.0,
+    [double]$FadeInSeconds = 0.003,
+    [switch]$SkipExisting
+)
+
+$ErrorActionPreference = "Stop"
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$sourceRoot = Join-Path $scriptRoot $SourceDir
+$outputRoot = Join-Path $scriptRoot $OutputDir
+
+if (-not (Test-Path $sourceRoot)) {
+    throw "Source audio folder not found: $sourceRoot"
+}
+
+$ffmpeg = Get-Command ffmpeg -ErrorAction SilentlyContinue
+if (-not $ffmpeg) {
+    throw "ffmpeg was not found on PATH. Install ffmpeg first."
+}
+
+$supportedExtensions = @(".aac", ".flac", ".m4a", ".mp3", ".oga", ".ogg", ".opus", ".wav")
+$normalizedOutputExtension = $OutputExtension.Trim()
+if (-not $normalizedOutputExtension.StartsWith(".")) {
+    $normalizedOutputExtension = ".$normalizedOutputExtension"
+}
+if ($supportedExtensions -notcontains $normalizedOutputExtension.ToLowerInvariant()) {
+    throw "Unsupported output extension: $OutputExtension"
+}
+# Silence trimming can cut into a non-zero sample. On an already-open output
+# channel that discontinuity is heard as a click on every replay. A 3 ms fade
+# is too short to soften the intended attack, but guarantees a zero-amplitude
+# start for clean repeated playback.
+$filter = "silenceremove=start_periods=1:start_duration=$($StartDurationSeconds):start_threshold=$($StartThresholdDb)dB:detection=peak:window=$($WindowSeconds),afade=t=in:st=0:d=$($FadeInSeconds)"
+
+function Get-EncoderArgs {
+    param([string]$Extension)
+
+    switch ($Extension.ToLowerInvariant()) {
+        ".aac"  { return @("-c:a", "aac", "-b:a", "192k") }
+        ".flac" { return @("-c:a", "flac") }
+        ".m4a"  { return @("-c:a", "aac", "-b:a", "192k") }
+        ".mp3"  { return @("-c:a", "libmp3lame", "-q:a", "2") }
+        ".oga"  { return @("-c:a", "libvorbis", "-q:a", "6") }
+        ".ogg"  { return @("-c:a", "libvorbis", "-q:a", "6") }
+        ".opus" { return @("-c:a", "libopus", "-b:a", "128k") }
+        ".wav"  { return @("-c:a", "pcm_s16le") }
+        default { throw "Unsupported extension: $Extension" }
+    }
+}
+
+$audioFiles = Get-ChildItem -Path $sourceRoot -Recurse -File | Where-Object { $supportedExtensions -contains $_.Extension.ToLowerInvariant() }
+if (-not $audioFiles) {
+    Write-Host "No supported audio files found under $sourceRoot"
+    exit 0
+}
+
+$processed = 0
+$skipped = 0
+$failed = 0
+
+foreach ($file in $audioFiles) {
+    $relativePath = $file.FullName.Substring($sourceRoot.Length).TrimStart('\')
+    $relativeOutputPath = [System.IO.Path]::ChangeExtension($relativePath, $normalizedOutputExtension)
+    $outputPath = Join-Path $outputRoot $relativeOutputPath
+    $tempOutputPath = "$outputPath.tmp$normalizedOutputExtension"
+
+    if ($SkipExisting -and (Test-Path $outputPath)) {
+        $skipped += 1
+        continue
+    }
+
+    $outputDirectory = Split-Path -Parent $outputPath
+    if (-not (Test-Path $outputDirectory)) {
+        New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
+    }
+
+    $encoderArgs = Get-EncoderArgs -Extension $normalizedOutputExtension
+    $arguments = @(
+        "-nostdin",
+        "-hide_banner",
+        "-loglevel", "error",
+        "-y",
+        "-i", $file.FullName,
+        "-af", $filter
+    ) + $encoderArgs + @($tempOutputPath)
+
+    try {
+        if (Test-Path $tempOutputPath) {
+            Remove-Item -Force $tempOutputPath
+        }
+        if (Test-Path $outputPath) {
+            Remove-Item -Force $outputPath
+        }
+        & $ffmpeg.Source @arguments
+        if ($LASTEXITCODE -ne 0) {
+            throw "ffmpeg exited with code $LASTEXITCODE"
+        }
+        Move-Item -Force $tempOutputPath $outputPath
+        $processed += 1
+    } catch {
+        if (Test-Path $tempOutputPath) {
+            Remove-Item -Force $tempOutputPath
+        }
+        $failed += 1
+        Write-Warning "Failed to trim $relativePath : $($_.Exception.Message)"
+    }
+}
+
+Write-Host "Trimmed audio complete."
+Write-Host "Processed: $processed"
+Write-Host "Skipped:   $skipped"
+Write-Host "Failed:    $failed"
+Write-Host "Output:    $outputRoot"
+Write-Host "Format:    $normalizedOutputExtension"
+Write-Host "Filter:    $filter"
