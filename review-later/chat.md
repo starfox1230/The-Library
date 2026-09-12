@@ -44,7 +44,29 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-12 07:05 Central Daylight Time
-Cards: 0
+Updated: 2026-09-12 07:07 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-07-29T16:43:26-05:00
+Last seen: 2026-09-12T07:07:36-05:00
+Card ID: 1779744469981
+Note ID: 1779744469980
+
+Question:
+00:12
+
+Asymptomatic patient. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Asymptomatic patient. Most likely diagnosis?
+
+Osteitis pubis
+
+Q7. Correct; difficulty: easy. Vital Concept: Osteitis pubis shows irregular, sclerotic symphyseal margins with possible subchondral cysts on radiographs, representing noninfectious inflammation of the pubic symphysis. In asymptomatic patients, these degenerative-appearing changes are often incidental findings that don't require treatment, distinguishing it from symptomatic athletic pubalgia or infectious osteomyelitis which shows more extensive bone marrow edema and soft-tissue involvement.
