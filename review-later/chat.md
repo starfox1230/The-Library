@@ -44,10 +44,135 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-11 21:32 Central Daylight Time
-Cards: 18
+Updated: 2026-09-11 21:46 Central Daylight Time
+Cards: 22
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:33:26-05:00
+Last seen: 2026-09-11T21:44:17-05:00
+Card ID: 1779059682569
+Note ID: 1779059682568
+
+Question:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+marrow stimulation in setting of colony-stimulating factors
+
+Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-07-12T13:25:41-05:00
+Last seen: 2026-09-11T21:42:57-05:00
+Card ID: 1770319689216
+Note ID: 1770319689214
+
+Question:
+00:12
+
+A proton density weighted image uses [...] TR and [...] TE.
+
+Answer:
+00:12
+
+A proton density weighted image uses long TR and short TE.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-10T05:44:13-05:00
+Last seen: 2026-09-11T21:42:21-05:00
+Card ID: 1775678781115
+Note ID: 1775678781115
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+tricuspid regurgitation
+
+Normal Hepatic Vein:
+
+Pulsatile Portal Vein:
+
+Pulsatile Hepatic Vein due to Tricuspid Regurgitation:
+
+Pulsatile Hepatic Vein due to Right Heart Failure:
+
+Normal:
+
+Abnormal:
+
+Any waveform can be systematically described
+or may be named with conventional terms. The
+systematic characterization of all waveforms
+includes the features described earlier. Specifically,
+these features include predominant flow
+direction (antegrade versus retrograde), phasicity
+(pulsatile, phasic, nonphasic, or aphasic), phase
+quantification (monophasic, biphasic, triphasic,
+or tetraphasic), and inflection quantification (aninflectional,
+di-inflectional, or tetrainflectional).
+Additional features include the presence or absence
+of spectral broadening and, in arteries, the
+level of resistance (high versus low). Pragmatically,
+work volume and time constraints limit the
+usefulness of routine systematic characterization
+for all spectral Doppler examinations. However,
+conventional naming systems, designed for conciseness,
+help overcome these limitations. These
+waveform concepts are best reviewed by perusing
+multiple normal (Fig 11) and abnormal (Fig 12)
+waveforms, each with its corresponding identifying
+characteristics and conventional name.
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-09-11T21:37:35-05:00
+Last seen: 2026-09-11T21:37:43-05:00
+Card ID: 1783397643266
+Note ID: 1783397643265
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Plantar fibromatosis -- Enhancing nodular mass along the plantar aponeurosis.
+
+Core Radiology 2nd ed., MSK: 966. Plantar fibromatosis is Ledderhose disease.
+
+Full source page:
+
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-03-21T07:04:48-05:00
@@ -69,7 +194,7 @@ What type of breast calcification is this?
 
 fine pleomorphic
 
-## Card 2
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -91,7 +216,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-25T18:22:08-05:00
@@ -109,7 +234,7 @@ Answer:
 
 Gerdy tubercle = lateral proximal tibia; iliotibial band inserts there.
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T19:53:08-05:00
@@ -131,7 +256,7 @@ Diagnosis in patient with recent spine surgery?
 
 remote cerebellar hemorrhage
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:06:59-05:00
@@ -153,7 +278,7 @@ What is the typical zonal distribution of cysts in pulmonary Langerhans cell his
 
 Upper lobe predominance with relative sparing of the lung bases
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
@@ -171,7 +296,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-02T19:52:53-05:00
@@ -193,7 +318,7 @@ Which lung cancer subtype does not express the tissue marker thyroid transcripti
 
 squamous cell carcinoma
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -213,7 +338,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 9
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -233,7 +358,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 10
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -255,7 +380,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 11
+## Card 15
 
 Deck: .Core Backlog
 Flagged: 2026-09-05T05:01:35-05:00
@@ -275,7 +400,7 @@ A nasal wall mass with a cerebriform enhancement pattern is characteristic of in
 
 Q6. Incorrect; difficulty: hard. The CT demonstrates a mass located in the lateral nasal wall with focal coarse calcifications (yellow arrow), as well as bony resorption and extension into the maxillary sinus (green arrow).
 
-## Card 12
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:39:17-05:00
@@ -299,7 +424,7 @@ Myelocele = exposed neural placode flush with adjacent skin;
 
 Myelomeningocele = exposed neural placode with CSF protruding beyond expected skin surface
 
-## Card 13
+## Card 17
 
 Deck: Saved Cards
 Flagged: 2026-09-11T11:45:03-05:00
@@ -321,7 +446,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 14
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:22:04-05:00
@@ -339,7 +464,7 @@ Answer:
 
 The main geometric advantage of a phased array transducer is a small transducer footprint that can still create a large field of view through beam steering
 
-## Card 15
+## Card 19
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
@@ -361,7 +486,7 @@ This is traumatic rather than an unfused ossification center.
 
 Source: Notion Radiology entry.
 
-## Card 16
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:42:43-05:00
@@ -383,7 +508,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 17
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T06:40:12-05:00
@@ -405,7 +530,7 @@ What happens to the location of the focal zone when the active aperture is incre
 
 Deeper into tissue
 
-## Card 18
+## Card 22
 
 Deck: .NEW::Visual
 Flagged: 2026-07-28T11:53:25-05:00
