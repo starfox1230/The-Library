@@ -165,6 +165,7 @@ TEMPLATE = r'''<!doctype html>
       <button class="tab" data-view="shorts" role="tab">Shorts</button>
     </div>
     <div class="search-row"><input class="search" id="search" type="search" placeholder="Search title, topic, series, or description…" aria-label="Search videos"><select class="select" id="sort" aria-label="Sort videos"><option value="study">Study order</option><option value="topic">Category / topic</option><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="shortest">Shortest first</option><option value="longest">Longest first</option><option value="title">Title A–Z</option></select></div>
+    <select class="select" id="approach" aria-label="Choose a saved watching approach"><option value="guided">Approach: Guided study order</option><option value="board-brain">Approach: Brain board review</option><option value="board-spine">Approach: Spine board review</option><option value="board-pediatric">Approach: Pediatric board review</option><option value="board-head-neck">Approach: Head / Neck board review</option><option value="buzzword">Approach: Buzzword Core Exam</option><option value="rapid">Approach: Rapid review compilations</option><option value="foundations">Approach: Foundations &amp; approach</option><option value="shorts">Approach: Sign Shorts</option><option value="custom">Approach: Current custom view</option></select>
     <button class="btn filter-toggle" id="filterToggle" type="button" aria-expanded="false"><span>Filters</span><span id="filterArrow">▾</span></button>
     <div class="filter-panel" id="filterPanel" hidden>
       <div class="facet"><h2>Study track</h2><div class="chips" id="trackFilters"></div></div>
@@ -174,7 +175,7 @@ TEMPLATE = r'''<!doctype html>
     </div>
   </section>
 
-  <div class="results-line"><span id="resultsSummary"></span><span>Tap a title for details</span></div>
+  <div class="results-line"><span id="resultsSummary"></span><span id="savedState">Saved locally on this phone</span></div>
   <section class="list" id="videoList"></section>
 
   <footer>
@@ -188,12 +189,12 @@ TEMPLATE = r'''<!doctype html>
 
 <dialog id="detailDialog"><div class="dialog-head"><strong>Video details</strong><button class="btn small ghost" data-close="detailDialog" type="button">Close</button></div><div class="dialog-body"><div id="detailContent"></div></div></dialog>
 <dialog id="notesDialog"><div class="dialog-head"><strong id="notesHeading">Notes</strong><button class="btn small ghost" data-close="notesDialog" type="button">Close</button></div><div class="dialog-body"><textarea class="notes" id="notesArea" placeholder="What do you want to remember?"></textarea><div class="dialog-actions"><button class="btn primary" id="saveNotes" type="button">Save notes</button></div></div></dialog>
-<dialog id="helpDialog"><div class="dialog-head"><strong>How to use this catalog</strong><button class="btn small ghost" data-close="helpDialog" type="button">Close</button></div><div class="dialog-body"><p><strong>Default study order:</strong> foundations and approach → numbered Board Review cases → Buzzword Core Exam cases → rapid compilations → sign review and Shorts.</p><p><strong>Numbers:</strong> the blue badge is the overall catalog position. The title and cyan pill preserve the original series number, such as <em>Board review · spine · Case 1</em> or <em>Buzzword · Case 40</em>.</p><p><strong>One at a time:</strong> use <em>Need</em>, open the first item, and mark it watched when finished. <em>Next up</em> follows the current filtered queue.</p><p><strong>Topics:</strong> use Category / topic filters when you want, for example, only MRI interpretation, spine cases, neuroanatomy, or signs.</p></div></dialog>
+<dialog id="helpDialog"><div class="dialog-head"><strong>How to use this catalog</strong><button class="btn small ghost" data-close="helpDialog" type="button">Close</button></div><div class="dialog-body"><p><strong>Default study order:</strong> foundations and approach → numbered Board Review cases → Buzzword Core Exam cases → rapid compilations → sign review and Shorts.</p><p><strong>Numbers:</strong> the blue badge is the overall catalog position. The title and cyan pill preserve the original series number, such as <em>Board review · spine · Case 1</em> or <em>Buzzword · Case 40</em>.</p><p><strong>Choose an approach:</strong> use the Approach menu for a ready-made queue such as Brain board review, Spine board review, Buzzword Core Exam, or Sign Shorts. You can then refine it with filters or sorting.</p><p><strong>One at a time:</strong> use <em>Need</em>, open the first item, and mark it watched when finished. <em>Next up</em> follows the current filtered queue.</p><p><strong>Persistence:</strong> the selected approach, filters, sort order, search, watched status, favorites, and notes are saved locally in this phone/browser.</p></div></dialog>
 
 <script>
 const videos = __DATA__;
 const STORAGE_KEY = 'neuroradish-catalog-v1';
-const stateDefaults = { watched: {}, favorites: {}, notes: {}, ui: { view: 'need', sort: 'study', search: '', filters: { track: [], category: [], format: [] }, filterOpen: false } };
+const stateDefaults = { watched: {}, favorites: {}, notes: {}, ui: { view: 'need', sort: 'study', search: '', approach: 'guided', filters: { track: [], category: [], format: [] }, filterOpen: false } };
 let state = loadState();
 let currentNotesId = null;
 
@@ -233,7 +234,7 @@ function renderFacet(field, id) {
   $(id).innerHTML = facetValues(field).map(([value, count]) => `<button class="chip ${selected.includes(value) ? 'active' : ''}" data-facet="${field}" data-value="${esc(value)}" type="button">${esc(categoryName({category:value}))}<span>${count}</span></button>`).join('');
   $(id).querySelectorAll('[data-facet]').forEach(btn => btn.onclick = () => {
     const f = btn.dataset.facet, value = btn.dataset.value, list = state.ui.filters[f] || [];
-    state.ui.filters[f] = list.includes(value) ? list.filter(x => x !== value) : [...list, value];
+    markCustomApproach(); state.ui.filters[f] = list.includes(value) ? list.filter(x => x !== value) : [...list, value];
     saveState(); renderAll();
   });
 }
@@ -278,6 +279,28 @@ function renderNextUp(rows) {
   $('nextMeta').textContent = `${seriesLabel(next)} · ${next.duration}`;
   $('nextButton').onclick = () => openVideo(next);
 }
+const approaches = {
+  guided: { view: 'need', sort: 'study', search: '', filters: { track: [], category: [], format: [] } },
+  'board-brain': { view: 'need', sort: 'study', search: '', filters: { track: ['Board Review Cases'], category: ['Board review — brain'], format: [] } },
+  'board-spine': { view: 'need', sort: 'study', search: '', filters: { track: ['Board Review Cases'], category: ['Board review — spine'], format: [] } },
+  'board-pediatric': { view: 'need', sort: 'study', search: '', filters: { track: ['Board Review Cases'], category: ['Board review — pediatric'], format: [] } },
+  'board-head-neck': { view: 'need', sort: 'study', search: '', filters: { track: ['Board Review Cases'], category: ['Board review — head & neck'], format: [] } },
+  buzzword: { view: 'need', sort: 'study', search: '', filters: { track: ['Core Exam / Buzzword Cases'], category: [], format: [] } },
+  rapid: { view: 'need', sort: 'study', search: '', filters: { track: ['Rapid Review Compilations'], category: [], format: [] } },
+  foundations: { view: 'need', sort: 'study', search: '', filters: { track: ['Foundations & Approach'], category: [], format: [] } },
+  shorts: { view: 'shorts', sort: 'title', search: '', filters: { track: [], category: [], format: [] } }
+};
+function chooseApproach(key) {
+  const preset = approaches[key];
+  if (!preset) return;
+  state.ui.approach = key;
+  state.ui.view = preset.view;
+  state.ui.sort = preset.sort;
+  state.ui.search = preset.search;
+  state.ui.filters = JSON.parse(JSON.stringify(preset.filters));
+  saveState(); renderAll();
+}
+function markCustomApproach() { if (state.ui.approach !== 'custom') state.ui.approach = 'custom'; }
 function rowHtml(v) {
   const isWatched = watched(v), isFav = favorite(v);
   const topicList = [v.subcategory, v.format].filter(Boolean);
@@ -315,12 +338,13 @@ function openDetail(id) {
 }
 function openNotes(id) { const v = videos.find(x => x.video_id === id); if (!v) return; currentNotesId = id; $('notesHeading').textContent = `Notes · ${v.title}`; $('notesArea').value = state.notes[id] || ''; $('notesDialog').showModal(); setTimeout(() => $('notesArea').focus(), 50); }
 function saveNotes() { if (!currentNotesId) return; const value = $('notesArea').value.trim(); if (value) state.notes[currentNotesId] = value; else delete state.notes[currentNotesId]; saveState(); $('notesDialog').close(); }
-function setView(view) { state.ui.view = view; saveState(); renderAll(); }
+function setView(view) { markCustomApproach(); state.ui.view = view; saveState(); renderAll(); }
 function renderAll() {
   const rows = filteredVideos();
   document.querySelectorAll('.tab').forEach(btn => { const active = btn.dataset.view === state.ui.view; btn.classList.toggle('active', active); btn.setAttribute('aria-selected', String(active)); });
   $('search').value = state.ui.search || '';
   $('sort').value = state.ui.sort || 'study';
+  $('approach').value = state.ui.approach || 'custom';
   $('filterPanel').hidden = !state.ui.filterOpen;
   $('filterToggle').setAttribute('aria-expanded', String(state.ui.filterOpen));
   $('filterArrow').textContent = state.ui.filterOpen ? '▴' : '▾';
@@ -332,10 +356,11 @@ function download(filename, text, type) { const blob = new Blob([text], { type }
 function notesText() { return videos.map(v => state.notes[v.video_id] ? `${v.catalog_order}. ${v.title}\n${state.notes[v.video_id]}` : '').filter(Boolean).join('\n\n---\n\n') || 'No notes yet.'; }
 
 document.querySelectorAll('.tab').forEach(btn => btn.onclick = () => setView(btn.dataset.view));
-$('search').oninput = e => { state.ui.search = e.target.value; saveState(); renderAll(); };
-$('sort').onchange = e => { state.ui.sort = e.target.value; saveState(); renderAll(); };
+$('approach').onchange = e => chooseApproach(e.target.value);
+$('search').oninput = e => { markCustomApproach(); state.ui.search = e.target.value; saveState(); renderAll(); };
+$('sort').onchange = e => { markCustomApproach(); state.ui.sort = e.target.value; saveState(); renderAll(); };
 $('filterToggle').onclick = () => { state.ui.filterOpen = !state.ui.filterOpen; saveState(); renderAll(); };
-$('clearFilters').onclick = () => { state.ui.filters = { track: [], category: [], format: [] }; saveState(); renderAll(); };
+$('clearFilters').onclick = () => { markCustomApproach(); state.ui.filters = { track: [], category: [], format: [] }; saveState(); renderAll(); };
 $('saveNotes').onclick = saveNotes;
 $('btnHelp').onclick = () => $('helpDialog').showModal();
 document.querySelectorAll('[data-close]').forEach(btn => btn.onclick = () => $(btn.dataset.close).close());
