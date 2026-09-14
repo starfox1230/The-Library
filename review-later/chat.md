@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-14 18:18 Central Daylight Time
+Updated: 2026-09-14 18:52 Central Daylight Time
 Cards: 7
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-17T06:40:03-05:00
+Last seen: 2026-09-14T18:51:22-05:00
+Card ID: 1765507990186
+Note ID: 1765507990185
+
+Question:
+00:12
+
+In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
+
+Answer:
+00:12
+
+In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
+
+## Card 2
 
 Deck: Saved Cards
 Flagged: 2026-09-07T06:39:44-05:00
@@ -65,7 +83,7 @@ Answer:
 
 Biliary cast syndrome can produce a cholestatic pattern of liver enzyme abnormalities.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -87,7 +105,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-14T18:16:11-05:00
@@ -106,24 +124,6 @@ Answer:
 
 What is the malignant potential of Lipoblastoma?
 None.
-
-## Card 4
-
-Deck: .NEW::Audio
-Flagged: 2026-04-17T06:40:03-05:00
-Last seen: 2026-09-14T18:09:22-05:00
-Card ID: 1765507990186
-Note ID: 1765507990185
-
-Question:
-00:12
-
-In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
-
-Answer:
-00:12
-
-In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
 ## Card 5
 
