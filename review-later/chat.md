@@ -44,14 +44,74 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-14 13:28 Central Daylight Time
-Cards: 4
+Updated: 2026-09-14 18:18 Central Daylight Time
+Cards: 7
 
 ## Card 1
 
+Deck: Saved Cards
+Flagged: 2026-09-07T06:39:44-05:00
+Last seen: 2026-09-14T18:17:16-05:00
+Card ID: 1788754072546
+Note ID: 1788754072545
+
+Question:
+00:12
+
+Biliary cast syndrome can produce a [...] pattern of liver enzyme abnormalities.
+
+Answer:
+00:12
+
+Biliary cast syndrome can produce a cholestatic pattern of liver enzyme abnormalities.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:34:58-05:00
+Last seen: 2026-09-14T18:16:21-05:00
+Card ID: 1775063675193
+Note ID: 1775063675193
+
+Question:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+[...]
+
+Answer:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+turn on tissue harmonics, reposition the probe
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-14T18:16:11-05:00
+Last seen: 2026-09-14T18:16:11-05:00
+Card ID: 1764299770194
+Note ID: 1764299770193
+
+Question:
+00:12
+
+What is the malignant potential of Lipoblastoma?
+[...]
+
+Answer:
+00:12
+
+What is the malignant potential of Lipoblastoma?
+None.
+
+## Card 4
+
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
-Last seen: 2026-09-14T13:15:26-05:00
+Last seen: 2026-09-14T18:09:22-05:00
 Card ID: 1765507990186
 Note ID: 1765507990185
 
@@ -65,7 +125,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-08-23T07:49:34-05:00
@@ -83,7 +143,7 @@ Answer:
 
 The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-05-09T05:45:27-05:00
@@ -101,7 +161,7 @@ Answer:
 
 Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
