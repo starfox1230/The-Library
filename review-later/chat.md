@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-14 08:19 Central Daylight Time
-Cards: 1
+Updated: 2026-09-14 12:45 Central Daylight Time
+Cards: 2
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-05-09T05:45:27-05:00
+Last seen: 2026-09-14T12:44:30-05:00
+Card ID: 1774650412216
+Note ID: 1774650412215
+
+Question:
+00:12
+
+Signal abnormality in the [...] is a classic MRI clue to Wernicke encephalopathy.
+
+Answer:
+00:12
+
+Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
