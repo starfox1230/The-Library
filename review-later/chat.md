@@ -44,14 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-14 12:45 Central Daylight Time
-Cards: 2
+Updated: 2026-09-14 12:54 Central Daylight Time
+Cards: 3
 
 ## Card 1
 
 Deck: .NEW::Audio
+Flagged: 2026-08-23T07:49:34-05:00
+Last seen: 2026-09-14T12:48:09-05:00
+Card ID: 1745603777408
+Note ID: 1745603777407
+
+Question:
+00:12
+
+The [...] lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+
+Answer:
+00:08
+
+The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
+
+## Card 2
+
+Deck: .NEW::Audio
 Flagged: 2026-05-09T05:45:27-05:00
-Last seen: 2026-09-14T12:44:30-05:00
+Last seen: 2026-09-14T12:47:57-05:00
 Card ID: 1774650412216
 Note ID: 1774650412215
 
@@ -65,7 +83,7 @@ Answer:
 
 Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
