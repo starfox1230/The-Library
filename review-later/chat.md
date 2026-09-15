@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-15 06:23 Central Daylight Time
-Cards: 5
+Updated: 2026-09-15 06:32 Central Daylight Time
+Cards: 6
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-08-03T21:52:07-05:00
+Last seen: 2026-09-15T06:30:28-05:00
+Card ID: 1784577931809
+Note ID: 1784577931808
+
+Question:
+00:12
+
+An abdominal aortic diameter of [...] is classified as aneurysmal.
+
+Answer:
+00:12
+
+An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -65,7 +83,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-04-15T07:57:56-05:00
@@ -87,7 +105,7 @@ Which area of the brain is classically targeted in carbon monoxide poisoning?
 
 globus pallidus
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
@@ -105,7 +123,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 4
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -127,7 +145,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
