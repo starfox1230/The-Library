@@ -44,10 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-15 06:43 Central Daylight Time
+Updated: 2026-09-15 07:13 Central Daylight Time
 Cards: 7
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-15T07:57:56-05:00
+Last seen: 2026-09-15T06:44:09-05:00
+Card ID: 1774650412234
+Note ID: 1774650412233
+
+Question:
+00:12
+
+Which area of the brain is classically targeted in carbon monoxide poisoning?
+
+[...]
+
+Answer:
+00:12
+
+Which area of the brain is classically targeted in carbon monoxide poisoning?
+
+globus pallidus
+
+## Card 2
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -69,7 +91,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -87,7 +109,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -104,28 +126,6 @@ Answer:
 00:12
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
-
-## Card 4
-
-Deck: .NEW::Audio
-Flagged: 2026-04-15T07:57:56-05:00
-Last seen: 2026-09-15T06:10:59-05:00
-Card ID: 1774650412234
-Note ID: 1774650412233
-
-Question:
-00:12
-
-Which area of the brain is classically targeted in carbon monoxide poisoning?
-
-[...]
-
-Answer:
-00:12
-
-Which area of the brain is classically targeted in carbon monoxide poisoning?
-
-globus pallidus
 
 ## Card 5
 
