@@ -44,141 +44,65 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-14 18:52 Central Daylight Time
-Cards: 7
+Updated: 2026-09-15 06:05 Central Daylight Time
+Cards: 3
 
 ## Card 1
 
 Deck: .NEW::Audio
-Flagged: 2026-04-17T06:40:03-05:00
-Last seen: 2026-09-14T18:51:22-05:00
-Card ID: 1765507990186
-Note ID: 1765507990185
+Flagged: 2026-09-11T21:09:46-05:00
+Last seen: 2026-09-15T06:03:18-05:00
+Card ID: 1771375802868
+Note ID: 1771375802866
 
 Question:
 00:12
 
-In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
+Brown Sequard syndrome classically causes [what deficits] after a rotation injury or penetrating trauma.
 
 Answer:
 00:12
 
-In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
+Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
 ## Card 2
 
 Deck: Saved Cards
-Flagged: 2026-09-07T06:39:44-05:00
-Last seen: 2026-09-14T18:17:16-05:00
-Card ID: 1788754072546
-Note ID: 1788754072545
+Flagged: 2026-09-11T21:30:04-05:00
+Last seen: 2026-09-15T06:02:49-05:00
+Card ID: 1785635742678
+Note ID: 1785635742677
 
 Question:
 00:12
 
-Biliary cast syndrome can produce a [...] pattern of liver enzyme abnormalities.
+Classic causes of empyema necessitans include [...].
 
 Answer:
 00:12
 
-Biliary cast syndrome can produce a cholestatic pattern of liver enzyme abnormalities.
+Classic causes of empyema necessitans include Actinomyces and tuberculosis.
+
+The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and Mucor.
+
+Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
 ## Card 3
 
 Deck: .NEW::Audio
-Flagged: 2026-09-09T18:34:58-05:00
-Last seen: 2026-09-14T18:16:21-05:00
-Card ID: 1775063675193
-Note ID: 1775063675193
+Flagged: 2026-04-10T07:05:39-05:00
+Last seen: 2026-09-15T06:00:22-05:00
+Card ID: 1762544589834
+Note ID: 1762544589833
 
 Question:
 00:12
 
-What are the top methods to reduce side lobe artifact?
-
-[...]
+Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus system): [...].
 
 Answer:
 00:12
 
-What are the top methods to reduce side lobe artifact?
+Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus system): Stage 1 – mild, salt-and-pepper pattern; Stage 2 – moderate, patchy replacement with some preserved fatty marrow; Stage 3 – severe, diffuse replacement with marrow isointense or hypointense to the disc.
 
-turn on tissue harmonics, reposition the probe
-
-## Card 4
-
-Deck: .NEW::Audio
-Flagged: 2026-09-14T18:16:11-05:00
-Last seen: 2026-09-14T18:16:11-05:00
-Card ID: 1764299770194
-Note ID: 1764299770193
-
-Question:
-00:12
-
-What is the malignant potential of Lipoblastoma?
-[...]
-
-Answer:
-00:12
-
-What is the malignant potential of Lipoblastoma?
-None.
-
-## Card 5
-
-Deck: .NEW::Audio
-Flagged: 2026-08-23T07:49:34-05:00
-Last seen: 2026-09-14T12:48:09-05:00
-Card ID: 1745603777408
-Note ID: 1745603777407
-
-Question:
-00:12
-
-The [...] lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
-
-Answer:
-00:08
-
-The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
-
-## Card 6
-
-Deck: .NEW::Audio
-Flagged: 2026-05-09T05:45:27-05:00
-Last seen: 2026-09-14T12:47:57-05:00
-Card ID: 1774650412216
-Note ID: 1774650412215
-
-Question:
-00:12
-
-Signal abnormality in the [...] is a classic MRI clue to Wernicke encephalopathy.
-
-Answer:
-00:12
-
-Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
-
-## Card 7
-
-Deck: .NEW::Visual
-Flagged: 2026-09-13T14:13:43-05:00
-Last seen: 2026-09-14T09:15:44-05:00
-Card ID: 1760542142702
-Note ID: 1760542142702
-
-Question:
-00:12
-
-Diagnosis?
-
-[...]
-
-Answer:
-00:08
-
-Diagnosis?
-
-dorsal dermal sinus
+Notion AIRP Lecture
