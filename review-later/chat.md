@@ -44,14 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-15 06:05 Central Daylight Time
-Cards: 3
+Updated: 2026-09-15 06:14 Central Daylight Time
+Cards: 4
 
 ## Card 1
 
 Deck: .NEW::Audio
+Flagged: 2026-04-15T07:57:56-05:00
+Last seen: 2026-09-15T06:10:59-05:00
+Card ID: 1774650412234
+Note ID: 1774650412233
+
+Question:
+00:12
+
+Which area of the brain is classically targeted in carbon monoxide poisoning?
+
+[...]
+
+Answer:
+00:12
+
+Which area of the brain is classically targeted in carbon monoxide poisoning?
+
+globus pallidus
+
+## Card 2
+
+Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
-Last seen: 2026-09-15T06:03:18-05:00
+Last seen: 2026-09-15T06:07:29-05:00
 Card ID: 1771375802868
 Note ID: 1771375802866
 
@@ -65,7 +87,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -87,7 +109,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
