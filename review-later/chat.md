@@ -44,10 +44,154 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-17 12:18 Central Daylight Time
-Cards: 2
+Updated: 2026-09-17 12:59 Central Daylight Time
+Cards: 8
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-04-10T07:04:35-05:00
+Last seen: 2026-09-17T12:55:41-05:00
+Card ID: 1748259439887
+Note ID: 1748259439886
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+1/3
+
+Answer:
+00:08
+
+Diagnosis?
+
+gastrointestinal tuberculosis
+
+1/3
+
+Gastrointestinal tuberculosis is rare. When it occurs, it nearly always affects the ileocecal region, typically both the terminal ileum and the cecum. CT demonstrates mural thickening, which is usually concentric. Typically lymphadenopathy is present as well. Amebiasis has a similar appearance; however, the ileum is spared, helping to differentiate it from TB.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T06:40:19-05:00
+Last seen: 2026-09-17T12:54:49-05:00
+Card ID: 1776454739669
+Note ID: 1776454739669
+
+Question:
+00:12
+
+Most likely diagnosis in patient with hypogycemia and finger clubbing?
+
+[...]
+
+Answer:
+00:08
+
+Most likely diagnosis in patient with hypogycemia and finger clubbing?
+
+solitary fibrous tumor
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-08-13T13:19:44-05:00
+Last seen: 2026-09-17T12:52:35-05:00
+Card ID: 1776199228458
+Note ID: 1776199228458
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+ameloblastoma
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-09-09T06:18:48-05:00
+Last seen: 2026-09-17T12:49:22-05:00
+Card ID: 1783397643338
+Note ID: 1783397643337
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Bilateral femoral head avascular necrosis -- in this case was Sickle cell patient with flattened sclerotic femoral heads.
+
+Core Radiology 2nd ed., MSK: 988. Femoral heads are common sites of infarction in sickle cell disease.
+
+Full source page:
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:33:26-05:00
+Last seen: 2026-09-17T12:41:12-05:00
+Card ID: 1779059682569
+Note ID: 1779059682568
+
+Question:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+marrow stimulation in setting of colony-stimulating factors
+
+Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
+
+## Card 6
+
+Deck: .NEW::Visual
+Flagged: 2026-09-06T23:18:41-05:00
+Last seen: 2026-09-17T12:40:02-05:00
+Card ID: 1748259925826
+Note ID: 1748259925825
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+Menetrierre disease
+
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -65,7 +209,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 2
+## Card 8
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
