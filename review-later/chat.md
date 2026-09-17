@@ -44,10 +44,46 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-17 13:07 Central Daylight Time
-Cards: 8
+Updated: 2026-09-17 13:15 Central Daylight Time
+Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-09-17T13:11:36-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
+
+Question:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+
+Answer:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-08-09T22:03:42-05:00
+Last seen: 2026-09-17T13:10:43-05:00
+Card ID: 1753054854801
+Note ID: 1753054854800
+
+Question:
+00:12
+
+A Rastelli procedure is used for [...]
+
+Answer:
+00:08
+
+A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
+
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-04-10T07:04:35-05:00
@@ -75,7 +111,7 @@ gastrointestinal tuberculosis
 
 Gastrointestinal tuberculosis is rare. When it occurs, it nearly always affects the ileocecal region, typically both the terminal ileum and the cecum. CT demonstrates mural thickening, which is usually concentric. Typically lymphadenopathy is present as well. Amebiasis has a similar appearance; however, the ileum is spared, helping to differentiate it from TB.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:40:19-05:00
@@ -97,7 +133,7 @@ Most likely diagnosis in patient with hypogycemia and finger clubbing?
 
 solitary fibrous tumor
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -119,7 +155,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
@@ -145,7 +181,7 @@ Core Radiology 2nd ed., MSK: 988. Femoral heads are common sites of infarction i
 
 Full source page:
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -169,7 +205,7 @@ marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-06T23:18:41-05:00
@@ -191,7 +227,7 @@ Diagnosis?
 
 Menetrierre disease
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -209,7 +245,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 8
+## Card 10
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
