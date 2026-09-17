@@ -49,6 +49,24 @@ Cards: 2
 
 ## Card 1
 
+Deck: .NEW::Audio
+Flagged: 2026-07-07T23:08:06-05:00
+Last seen: 2026-09-17T07:28:42-05:00
+Card ID: 1783449197061
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of [...] such as [...]
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 2
+
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
 Last seen: 2026-09-17T06:49:11-05:00
@@ -68,21 +86,3 @@ The best MRI sequence for myocardial edema is black-blood fast spin echo (double
 Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on black blood cardiac imaging sequences grants better conspicuity of findings within the adjacent cardiovascular anatomy.
 
 Open review Q8
-
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-07-07T23:08:06-05:00
-Last seen: 2026-09-17T06:27:08-05:00
-Card ID: 1783449197061
-Note ID: 1783449197059
-
-Question:
-00:12
-
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of [...] such as [...]
-
-Answer:
-00:08
-
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
