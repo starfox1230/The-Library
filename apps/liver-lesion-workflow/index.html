@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="A minimalist interactive four-bin approach to focal liver lesions.">
+  <title>Liver Lesion Workflow</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #111821;
+      --panel-2: #161f2b;
+      --line: #283342;
+      --text: #f3f6fa;
+      --muted: #8f9baa;
+      --accent: #7dd3fc;
+      --accent-2: #bae6fd;
+      --warn: #fde68a;
+      --shadow: 0 18px 60px rgba(0,0,0,.34);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { background: var(--bg); touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0; min-height: 100svh; color: var(--text);
+      background: radial-gradient(circle at 50% -15%, rgba(125,211,252,.10), transparent 34rem), var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      touch-action: manipulation; overscroll-behavior-y: contain;
+    }
+    button { font: inherit; }
+    .app {
+      width: min(100%, 680px); min-height: 100svh; margin: 0 auto;
+      padding: max(18px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 2px 2px 4px; }
+    .title-wrap { min-width: 0; }
+    h1 { margin: 0; font-size: clamp(22px, 6vw, 30px); line-height: 1.05; letter-spacing: -.04em; font-weight: 760; }
+    .subtitle { margin-top: 5px; color: var(--muted); font-size: 13px; }
+    .icon-btn {
+      width: 42px; height: 42px; border-radius: 14px; border: 1px solid var(--line);
+      background: var(--panel); color: var(--text); display: grid; place-items: center;
+      cursor: pointer; flex: 0 0 auto; font-size: 18px;
+    }
+    .progress { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 0 2px; }
+    .progress span { height: 4px; border-radius: 999px; background: var(--line); transition: .25s ease; }
+    .progress span.on { background: var(--accent); }
+    .card {
+      background: rgba(17,24,33,.92); border: 1px solid var(--line); border-radius: 24px;
+      padding: 18px; box-shadow: var(--shadow); backdrop-filter: blur(12px);
+    }
+    .step { color: var(--accent); text-transform: uppercase; letter-spacing: .13em; font-size: 11px; font-weight: 760; margin-bottom: 8px; }
+    .question { font-size: clamp(22px, 6vw, 28px); line-height: 1.12; letter-spacing: -.035em; font-weight: 740; margin: 0 0 16px; }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .choice {
+      min-height: 94px; border: 1px solid var(--line); border-radius: 20px; background: var(--panel-2);
+      color: var(--text); padding: 16px 12px; display: flex; flex-direction: column; justify-content: center;
+      align-items: flex-start; gap: 6px; text-align: left; cursor: pointer;
+      transition: transform .12s ease, border-color .16s ease, background .16s ease;
+    }
+    .choice:active { transform: scale(.985); }
+    .choice.selected { border-color: var(--accent); background: rgba(125,211,252,.10); }
+    .choice strong { font-size: 17px; line-height: 1.05; }
+    .choice small { color: var(--muted); font-size: 12px; line-height: 1.3; }
+    #enhancementCard { display: none; animation: rise .18s ease both; }
+    #enhancementCard.visible { display: block; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .result { display: none; position: relative; overflow: hidden; animation: rise .18s ease both; }
+    .result.visible { display: block; }
+    .result::after {
+      content: ""; position: absolute; inset: -40% auto auto 65%; width: 200px; height: 200px;
+      border-radius: 50%; background: rgba(125,211,252,.08); pointer-events: none;
+    }
+    .bin-label { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+    .lead { font-size: clamp(26px, 7vw, 38px); letter-spacing: -.045em; line-height: 1.02; font-weight: 800; margin: 0 0 8px; max-width: 92%; }
+    .rank { color: var(--accent-2); font-size: 16px; line-height: 1.4; font-weight: 650; margin: 0 0 14px; max-width: 92%; }
+    .always {
+      border-top: 1px solid var(--line); padding-top: 13px; margin-top: 8px; color: var(--muted); font-size: 13px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .always b { color: var(--warn); font-weight: 700; }
+    .more-btn { border: 0; background: transparent; color: var(--accent); padding: 8px 0 8px 12px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+    .reset { display: none; align-self: center; border: 0; background: transparent; color: var(--muted); padding: 8px 16px; cursor: pointer; font-size: 13px; }
+    .reset.visible { display: block; }
+    .micro { margin-top: auto; text-align: center; color: #687585; font-size: 11px; padding: 4px 20px 0; line-height: 1.4; }
+    .sheet-wrap { position: fixed; inset: 0; z-index: 50; display: none; }
+    .sheet-wrap.open { display: block; }
+    .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.62); backdrop-filter: blur(4px); }
+    .sheet {
+      position: absolute; left: 0; right: 0; bottom: 0; margin: 0 auto; width: min(100%, 680px);
+      max-height: min(82svh, 780px); overflow: auto; background: #111821; border: 1px solid var(--line);
+      border-bottom: 0; border-radius: 28px 28px 0 0; padding: 10px 18px max(24px, env(safe-area-inset-bottom));
+      box-shadow: 0 -20px 70px rgba(0,0,0,.45); animation: sheetUp .2s ease both;
+    }
+    @keyframes sheetUp { from { transform: translateY(18px); opacity: .6; } to { transform: none; opacity: 1; } }
+    .grabber { width: 42px; height: 5px; border-radius: 999px; background: #344255; margin: 2px auto 14px; }
+    .sheet-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 14px; position: sticky;
+      top: -10px; background: #111821; padding: 8px 0 12px; z-index: 2;
+    }
+    .sheet h2 { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+    .close { width: 38px; height: 38px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); border-radius: 50%; cursor: pointer; font-size: 18px; }
+    .detail-block { padding: 15px 0; border-top: 1px solid var(--line); }
+    .detail-block:first-of-type { border-top: 0; }
+    .detail-block h3 { font-size: 13px; color: var(--accent); margin: 0 0 9px; text-transform: uppercase; letter-spacing: .10em; }
+    .detail-block p, .detail-block li { color: #cbd5e1; font-size: 14px; line-height: 1.52; }
+    .detail-block p { margin: 0; }
+    .detail-block ul { margin: 0; padding-left: 18px; }
+    .detail-block li + li { margin-top: 6px; }
+    .reference-tabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 0 12px; margin: 0 -2px; }
+    .reference-tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+      border-radius: 999px; padding: 9px 12px; cursor: pointer; font-size: 12px; font-weight: 700;
+    }
+    .tab.active { color: var(--bg); background: var(--accent); border-color: var(--accent); }
+    .pill-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+    .pill { padding: 7px 9px; border: 1px solid var(--line); border-radius: 999px; color: #d9e2ec; font-size: 12px; background: rgba(255,255,255,.025); }
+    @media (min-width: 640px) { .app { padding-left: 20px; padding-right: 20px; } .card { padding: 22px; } .choice { min-height: 104px; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="title-wrap">
+        <h1>Liver Lesion Workflow</h1>
+        <div class="subtitle">Dr. Smith’s 4-bin approach</div>
+      </div>
+      <button class="icon-btn" id="referenceBtn" aria-label="Open reference">ⓘ</button>
+    </header>
+
+    <div class="progress" aria-hidden="true">
+      <span id="progress1" class="on"></span>
+      <span id="progress2"></span>
+    </div>
+
+    <section class="card">
+      <div class="step">Step 1</div>
+      <h2 class="question">Background liver?</h2>
+      <div class="choices">
+        <button class="choice" data-cirrhosis="yes"><strong>Cirrhotic</strong><small>HCC risk changes the order</small></button>
+        <button class="choice" data-cirrhosis="no"><strong>Non-cirrhotic</strong><small>Start with lesion biology</small></button>
+      </div>
+    </section>
+
+    <section class="card" id="enhancementCard">
+      <div class="step">Step 2</div>
+      <h2 class="question">Arterial phase?</h2>
+      <div class="choices">
+        <button class="choice" data-enhancement="hyper"><strong>Hyperenhancing</strong><small>Nonrim APHE</small></button>
+        <button class="choice" data-enhancement="nonhyper"><strong>Not hyperenhancing</strong><small>No convincing APHE</small></button>
+      </div>
+    </section>
+
+    <section class="card result" id="resultCard" aria-live="polite">
+      <div class="bin-label" id="binLabel"></div>
+      <h2 class="lead" id="lead"></h2>
+      <p class="rank" id="rank"></p>
+      <div class="always">
+        <span><b>Always:</b> could this be abscess?</span>
+        <button class="more-btn" id="binDetailBtn">Details →</button>
+      </div>
+    </section>
+
+    <button class="reset" id="resetBtn">Reset workflow</button>
+    <div class="micro">Conceptual teaching tool. Apply current LI-RADS criteria and clinical context when reporting.</div>
+  </main>
+
+  <div class="sheet-wrap" id="sheetWrap" aria-hidden="true">
+    <div class="scrim" id="scrim"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <div class="grabber"></div>
+      <div class="sheet-head">
+        <h2 id="sheetTitle">Reference</h2>
+        <button class="close" id="closeSheet" aria-label="Close">×</button>
+      </div>
+      <div id="sheetBody"></div>
+    </section>
+  </div>
+
+  <script>
+    const bins = {
+      "yes-hyper": {
+        label: "Cirrhotic + hyperenhancing",
+        lead: "HCC / LI-RADS",
+        rank: "Then ask: could this be a hypervascular metastasis?",
+        details: [
+          ["Core move", "In an appropriate HCC-risk population, this is the LI-RADS bin. APHE plus the other major features can establish HCC noninvasively."],
+          ["Do not shortcut", "APHE and washout do not distinguish HCC from a hypervascular metastasis. Know the patient and look for a competing primary."],
+          ["Hypervascular primaries", "Highest-yield: RCC, neuroendocrine tumor, melanoma. Also consider breast, choriocarcinoma, thyroid, and other highly vascular tumors when the context fits."],
+          ["Key idea", "LI-RADS is meant to separate HCC from the regenerative/dysplastic spectrum in an at-risk liver—not to prove that every hypervascular lesion is HCC."]
+        ]
+      },
+      "yes-nonhyper": {
+        label: "Cirrhotic + not hyperenhancing",
+        lead: "HCC • Cholangio • Mets",
+        rank: "HCC stays in the bucket even without classic APHE.",
+        details: [
+          ["Core move", "Cirrhosis raises the pretest probability of both HCC and cholangiocarcinoma. Metastases remain possible."],
+          ["HCC pearl", "HCC does not biologically have to hyperenhance. Poorly differentiated or infiltrative tumors may lack classic APHE; APHE is what lets us diagnose many HCCs noninvasively."],
+          ["Cholangio", "A non-hyperenhancing malignant mass in cirrhosis should move cholangiocarcinoma or combined HCC-CCA higher in the differential."],
+          ["Order, not new diseases", "The same major malignant possibilities recur across bins. Cirrhosis and enhancement mainly change their order."]
+        ]
+      },
+      "no-hyper": {
+        label: "Non-cirrhotic + hyperenhancing",
+        lead: "Mets • Adenoma↔HCC • FNH",
+        rank: "This is the classic hypervascular non-cirrhotic bucket.",
+        details: [
+          ["Hypervascular mets", "Think RCC, neuroendocrine tumor, and melanoma first; broaden when the clinical setting suggests another vascular primary."],
+          ["Adenoma warning", "Whenever you think adenoma, mentally pair it with well-differentiated HCC. Imaging overlap can be substantial, and even pathology may occasionally be difficult."],
+          ["FNH", "FNH should look liver-like: relatively homogeneous APHE, no convincing true washout, and organized hepatobiliary-agent uptake. A central scar is supportive, not decisive."],
+          ["Fat", "Intracellular or macroscopic fat does not safely separate adenoma from HCC. Fat can also occur in hepatic AML/PEComa; focal fat is the benign pseudolesion to remember."]
+        ]
+      },
+      "no-nonhyper": {
+        label: "Non-cirrhotic + not hyperenhancing",
+        lead: "Metastases first",
+        rank: "Then cholangiocarcinoma → HCC.",
+        details: [
+          ["Core move", "For a malignant-appearing hypovascular lesion in a non-cirrhotic liver, metastases dominate the differential."],
+          ["Common sources", "Think common hypovascular primaries: colorectal and other GI adenocarcinomas, pancreatic adenocarcinoma, and lung."],
+          ["If no primary", "With one or a few malignant-appearing lesions and no primary, cholangiocarcinoma moves up."],
+          ["Next step", "If it is not a diagnosable cyst, classic hemangioma, FNH, or appropriate imaging-diagnosed HCC, tissue may be the real next diagnostic step. MRI may still help map disease or plan treatment."]
+        ]
+      }
+    };
+
+    const references = {
+      core: {
+        title: "What can I call?",
+        html: `
+          <div class="detail-block">
+            <h3>Confident imaging diagnoses</h3>
+            <div class="pill-row"><span class="pill">Simple cyst</span><span class="pill">Classic hemangioma</span><span class="pill">FNH with appropriate MRI</span><span class="pill">HCC in the right risk setting</span></div>
+          </div>
+          <div class="detail-block"><h3>If it does not fit</h3><p>Give a rational differential and a useful next step. Do not reflexively order MRI just to name a large malignant-looking mass if tissue is ultimately required.</p></div>
+          <div class="detail-block"><h3>Never forget</h3><p><strong>Could this be an abscess?</strong> Necrotic infection can mimic tumor.</p></div>`
+      },
+      fnh: {
+        title: "FNH",
+        html: `
+          <div class="detail-block"><h3>Think physiology</h3><p>Functioning hepatocytes in abnormal architecture with predominantly arterial supply and abnormal biliary/portal architecture.</p></div>
+          <div class="detail-block"><h3>Expected pattern</h3><ul><li>Arterial hyperenhancement</li><li>Looks a lot like liver on the other sequences</li><li>No convincing true washout</li><li>Organized hepatobiliary uptake, often equal to or greater than liver</li></ul></div>
+          <div class="detail-block"><h3>Pitfall</h3><p>Well-differentiated HCC and some adenomas can retain hepatobiliary contrast. Disorganized or patchy uptake should make you hesitate before calling FNH.</p></div>`
+      },
+      fat: {
+        title: "Fat",
+        html: `
+          <div class="detail-block"><h3>Fat-containing liver lesions</h3><div class="pill-row"><span class="pill">Adenoma</span><span class="pill">HCC</span><span class="pill">Focal fat</span><span class="pill">Hepatic AML / PEComa</span></div></div>
+          <div class="detail-block"><h3>Rule</h3><p>Fat is not automatically reassuring in a hepatic mass. Signal drop does not distinguish adenoma from HCC.</p></div>
+          <div class="detail-block"><h3>Focal fat</h3><p>Geographic shape and lack of mass effect support focal fatty deposition rather than a true mass.</p></div>`
+      },
+      mri: {
+        title: "MRI start",
+        html: `
+          <div class="detail-block"><h3>Start here</h3><p>Read the precontrast and dynamic postcontrast T1-weighted images first. The framework is driven by enhancement.</p></div>
+          <div class="detail-block"><h3>T1 bright</h3><div class="pill-row"><span class="pill">Fat</span><span class="pill">Blood / methemoglobin</span><span class="pill">Melanin</span><span class="pill">Protein</span><span class="pill">Gadolinium</span></div></div>
+          <div class="detail-block"><h3>T2 bright</h3><p>Think fluid. Very concentrated protein, blood products, or contrast can shorten T2 and become darker than expected.</p></div>
+          <div class="detail-block"><h3>Diffusion</h3><p>Very sensitive, but nonspecific.</p></div>`
+      },
+      portal: {
+        title: "Portal HTN",
+        html: `
+          <div class="detail-block"><h3>Signs</h3><div class="pill-row"><span class="pill">Splenomegaly</span><span class="pill">Portal vein enlargement</span><span class="pill">Varices / collaterals</span></div></div>
+          <div class="detail-block"><h3>Teaching cutoff</h3><p>Portal vein &gt;13 mm was the lecturer’s rule of thumb, while emphasizing not to overinterpret 1-mm differences near the threshold.</p></div>
+          <div class="detail-block"><h3>Look for collaterals</h3><p>Paraumbilical, gastroesophageal, splenorenal, rectal, and mesocaval/retroperitoneal pathways. A paraumbilical vein courses at the ligamentum teres fissure.</p></div>`
+      }
+    };
+
+    let cirrhosis = null;
+    let enhancement = null;
+    let activeReference = "core";
+
+    const enhancementCard = document.getElementById("enhancementCard");
+    const resultCard = document.getElementById("resultCard");
+    const progress2 = document.getElementById("progress2");
+    const resetBtn = document.getElementById("resetBtn");
+    const sheetWrap = document.getElementById("sheetWrap");
+    const sheetTitle = document.getElementById("sheetTitle");
+    const sheetBody = document.getElementById("sheetBody");
+
+    document.querySelectorAll("[data-cirrhosis]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        cirrhosis = btn.dataset.cirrhosis;
+        document.querySelectorAll("[data-cirrhosis]").forEach(b => b.classList.toggle("selected", b === btn));
+        enhancementCard.classList.add("visible");
+        progress2.classList.add("on");
+        if (enhancement) renderResult();
+        setTimeout(() => enhancementCard.scrollIntoView({ behavior: "smooth", block: "center" }), 70);
+      });
+    });
+
+    document.querySelectorAll("[data-enhancement]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        enhancement = btn.dataset.enhancement;
+        document.querySelectorAll("[data-enhancement]").forEach(b => b.classList.toggle("selected", b === btn));
+        renderResult();
+        setTimeout(() => resultCard.scrollIntoView({ behavior: "smooth", block: "center" }), 70);
+      });
+    });
+
+    function renderResult() {
+      if (!cirrhosis || !enhancement) return;
+      const data = bins[`${cirrhosis}-${enhancement}`];
+      document.getElementById("binLabel").textContent = data.label;
+      document.getElementById("lead").textContent = data.lead;
+      document.getElementById("rank").textContent = data.rank;
+      resultCard.classList.add("visible");
+      resetBtn.classList.add("visible");
+    }
+
+    resetBtn.addEventListener("click", () => {
+      cirrhosis = null;
+      enhancement = null;
+      document.querySelectorAll(".choice.selected").forEach(b => b.classList.remove("selected"));
+      enhancementCard.classList.remove("visible");
+      resultCard.classList.remove("visible");
+      resetBtn.classList.remove("visible");
+      progress2.classList.remove("on");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    function openSheet(title, html) {
+      sheetTitle.textContent = title;
+      sheetBody.innerHTML = html;
+      sheetWrap.classList.add("open");
+      sheetWrap.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closeSheet() {
+      sheetWrap.classList.remove("open");
+      sheetWrap.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    document.getElementById("binDetailBtn").addEventListener("click", () => {
+      if (!cirrhosis || !enhancement) return;
+      const data = bins[`${cirrhosis}-${enhancement}`];
+      openSheet(data.label, data.details.map(d => `<div class="detail-block"><h3>${d[0]}</h3><p>${d[1]}</p></div>`).join(""));
+    });
+
+    function renderReference(key) {
+      activeReference = key;
+      const tabs = Object.entries(references).map(([k, v]) =>
+        `<button class="tab ${k === key ? "active" : ""}" data-ref="${k}">${v.title}</button>`
+      ).join("");
+      const content = references[key];
+      openSheet("Quick reference", `<div class="reference-tabs">${tabs}</div>${content.html}`);
+      document.querySelectorAll("[data-ref]").forEach(btn => btn.addEventListener("click", () => renderReference(btn.dataset.ref)));
+    }
+
+    document.getElementById("referenceBtn").addEventListener("click", () => renderReference(activeReference));
+    document.getElementById("closeSheet").addEventListener("click", closeSheet);
+    document.getElementById("scrim").addEventListener("click", closeSheet);
+    document.addEventListener("keydown", e => { if (e.key === "Escape" && sheetWrap.classList.contains("open")) closeSheet(); });
+
+    document.addEventListener("gesturestart", e => e.preventDefault(), { passive: false });
+    let lastTouchEnd = 0;
+    document.addEventListener("touchend", e => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 320) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  </script>
+</body>
+</html>
