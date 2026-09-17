@@ -44,10 +44,34 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-16 21:22 Central Daylight Time
-Cards: 12
+Updated: 2026-09-16 22:27 Central Daylight Time
+Cards: 13
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-08-05T13:16:09-05:00
+Last seen: 2026-09-16T22:25:39-05:00
+Card ID: 1785187893874
+Note ID: 1785187893873
+
+Question:
+00:12
+
+What is indicated by the yellow arrow?
+
+[...]
+
+Answer:
+00:12
+
+What is indicated by the yellow arrow?
+
+medial collateral ligament
+
+MRI anatomy of the knee ligaments. Capture timestamp 03:44.
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
@@ -67,7 +91,7 @@ Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus syste
 
 Notion AIRP Lecture
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T06:40:12-05:00
@@ -89,7 +113,7 @@ What happens to the location of the focal zone when the active aperture is incre
 
 Deeper into tissue
 
-## Card 3
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-08-20T20:34:16-05:00
@@ -109,7 +133,7 @@ Distal radius fracture classifications incorporate both DRUJ articular extension
 
 Source: Notion Radiology entry.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -129,7 +153,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-04-15T07:57:56-05:00
@@ -151,7 +175,7 @@ Which area of the brain is classically targeted in carbon monoxide poisoning?
 
 globus pallidus
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -169,7 +193,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:26:35-05:00
@@ -191,7 +215,7 @@ What's the relationship between pheochromocytomas and paragangliomas?
 
 They are the same neuroendocrine tumor family arising from chromaffin or paraganglionic cells, with pheochromocytoma in the adrenal medulla and paraganglioma outside the adrenals
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -213,7 +237,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-04-15T09:03:28-05:00
@@ -231,7 +255,7 @@ Answer:
 
 Lemmel syndrome is defined as obstructive jaundice caused by a periampullary duodenal diverticulum compressing the intrapancreatic common bile duct with resultant bile duct dilatation.
 
-## Card 10
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -255,7 +279,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-09-16T06:21:08-05:00
@@ -281,7 +305,7 @@ Hirschprung disease
 
 1/2
 
-## Card 12
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-10T05:44:13-05:00
