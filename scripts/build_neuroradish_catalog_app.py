@@ -377,12 +377,7 @@ renderAll();
 
 
 def main():
-    payload = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-    data = json.dumps(payload["videos"], ensure_ascii=False, separators=(",", ":"))
-    data = data.replace("</", "<\\/")
-    APP_PATH.parent.mkdir(parents=True, exist_ok=True)
-    APP_PATH.write_text(TEMPLATE.replace("__DATA__", data), encoding="utf-8")
-    print(f"Wrote {APP_PATH} with {len(payload['videos'])} videos")
+    raise SystemExit("Retired: the four-channel app is maintained directly. Use scripts/collect_radiology_video_library.py --inventory, then --transcripts. This legacy generator will not overwrite the new app.")
 
 
 if __name__ == "__main__":
