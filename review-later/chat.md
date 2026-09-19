@@ -44,10 +44,70 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-19 13:31 Central Daylight Time
-Cards: 4
+Updated: 2026-09-19 13:40 Central Daylight Time
+Cards: 6
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-05T06:54:07-05:00
+Last seen: 2026-09-19T13:39:26-05:00
+Card ID: 1785498425560
+Note ID: 1785498425559
+
+Question:
+00:12
+
+How should the focal CTA appearance of an ulcer-like projection be described?
+
+[...]
+
+Answer:
+00:12
+
+How should the focal CTA appearance of an ulcer-like projection be described?
+
+Contrast outpouching
+
+Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-08-09T22:03:42-05:00
+Last seen: 2026-09-19T13:39:11-05:00
+Card ID: 1753054854801
+Note ID: 1753054854800
+
+Question:
+00:12
+
+A Rastelli procedure is used for [...]
+
+Answer:
+00:08
+
+A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-19T13:32:37-05:00
+Last seen: 2026-09-19T13:32:54-05:00
+Card ID: 1775776543826
+Note ID: 1775776543826
+
+Question:
+00:12
+
+An endometrial thickness of [...] in a postmenopausal patient who is not bleeding is abnormal.
+
+Answer:
+00:12
+
+An endometrial thickness of greater than 8 mm (Lockhart says that’s for tamoxifen) in a postmenopausal patient who is not bleeding is abnormal.
+
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
@@ -69,25 +129,7 @@ This is traumatic rather than an unfused ossification center.
 
 Source: Notion Radiology entry.
 
-## Card 2
-
-Deck: ..Due 2026-09-13 to 2026-09-19 Audio
-Flagged: 2026-09-19T07:21:49-05:00
-Last seen: 2026-09-19T07:21:49-05:00
-Card ID: 1775776543826
-Note ID: 1775776543826
-
-Question:
-00:12
-
-An endometrial thickness of [...] in a postmenopausal patient who is not bleeding is abnormal.
-
-Answer:
-00:12
-
-An endometrial thickness of greater than 8 mm (Lockhart says that’s for tamoxifen) in a postmenopausal patient who is not bleeding is abnormal.
-
-## Card 3
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -109,7 +151,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
