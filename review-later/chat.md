@@ -44,10 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-20 18:12 Central Daylight Time
-Cards: 13
+Updated: 2026-09-20 18:20 Central Daylight Time
+Cards: 14
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-13T14:13:43-05:00
+Last seen: 2026-09-20T18:15:59-05:00
+Card ID: 1760542142702
+Note ID: 1760542142702
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+dorsal dermal sinus
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-09-19T13:32:37-05:00
@@ -65,7 +87,7 @@ Answer:
 
 An endometrial thickness of greater than 8 mm (Lockhart says that’s for tamoxifen) in a postmenopausal patient who is not bleeding is abnormal.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -85,7 +107,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:42:43-05:00
@@ -107,7 +129,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-07-07T23:00:02-05:00
@@ -129,7 +151,7 @@ What is the differential diagnosis for this finding in a patient with a positive
 
 Intrauterine pregnancy (almost certainly) versus pseudogestational sac
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-20T17:32:39-05:00
@@ -147,7 +169,7 @@ Answer:
 
 After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after 24 hours.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -169,7 +191,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T16:22:13-05:00
@@ -195,7 +217,7 @@ Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classi
 
 Full source page:
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -221,7 +243,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 9
+## Card 10
 
 Deck: Other::Radiology (All)::Audio
 Flagged: 2026-09-20T16:54:13-05:00
@@ -239,7 +261,7 @@ Answer:
 
 The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
 
-## Card 10
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-05-07T16:29:27-05:00
@@ -265,7 +287,7 @@ Functional immaturity of the colon (normal rectosigmoid ratio with the left side
 
 1/2
 
-## Card 11
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -287,7 +309,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 12
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -305,7 +327,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 13
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-04-14T06:44:07-05:00
