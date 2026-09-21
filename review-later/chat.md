@@ -44,10 +44,30 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-20 18:20 Central Daylight Time
+Updated: 2026-09-20 22:52 Central Daylight Time
 Cards: 14
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:09:26-05:00
+Last seen: 2026-09-20T21:58:25-05:00
+Card ID: 1762544589804
+Note ID: 1762544589803
+
+Question:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for [...].
+
+Answer:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for lung cancer.
+
+Notion AIRP Lecture
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
@@ -69,7 +89,7 @@ Diagnosis?
 
 dorsal dermal sinus
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-19T13:32:37-05:00
@@ -86,26 +106,6 @@ Answer:
 00:12
 
 An endometrial thickness of greater than 8 mm (Lockhart says that’s for tamoxifen) in a postmenopausal patient who is not bleeding is abnormal.
-
-## Card 3
-
-Deck: .NEW::Audio
-Flagged: 2026-09-11T13:09:26-05:00
-Last seen: 2026-09-20T18:00:49-05:00
-Card ID: 1762544589804
-Note ID: 1762544589803
-
-Question:
-00:12
-
-A metastatic lesion in the hand or foot should raise strong suspicion for [...].
-
-Answer:
-00:12
-
-A metastatic lesion in the hand or foot should raise strong suspicion for lung cancer.
-
-Notion AIRP Lecture
 
 ## Card 4
 
