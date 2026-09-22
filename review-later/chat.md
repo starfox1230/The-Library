@@ -44,7 +44,53 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-22 17:36 Central Daylight Time
-Cards: 0
+Updated: 2026-09-22 17:52 Central Daylight Time
+Cards: 2
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-07-10T16:22:13-05:00
+Last seen: 2026-09-22T17:43:51-05:00
+Card ID: 1783397643324
+Note ID: 1783397643323
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+pseudohypoparathyroidism vs pseudo-pseudohypoparathyroidism -- Short fourth metacarpal
+
+Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classic radiographic finding of pseudohypoparathyroidism and pseudo-pseudohypoparathyroidism.
+
+Full source page:
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-06-27T10:27:11-05:00
+Last seen: 2026-09-22T17:41:55-05:00
+Card ID: 1762148398270
+Note ID: 1762148398270
+
+Question:
+00:12
+
+What is the structure outlined in red?
+
+[...]
+
+Answer:
+00:08
+
+What is the structure outlined in red?
+
+tegmen tympani
