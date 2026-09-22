@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-21 21:07 Central Daylight Time
-Cards: 11
+Updated: 2026-09-21 21:23 Central Daylight Time
+Cards: 12
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-18T04:29:37-05:00
+Last seen: 2026-09-21T21:17:32-05:00
+Card ID: 1776459153262
+Note ID: 1776459153261
+
+Question:
+00:12
+
+hot tub lung is a manifestation of [...] but it's not an infection
+
+Answer:
+00:08
+
+hot tub lung is a manifestation of hypersensitivty pneumonitis due to MAC but it's not an infection
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-07-25T19:51:45-05:00
@@ -93,7 +111,7 @@ Normal:
 
 Abnormal:
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-09-21T13:22:25-05:00
@@ -119,7 +137,7 @@ pleural (ball under the carpet, so not juxtapleural)
 
 1/2
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T06:14:33-05:00
@@ -141,7 +159,7 @@ Diagnosis?
 
 lipomyelomeningocele
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-05T05:20:27-05:00
@@ -167,7 +185,7 @@ Core Radiology 2nd ed., MSK: 964. Fat interdigitating between nerve fascicles is
 
 Full source page:
 
-## Card 5
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -189,7 +207,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 6
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-09-02T20:01:14-05:00
@@ -217,7 +235,7 @@ The ACL limits anterior flipping of a medial tear, making displacement into the 
 
 Source: Core Radiology 13.13, pp. 1013-1030
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-07-04T07:57:55-05:00
@@ -235,7 +253,7 @@ Answer:
 
 In fluoro magnification mode, dose-area product may remain relatively unchanged because increased dose rate is offset by decreased field area.
 
-## Card 8
+## Card 9
 
 Deck: .Core Backlog
 Flagged: 2026-09-05T05:01:35-05:00
@@ -255,7 +273,7 @@ A nasal wall mass with a cerebriform enhancement pattern is characteristic of in
 
 Q6. Incorrect; difficulty: hard. The CT demonstrates a mass located in the lateral nasal wall with focal coarse calcifications (yellow arrow), as well as bony resorption and extension into the maxillary sinus (green arrow).
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
@@ -275,7 +293,7 @@ Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus syste
 
 Notion AIRP Lecture
 
-## Card 10
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T16:22:13-05:00
@@ -301,7 +319,7 @@ Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classi
 
 Full source page:
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
