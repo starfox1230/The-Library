@@ -10,7 +10,7 @@ export function validateManifest(m){
  return m;
 }
 export async function loadVolume(manifestUrl,{fetcher=fetch,onProgress=()=>{}}={}){
- const response=await fetcher(manifestUrl);if(!response.ok)throw Error(`Case metadata: HTTP ${response.status}`);
+ const response=await fetcher(manifestUrl,{cache:'no-store'});if(!response.ok)throw Error(`Case metadata: HTTP ${response.status}`);
  const manifest=validateManifest(await response.json());const expected=manifest.dimensions.reduce((a,b)=>a*b,2);
  const res=await fetcher(new URL(manifest.volumeUrl,manifestUrl));if(!res.ok)throw Error(`CT data: HTTP ${res.status}`);
  if(typeof DecompressionStream==='undefined')throw Error('This browser does not support gzip decoding. Use current Chrome, Edge, or Firefox.');
@@ -24,3 +24,4 @@ export async function loadVolume(manifestUrl,{fetcher=fetch,onProgress=()=>{}}={
  for(let i=0;i<values.length;i++)values[i]=data.getInt16(i*2,true);
  return {manifest,values};
 }
+
