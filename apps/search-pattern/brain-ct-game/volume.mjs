@@ -9,6 +9,13 @@ export function validateManifest(m){
  if(!/^[0-9a-f]{64}$/.test(m.sha256))throw Error('Missing volume checksum');
  return m;
 }
+export function validateCompanion(primary,companion){
+ const expected=primary.boneCompanion;
+ for(const key of ['id','version','checkpointVersion','sha256'])if(!expected?.[key]||companion[key]!==expected[key])throw Error('Bone companion identity / version mismatch');
+ if(companion.checkpointVersion!==primary.checkpointVersion)throw Error('Bone companion checkpoint mismatch');
+ for(const key of ['dimensions','spacing','originLPS'])if(JSON.stringify(primary[key])!==JSON.stringify(companion[key]))throw Error('Brain and bone volumes do not align');
+ return companion;
+}
 export async function loadVolume(manifestUrl,{fetcher=fetch,onProgress=()=>{}}={}){
  const response=await fetcher(manifestUrl,{cache:'no-store'});if(!response.ok)throw Error(`Case metadata: HTTP ${response.status}`);
  const manifest=validateManifest(await response.json());const expected=manifest.dimensions.reduce((a,b)=>a*b,2);

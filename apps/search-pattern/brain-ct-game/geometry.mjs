@@ -13,6 +13,11 @@ export function planeBounds(m,plane){
  return [Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1])];
 }
 export function clampFocus(patient,m){return patient.map((x,i)=>Math.max(m.originLPS[i],Math.min(x,m.originLPS[i]+(m.dimensions[i]-1)*m.spacing[i])));}
+// Scoring uses the same nearest voxel-centre slice as the renderer.
+export function sliceNormal(focus,m,plane){
+ const a=AXES[plane][2],i=Math.max(0,Math.min(m.dimensions[a]-1,Math.round((focus[a]-m.originLPS[a])/m.spacing[a])));
+ return m.originLPS[a]+i*m.spacing[a];
+}
 export function createViewTransform({width,height,bounds,zoom=1,pan=[0,0]}){
  const [l,t,r,b]=bounds,scale=Math.min(width/(r-l),height/(b-t))*zoom;
  const cx=(l+r)/2,cy=(t+b)/2,ox=width/2+pan[0],oy=height/2+pan[1];

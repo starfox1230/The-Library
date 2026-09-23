@@ -1,4 +1,4 @@
-import {project,PLANES} from './geometry.mjs';
+import {project,PLANES} from './geometry.mjs?v=2';
 const finitePoint=(p,n=3)=>Array.isArray(p)&&p.length===n&&p.every(Number.isFinite);
 const area=p=>Math.abs(p.reduce((sum,a,i)=>{const b=p[(i+1)%p.length];return sum+a[0]*b[1]-b[0]*a[1];},0))/2;
 function segmentDistance(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],len=dx*dx+dy*dy,t=len?Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/len)):0;return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy);}

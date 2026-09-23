@@ -79,5 +79,3 @@ pair('superior maxillary sinus',[150,152,3],[232,152,3],(5,2),plane='coronal',wi
 out=dict(caseId=m['id'],caseVersion=m['version'],version=m['checkpointVersion'],phases=phases)
 (ROOT/'cases/normal-head/checkpoints.json').write_text(json.dumps(out,indent=2)+'\n')
 print(sum(len(p['targets']) for p in phases),'targets in',len(phases),'phases')
-
-

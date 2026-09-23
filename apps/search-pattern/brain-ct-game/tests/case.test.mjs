@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {validateCheckpoints,createGame,contains} from '../game.mjs';
-import {project,unproject,planeBounds} from '../geometry.mjs';
+import {project,unproject,planeBounds,sliceNormal} from '../geometry.mjs';
 const m=JSON.parse(await readFile(new URL('../cases/normal-head/manifest.json',import.meta.url)));
 const c=JSON.parse(await readFile(new URL('../cases/normal-head/checkpoints.json',import.meta.url)));
+test('fractional recenter scores the slice actually rendered',()=>{
+ const t=c.phases[0].targets[0],r=t.representative;
+ const focus=[...r.patient];focus[2]+=.1;
+ assert.equal(contains(t.regions[0],focus,'axial'),false);
+ const p=[...focus];p[2]=sliceNormal(focus,m,'axial');
+ assert.ok(contains(t.regions[0],p,'axial'));
+});
 test('shipped case completes all 70 targets in practice and timed modes',()=>{
  validateCheckpoints(m,c);
  for(const mode of ['practice','timed']){

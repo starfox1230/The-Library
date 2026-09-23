@@ -1,4 +1,4 @@
-import {AXES,planeBounds,project,createViewTransform} from './geometry.mjs';
+import {AXES,planeBounds,project,createViewTransform} from './geometry.mjs?v=2';
 export function windowHU(hu,width,level){
  if(!Number.isFinite(width)||width<1||!Number.isFinite(level))throw Error('Invalid window width / level');
  const low=level-.5-(width-1)/2,high=level-.5+(width-1)/2;
@@ -30,8 +30,8 @@ export function paintViewport(canvas,volume,view,overlay={}){
  if(cache.key!==key||cache.volume!==volume){
   const slice=sampleSlice(volume,view.plane,normal);cache.off.width=slice.width;cache.off.height=slice.height;
   const ctx=cache.off.getContext('2d'),pixels=ctx.createImageData(slice.width,slice.height);
-  const low=view.level-.5-(view.width-1)/2,range=Math.max(1,view.width-1);
-  for(let i=0;i<slice.hu.length;i++){const b=Math.max(0,Math.min(255,Math.round((slice.hu[i]-low)/range*255))),j=i*4;pixels.data[j]=pixels.data[j+1]=pixels.data[j+2]=b;pixels.data[j+3]=255;}
+  const low=view.level-.5-(view.width-1)/2,range=view.width-1;
+  for(let i=0;i<slice.hu.length;i++){const b=range===0?(slice.hu[i]>low?255:0):Math.max(0,Math.min(255,Math.round((slice.hu[i]-low)/range*255))),j=i*4;pixels.data[j]=pixels.data[j+1]=pixels.data[j+2]=b;pixels.data[j+3]=255;}
   ctx.putImageData(pixels,0,0);cache.key=key;cache.volume=volume;cache.bounds=slice.bounds;
  }
  const t=createViewTransform({width:rect.width,height:rect.height,bounds:cache.bounds,zoom:view.zoom,pan:view.pan});

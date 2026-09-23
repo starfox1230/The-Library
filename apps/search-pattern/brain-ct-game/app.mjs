@@ -1,14 +1,15 @@
-import {loadVolume} from './volume.mjs';
-import {PLANES,AXES,project,unproject,clampFocus,planeBounds,createViewTransform} from './geometry.mjs';
-import {paintViewport} from './renderer.mjs';
-import {createGame,validateCheckpoints} from './game.mjs';
-import {normalizeWheel,isGameShortcut,isClick} from './input.mjs';
-import {recordKey,readBest,saveBest} from './records.mjs';
+import {loadVolume,validateCompanion} from './volume.mjs?v=2';
+import {PLANES,AXES,project,unproject,clampFocus,sliceNormal,planeBounds,createViewTransform} from './geometry.mjs?v=2';
+import {paintViewport} from './renderer.mjs?v=2';
+import {createGame,validateCheckpoints} from './game.mjs?v=2';
+import {normalizeWheel,isGameShortcut,isClick} from './input.mjs?v=2';
+import {recordKey,readBest,saveBest} from './records.mjs?v=2';
 
 const $=id=>document.getElementById(id),preset={brain:[80,40],subdural:[200,75],bone:[2500,500]};
 const canvases=Object.fromEntries(PLANES.map(p=>[p,$(p)])),transforms={},panels=Object.fromEntries(PLANES.map(p=>[p,document.querySelector(`[data-viewport="${p}"]`)]));
 let brain,bone,checkpoints,game,ready=false,active='axial',focus=[0,0,0],width=80,level=40,selected=null,hint=false,frame=0,feedbackTimer,loadGeneration=0,gestures=new Map();
 const views=Object.fromEntries(PLANES.map(p=>[p,{zoom:1,pan:[0,0],carry:0}]));
+let wheelStarted=null;
 let storage;try{storage=window.localStorage;}catch{storage={getItem:()=>null,setItem:()=>{throw Error('Storage unavailable')}};}
 const format=ms=>`${String(Math.floor(ms/60000)).padStart(2,'0')}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}.${Math.floor(ms/100)%10}`;
 const phase=()=>checkpoints.phases.find(p=>p.id===game.snapshot().phaseId);
@@ -22,10 +23,11 @@ function draw(){
  for(const p of PLANES){
   if(panels[p].hidden)continue;
   const target=hint&&snap.mode==='practice'&&snap.status==='running'?currentTarget():null;
-  const n=project(focus,p)[2],region=target?.regions.find(r=>r.plane===p&&n>=r.normal[0]&&n<=r.normal[1]);
+  const n=sliceNormal(focus,v.manifest,p),region=target?.regions.find(r=>r.plane===p&&n>=r.normal[0]&&n<=r.normal[1]);
   transforms[p]=paintViewport(canvases[p],v,{...views[p],focus,plane:p,width,level},{crosshairs:$('crosshairs').checked,region});
  }
  performance.measure('ct-render',{start,end:performance.now()});
+ if(wheelStarted!==null){performance.measure('ct-wheel-to-render',{start:wheelStarted,end:performance.now()});wheelStarted=null;const samples=performance.getEntriesByName('ct-wheel-to-render').map(e=>e.duration).sort((a,b)=>a-b);if(samples.length===20){console.debug('CT scroll timing ms',JSON.stringify({samples:20,median:samples[10],p95:samples[19],max:samples[19]}));performance.clearMeasures('ct-wheel-to-render');}}
  if(performance.getEntriesByName('ct-render').length>200)performance.clearMeasures('ct-render');
  updateImageControls();
 }
@@ -55,7 +57,7 @@ function sync(){
  const practice=s.mode==='practice',canHint=practice&&s.status==='running';
  $('hint-controls').hidden=!practice;$('hint').disabled=!canHint;$('locate').disabled=!canHint;
  $('hint').textContent=hint?'Hide hint':'Show hint';$('hint').setAttribute('aria-pressed',String(hint));
- $('hint-note').textContent=practice?(canHint?(target?'Selected: '+target.label:'All checkpoints complete.'):'Start practice to use hints.'):'Timed · complete every checkpoint without target hints.';
+ $('hint-note').textContent=practice?(canHint?(target?'Selected: '+target.label:'All checkpoints complete.'):(s.status==='complete'?'All checkpoints complete.':'Start practice to use hints.')):'Timed · complete every checkpoint without target hints.';
  $('phase-list').replaceChildren();
  for(const [i,ph] of checkpoints.phases.entries()){
   const all=ph.targets.every(t=>done.has(t.id)),current=ph.id===p.id;
@@ -77,7 +79,7 @@ async function load(){
   const onProgress=i=>v=>{if(generation===loadGeneration){progress[i]=v;$('load-progress').value=(progress[0]+progress[1])/2;}};
   const [b,bn,res]=await Promise.all([loadVolume(new URL('manifest.json',base),{onProgress:onProgress(0)}),loadVolume(new URL('bone/manifest.json',base),{onProgress:onProgress(1)}),fetch(new URL('checkpoints.json',base),{cache:'no-store'})]);
   if(!res.ok)throw Error(`Checkpoints: HTTP ${res.status}`);const c=validateCheckpoints(b.manifest,await res.json());
-  for(const key of ['dimensions','spacing','originLPS'])if(JSON.stringify(b.manifest[key])!==JSON.stringify(bn.manifest[key]))throw Error('Brain and bone volumes do not align');
+  validateCompanion(b.manifest,bn.manifest);
   if(generation!==loadGeneration)return;
   brain=b;bone=bn;checkpoints=c;game=createGame({phases:c.phases,mode:$('mode').value});ready=true;
   const m=b.manifest;focus=m.originLPS.map((o,i)=>o+m.spacing[i]*(i===2?99:190));focus=clampFocus(focus,m);
@@ -85,6 +87,7 @@ async function load(){
  }catch(e){if(generation!==loadGeneration)return;$('loading').querySelector('h1').textContent='Case could not load';$('load-message').textContent=e.message;$('retry').hidden=false;}
 }
 $('retry').onclick=load;
+$('clear-best').onclick=()=>{if(!ready)return;try{storage.removeItem(record());}catch{}sync();};
 $('start').onclick=()=>{if(!ready)return;const s=game.snapshot();if(s.status==='running'){game.pause();hint=false;gestures.clear();flash('Paused · attempt changed to practice',true);}else if(s.status==='paused')game.resume();else game.start(true);sync();};
 $('restart').onclick=()=>{if(!ready)return;game.restart($('mode').value);hint=false;selected=null;gestures.clear();sync();};
 $('mode').onchange=()=>{if(ready){game.restart($('mode').value);hint=false;selected=null;sync();}};
@@ -101,7 +104,7 @@ $('three').onchange=()=>setPlane(active);$('crosshairs').onchange=requestDraw;
 for(const planeName of PLANES){
  const canvas=canvases[planeName];
  canvas.oncontextmenu=e=>e.preventDefault();
- canvas.addEventListener('wheel',e=>{if(!ready)return;e.preventDefault();setPlane(planeName);const r=normalizeWheel(e,views[planeName].carry);views[planeName].carry=r.carry;scroll(r.steps);},{passive:false});
+ canvas.addEventListener('wheel',e=>{if(!ready)return;e.preventDefault();wheelStarted??=performance.now();setPlane(planeName);const r=normalizeWheel(e,views[planeName].carry);views[planeName].carry=r.carry;scroll(r.steps);},{passive:false});
  canvas.onpointerdown=e=>{if(!ready)return;setPlane(planeName);canvas.focus({preventScroll:true});canvas.setPointerCapture(e.pointerId);gestures.set(e.pointerId,{plane:planeName,start:[e.clientX,e.clientY],last:[e.clientX,e.clientY],button:e.button,width,level,pan:[...views[planeName].pan],moved:false});};
  canvas.onpointermove=e=>{const g=gestures.get(e.pointerId);if(!g)return;const dx=e.clientX-g.start[0],dy=e.clientY-g.start[1];if(Math.hypot(dx,dy)>4)g.moved=true;g.last=[e.clientX,e.clientY];if(g.button===2)setWindow(g.width+dx*2,g.level-dy);if(g.button===1){views[g.plane].pan=[g.pan[0]+dx,g.pan[1]+dy];requestDraw();}};
  canvas.onpointercancel=e=>gestures.delete(e.pointerId);
@@ -110,7 +113,7 @@ for(const planeName of PLANES){
   const g=gestures.get(e.pointerId);gestures.delete(e.pointerId);if(!g||g.button!==0||g.moved||!isClick(g.start,[e.clientX,e.clientY]))return;
   const rect=canvas.getBoundingClientRect(),screen=[e.clientX-rect.left,e.clientY-rect.top];
   const transform=createViewTransform({width:rect.width,height:rect.height,bounds:planeBounds(volume().manifest,planeName),...views[planeName]});
-  const [u,v]=transform.toPlane(screen),n=project(focus,planeName)[2],patient=unproject([u,v,n],planeName);
+  const [u,v]=transform.toPlane(screen),n=sliceNormal(focus,volume().manifest,planeName),patient=unproject([u,v,n],planeName);
   if(e.shiftKey){focus=clampFocus(patient,brain.manifest);requestDraw();return;}
   const result=game.click({patient,plane:planeName,width,level});
   if(result.kind==='hit'){focus=clampFocus(patient,brain.manifest);const t=checkpoints.phases.flatMap(p=>p.targets).find(t=>t.id===result.targetId);flash('✓ '+t.label);if(game.snapshot().status==='complete'){hint=false;saveBest(storage,record(),game.snapshot());}}
@@ -124,4 +127,3 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&ready){ges
 new ResizeObserver(requestDraw).observe($('viewports'));window.addEventListener('resize',()=>setPlane(active));
 setInterval(()=>{if(ready)$('timer').textContent=format(game.snapshot().elapsedMs);},100);
 load();
-
