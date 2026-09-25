@@ -44,7 +44,85 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-25 12:19 Central Daylight Time
-Cards: 0
+Updated: 2026-09-25 12:47 Central Daylight Time
+Cards: 4
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-17T06:40:03-05:00
+Last seen: 2026-09-25T12:37:08-05:00
+Card ID: 1765507990186
+Note ID: 1765507990185
+
+Question:
+00:12
+
+In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
+
+Answer:
+00:12
+
+In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
+
+## Card 2
+
+Deck: .Core Backlog
+Flagged: 2026-09-17T06:45:29-05:00
+Last seen: 2026-09-25T12:35:09-05:00
+Card ID: 1780360194965
+Note ID: 1780360194964
+
+Question:
+00:12
+
+The best MRI sequence for myocardial edema is [...].
+
+Answer:
+00:12
+
+The best MRI sequence for myocardial edema is black-blood fast spin echo (double inversion recovery).
+
+Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on black blood cardiac imaging sequences grants better conspicuity of findings within the adjacent cardiovascular anatomy.
+
+Open review Q8
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-25T12:25:42-05:00
+Last seen: 2026-09-25T12:25:42-05:00
+Card ID: 1776289176154
+Note ID: 1776289176153
+
+Question:
+00:12
+
+Excess aluminum in a Tc-99m sulfur colloid kit can cause [...].
+
+Answer:
+00:12
+
+Excess aluminum in a Tc-99m sulfur colloid kit can cause diffuse lung uptake.
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-09-25T12:22:45-05:00
+Last seen: 2026-09-25T12:22:45-05:00
+Card ID: 1773028619479
+Note ID: 1773028619478
+
+Question:
+00:12
+
+What's this?
+
+[...]
+
+Answer:
+00:12
+
+What's this?
+
+foramen lacerum
