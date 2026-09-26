@@ -44,207 +44,179 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-25 13:28 Central Daylight Time
-Cards: 10
+Updated: 2026-09-26 07:27 Central Daylight Time
+Cards: 8
 
 ## Card 1
 
-Deck: Saved Cards
-Flagged: 2026-09-25T13:18:30-05:00
-Last seen: 2026-09-25T13:18:30-05:00
-Card ID: 1787199507875
-Note ID: 1787199507874
+Deck: ..Due 2026-09-01 to 2026-09-25 Combined
+Flagged: 2026-09-26T02:51:28-05:00
+Last seen: 2026-09-26T02:51:28-05:00
+Card ID: 1790272665570
+Note ID: 1790272665569
 
 Question:
 00:12
 
-[...] classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
-
-Answer:
-00:12
-
-Susac syndrome classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
-
-Source: Notion Radiology entry.
-
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-09-07T06:40:12-05:00
-Last seen: 2026-09-25T13:15:30-05:00
-Card ID: 1776883789559
-Note ID: 1776883789558
-
-Question:
-00:12
-
-What happens to the location of the focal zone when the active aperture is increased by firing more elements in a linear array?
+What’s the black structure in the left atrium?
 
 [...]
 
+1/2
+
 Answer:
 00:12
 
-What happens to the location of the focal zone when the active aperture is increased by firing more elements in a linear array?
+What’s the black structure in the left atrium?
 
-Deeper into tissue
+Coumadin ridge
+
+1/2
+
+## Card 2
+
+Deck: ..Due 2026-09-01 to 2026-09-25 Combined
+Flagged: 2026-09-26T02:50:09-05:00
+Last seen: 2026-09-26T02:50:09-05:00
+Card ID: 1772171419599
+Note ID: 1772171419598
+
+Question:
+00:12
+
+[...] is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
+
+Answer:
+00:12
+
+Duty factor is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
 
 ## Card 3
 
 Deck: .NEW::Visual
-Flagged: 2026-09-23T12:36:35-05:00
-Last seen: 2026-09-25T13:13:41-05:00
-Card ID: 1779487982876
-Note ID: 1779487982875
+Flagged: 2026-08-05T13:15:55-05:00
+Last seen: 2026-09-26T02:49:10-05:00
+Card ID: 1785197977696
+Note ID: 1785197977695
 
 Question:
 00:12
 
-Fatigue, bone pain, hypoalbuminemia, and renal insufficiency with this bone scan pattern. Most likely diagnosis?
+What structure is this?
 
 [...]
 
 Answer:
 00:12
 
-Fatigue, bone pain, hypoalbuminemia, and renal insufficiency with this bone scan pattern. Most likely diagnosis?
+What structure is this?
 
-Metastatic calcifications
-
-Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
+Distal tendon of the biceps femoris
 
 ## Card 4
 
 Deck: .NEW::Audio
-Flagged: 2026-08-20T12:43:54-05:00
-Last seen: 2026-09-25T13:13:18-05:00
-Card ID: 1776883789576
-Note ID: 1776883789575
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-09-26T02:43:21-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
 
 Question:
 00:12
 
-In a 1.5D transducer array, elevational focusing is usually achieved with [...].
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
 
 Answer:
 00:12
 
-In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
 ## Card 5
 
 Deck: .NEW::Audio
-Flagged: 2026-08-09T22:03:42-05:00
-Last seen: 2026-09-25T13:08:30-05:00
-Card ID: 1753054854801
-Note ID: 1753054854800
+Flagged: 2026-06-08T21:47:02-05:00
+Last seen: 2026-09-26T02:41:56-05:00
+Card ID: 1771533389023
+Note ID: 1771533389022
 
 Question:
 00:12
 
-A Rastelli procedure is used for [...]
-
-Answer:
-00:08
-
-A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
-
-## Card 6
-
-Deck: .NEW::Audio
-Flagged: 2026-09-25T13:06:21-05:00
-Last seen: 2026-09-25T13:06:21-05:00
-Card ID: 1779654844825
-Note ID: 1779654844824
-
-Question:
-00:12
-
-Lateral hindfoot impingement most commonly occurs from [...] with chronic hindfoot valgus.
-
-Answer:
-00:12
-
-Lateral hindfoot impingement most commonly occurs from adult acquired flatfoot deformity with chronic hindfoot valgus.
-
-Q4. Incorrect; difficulty: hard. Vital Concept: T1 hypointense signal in lateral talus and calcaneus represents talocalcaneal impingement from adult acquired flatfoot deformity, where hindfoot valgus causes abnormal bone contact and marrow edema.
-
-## Card 7
-
-Deck: .Core Backlog
-Flagged: 2026-09-17T06:45:29-05:00
-Last seen: 2026-09-25T13:05:49-05:00
-Card ID: 1780360194965
-Note ID: 1780360194964
-
-Question:
-00:12
-
-The best MRI sequence for myocardial edema is [...].
-
-Answer:
-00:12
-
-The best MRI sequence for myocardial edema is black-blood fast spin echo (double inversion recovery).
-
-Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on black blood cardiac imaging sequences grants better conspicuity of findings within the adjacent cardiovascular anatomy.
-
-Open review Q8
-
-## Card 8
-
-Deck: .NEW::Audio
-Flagged: 2026-04-17T06:40:03-05:00
-Last seen: 2026-09-25T12:37:08-05:00
-Card ID: 1765507990186
-Note ID: 1765507990185
-
-Question:
-00:12
-
-In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
-
-Answer:
-00:12
-
-In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
-
-## Card 9
-
-Deck: .NEW::Audio
-Flagged: 2026-09-25T12:25:42-05:00
-Last seen: 2026-09-25T12:25:42-05:00
-Card ID: 1776289176154
-Note ID: 1776289176153
-
-Question:
-00:12
-
-Excess aluminum in a Tc-99m sulfur colloid kit can cause [...].
-
-Answer:
-00:12
-
-Excess aluminum in a Tc-99m sulfur colloid kit can cause diffuse lung uptake.
-
-## Card 10
-
-Deck: .NEW::Visual
-Flagged: 2026-09-25T12:22:45-05:00
-Last seen: 2026-09-25T12:22:45-05:00
-Card ID: 1773028619479
-Note ID: 1773028619478
-
-Question:
-00:12
-
-What's this?
+Which form of acute transverse myelitis is generally considered higher risk for later multiple sclerosis?
 
 [...]
 
 Answer:
 00:12
 
-What's this?
+Which form of acute transverse myelitis is generally considered higher risk for later multiple sclerosis?
 
-foramen lacerum
+Compared with acute complete transverse myelitis, acute partial transverse myelitis is generally considered higher risk for later multiple sclerosis.
+
+## Card 6
+
+Deck: ..Due 2026-09-01 to 2026-09-25 Combined
+Flagged: 2026-09-26T02:35:02-05:00
+Last seen: 2026-09-26T02:35:02-05:00
+Card ID: 1778611363369
+Note ID: 1778611363368
+
+Question:
+00:12
+
+The mnemonic for Gardner syndrome extracolonic findings is [...].
+
+Answer:
+00:12
+
+The mnemonic for Gardner syndrome extracolonic findings is DOPE Gardner.
+
+Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
+
+Full source page for context.
+
+## Card 7
+
+Deck: .NEW::Visual
+Flagged: 2026-07-12T13:25:17-05:00
+Last seen: 2026-09-26T02:34:17-05:00
+Card ID: 1783397643264
+Note ID: 1783397643263
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Myxofibrosarcoma -- Large predominantly T2-hyperintense enhancing soft-tissue mass.
+
+Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma characteristically T2 hyperintense.
+
+Full source page:
+
+## Card 8
+
+Deck: .NEW::Audio
+Flagged: 2026-09-23T12:47:27-05:00
+Last seen: 2026-09-26T02:33:22-05:00
+Card ID: 1760645679949
+Note ID: 1760645679948
+
+Question:
+00:12
+
+Anomaly of [...] in coronary artery anatomy refers to coronary artery fistula
+
+Answer:
+00:08
+
+Anomaly of termination in coronary artery anatomy refers to coronary artery fistula
+
+Notion AIRP Lecture
