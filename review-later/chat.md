@@ -44,14 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-26 07:27 Central Daylight Time
-Cards: 8
+Updated: 2026-09-26 08:02 Central Daylight Time
+Cards: 12
 
 ## Card 1
 
-Deck: ..Due 2026-09-01 to 2026-09-25 Combined
-Flagged: 2026-09-26T02:51:28-05:00
-Last seen: 2026-09-26T02:51:28-05:00
+Deck: .NEW::Visual
+Flagged: 2026-09-26T07:29:03-05:00
+Last seen: 2026-09-26T07:57:10-05:00
 Card ID: 1790272665570
 Note ID: 1790272665569
 
@@ -75,9 +75,83 @@ Coumadin ridge
 
 ## Card 2
 
-Deck: ..Due 2026-09-01 to 2026-09-25 Combined
-Flagged: 2026-09-26T02:50:09-05:00
-Last seen: 2026-09-26T02:50:09-05:00
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:23:47-05:00
+Last seen: 2026-09-26T07:54:17-05:00
+Card ID: 1777926121253
+Note ID: 1777926121252
+
+Question:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is [...].
+
+Answer:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-09-26T07:40:43-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
+
+Question:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+
+Answer:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T07:32:55-05:00
+Last seen: 2026-09-26T07:32:55-05:00
+Card ID: 1772200565541
+Note ID: 1772200565537
+
+Question:
+00:12
+
+If the [...] of an ultrasound wave doubles, the output power quadruples.
+
+Answer:
+00:12
+
+If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-09-23T13:15:03-05:00
+Last seen: 2026-09-26T07:31:09-05:00
+Card ID: 1789015833876
+Note ID: 1789015833875
+
+Question:
+00:12
+
+In a subacute cerebral infarct with luxury perfusion, HMPAO uptake can appear [...]
+
+Answer:
+00:12
+
+In a subacute cerebral infarct with luxury perfusion, HMPAO uptake can appear preserved or increased because blood flow has returned to injured tissue.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T07:29:24-05:00
+Last seen: 2026-09-26T07:29:38-05:00
 Card ID: 1772171419599
 Note ID: 1772171419598
 
@@ -91,7 +165,29 @@ Answer:
 
 Duty factor is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
 
-## Card 3
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T07:28:31-05:00
+Last seen: 2026-09-26T07:28:59-05:00
+Card ID: 1778611363369
+Note ID: 1778611363368
+
+Question:
+00:12
+
+The mnemonic for Gardner syndrome extracolonic findings is [...].
+
+Answer:
+00:12
+
+The mnemonic for Gardner syndrome extracolonic findings is DOPE Gardner.
+
+Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
+
+Full source page for context.
+
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-08-05T13:15:55-05:00
@@ -113,7 +209,7 @@ What structure is this?
 
 Distal tendon of the biceps femoris
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -131,7 +227,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-06-08T21:47:02-05:00
@@ -153,29 +249,7 @@ Which form of acute transverse myelitis is generally considered higher risk for 
 
 Compared with acute complete transverse myelitis, acute partial transverse myelitis is generally considered higher risk for later multiple sclerosis.
 
-## Card 6
-
-Deck: ..Due 2026-09-01 to 2026-09-25 Combined
-Flagged: 2026-09-26T02:35:02-05:00
-Last seen: 2026-09-26T02:35:02-05:00
-Card ID: 1778611363369
-Note ID: 1778611363368
-
-Question:
-00:12
-
-The mnemonic for Gardner syndrome extracolonic findings is [...].
-
-Answer:
-00:12
-
-The mnemonic for Gardner syndrome extracolonic findings is DOPE Gardner.
-
-Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
-
-Full source page for context.
-
-## Card 7
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -201,7 +275,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-23T12:47:27-05:00
