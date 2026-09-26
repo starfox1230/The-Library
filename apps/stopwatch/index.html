@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#090b0e">
+  <title>Stopwatch</title>
+  <style>
+    :root{
+      --bg:#090b0e;
+      --panel:#12161b;
+      --panel2:#181d23;
+      --line:#252c34;
+      --text:#f5f7fa;
+      --muted:#8e99a7;
+      --accent:#ffb44a;
+      --accent2:#ffd18d;
+      --danger:#ff6b6b;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;overflow:hidden}
+    body{-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+    button,input{font:inherit}
+    button{-webkit-tap-highlight-color:transparent}
+    .app{
+      min-height:100svh;
+      display:grid;
+      grid-template-rows:auto 1fr;
+      background:
+        radial-gradient(circle at 50% 42%,rgba(255,180,74,.055),transparent 34%),
+        var(--bg);
+    }
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:max(14px,env(safe-area-inset-top)) 16px 10px;
+      position:relative;
+      z-index:3;
+    }
+    .chip,.text-btn,.icon-btn{
+      border:1px solid var(--line);
+      color:var(--text);
+      background:rgba(18,22,27,.82);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      cursor:pointer;
+      touch-action:manipulation;
+    }
+    .chip{
+      min-width:0;
+      max-width:76vw;
+      height:44px;
+      border-radius:22px;
+      padding:0 15px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      font-weight:650;
+      letter-spacing:-.01em;
+    }
+    .chip span:first-child{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .chev{color:var(--muted);font-size:12px}
+    .text-btn{
+      height:44px;
+      border-radius:22px;
+      padding:0 14px;
+      color:var(--muted);
+      font-weight:650;
+      font-size:14px;
+    }
+    .tap-zone{
+      position:relative;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:12px 20px max(22px,env(safe-area-inset-bottom));
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:manipulation;
+      cursor:pointer;
+    }
+    .timer-wrap{
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      transform:translateY(-3vh);
+      transition:transform .16s ease;
+    }
+    .tap-zone.pressed .timer-wrap{transform:translateY(-3vh) scale(.994)}
+    .timer{
+      font-variant-numeric:tabular-nums;
+      font-feature-settings:"tnum";
+      font-weight:650;
+      letter-spacing:-.065em;
+      line-height:.92;
+      font-size:clamp(72px,20vw,190px);
+      white-space:nowrap;
+      transition:color .16s ease,text-shadow .16s ease;
+    }
+    .running .timer{
+      color:var(--accent2);
+      text-shadow:0 0 42px rgba(255,180,74,.08);
+    }
+    .hint{
+      height:22px;
+      margin-top:22px;
+      color:#58616d;
+      font-size:15px;
+      font-weight:650;
+      letter-spacing:.08em;
+      text-transform:lowercase;
+      transition:opacity .18s ease;
+    }
+    .running .hint{opacity:0}
+    .post-run{
+      display:flex;
+      width:min(420px,100%);
+      gap:10px;
+      position:absolute;
+      left:50%;
+      bottom:max(72px,calc(env(safe-area-inset-bottom) + 64px));
+      transform:translateX(-50%) translateY(10px);
+      padding:0 18px;
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .16s ease,transform .16s ease;
+    }
+    .post-run.show{
+      opacity:1;
+      pointer-events:auto;
+      transform:translateX(-50%) translateY(0);
+    }
+    .action{
+      flex:1;
+      height:56px;
+      border-radius:18px;
+      border:1px solid var(--line);
+      background:var(--panel2);
+      color:var(--text);
+      font-weight:750;
+      cursor:pointer;
+      touch-action:manipulation;
+    }
+    .action.primary{
+      background:var(--accent);
+      color:#171006;
+      border-color:var(--accent);
+    }
+    .statline{
+      position:absolute;
+      bottom:max(19px,env(safe-area-inset-bottom));
+      left:20px;
+      right:20px;
+      text-align:center;
+      color:#59636f;
+      font-size:13px;
+      font-variant-numeric:tabular-nums;
+      pointer-events:none;
+    }
+    .toast{
+      position:fixed;
+      left:50%;
+      top:max(72px,calc(env(safe-area-inset-top) + 58px));
+      transform:translate(-50%,-8px);
+      background:#f3f5f7;
+      color:#11151a;
+      border-radius:999px;
+      padding:9px 13px;
+      font-size:13px;
+      font-weight:750;
+      opacity:0;
+      pointer-events:none;
+      z-index:30;
+      transition:opacity .16s ease,transform .16s ease;
+    }
+    .toast.show{opacity:1;transform:translate(-50%,0)}
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      display:none;
+    }
+    .modal.open{display:block}
+    .scrim{
+      position:absolute;
+      inset:0;
+      background:rgba(0,0,0,.56);
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+    }
+    .sheet{
+      position:absolute;
+      left:0;
+      right:0;
+      bottom:0;
+      width:min(100%,620px);
+      max-height:min(78svh,760px);
+      margin:auto;
+      overflow:auto;
+      background:#101419;
+      border:1px solid var(--line);
+      border-bottom:0;
+      border-radius:28px 28px 0 0;
+      padding:9px 18px max(22px,env(safe-area-inset-bottom));
+      box-shadow:0 -24px 70px rgba(0,0,0,.46);
+      animation:up .18s ease both;
+    }
+    @keyframes up{from{transform:translateY(18px);opacity:.65}to{transform:none;opacity:1}}
+    .grabber{width:42px;height:5px;background:#343d47;border-radius:999px;margin:2px auto 13px}
+    .sheet-head{
+      position:sticky;
+      top:-9px;
+      z-index:2;
+      background:#101419;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 0 13px;
+    }
+    .sheet-head h2{font-size:22px;letter-spacing:-.035em;margin:0}
+    .head-actions{display:flex;gap:8px}
+    .icon-btn{
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      font-size:22px;
+      line-height:1;
+    }
+    .timer-list{display:flex;flex-direction:column}
+    .timer-row{
+      width:100%;
+      min-height:62px;
+      border:0;
+      border-top:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      text-align:left;
+      cursor:pointer;
+      padding:12px 4px;
+    }
+    .timer-row:first-child{border-top:0}
+    .timer-row-name{
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-weight:650;
+    }
+    .timer-row-meta{color:var(--muted);font-size:12px;white-space:nowrap}
+    .check{color:var(--accent);font-size:19px}
+    .add-form{
+      display:none;
+      grid-template-columns:1fr auto;
+      gap:9px;
+      padding:8px 0 14px;
+    }
+    .add-form.show{display:grid}
+    .add-form input{
+      min-width:0;
+      height:48px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:var(--panel2);
+      color:var(--text);
+      padding:0 14px;
+      outline:none;
+    }
+    .add-form input:focus{border-color:#576474}
+    .add-form button{
+      height:48px;
+      border:0;
+      border-radius:16px;
+      padding:0 18px;
+      background:var(--text);
+      color:#101317;
+      font-weight:750;
+      cursor:pointer;
+    }
+    .category-strip{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      scrollbar-width:none;
+      margin:0 -2px;
+      padding:2px 2px 14px;
+    }
+    .category-strip::-webkit-scrollbar{display:none}
+    .category-pill{
+      flex:0 0 auto;
+      max-width:240px;
+      border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--muted);
+      border-radius:999px;
+      padding:9px 12px;
+      cursor:pointer;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:13px;
+      font-weight:650;
+    }
+    .category-pill.active{
+      color:#171006;
+      background:var(--accent);
+      border-color:var(--accent);
+    }
+    .summary{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      margin-bottom:12px;
+    }
+    .summary-cell{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:17px;
+      padding:12px;
+      min-width:0;
+    }
+    .summary-label{color:var(--muted);font-size:11px;margin-bottom:5px}
+    .summary-value{
+      font-size:18px;
+      font-weight:750;
+      font-variant-numeric:tabular-nums;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .records{display:flex;flex-direction:column}
+    .record{
+      min-height:59px;
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:12px;
+      border-top:1px solid var(--line);
+      padding:9px 2px;
+    }
+    .record-time{
+      font-size:21px;
+      font-weight:700;
+      font-variant-numeric:tabular-nums;
+      letter-spacing:-.02em;
+    }
+    .record-date{font-size:11px;color:var(--muted);margin-top:2px}
+    .delete{
+      width:40px;
+      height:40px;
+      border:0;
+      border-radius:50%;
+      background:transparent;
+      color:#6f7a86;
+      font-size:21px;
+      cursor:pointer;
+    }
+    .delete:active{background:rgba(255,107,107,.09);color:var(--danger)}
+    .empty{
+      color:#6f7a86;
+      text-align:center;
+      padding:35px 10px 25px;
+      font-size:14px;
+    }
+    @media (min-width:700px){
+      .timer{font-size:clamp(100px,14vw,190px)}
+      .topbar{padding-left:24px;padding-right:24px}
+    }
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <button class="chip" id="timerMenuBtn" type="button" aria-label="Choose timer">
+        <span id="activeTimerName"></span><span class="chev">▼</span>
+      </button>
+      <button class="text-btn" id="recordsBtn" type="button">Records</button>
+    </header>
+
+    <main class="tap-zone" id="tapZone" aria-label="Tap to start or stop stopwatch">
+      <div class="timer-wrap">
+        <div class="timer" id="display" aria-live="off">0.00</div>
+        <div class="hint" id="hint">tap</div>
+      </div>
+
+      <div class="post-run" id="postRun" data-control>
+        <button class="action" id="newBtn" type="button">New</button>
+        <button class="action primary" id="saveBtn" type="button">Save</button>
+      </div>
+
+      <div class="statline" id="statline"></div>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="modal" id="timerModal" aria-hidden="true">
+    <div class="scrim" data-close="timer"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="timersTitle">
+      <div class="grabber"></div>
+      <div class="sheet-head">
+        <h2 id="timersTitle">Timers</h2>
+        <div class="head-actions">
+          <button class="icon-btn" id="addTimerBtn" type="button" aria-label="Add timer">+</button>
+          <button class="icon-btn" data-close="timer" type="button" aria-label="Close">×</button>
+        </div>
+      </div>
+      <form class="add-form" id="addForm">
+        <input id="newTimerInput" maxlength="48" autocomplete="off" placeholder="New timer" aria-label="New timer name">
+        <button type="submit">Add</button>
+      </form>
+      <div class="timer-list" id="timerList"></div>
+    </section>
+  </div>
+
+  <div class="modal" id="recordsModal" aria-hidden="true">
+    <div class="scrim" data-close="records"></div>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="recordsTitle">
+      <div class="grabber"></div>
+      <div class="sheet-head">
+        <h2 id="recordsTitle">Records</h2>
+        <button class="icon-btn" data-close="records" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="category-strip" id="categoryStrip"></div>
+      <div class="summary" id="summary"></div>
+      <div class="records" id="recordList"></div>
+    </section>
+  </div>
+
+  <script>
+    (function(){
+      "use strict";
+
+      var STORAGE_KEY = "theLibrary.stopwatch.v1";
+      var seed = {
+        categories: [
+          { id: "slide-fence", name: "Slide corner → fence" },
+          { id: "slide-fence-ball", name: "Slide corner → fence + ball" }
+        ],
+        records: [],
+        activeCategoryId: "slide-fence"
+      };
+
+      var data = load();
+      var historyCategoryId = data.activeCategoryId;
+      var state = "idle";
+      var startedAt = 0;
+      var elapsedMs = 0;
+      var raf = 0;
+      var toastTimer = 0;
+
+      var app = document.getElementById("app");
+      var tapZone = document.getElementById("tapZone");
+      var display = document.getElementById("display");
+      var hint = document.getElementById("hint");
+      var postRun = document.getElementById("postRun");
+      var statline = document.getElementById("statline");
+      var activeTimerName = document.getElementById("activeTimerName");
+      var timerModal = document.getElementById("timerModal");
+      var recordsModal = document.getElementById("recordsModal");
+      var timerList = document.getElementById("timerList");
+      var categoryStrip = document.getElementById("categoryStrip");
+      var summary = document.getElementById("summary");
+      var recordList = document.getElementById("recordList");
+      var addForm = document.getElementById("addForm");
+      var newTimerInput = document.getElementById("newTimerInput");
+      var toast = document.getElementById("toast");
+
+      function load(){
+        try{
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return JSON.parse(JSON.stringify(seed));
+          var parsed = JSON.parse(raw);
+          if(!Array.isArray(parsed.categories) || !parsed.categories.length || !Array.isArray(parsed.records)){
+            return JSON.parse(JSON.stringify(seed));
+          }
+          if(!parsed.categories.some(function(c){ return c.id === parsed.activeCategoryId; })){
+            parsed.activeCategoryId = parsed.categories[0].id;
+          }
+          return parsed;
+        }catch(e){
+          return JSON.parse(JSON.stringify(seed));
+        }
+      }
+
+      function persist(){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function uid(){
+        return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+      }
+
+      function activeCategory(){
+        return data.categories.find(function(c){ return c.id === data.activeCategoryId; }) || data.categories[0];
+      }
+
+      function format(ms){
+        var hundredths = Math.floor(ms / 10);
+        var totalSeconds = Math.floor(hundredths / 100);
+        var hh = hundredths % 100;
+        if(totalSeconds < 60){
+          return totalSeconds + "." + String(hh).padStart(2,"0");
+        }
+        var minutes = Math.floor(totalSeconds / 60);
+        var seconds = totalSeconds % 60;
+        return minutes + ":" + String(seconds).padStart(2,"0") + "." + String(hh).padStart(2,"0");
+      }
+
+      function renderHeader(){
+        activeTimerName.textContent = activeCategory().name;
+        renderStats();
+      }
+
+      function recordsFor(categoryId){
+        return data.records
+          .filter(function(r){ return r.categoryId === categoryId; })
+          .sort(function(a,b){ return new Date(b.createdAt) - new Date(a.createdAt); });
+      }
+
+      function renderStats(){
+        var recs = recordsFor(data.activeCategoryId);
+        if(!recs.length){
+          statline.textContent = "";
+          return;
+        }
+        var best = recs.reduce(function(min,r){ return Math.min(min,r.ms); }, Infinity);
+        statline.textContent = "Best " + format(best) + "  ·  " + recs.length + (recs.length === 1 ? " run" : " runs");
+      }
+
+      function tick(now){
+        if(state !== "running") return;
+        elapsedMs = now - startedAt;
+        display.textContent = format(elapsedMs);
+        raf = requestAnimationFrame(tick);
+      }
+
+      function start(){
+        if(state !== "idle") return;
+        state = "running";
+        elapsedMs = 0;
+        startedAt = performance.now();
+        app.classList.add("running");
+        hint.textContent = "";
+        postRun.classList.remove("show");
+        raf = requestAnimationFrame(tick);
+      }
+
+      function stop(){
+        if(state !== "running") return;
+        elapsedMs = performance.now() - startedAt;
+        cancelAnimationFrame(raf);
+        display.textContent = format(elapsedMs);
+        state = "stopped";
+        app.classList.remove("running");
+        hint.textContent = "";
+        postRun.classList.add("show");
+      }
+
+      function reset(){
+        cancelAnimationFrame(raf);
+        state = "idle";
+        startedAt = 0;
+        elapsedMs = 0;
+        display.textContent = "0.00";
+        hint.textContent = "tap";
+        app.classList.remove("running");
+        postRun.classList.remove("show");
+      }
+
+      function saveRun(){
+        if(state !== "stopped") return;
+        var savedMs = elapsedMs;
+        data.records.push({
+          id: uid(),
+          categoryId: data.activeCategoryId,
+          ms: savedMs,
+          createdAt: new Date().toISOString()
+        });
+        persist();
+        reset();
+        renderStats();
+        showToast("Saved " + format(savedMs));
+      }
+
+      function showToast(message){
+        clearTimeout(toastTimer);
+        toast.textContent = message;
+        toast.classList.add("show");
+        toastTimer = setTimeout(function(){ toast.classList.remove("show"); }, 1150);
+      }
+
+      function modalOpen(){
+        return timerModal.classList.contains("open") || recordsModal.classList.contains("open");
+      }
+
+      function openModal(el){
+        el.classList.add("open");
+        el.setAttribute("aria-hidden","false");
+      }
+
+      function closeModal(el){
+        el.classList.remove("open");
+        el.setAttribute("aria-hidden","true");
+      }
+
+      tapZone.addEventListener("pointerdown", function(e){
+        if(modalOpen() || e.target.closest("[data-control]")) return;
+        tapZone.classList.add("pressed");
+      });
+
+      tapZone.addEventListener("pointerup", function(e){
+        tapZone.classList.remove("pressed");
+        if(modalOpen() || e.target.closest("[data-control]")) return;
+        if(state === "idle") start();
+        else if(state === "running") stop();
+      });
+
+      tapZone.addEventListener("pointercancel", function(){
+        tapZone.classList.remove("pressed");
+      });
+
+      document.getElementById("saveBtn").addEventListener("click", function(e){
+        e.stopPropagation();
+        saveRun();
+      });
+
+      document.getElementById("newBtn").addEventListener("click", function(e){
+        e.stopPropagation();
+        reset();
+      });
+
+      document.getElementById("timerMenuBtn").addEventListener("click", function(){
+        renderTimerList();
+        openModal(timerModal);
+      });
+
+      document.getElementById("recordsBtn").addEventListener("click", function(){
+        historyCategoryId = data.activeCategoryId;
+        renderRecords();
+        openModal(recordsModal);
+      });
+
+      document.querySelectorAll("[data-close]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          if(btn.dataset.close === "timer") closeModal(timerModal);
+          if(btn.dataset.close === "records") closeModal(recordsModal);
+        });
+      });
+
+      document.getElementById("addTimerBtn").addEventListener("click", function(){
+        addForm.classList.toggle("show");
+        if(addForm.classList.contains("show")){
+          setTimeout(function(){ newTimerInput.focus(); }, 50);
+        }
+      });
+
+      addForm.addEventListener("submit", function(e){
+        e.preventDefault();
+        var name = newTimerInput.value.trim();
+        if(!name) return;
+        var category = { id: "timer-" + uid(), name: name };
+        data.categories.push(category);
+        data.activeCategoryId = category.id;
+        historyCategoryId = category.id;
+        persist();
+        newTimerInput.value = "";
+        addForm.classList.remove("show");
+        reset();
+        renderHeader();
+        renderTimerList();
+        closeModal(timerModal);
+      });
+
+      function renderTimerList(){
+        timerList.innerHTML = "";
+        data.categories.forEach(function(category){
+          var btn = document.createElement("button");
+          btn.className = "timer-row";
+          btn.type = "button";
+          var count = recordsFor(category.id).length;
+
+          var name = document.createElement("span");
+          name.className = "timer-row-name";
+          name.textContent = category.name;
+
+          var right = document.createElement("span");
+          right.className = category.id === data.activeCategoryId ? "check" : "timer-row-meta";
+          right.textContent = category.id === data.activeCategoryId ? "✓" : (count ? String(count) : "");
+
+          btn.appendChild(name);
+          btn.appendChild(right);
+          btn.addEventListener("click", function(){
+            data.activeCategoryId = category.id;
+            historyCategoryId = category.id;
+            persist();
+            reset();
+            renderHeader();
+            closeModal(timerModal);
+          });
+          timerList.appendChild(btn);
+        });
+      }
+
+      function renderRecords(){
+        categoryStrip.innerHTML = "";
+        data.categories.forEach(function(category){
+          var pill = document.createElement("button");
+          pill.type = "button";
+          pill.className = "category-pill" + (category.id === historyCategoryId ? " active" : "");
+          pill.textContent = category.name;
+          pill.addEventListener("click", function(){
+            historyCategoryId = category.id;
+            renderRecords();
+          });
+          categoryStrip.appendChild(pill);
+        });
+
+        var recs = recordsFor(historyCategoryId);
+        var best = recs.length ? recs.reduce(function(min,r){ return Math.min(min,r.ms); }, Infinity) : null;
+        var last = recs.length ? recs[0].ms : null;
+
+        summary.innerHTML =
+          '<div class="summary-cell"><div class="summary-label">Best</div><div class="summary-value">' + (best === null ? "—" : format(best)) + '</div></div>' +
+          '<div class="summary-cell"><div class="summary-label">Last</div><div class="summary-value">' + (last === null ? "—" : format(last)) + '</div></div>' +
+          '<div class="summary-cell"><div class="summary-label">Runs</div><div class="summary-value">' + recs.length + '</div></div>';
+
+        recordList.innerHTML = "";
+        if(!recs.length){
+          var empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "No records";
+          recordList.appendChild(empty);
+          return;
+        }
+
+        recs.forEach(function(record){
+          var row = document.createElement("div");
+          row.className = "record";
+
+          var left = document.createElement("div");
+          var time = document.createElement("div");
+          time.className = "record-time";
+          time.textContent = format(record.ms);
+          var date = document.createElement("div");
+          date.className = "record-date";
+          date.textContent = new Date(record.createdAt).toLocaleString([], {
+            month:"short", day:"numeric", hour:"numeric", minute:"2-digit"
+          });
+          left.appendChild(time);
+          left.appendChild(date);
+
+          var del = document.createElement("button");
+          del.className = "delete";
+          del.type = "button";
+          del.setAttribute("aria-label","Delete record");
+          del.textContent = "×";
+          del.addEventListener("click", function(){
+            data.records = data.records.filter(function(r){ return r.id !== record.id; });
+            persist();
+            renderRecords();
+            renderStats();
+          });
+
+          row.appendChild(left);
+          row.appendChild(del);
+          recordList.appendChild(row);
+        });
+      }
+
+      document.addEventListener("keydown", function(e){
+        if(e.key === "Escape"){
+          closeModal(timerModal);
+          closeModal(recordsModal);
+          return;
+        }
+        if((e.code === "Space" || e.key === "Enter") && !modalOpen() && document.activeElement.tagName !== "BUTTON"){
+          e.preventDefault();
+          if(state === "idle") start();
+          else if(state === "running") stop();
+        }
+      });
+
+      document.addEventListener("gesturestart", function(e){ e.preventDefault(); }, {passive:false});
+
+      renderHeader();
+    })();
+  </script>
+</body>
+</html>
