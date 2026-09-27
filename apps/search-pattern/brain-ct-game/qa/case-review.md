@@ -1,0 +1,9 @@
+# Case review — 2026-09-22
+
+Accepted for anatomical navigation practice: PCIR study linked in `cases/normal-head/ATTRIBUTION.md`. Source catalog result is “None”, which is a general negative finding entry rather than a hemorrhage-only label. This supports use as the requested normal teaching case; it is not independent clinical certification. Brain series 2 is precontrast, 142 source slices; age 25 years. Series 3 supplies matching thin bone reconstruction. No original metadata is served.
+
+Source archive MD5 matches its published value. SOFT and BONEPLUS outputs both have dimensions 401 × 401 × 114, spacing 0.625 × 0.625 × 1.25 mm, and voxel-centre LPS origin [-125, -134.8, -8.75]. Native source HU are slope/intercept rescaled before interpolation and int16 rounding. Source was orthogonal; no oblique reorientation was needed for this case. A seven-test converter suite also checks reversed axes, oblique affine interpolation, rescale, nonuniform slice rejection, invalid geometry, byte order, checksum, and overflow.
+
+Visually inspected 20 axial levels and multiple sagittal/coronal reformats. Coverage includes the foramen magnum/upper cord through vertex; both orbits, sella, ventricles, cisterns, basal ganglia and posterior fossa are visible. Reformats retain visible structural detail. Orientation is derived from DICOM LPS; axial/coronal patient left displays on screen right. The source includes ordinary noise and calcifications; no independent diagnostic report is claimed.
+
+Other sources considered: Radiopaedia case 35508 returned HTTP 406; Zenodo 3374839 was excluded as postoperative; PCIR's explicitly “Normal” 2003 case was downloaded and inspected but has 5 mm slices, so the thinner source-reported negative 2006 case was selected. Its public-domain source permits redistribution.
