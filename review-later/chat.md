@@ -44,7 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-27 07:56 Central Daylight Time
+Updated: 2026-09-27 08:53 Central Daylight Time
 Cards: 10
 
 ## Card 1
