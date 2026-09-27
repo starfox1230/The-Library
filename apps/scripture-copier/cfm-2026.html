@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Come Follow Me 2026</title>
+  <link rel="stylesheet" href="cfm-quiz.css"/>
   <style>
     :root {
       --bg: #121212;
@@ -273,6 +274,18 @@
     }
     #scripture-links a:hover, #manual-links a:hover { background: var(--input-border); opacity: 0.9; }
 
+    .quiz-entry { display: flex; justify-content: center; margin: -3px 0 16px; }
+    #play-quiz {
+      touch-action: manipulation; border: 1px solid #b696f3; border-radius: 999px;
+      background: linear-gradient(135deg, #56347f, #7542a6); color: #fff;
+      padding: 9px 23px; font: 700 .95rem system-ui, sans-serif;
+      box-shadow: 0 3px 12px #8a4acb44; cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease;
+    }
+    #play-quiz:hover { box-shadow: 0 5px 18px #a76ae877; }
+    #play-quiz:active { transform: scale(.96); }
+    #play-quiz:focus-visible { outline: 3px solid #e9d7ff; outline-offset: 3px; }
+
     /* Version picker modal */
     .version-modal {
       position: fixed; inset: 0;
@@ -423,6 +436,8 @@
       <button id="copy-btn" disabled>Copy</button>
     </div>
 
+    <div class="quiz-entry"><button id="play-quiz" type="button">✦ Play Quiz</button></div>
+
     <div id="scripture-links"></div>
     <div id="manual-links" style="display:none;"></div>
     <textarea id="content-text" readonly placeholder="Content will appear here…"></textarea>
@@ -454,6 +469,7 @@
     </div>
   </div>
 
+  <script src="cfm-quiz.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', async () => {
     /* ===== Menu / embed ===== */
@@ -987,6 +1003,7 @@
     const segBtns = Array.from(document.querySelectorAll('.seg-btn'));
     const todayDateSpan = document.getElementById('today-date');
     const dateInput = document.getElementById('date-input');
+    const quiz = window.CFMQuiz.create(document.getElementById('play-quiz'));
 
     /* ---- Place manual links above scripture links without changing markup ---- */
     if (scriptureLinks && manualLinks && scriptureLinks.parentNode) {
@@ -1288,6 +1305,7 @@
       weekInfo.textContent = extra.length ? `${rangeLine}\n${extra.join('\n')}` : rangeLine;
 
       const dt = new Date(parseDate(wk.start)); dt.setDate(dt.getDate()+dayIdx);
+      quiz.setDate(toISODate(dt), viewMode === 'day');
       dayInfo.textContent = (viewMode==='day')
         ? `Today's date: ${fmtDate(dt)}`
         : `Week view: ${fmtDate(parseDate(wk.start))} – ${fmtDate(parseDate(wk.end))}`;
