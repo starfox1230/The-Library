@@ -20,6 +20,10 @@ async function playLevel(page, level, date, quitEarly = false) {
   const quiz = JSON.parse(fs.readFileSync(path.join(root, `${date}.json`), 'utf8'));
   await page.locator('#play-quiz').click();
   const dialog = page.getByRole('dialog', { name: 'Daily Come Follow Me quiz' });
+  await dialog.getByRole('button', { name: 'Kid', exact: true }).waitFor();
+  assert.equal(await dialog.locator('.cfm-quiz__subtitle').count(), 0);
+  assert.equal(await dialog.locator('.cfm-quiz__level small').count(), 0);
+  assert.equal(await dialog.getByRole('button', { name: 'Kid', exact: true }).count(), 1);
   await dialog.getByRole('button', { name: new RegExp(`^${level === 'kid' ? 'Kid' : level === 'high-school' ? 'High School' : 'PhD / Expert'}`) }).click();
   const items = quiz.levels[level];
   const end = quitEarly ? 3 : 10;

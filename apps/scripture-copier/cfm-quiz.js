@@ -1,9 +1,9 @@
 (() => {
   'use strict';
   const LEVELS = [
-    ['kid', 'Kid', 'Clear, concrete questions with a little thinking.'],
-    ['high-school', 'High School', 'Connections, meaning, and careful reading.'],
-    ['expert', 'PhD / Expert', 'Close reading and deeper distinctions.'],
+    ['kid', 'Kid'],
+    ['high-school', 'High School'],
+    ['expert', 'PhD / Expert'],
   ];
   const element = (tag, className, text) => {
     const node = document.createElement(tag);
@@ -59,11 +59,11 @@
       return node;
     }
     function showLevels() {
-      addHeading(date, 'Choose your level', 'Ten questions. No timer. Just a little discovery.');
+      addHeading(date, 'Choose your level');
       const list = element('div', 'cfm-quiz__levels');
-      for (const [id, label, hint] of LEVELS) {
+      for (const [id, label] of LEVELS) {
         const choice = button(label, () => start(id));
-        choice.append(element('small', '', hint));
+        choice.setAttribute('aria-label', label);
         list.append(choice);
       }
       content.append(list);
