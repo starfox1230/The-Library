@@ -44,10 +44,148 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-28 12:53 Central Daylight Time
-Cards: 17
+Updated: 2026-09-28 13:09 Central Daylight Time
+Cards: 23
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:22:42-05:00
+Last seen: 2026-09-28T13:08:51-05:00
+Card ID: 1779744469985
+Note ID: 1779744469984
+
+Question:
+00:12
+
+What named distal radius fracture is shown?
+
+[...]
+
+Answer:
+00:12
+
+What named distal radius fracture is shown?
+
+Type II Smith fracture (reverse Barton fracture)
+
+Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T06:31:55-05:00
+Last seen: 2026-09-28T13:08:18-05:00
+Card ID: 1776094221605
+Note ID: 1776094221602
+
+Question:
+What classic sign is seen here and what does it represent??
+
+ ↻
+
+Answer:
+Crescent sign -- subchondral fracture in the setting of osteonecrosis.
+
+Images
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-23T12:36:35-05:00
+Last seen: 2026-09-28T13:06:19-05:00
+Card ID: 1779487982876
+Note ID: 1779487982875
+
+Question:
+00:12
+
+Fatigue, bone pain, hypoalbuminemia, and renal insufficiency with this bone scan pattern. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Fatigue, bone pain, hypoalbuminemia, and renal insufficiency with this bone scan pattern. Most likely diagnosis?
+
+Metastatic calcifications
+
+Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-07-12T13:25:17-05:00
+Last seen: 2026-09-28T13:03:56-05:00
+Card ID: 1783397643264
+Note ID: 1783397643263
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Myxofibrosarcoma -- Large predominantly T2-hyperintense enhancing soft-tissue mass.
+
+Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma characteristically T2 hyperintense.
+
+Full source page:
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-09-28T13:00:06-05:00
+Last seen: 2026-09-28T13:00:11-05:00
+Card ID: 1773028619479
+Note ID: 1773028619478
+
+Question:
+00:12
+
+What's this?
+
+[...]
+
+Answer:
+00:12
+
+What's this?
+
+foramen lacerum
+
+## Card 6
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:33:26-05:00
+Last seen: 2026-09-28T12:59:27-05:00
+Card ID: 1779059682569
+Note ID: 1779059682568
+
+Question:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+marrow stimulation in setting of colony-stimulating factors
+
+Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
+
+## Card 7
 
 Deck: ..Due 2026-09-04 to 2026-09-28 Audio
 Flagged: 2026-09-28T07:43:38-05:00
@@ -67,7 +205,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 2
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -85,7 +223,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 3
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -103,7 +241,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 4
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T06:58:58-05:00
@@ -121,7 +259,7 @@ Answer:
 
 In fluoroscopy, dose-area product most related to stochastic cancer risk.
 
-## Card 5
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -139,7 +277,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 6
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:22:04-05:00
@@ -157,7 +295,7 @@ Answer:
 
 The main geometric advantage of a phased array transducer is a small transducer footprint that can still create a large field of view through beam steering
 
-## Card 7
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-05:00
@@ -175,7 +313,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 8
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -199,7 +337,7 @@ Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
 
-## Card 9
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -217,7 +355,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 10
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -241,7 +379,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 11
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -263,7 +401,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 12
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-05-07T16:29:27-05:00
@@ -289,7 +427,7 @@ Functional immaturity of the colon (normal rectosigmoid ratio with the left side
 
 1/2
 
-## Card 13
+## Card 19
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
@@ -315,7 +453,7 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 14
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -341,7 +479,7 @@ Coumadin ridge
 
 1/2
 
-## Card 15
+## Card 21
 
 Deck: Saved Cards
 Flagged: 2026-09-25T13:18:30-05:00
@@ -361,7 +499,7 @@ Susac syndrome classically produces round punched-out lesions in the corpus call
 
 Source: Notion Radiology entry.
 
-## Card 16
+## Card 22
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -384,7 +522,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 17
+## Card 23
 
 Deck: .NEW::Visual
 Flagged: 2026-04-21T17:04:29-05:00
