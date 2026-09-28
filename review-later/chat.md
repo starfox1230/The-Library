@@ -44,14 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-27 08:53 Central Daylight Time
+Updated: 2026-09-27 21:59 Central Daylight Time
 Cards: 10
 
 ## Card 1
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
-Last seen: 2026-09-27T07:43:51-05:00
+Last seen: 2026-09-27T12:41:57-05:00
 Card ID: 1768330036762
 Note ID: 1768330036761
 
@@ -76,6 +76,24 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 ## Card 2
 
 Deck: .NEW::Audio
+Flagged: 2026-09-27T07:27:17-05:00
+Last seen: 2026-09-27T12:41:28-05:00
+Card ID: 1775710786821
+Note ID: 1775710786821
+
+Question:
+00:12
+
+The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from [...].
+
+Answer:
+00:12
+
+The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from subacute lymphocytic painless thyroiditis.
+
+## Card 3
+
+Deck: .NEW::Audio
 Flagged: 2026-06-28T22:51:59-05:00
 Last seen: 2026-09-27T07:35:16-05:00
 Card ID: 1782704416336
@@ -91,7 +109,7 @@ Answer:
 
 Symmetric triangular iliac-sided sclerosis adjacent to the sacroiliac joints with preserved joint spaces suggests osteitis condensans ilii.
 
-## Card 3
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-27T07:30:44-05:00
@@ -117,7 +135,7 @@ The sharply marginated saucer-shaped cortical defect with sclerosis favors a ben
 
 Source: Notion Radiology note.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -143,7 +161,7 @@ Coumadin ridge
 
 1/2
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:35:23-05:00
@@ -161,7 +179,7 @@ Answer:
 
 If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-27T07:27:35-05:00
@@ -184,24 +202,6 @@ Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
 Full source page for context.
 
 ...........
-
-## Card 7
-
-Deck: .NEW::Audio
-Flagged: 2026-09-27T07:27:17-05:00
-Last seen: 2026-09-27T07:27:17-05:00
-Card ID: 1775710786821
-Note ID: 1775710786821
-
-Question:
-00:12
-
-The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from [...].
-
-Answer:
-00:12
-
-The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from subacute lymphocytic painless thyroiditis.
 
 ## Card 8
 
