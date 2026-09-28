@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#071018" />
+  <title>Nuclear Medicine Reporting Pocket Guide</title>
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#071018;--panel:#0d1824;--panel2:#102232;--ink:#eef7fb;--muted:#99afbb;
+      --line:rgba(162,199,215,.18);--teal:#42e8d4;--cyan:#63c7ff;--amber:#ffc857;
+      --green:#70e096;--rose:#ff7c9b;--shadow:0 18px 50px rgba(0,0,0,.34);
+    }
+    *{box-sizing:border-box}
+    html{min-height:100%;background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+    body{
+      margin:0;min-height:100vh;color:var(--ink);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at 10% -10%,rgba(66,232,212,.17),transparent 32rem),
+                 linear-gradient(180deg,#08131d 0%,#071018 42%,#050b11 100%);
+      overscroll-behavior-y:contain;touch-action:manipulation;
+    }
+    button,input,select{font:inherit}
+    button,.chip,.study-btn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    .app{width:min(1180px,100%);margin:0 auto;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 26px)}
+    header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
+    h1{margin:0;font-size:clamp(1.55rem,6vw,2.6rem);line-height:1;letter-spacing:-.02em}
+    .small{color:var(--muted);font-size:.78rem}
+    .topbar{position:sticky;top:env(safe-area-inset-top);z-index:30;padding:8px;margin:0 -4px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(7,16,24,.92);backdrop-filter:blur(16px);box-shadow:0 14px 30px rgba(0,0,0,.23)}
+    .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px}
+    .tab{min-height:42px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-weight:800;font-size:.83rem;cursor:pointer}
+    .tab.active{color:#031017;background:linear-gradient(135deg,var(--teal),var(--cyan))}
+    .search{width:100%;min-height:42px;border:1px solid var(--line);border-radius:8px;padding:9px 11px;color:var(--ink);background:#07111a;outline:none}
+    .search:focus{border-color:rgba(66,232,212,.7);box-shadow:0 0 0 3px rgba(66,232,212,.1)}
+    .screen{display:none}.screen.active{display:block}
+    .layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:12px;align-items:start}
+    .nav{position:sticky;top:114px;display:grid;gap:5px;max-height:calc(100vh - 130px);overflow:auto;padding-right:2px}
+    .study-btn{border:1px solid var(--line);border-radius:8px;padding:9px 10px;text-align:left;color:var(--muted);background:rgba(9,19,29,.65);cursor:pointer;font-weight:720;font-size:.84rem}
+    .study-btn.active{color:var(--ink);border-color:rgba(66,232,212,.45);background:rgba(66,232,212,.1)}
+    .cards{display:grid;gap:10px}
+    .card{border:1px solid var(--line);border-radius:11px;background:linear-gradient(180deg,rgba(16,34,50,.9),rgba(10,22,33,.92));box-shadow:var(--shadow);overflow:hidden}
+    .card-head{padding:12px 13px 9px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;align-items:start}
+    .card-head h2,.card-head h3{margin:0;font-size:1.02rem}
+    .tag{padding:3px 7px;border-radius:999px;background:rgba(66,232,212,.1);color:var(--teal);font-size:.68rem;font-weight:850;white-space:nowrap}
+    .body{padding:12px 13px}
+    .assess{margin:0 0 11px;color:#dff8f5;line-height:1.42}
+    .label{margin:11px 0 6px;color:var(--teal);font-size:.71rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+    .phrases{display:grid;gap:6px}
+    .phrase{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:rgba(5,12,18,.45);color:#eaf4f7;line-height:1.38;font-size:.89rem}
+    .copy{min-width:54px;min-height:34px;border:1px solid rgba(99,199,255,.25);border-radius:7px;background:rgba(99,199,255,.08);color:var(--cyan);font-size:.72rem;font-weight:850;cursor:pointer}
+    .vocab{display:flex;flex-wrap:wrap;gap:5px}
+    .vocab span{padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:.72rem;background:rgba(255,255,255,.025)}
+    .subhead{margin:14px 0 6px;font-size:.92rem;color:var(--amber)}
+    .note{padding:9px 10px;border-left:3px solid var(--amber);border-radius:6px;background:rgba(255,200,87,.07);color:#f6e8c4;font-size:.85rem;line-height:1.4}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .quick-card{padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(5,12,18,.45)}
+    .quick-card h3{margin:0 0 7px;color:var(--teal);font-size:.94rem}
+    .quick-card p{margin:0;color:var(--muted);line-height:1.4;font-size:.86rem}
+    .segment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+    .seg{border:1px solid var(--line);border-radius:9px;padding:10px;background:rgba(5,12,18,.44)}
+    .seg strong{display:block;color:var(--teal);margin-bottom:3px}.seg span{color:var(--muted);font-size:.82rem}
+    .generator{display:grid;grid-template-columns:160px 1fr;gap:8px;align-items:end;margin-bottom:10px}
+    select{width:100%;min-height:42px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink);background:#07111a}
+    .output{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:12px;border:1px solid rgba(66,232,212,.28);border-radius:9px;background:rgba(66,232,212,.07);line-height:1.4}
+    .terms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .term{padding:10px;border:1px solid var(--line);border-radius:8px;background:rgba(5,12,18,.4)}
+    .term b{color:var(--teal)}.term span{display:block;margin-top:3px;color:var(--muted);font-size:.82rem;line-height:1.35}
+    .hidden{display:none!important}
+    .empty{padding:18px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:10px}
+    @media(max-width:760px){
+      .layout{grid-template-columns:1fr}.nav{position:static;display:flex;overflow-x:auto;max-height:none;padding-bottom:2px}.study-btn{white-space:nowrap}
+      .grid2,.terms,.segment-grid{grid-template-columns:1fr}.generator{grid-template-columns:1fr}
+      .card-head{align-items:center}.phrase{grid-template-columns:1fr auto}
+    }
+  </style>
+</head>
+<body>
+<main class="app">
+  <header><h1>Nuclear Medicine Reporting</h1><span class="small">Pocket guide</span></header>
+
+  <div class="topbar">
+    <nav class="tabs">
+      <button class="tab active" data-screen="studies">Studies</button>
+      <button class="tab" data-screen="y90">Y-90</button>
+      <button class="tab" data-screen="segments">Segments</button>
+      <button class="tab" data-screen="terms">Terms</button>
+    </nav>
+    <input id="search" class="search" type="search" placeholder="Search study, finding, phrase, or term…" autocomplete="off" />
+  </div>
+
+  <section id="studies" class="screen active">
+    <div class="layout">
+      <nav id="studyNav" class="nav"></nav>
+      <div id="studyCards" class="cards"></div>
+    </div>
+  </section>
+
+  <section id="y90" class="screen">
+    <div class="cards">
+      <article class="card">
+        <div class="card-head"><h2>Y-90 / Radioembolization Planning MAA</h2><span class="tag">Core checklist</span></div>
+        <div class="body">
+          <div class="grid2">
+            <div class="quick-card"><h3>1. Intrahepatic distribution</h3><p>Where the MAA localizes and whether the distribution is expected for the selected arterial territory.</p></div>
+            <div class="quick-card"><h3>2. Extrahepatic activity</h3><p>Look specifically for nontarget deposition outside the liver.</p></div>
+            <div class="quick-card"><h3>3. Lung shunt</h3><p>Report the calculated percentage lung shunt / lung shunt fraction.</p></div>
+            <div class="quick-card"><h3>4. SPECT/CT + CT findings</h3><p>Use the SPECT/CT for localization; a brief low-dose noncontrast CT findings section is common.</p></div>
+          </div>
+
+          <div class="label">Reusable wording</div>
+          <div class="phrases">
+            <div class="phrase"><span>The calculated percentage lung shunt is 3.65%.</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>The lung shunt is calculated to be 3.65%. No extrahepatic activity.</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>Expected distribution of radiotracer activity within the liver without evidence of extrahepatic radiotracer activity.</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>No significant radiotracer activity is seen outside of the liver.</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>Focal extrahepatic radiotracer activity is present along the gastric wall, concerning for nontarget arterial perfusion.</span><button class="copy">Copy</button></div>
+          </div>
+
+          <div class="label">CT section labels</div>
+          <div class="phrases">
+            <div class="phrase"><span>Low-dose noncontrast CT findings:</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>Additional SPECT/CT findings:</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>SPECT-CT findings:</span><button class="copy">Copy</button></div>
+            <div class="phrase"><span>Additional CT findings:</span><button class="copy">Copy</button></div>
+          </div>
+
+          <div class="note">The CT is generally low-dose/noncontrast and primarily for attenuation correction and anatomic localization, so keep incidental CT interpretation appropriately limited.</div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="segments" class="screen">
+    <article class="card">
+      <div class="card-head"><h2>Couinaud Segment Wording</h2><span class="tag">Y-90</span></div>
+      <div class="body">
+        <div class="generator">
+          <div>
+            <div class="label">Segment</div>
+            <select id="segmentSelect">
+              <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+              <option value="IVa">IVa</option><option value="IVb">IVb</option><option value="V">V</option>
+              <option value="VI">VI</option><option value="VII" selected>VII</option><option value="VIII">VIII</option>
+            </select>
+          </div>
+          <div id="segmentOutput" class="output"><span></span><button class="copy">Copy</button></div>
+        </div>
+        <div id="segmentGrid" class="segment-grid"></div>
+        <div class="label">Pattern</div>
+        <div class="note">
+          Left: II lateral superior → III lateral inferior → IVa medial superior → IVb medial inferior.<br>
+          Right: V anterior inferior → VI posterior inferior → VII posterior superior → VIII anterior superior.
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section id="terms" class="screen">
+    <article class="card">
+      <div class="card-head"><h2>Core Nuclear Medicine Vocabulary</h2><span class="tag">Phrase bank</span></div>
+      <div class="body"><div id="termGrid" class="terms"></div></div>
+    </article>
+  </section>
+</main>
+
+<script>
+const STUDIES = [
+  {
+    id:"gastric", name:"Gastric emptying", tag:"GI",
+    assess:"Rate of solid gastric emptying, reported primarily as the percentage of radiotracer retained in the stomach at defined time points.",
+    vocab:["% radioactivity retained","gastric retention","delayed gastric emptying","rapid gastric emptying","normal gastric emptying"],
+    groups:[
+      ["Normal",[
+        "The % radioactivity retained at the end of one hour: 38.9%.",
+        "The % radioactivity retained at the end of two hours: 21.3%.",
+        "Normal gastric emptying.",
+        "Additional images at three and four hours were not acquired as the gastric retention at two hours was less than 45%."
+      ]],
+      ["Common abnormal examples",[
+        "Abnormally increased gastric retention at 4 hours, consistent with delayed gastric emptying.",
+        "Gastric retention at 1 hour is less than 30%, compatible with rapid gastric emptying."
+      ]]
+    ],
+    note:"Protocol reference values in the supplied reports: upper limits of retention 90% at 1 h, 60% at 2 h, 30% at 3 h, and 10% at 4 h; 1-hour retention <30% suggests rapid emptying."
+  },
+  {
+    id:"hida", name:"HIDA / hepatobiliary", tag:"GI",
+    assess:"Hepatocyte extraction, biliary excretion, gallbladder filling/cystic duct patency, bowel activity, gallbladder ejection fraction when CCK is given, and bile leak when clinically relevant.",
+    vocab:["brisk hepatic uptake","hepatic extraction","biliary excretion","gallbladder filling","bowel activity","patent cystic duct","biliary obstruction"],
+    groups:[
+      ["Normal / patent ducts",[
+        "Homogenous hepatic parenchymal activity is present with gallbladder activity present at 4 minutes. Biliary ductal excretion is noted at 18 minutes with subsequent small bowel excretion thereafter at 22 minutes.",
+        "Normal HIDA scan. Patent cystic and common bile ducts. No evidence of cholecystitis.",
+        "Brisk hepatic uptake/radiotracer extraction with subsequent biliary excretion.",
+        "No evidence of acute cholecystitis.",
+        "No evidence of biliary obstruction."
+      ]],
+      ["Gallbladder ejection fraction",[
+        "The computed gallbladder ejection fraction is 52% (normal is greater than or equal to 38%).",
+        "Gallbladder ejection fraction of 52%. No gallbladder dyskinesia.",
+        "Decreased gallbladder ejection fraction of 21%, compatible with gallbladder hypokinesia/biliary dyskinesia."
+      ]],
+      ["Acute cholecystitis / obstruction examples",[
+        "Nonvisualization of the gallbladder despite delayed imaging, consistent with cystic duct obstruction and acute cholecystitis.",
+        "Persistent hepatic/biliary activity with absent small bowel activity, concerning for biliary obstruction."
+      ]],
+      ["Bile leak",[
+        "Large bile leak near the biliary anastomosis is present, with radiotracer accumulation throughout the peritoneum.",
+        "Large bile leak with suspected defect near the biliary anastomosis with radiotracer accumulation within the peritoneum."
+      ]]
+    ]
+  },
+  {
+    id:"vq", name:"V/Q scan", tag:"Lung",
+    assess:"Compares ventilation with perfusion to identify clinically important mismatched perfusion defects, particularly segmental pleural-based defects suspicious for pulmonary embolism.",
+    vocab:["matched defect","mismatched defect","segmental","subsegmental","pleural-based","wedge-shaped","perfusion defect","photopenia","gas trapping"],
+    groups:[
+      ["Normal / very low probability",[
+        "On ventilation images, there is symmetric ventilatory radiotracer uptake throughout the bilateral lungs without corresponding defect.",
+        "On perfusion imaging, symmetric radiotracer perfusion throughout the lungs. No focal defect is present.",
+        "Very low probability of pulmonary embolism.",
+        "No segmental or subsegmental mismatched ventilation/perfusion defects to suggest pulmonary embolism.",
+        "No areas of large, pleural-based, wedge-shaped, segmental perfusion defects bilaterally.",
+        "No imaging findings of chronic thromboembolic pulmonary hypertension."
+      ]],
+      ["Matched abnormality",[
+        "Moderate matched VQ defect within the left lung base suggests a very low to low probability for PTE. Otherwise, no discrete mismatched defect."
+      ]],
+      ["PE-positive example",[
+        "Segmental, pleural-based perfusion defect within the right lower lobe without a corresponding ventilation defect, suspicious for pulmonary embolism."
+      ]]
+    ]
+  },
+  {
+    id:"quantlung", name:"Quantitative lung perfusion", tag:"Lung",
+    assess:"Quantifies fractional perfusion contributed by each lung, often for preoperative planning, with optional upper/mid/lower regional breakdown.",
+    vocab:["differential perfusion","perfusion counts","regional perfusion"],
+    groups:[["Typical",[
+      "On quantification, the differential perfusion counts over the left lung region were 47.3% and 52.7% over the right lung region.",
+      "Differential perfusion is 47.3% to left lung and 52.7% to right lung."
+    ]]]
+  },
+  {
+    id:"y90study", name:"Y-90 planning MAA", tag:"Liver",
+    assess:"Maps expected intrahepatic microsphere distribution, detects extrahepatic/nontarget activity, and quantifies the lung shunt fraction before radioembolization.",
+    vocab:["lung shunt","lung shunt fraction","expected distribution","extrahepatic radiotracer activity","nontarget perfusion"],
+    groups:[
+      ["Typical",[
+        "The calculated percentage lung shunt is 3.65%.",
+        "The lung shunt is calculated to be 3.65%. No extrahepatic activity.",
+        "Expected distribution of radiotracer activity within liver as above without evidence of extrahepatic radiotracer activity.",
+        "No significant radiotracer activity is seen outside of the liver."
+      ]],
+      ["Abnormal example",[
+        "Focal extrahepatic radiotracer activity is present along the gastric wall, concerning for nontarget arterial perfusion."
+      ]]
+    ],
+    note:"A brief low-dose noncontrast CT findings section is common. Common labels in the supplied reports include “Low-dose noncontrast CT findings,” “Additional SPECT/CT findings,” “SPECT-CT findings,” and “Additional CT findings.”"
+  },
+  {
+    id:"bone", name:"Whole-body bone scan", tag:"Bone",
+    assess:"Detects areas of increased osteoblastic turnover, most commonly for osseous metastases but also fractures, degenerative change, and postoperative change.",
+    vocab:["physiologic distribution","multifocal","diffuse","radiotracer avid","osseous metastatic disease","scintigraphically occult","osteoblastic lesion"],
+    groups:[
+      ["Normal / negative",[
+        "There is a physiologic distribution of activity throughout the skeleton.",
+        "No suspicious areas of radiotracer uptake.",
+        "No evidence of osseous metastatic disease.",
+        "There is expected activity in the soft tissues and urinary system."
+      ]],
+      ["Metastatic disease",[
+        "Multifocal tracer activity involving…",
+        "Unchanged multifocal osseous metastatic disease without new radiotracer foci.",
+        "Diffuse sclerotic radiotracer avid osseous metastatic disease throughout as detailed above.",
+        "No convincing new osseous metastasis."
+      ]],
+      ["Treatment response",[
+        "Scintigraphically occult today, suggesting treatment response."
+      ]],
+      ["Degenerative / fracture",[
+        "Mild degenerative type radiotracer uptake throughout the spine.",
+        "Focal radiotracer uptake of the intervertebral disc spaces of L1-L2 and L3-L4 and right L2-L3 facet joint, corresponding with the greatest degree of degenerative changes within the lumbar spine.",
+        "Chronic healing right anterior 6th and 7th rib fractures."
+      ]]
+    ]
+  },
+  {
+    id:"threephase", name:"Three-phase bone / prosthesis", tag:"Bone",
+    assess:"Separates hyperemia (flow), soft-tissue blood-pool activity, and delayed osseous turnover to evaluate prostheses, loosening, infection, fracture, and other inflammatory processes.",
+    vocab:["flow phase","blood-pool phase","delayed skeletal phase","periprosthetic","perihardware","hardware loosening","prosthesis infection","expected photopenia"],
+    groups:[
+      ["Phase language",[
+        "On the blood flow images…",
+        "On the blood pool images…",
+        "On delayed imaging…"
+      ]],
+      ["Prosthesis",[
+        "Variable three-phase radiotracer accumulation surrounding all components of the prosthetic right knee, particularly along the periprosthetic tibial plateau, concerning for hardware loosening.",
+        "Delayed phase increased radiotracer activity surrounding the left knee arthroplasty, predominantly at the tibial component, which may be related to hardware loosening.",
+        "Prosthesis infection seems less likely given negative cultures, however cannot be entirely excluded based on bone scintigraphy."
+      ]]
+    ]
+  },
+  {
+    id:"parathyroid", name:"Parathyroid sestamibi", tag:"Endocrine",
+    assess:"Looks for abnormal parathyroid tissue demonstrating persistent sestamibi retention relative to thyroid washout; SPECT/CT localizes the focus.",
+    vocab:["persistent retention","thyroid clearance","ectopic parathyroid tissue","parathyroid adenoma"],
+    groups:[
+      ["Negative",[
+        "Normal uptake of Tc-99m sestamibi in the thyroid, submandibular glands, heart, and liver.",
+        "Delayed imaging with normal clearance of sestamibi from the thyroid.",
+        "There is no focus of radiotracer retention to suggest abnormal parathyroid tissue.",
+        "No evidence of abnormal ectopic parathyroid tissue.",
+        "No scintigraphic evidence of parathyroid adenoma."
+      ]],
+      ["Positive example",[
+        "Persistent focal sestamibi uptake posterior to the inferior right thyroid lobe on delayed imaging, corresponding to a soft-tissue nodule on SPECT/CT, compatible with a parathyroid adenoma."
+      ]],
+      ["Injection only",[
+        "Successful intravenous injection of Tc-99m Sestamibi preoperatively to assist in the intraoperative localization of the parathyroid lesion. No images were acquired."
+      ]]
+    ]
+  },
+  {
+    id:"thyroid", name:"Thyroid uptake & scan", tag:"Endocrine",
+    assess:"Combines quantitative radioiodine uptake with spatial assessment of functioning thyroid tissue.",
+    vocab:["homogeneous uptake","symmetric uptake","24-hour thyroid uptake","hot nodule","cold nodule","toxic nodule"],
+    groups:[
+      ["Diffuse / Graves",[
+        "Relatively symmetric radiotracer uptake throughout the thyroid gland, with normal glandular size. No discrete nodular area of focal increased radiotracer uptake to suggest toxic nodule.",
+        "There is homogenous radiotracer uptake throughout the bilateral thyroid lobes.",
+        "Findings of Graves' disease with 24 hour thyroid uptake of 47.7%."
+      ]],
+      ["Common patterns",[
+        "Markedly decreased thyroid radiotracer uptake, compatible with thyroiditis in the appropriate clinical setting.",
+        "Focal intense radiotracer uptake within the right thyroid lobe with suppression of the remainder of the thyroid gland, compatible with an autonomously functioning nodule.",
+        "Heterogeneous multifocal increased and decreased radiotracer uptake throughout an enlarged thyroid gland."
+      ]]
+    ]
+  },
+  {
+    id:"i131", name:"I-131 therapy", tag:"Therapy",
+    assess:"Documents therapeutic radioiodine administration, indication, consent, precautions, and administered activity.",
+    vocab:["administered as therapy","radiation safety instructions"],
+    groups:[["Typical",[
+      "31.9 mCi of I-131 administered as therapy for hyperthyroidism related to Graves' disease."
+    ]]]
+  },
+  {
+    id:"renogram", name:"Diuretic renal scan / renogram", tag:"Renal",
+    assess:"Evaluates renal perfusion, cortical uptake, collecting-system excretion, diuretic response, differential function, and sometimes ERPF.",
+    vocab:["cortical uptake","collecting system excretion","stasis","clearance","differential function","peak time","time to half peak","ERPF"],
+    groups:[
+      ["Obstructed",[
+        "Mildly reduced flow on initial flow images.",
+        "Delayed cortical uptake with abnormal collecting system excretion.",
+        "Relative stasis of radiotracer without clearance.",
+        "Persistent findings of obstructive uropathy of the right kidney without significant excretion.",
+        "Slightly improved right renal differential function."
+      ]],
+      ["Normal / nonobstructive",[
+        "Prompt cortical uptake of activity with normal excretion into the left renal collecting system.",
+        "Prompt clearance of activity from the collecting system.",
+        "Dilated collecting system with prompt clearance following diuretic administration, without scintigraphic evidence of obstruction."
+      ]]
+    ]
+  },
+  {
+    id:"gfr", name:"Measured GFR", tag:"Renal",
+    assess:"Provides a quantitative plasma-clearance measurement of total GFR, with optional body-surface-area normalization.",
+    vocab:["two blood sample method","calculated GFR","normalized for body surface area"],
+    groups:[["Typical",[
+      "After injection of radiotracer, total GFR was determined by a two blood sample method at 60 and 180 minutes.",
+      "The calculated GFR is 25 ml/min. The GFR normalized for body surface area is 28.2 ml/min."
+    ]]]
+  },
+  {
+    id:"dat", name:"DaTscan", tag:"Neuro",
+    assess:"Assesses integrity of presynaptic nigrostriatal dopaminergic terminals by evaluating caudate and putaminal ioflupane uptake.",
+    vocab:["caudate","putamen","comma-shaped configuration","presynaptic dopaminergic deficit"],
+    groups:[
+      ["Normal",[
+        "Symmetric uptake within the bilateral caudate and putamen in a comma-shaped configuration.",
+        "Normal DAT scan."
+      ]],
+      ["Abnormal",[
+        "Relatively preserved activity involving the right caudate and putamen. However, on the left, there is mildly decreased activity within the caudate and almost no activity in the left putamen.",
+        "Abnormal DAT scan with relative decreased activity within the left caudate and absent activity in the left putamen."
+      ]]
+    ],
+    note:"An abnormal study indicates a presynaptic dopaminergic deficit but does not by itself establish a specific parkinsonian diagnosis."
+  },
+  {
+    id:"sentinel", name:"Sentinel node mapping", tag:"Lymph",
+    assess:"Maps lymphatic drainage from the injection/tumor site to identify sentinel/draining lymph nodes for operative localization.",
+    vocab:["site of injection","tracer tracking","draining lymph node","sentinel lymph node","nodal station","contralateral drainage"],
+    groups:[
+      ["Typical",[
+        "Radiotracer uptake at the site of injection within the right breast with a sentinel lymph node draining to the right axilla.",
+        "Sentinel lymph node within the right axilla.",
+        "Subcentimeter sentinel/draining lymph nodes draining to the left retroauricular and left cervical level IIB lymph node stations noted."
+      ]],
+      ["Negative / distribution",[
+        "No convincing draining/sentinel node is identified at the time of imaging.",
+        "No evidence of contralateral drainage to the right axilla.",
+        "Draining/sentinel lymph nodes within the lateral right chest wall and inferior right axillary chain, as noted above."
+      ]]
+    ]
+  },
+  {
+    id:"pluvicto", name:"Post-Pluvicto imaging", tag:"Therapy",
+    assess:"Documents post-therapy Lu-177 PSMA distribution and the persistence/distribution of PSMA-expressing metastatic disease; comparisons with PSMA PET are limited by technique.",
+    vocab:["known metastatic disease","overall distribution","persistent uptake","limited evaluation given differences in technique"],
+    groups:[
+      ["Comparison language",[
+        "When compared to prior PET/CT given the limitations of differences in technique, the overall distribution of lesions appears similar from prior without gross increase.",
+        "Increased uptake in the known metastatic disease, which appears relatively similar from prior PSMA PET/CT, however limited evaluation given differences in technique.",
+        "Appears relatively similar/slightly decreased in overall activity, though somewhat limited evaluation given differences in technique."
+      ]],
+      ["Response integration",[
+        "Rising PSA levels and worsening pain symptoms along with persistent uptake on current scan, suggests lack of therapeutic response."
+      ]]
+    ]
+  },
+  {
+    id:"renaloncocytoma", name:"Renal mass SPECT/CT", tag:"Renal",
+    assess:"Characterizes a renal mass based on radiotracer activity relative to normal renal parenchymal background, supporting or arguing against oncocytoma depending on the tracer/protocol.",
+    vocab:["renal parenchymal background","similar to background","no significant radiotracer activity"],
+    groups:[["Typical",[
+      "Radiotracer activity within the lesion is similar to that of parenchymal background.",
+      "Exophytic left renal lesion measuring up to 4.6 cm with activity similar to that of renal parenchymal background is unchanged, again suggesting an oncocytoma."
+    ]]]
+  }
+];
+
+const SEGMENTS = {
+  "I":"caudate lobe",
+  "II":"left lateral superior hepatic segment",
+  "III":"left lateral inferior hepatic segment",
+  "IVa":"left medial superior hepatic segment",
+  "IVb":"left medial inferior hepatic segment",
+  "V":"right anterior inferior hepatic segment",
+  "VI":"right posterior inferior hepatic segment",
+  "VII":"right posterior superior hepatic segment",
+  "VIII":"right anterior superior hepatic segment"
+};
+
+const TERMS = [
+  ["Uptake / activity / accumulation","Generic tracer localization: focal radiotracer uptake, increased activity, radiotracer accumulation."],
+  ["Avid","Relatively strong tracer uptake; useful for describing radiotracer-avid lesions."],
+  ["Physiologic distribution","Expected normal tracer distribution."],
+  ["Photopenia","Relatively absent or decreased tracer activity."],
+  ["Retention","Tracer remains where it would normally clear; especially gastric emptying and parathyroid imaging."],
+  ["Excretion / clearance","Tracer leaves an organ/system normally; particularly renal and hepatobiliary studies."],
+  ["Washout","Decreasing activity with time, particularly sestamibi."],
+  ["Defect","Reduced or absent activity, particularly on V/Q imaging."],
+  ["Matched / mismatched","Whether ventilation and perfusion abnormalities correspond."],
+  ["Focal / multifocal / diffuse / patchy / heterogeneous","Core descriptors of tracer distribution."],
+  ["Draining / sentinel","Lymphoscintigraphy terms for nodal drainage."],
+  ["Differential function / perfusion","Percentage contribution from one kidney or lung."],
+  ["Scintigraphic evidence","Classic conclusion construction: “No scintigraphic evidence of …”"],
+  ["Scintigraphically occult","A known abnormality is not visible on the current scintigraphic study."],
+  ["Corresponding","Links functional activity to anatomy: uptake with corresponding sclerotic lesion / degenerative change."],
+  ["Planar / SPECT-CT / flow / blood pool / delayed","Defines the acquisition or phase on which a finding is demonstrated."]
+];
+
+const studyNav = document.getElementById("studyNav");
+const studyCards = document.getElementById("studyCards");
+const search = document.getElementById("search");
+
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]})}
+function phraseRow(text){return '<div class="phrase"><span>'+esc(text)+'</span><button class="copy" type="button">Copy</button></div>'}
+
+function renderStudies(query){
+  const q=(query||"").trim().toLowerCase();
+  const filtered=STUDIES.filter(function(s){
+    return !q || JSON.stringify(s).toLowerCase().includes(q);
+  });
+  studyNav.innerHTML=filtered.map(function(s,i){
+    return '<button class="study-btn '+(i===0?'active':'')+'" data-id="'+s.id+'">'+esc(s.name)+'</button>';
+  }).join("");
+  studyCards.innerHTML=filtered.map(function(s){
+    let inner='<article class="card" id="'+s.id+'"><div class="card-head"><h2>'+esc(s.name)+'</h2><span class="tag">'+esc(s.tag)+'</span></div><div class="body">';
+    inner+='<p class="assess">'+esc(s.assess)+'</p>';
+    if(s.vocab && s.vocab.length){
+      inner+='<div class="label">Vocabulary</div><div class="vocab">'+s.vocab.map(function(v){return '<span>'+esc(v)+'</span>'}).join("")+'</div>';
+    }
+    (s.groups||[]).forEach(function(g){
+      inner+='<h3 class="subhead">'+esc(g[0])+'</h3><div class="phrases">'+g[1].map(phraseRow).join("")+'</div>';
+    });
+    if(s.note)inner+='<div class="note" style="margin-top:11px">'+esc(s.note)+'</div>';
+    inner+='</div></article>';
+    return inner;
+  }).join("") || '<div class="empty">No matching study.</div>';
+}
+
+function renderSegments(){
+  const grid=document.getElementById("segmentGrid");
+  grid.innerHTML=Object.keys(SEGMENTS).map(function(k){
+    return '<div class="seg"><strong>Segment '+k+'</strong><span>'+esc(SEGMENTS[k])+'</span></div>';
+  }).join("");
+  updateSegment();
+}
+
+function updateSegment(){
+  const k=document.getElementById("segmentSelect").value;
+  const txt='Intrahepatic radiotracer activity is predominantly localized within the '+SEGMENTS[k]+' (segment '+k+').';
+  document.querySelector("#segmentOutput span").textContent=txt;
+}
+
+function renderTerms(query){
+  const q=(query||"").trim().toLowerCase();
+  const list=TERMS.filter(function(t){return !q || (t[0]+" "+t[1]).toLowerCase().includes(q)});
+  document.getElementById("termGrid").innerHTML=list.map(function(t){
+    return '<div class="term"><b>'+esc(t[0])+'</b><span>'+esc(t[1])+'</span></div>';
+  }).join("") || '<div class="empty">No matching term.</div>';
+}
+
+renderStudies("");
+renderSegments();
+renderTerms("");
+
+document.getElementById("segmentSelect").addEventListener("change",updateSegment);
+
+document.querySelectorAll(".tab").forEach(function(btn){
+  btn.addEventListener("click",function(){
+    document.querySelectorAll(".tab").forEach(function(b){b.classList.remove("active")});
+    document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active")});
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.screen).classList.add("active");
+    search.value="";
+    if(btn.dataset.screen==="studies")renderStudies("");
+    if(btn.dataset.screen==="terms")renderTerms("");
+  });
+});
+
+studyNav.addEventListener("click",function(e){
+  const b=e.target.closest(".study-btn"); if(!b)return;
+  studyNav.querySelectorAll(".study-btn").forEach(function(x){x.classList.remove("active")});
+  b.classList.add("active");
+  document.getElementById(b.dataset.id).scrollIntoView({behavior:"smooth",block:"start"});
+});
+
+search.addEventListener("input",function(){
+  const active=document.querySelector(".screen.active").id;
+  if(active==="studies")renderStudies(search.value);
+  if(active==="terms")renderTerms(search.value);
+  if(active==="y90"){
+    const q=search.value.trim().toLowerCase();
+    document.querySelectorAll("#y90 .phrase,#y90 .quick-card,#y90 .note").forEach(function(el){
+      el.classList.toggle("hidden",q && !el.textContent.toLowerCase().includes(q));
+    });
+  }
+  if(active==="segments"){
+    const q=search.value.trim().toLowerCase();
+    document.querySelectorAll("#segmentGrid .seg").forEach(function(el){
+      el.classList.toggle("hidden",q && !el.textContent.toLowerCase().includes(q));
+    });
+  }
+});
+
+document.addEventListener("click",async function(e){
+  const btn=e.target.closest(".copy"); if(!btn)return;
+  const container=btn.parentElement;
+  const text=(container.querySelector("span")||container).textContent.trim();
+  try{
+    await navigator.clipboard.writeText(text);
+    const old=btn.textContent;btn.textContent="Copied";
+    setTimeout(function(){btn.textContent=old},900);
+  }catch(err){}
+});
+</script>
+</body>
+</html>
