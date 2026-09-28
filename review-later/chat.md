@@ -44,96 +44,200 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-27 22:58 Central Daylight Time
-Cards: 13
+Updated: 2026-09-28 07:00 Central Daylight Time
+Cards: 14
 
 ## Card 1
 
-Deck: Saved Cards
-Flagged: 2026-09-25T13:18:30-05:00
-Last seen: 2026-09-27T22:49:58-05:00
-Card ID: 1787199507875
-Note ID: 1787199507874
+Deck: .NEW::Audio
+Flagged: 2026-09-28T06:58:58-05:00
+Last seen: 2026-09-28T06:59:07-05:00
+Card ID: 1779993601094
+Note ID: 1779993601094
 
 Question:
 00:12
 
-[...] classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
-
-Answer:
-00:12
-
-Susac syndrome classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
-
-Source: Notion Radiology entry.
-
-## Card 2
-
-Deck: .NEW::Visual
-Flagged: 2026-04-21T17:04:29-05:00
-Last seen: 2026-09-27T22:48:22-05:00
-Card ID: 1776449807658
-Note ID: 1776449807658
-
-Question:
-00:12
-
-What pattern?
-
-[...]
+In fluoroscopy, [is DAP or peak skin dose] most related to stochastic cancer risk.
 
 Answer:
 00:08
 
-What pattern?
+In fluoroscopy, dose-area product most related to stochastic cancer risk.
 
-reticular pattern
+## Card 2
 
-## Card 3
-
-Deck: Saved Cards
-Flagged: 2026-08-12T20:19:09-05:00
-Last seen: 2026-09-27T22:28:33-05:00
-Card ID: 1786559000557
-Note ID: 1786559000556
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-09-28T06:57:45-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
 
 Question:
 00:12
 
-An acute fracture of the posterolateral talar process is a [...].
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
 
 Answer:
 00:12
 
-An acute fracture of the posterolateral talar process is a Shepherd fracture.
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-This is traumatic rather than an unfused ossification center.
+## Card 3
 
-Source: Notion Radiology entry.
+Deck: .NEW::Audio
+Flagged: 2026-09-07T07:22:04-05:00
+Last seen: 2026-09-28T06:55:08-05:00
+Card ID: 1776883789553
+Note ID: 1776883789552
+
+Question:
+00:12
+
+The main geometric advantage of a phased array transducer is a [...] that can still create a large field of view through beam steering
+
+Answer:
+00:12
+
+The main geometric advantage of a phased array transducer is a small transducer footprint that can still create a large field of view through beam steering
 
 ## Card 4
 
 Deck: .NEW::Audio
-Flagged: 2026-07-07T23:08:06-05:00
-Last seen: 2026-09-27T22:27:58-05:00
-Card ID: 1783449197061
-Note ID: 1783449197059
+Flagged: 2026-09-26T07:32:55-05:00
+Last seen: 2026-09-28T06:54:58-05:00
+Card ID: 1772200565541
+Note ID: 1772200565537
 
 Question:
 00:12
 
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of [...] such as [...]
+If the [...] of an ultrasound wave doubles, the output power quadruples.
+
+Answer:
+00:12
+
+If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-08-30T20:38:04-05:00
+Last seen: 2026-09-28T06:54:33-05:00
+Card ID: 1787278684717
+Note ID: 1787278684716
+
+Question:
+00:12
+
+What imaging sign is shown?
+
+[...]
+
+Answer:
+00:12
+
+What imaging sign is shown?
+
+Goblet sign of right ureteral transitional cell carcinoma
+
+Source: Notion Radiology entry.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-05-06T05:32:34-05:00
+Last seen: 2026-09-28T06:52:51-05:00
+Card ID: 1777842173601
+Note ID: 1777842173601
+
+Question:
+00:12
+
+The physiologic distribution of I-123 or I-131 includes [...].
 
 Answer:
 00:08
 
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
+The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 5
+## Card 7
+
+Deck: Saved Cards
+Flagged: 2026-09-26T15:53:48-05:00
+Last seen: 2026-09-28T06:51:03-05:00
+Card ID: 1785498425558
+Note ID: 1785498425557
+
+Question:
+00:12
+
+Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+
+[...]
+
+Answer:
+00:12
+
+Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+
+Ulcer-like projection
+
+Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
+
+## Card 8
+
+Deck: .NEW::Visual
+Flagged: 2026-08-13T13:19:44-05:00
+Last seen: 2026-09-28T06:51:03-05:00
+Card ID: 1776199228458
+Note ID: 1776199228458
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+ameloblastoma
+
+## Card 9
+
+Deck: .NEW::Visual
+Flagged: 2026-05-07T16:29:27-05:00
+Last seen: 2026-09-28T06:49:49-05:00
+Card ID: 1777315484971
+Note ID: 1777315484971
+
+Question:
+00:12
+
+Most likely diagnosis in neonate?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Most likely diagnosis in neonate?
+
+Functional immaturity of the colon (normal rectosigmoid ratio with the left side of the colon appearing small and ahaustral, scattered filling defects seen throughout the colon likely due to meconium plugs)
+
+1/2
+
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
-Last seen: 2026-09-27T12:41:57-05:00
+Last seen: 2026-09-28T06:48:14-05:00
 Card ID: 1768330036762
 Note ID: 1768330036761
 
@@ -155,55 +259,11 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 6
-
-Deck: .NEW::Audio
-Flagged: 2026-06-28T22:51:59-05:00
-Last seen: 2026-09-27T07:35:16-05:00
-Card ID: 1782704416336
-Note ID: 1782704416330
-
-Question:
-00:12
-
-Symmetric triangular [...]-sided sclerosis adjacent to the sacroiliac joints with preserved joint spaces suggests osteitis condensans ilii.
-
-Answer:
-00:12
-
-Symmetric triangular iliac-sided sclerosis adjacent to the sacroiliac joints with preserved joint spaces suggests osteitis condensans ilii.
-
-## Card 7
-
-Deck: Saved Cards
-Flagged: 2026-09-27T07:30:44-05:00
-Last seen: 2026-09-27T07:30:44-05:00
-Card ID: 1785635742760
-Note ID: 1785635742759
-
-Question:
-00:12
-
-What is the most likely diagnosis?
-
-[...]
-
-Answer:
-00:12
-
-What is the most likely diagnosis?
-
-Periosteal chondroma
-
-The sharply marginated saucer-shaped cortical defect with sclerosis favors a benign periosteal cartilaginous lesion.
-
-Source: Notion Radiology note.
-
-## Card 8
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
-Last seen: 2026-09-27T07:29:28-05:00
+Last seen: 2026-09-28T06:47:55-05:00
 Card ID: 1790272665570
 Note ID: 1790272665569
 
@@ -225,104 +285,67 @@ Coumadin ridge
 
 1/2
 
-## Card 9
-
-Deck: .NEW::Audio
-Flagged: 2026-09-26T15:35:23-05:00
-Last seen: 2026-09-27T07:27:48-05:00
-Card ID: 1775839995565
-Note ID: 1775839995564
-
-Question:
-00:12
-
-If the serum hCG level is above [...] and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
-
-Answer:
-00:12
-
-If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
-
-## Card 10
-
-Deck: .NEW::Audio
-Flagged: 2026-09-27T07:27:35-05:00
-Last seen: 2026-09-27T07:27:35-05:00
-Card ID: 1778611363379
-Note ID: 1778611363378
-
-Question:
-00:12
-
-The mnemonic for Turcot syndrome is [...].
-
-Answer:
-00:12
-
-The mnemonic for Turcot syndrome is TURbans go over your head.
-
-Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
-
-Full source page for context.
-
-...........
-
-## Card 11
-
-Deck: .NEW::Audio
-Flagged: 2026-09-11T13:23:47-05:00
-Last seen: 2026-09-27T07:26:55-05:00
-Card ID: 1777926121253
-Note ID: 1777926121252
-
-Question:
-00:12
-
-In Crack the Core, the “Michael Jackson lesion” is [...].
-
-Answer:
-00:12
-
-In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
-
-In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
-
 ## Card 12
 
-Deck: .Core Backlog
-Flagged: 2026-09-17T06:45:29-05:00
-Last seen: 2026-09-27T07:12:08-05:00
-Card ID: 1780360194965
-Note ID: 1780360194964
+Deck: Saved Cards
+Flagged: 2026-09-25T13:18:30-05:00
+Last seen: 2026-09-28T06:46:16-05:00
+Card ID: 1787199507875
+Note ID: 1787199507874
 
 Question:
 00:12
 
-The best MRI sequence for myocardial edema is [...].
+[...] classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
 
 Answer:
 00:12
 
-The best MRI sequence for myocardial edema is black-blood fast spin echo (double inversion recovery).
+Susac syndrome classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
 
-Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on black blood cardiac imaging sequences grants better conspicuity of findings within the adjacent cardiovascular anatomy.
-
-Open review Q8
+Source: Notion Radiology entry.
 
 ## Card 13
 
 Deck: .NEW::Audio
-Flagged: 2026-09-26T07:32:55-05:00
-Last seen: 2026-09-27T06:49:20-05:00
-Card ID: 1772200565541
-Note ID: 1772200565537
+Flagged: 2026-09-04T12:51:08-05:00
+Last seen: 2026-09-28T06:45:13-05:00
+Card ID: 1760561943141
+Note ID: 1760561943140
 
 Question:
 00:12
 
-If the [...] of an ultrasound wave doubles, the output power quadruples.
+Differentiate lipomyelocele from lipomyelomeningocele on imaging.
+
+[...]
 
 Answer:
+00:08
+
+Differentiate lipomyelocele from lipomyelomeningocele on imaging.
+
+lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
+lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
+
+## Card 14
+
+Deck: .NEW::Visual
+Flagged: 2026-04-21T17:04:29-05:00
+Last seen: 2026-09-28T06:41:24-05:00
+Card ID: 1776449807658
+Note ID: 1776449807658
+
+Question:
 00:12
 
-If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
+What pattern?
+
+[...]
+
+Answer:
+00:08
+
+What pattern?
+
+reticular pattern
