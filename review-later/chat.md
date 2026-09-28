@@ -44,10 +44,66 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-28 07:00 Central Daylight Time
-Cards: 14
+Updated: 2026-09-28 12:53 Central Daylight Time
+Cards: 17
 
 ## Card 1
+
+Deck: ..Due 2026-09-04 to 2026-09-28 Audio
+Flagged: 2026-09-28T07:43:38-05:00
+Last seen: 2026-09-28T07:43:38-05:00
+Card ID: 1762490211783
+Note ID: 1762490211782
+
+Question:
+00:12
+
+Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic [...] in the skull.
+
+Answer:
+00:12
+
+Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic beveled edge appearance in the skull.
+
+Notion AIRP Lecture
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-08-03T21:52:07-05:00
+Last seen: 2026-09-28T07:38:25-05:00
+Card ID: 1784577931809
+Note ID: 1784577931808
+
+Question:
+00:12
+
+An abdominal aortic diameter of [...] is classified as aneurysmal.
+
+Answer:
+00:12
+
+An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-09-28T07:35:20-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T06:58:58-05:00
@@ -65,7 +121,7 @@ Answer:
 
 In fluoroscopy, dose-area product most related to stochastic cancer risk.
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -83,7 +139,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:22:04-05:00
@@ -101,7 +157,7 @@ Answer:
 
 The main geometric advantage of a phased array transducer is a small transducer footprint that can still create a large field of view through beam steering
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-05:00
@@ -119,7 +175,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 5
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -143,7 +199,7 @@ Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -161,7 +217,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 7
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -185,7 +241,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 8
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -207,7 +263,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 9
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-05-07T16:29:27-05:00
@@ -233,7 +289,7 @@ Functional immaturity of the colon (normal rectosigmoid ratio with the left side
 
 1/2
 
-## Card 10
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
@@ -259,7 +315,7 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 11
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -285,7 +341,7 @@ Coumadin ridge
 
 1/2
 
-## Card 12
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-09-25T13:18:30-05:00
@@ -305,7 +361,7 @@ Susac syndrome classically produces round punched-out lesions in the corpus call
 
 Source: Notion Radiology entry.
 
-## Card 13
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -328,7 +384,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 14
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-04-21T17:04:29-05:00
