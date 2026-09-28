@@ -44,10 +44,92 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-27 21:59 Central Daylight Time
-Cards: 10
+Updated: 2026-09-27 22:58 Central Daylight Time
+Cards: 13
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-25T13:18:30-05:00
+Last seen: 2026-09-27T22:49:58-05:00
+Card ID: 1787199507875
+Note ID: 1787199507874
+
+Question:
+00:12
+
+[...] classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
+
+Answer:
+00:12
+
+Susac syndrome classically produces round punched-out lesions in the corpus callosum together with retinal and inner-ear ischemic manifestations.
+
+Source: Notion Radiology entry.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-04-21T17:04:29-05:00
+Last seen: 2026-09-27T22:48:22-05:00
+Card ID: 1776449807658
+Note ID: 1776449807658
+
+Question:
+00:12
+
+What pattern?
+
+[...]
+
+Answer:
+00:08
+
+What pattern?
+
+reticular pattern
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-08-12T20:19:09-05:00
+Last seen: 2026-09-27T22:28:33-05:00
+Card ID: 1786559000557
+Note ID: 1786559000556
+
+Question:
+00:12
+
+An acute fracture of the posterolateral talar process is a [...].
+
+Answer:
+00:12
+
+An acute fracture of the posterolateral talar process is a Shepherd fracture.
+
+This is traumatic rather than an unfused ossification center.
+
+Source: Notion Radiology entry.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-07-07T23:08:06-05:00
+Last seen: 2026-09-27T22:27:58-05:00
+Card ID: 1783449197061
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of [...] such as [...]
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
@@ -73,25 +155,7 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-09-27T07:27:17-05:00
-Last seen: 2026-09-27T12:41:28-05:00
-Card ID: 1775710786821
-Note ID: 1775710786821
-
-Question:
-00:12
-
-The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from [...].
-
-Answer:
-00:12
-
-The word granulomatous in subacute granulomatous thyroiditis helps distinguish it from subacute lymphocytic painless thyroiditis.
-
-## Card 3
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-06-28T22:51:59-05:00
@@ -109,7 +173,7 @@ Answer:
 
 Symmetric triangular iliac-sided sclerosis adjacent to the sacroiliac joints with preserved joint spaces suggests osteitis condensans ilii.
 
-## Card 4
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-09-27T07:30:44-05:00
@@ -135,7 +199,7 @@ The sharply marginated saucer-shaped cortical defect with sclerosis favors a ben
 
 Source: Notion Radiology note.
 
-## Card 5
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -161,7 +225,7 @@ Coumadin ridge
 
 1/2
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:35:23-05:00
@@ -179,7 +243,7 @@ Answer:
 
 If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
 
-## Card 7
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-27T07:27:35-05:00
@@ -203,7 +267,7 @@ Full source page for context.
 
 ...........
 
-## Card 8
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -223,7 +287,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 9
+## Card 12
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
@@ -245,7 +309,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 10
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-05:00
