@@ -44,10 +44,66 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-28 13:09 Central Daylight Time
+Updated: 2026-09-28 13:17 Central Daylight Time
 Cards: 23
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-28T13:12:28-05:00
+Last seen: 2026-09-28T13:12:32-05:00
+Card ID: 1762490211783
+Note ID: 1762490211782
+
+Question:
+00:12
+
+Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic [...] in the skull.
+
+Answer:
+00:12
+
+Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic beveled edge appearance in the skull.
+
+Notion AIRP Lecture
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-08-03T21:52:07-05:00
+Last seen: 2026-09-28T13:12:28-05:00
+Card ID: 1784577931809
+Note ID: 1784577931808
+
+Question:
+00:12
+
+An abdominal aortic diameter of [...] is classified as aneurysmal.
+
+Answer:
+00:12
+
+An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-09-28T13:12:23-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -71,7 +127,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:31:55-05:00
@@ -89,7 +145,7 @@ Crescent sign -- subchondral fracture in the setting of osteonecrosis.
 
 Images
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-05:00
@@ -113,7 +169,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -139,7 +195,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 5
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-28T13:00:06-05:00
@@ -161,7 +217,7 @@ What's this?
 
 foramen lacerum
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -184,62 +240,6 @@ Answer:
 marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
-
-## Card 7
-
-Deck: ..Due 2026-09-04 to 2026-09-28 Audio
-Flagged: 2026-09-28T07:43:38-05:00
-Last seen: 2026-09-28T07:43:38-05:00
-Card ID: 1762490211783
-Note ID: 1762490211782
-
-Question:
-00:12
-
-Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic [...] in the skull.
-
-Answer:
-00:12
-
-Langerhans cell histiocytosis can appear very aggressive in young patients and shows a characteristic beveled edge appearance in the skull.
-
-Notion AIRP Lecture
-
-## Card 8
-
-Deck: Saved Cards
-Flagged: 2026-08-03T21:52:07-05:00
-Last seen: 2026-09-28T07:38:25-05:00
-Card ID: 1784577931809
-Note ID: 1784577931808
-
-Question:
-00:12
-
-An abdominal aortic diameter of [...] is classified as aneurysmal.
-
-Answer:
-00:12
-
-An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
-
-## Card 9
-
-Deck: .NEW::Audio
-Flagged: 2026-08-01T07:27:54-05:00
-Last seen: 2026-09-28T07:35:20-05:00
-Card ID: 1779082174695
-Note ID: 1779082174694
-
-Question:
-00:12
-
-The [...] is the collateral connection between the middle colic artery and the left colic artery.
-
-Answer:
-00:12
-
-The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
 ## Card 10
 
