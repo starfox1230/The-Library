@@ -44,10 +44,110 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-28 13:17 Central Daylight Time
-Cards: 23
+Updated: 2026-09-28 13:30 Central Daylight Time
+Cards: 28
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-28T13:30:22-05:00
+Last seen: 2026-09-28T13:30:22-05:00
+Card ID: 1784115991409
+Note ID: 1784115991407
+
+Question:
+00:12
+
+In an appropriate HCC-risk liver, a classic HCC pattern is nonrim arterial phase hyperenhancement plus [...].
+
+Answer:
+00:12
+
+In an appropriate HCC-risk liver, a classic HCC pattern is nonrim arterial phase hyperenhancement plus washout, capsule, or threshold growth.
+
+Arterial hyperenhancement alone can also represent a perfusion anomaly, dysplastic nodule, or early HCC.
+
+Source note: Conversation facts
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-21T08:53:31-05:00
+Last seen: 2026-09-28T13:28:08-05:00
+Card ID: 1776135818374
+Note ID: 1776135818373
+
+Question:
+00:12
+
+The most common imaging pattern of orbital sarcoidosis is [...].
+
+Answer:
+00:12
+
+The most common imaging pattern of orbital sarcoidosis is lacrimal gland enlargement.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T07:29:24-05:00
+Last seen: 2026-09-28T13:27:29-05:00
+Card ID: 1772171419599
+Note ID: 1772171419598
+
+Question:
+00:12
+
+[...] is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
+
+Answer:
+00:12
+
+Duty factor is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T15:34:53-05:00
+Last seen: 2026-09-28T13:25:52-05:00
+Card ID: 1776188393061
+Note ID: 1776188393061
+
+Question:
+00:12
+
+Which nuclear medicine renal scan is primarily used for evaluation of tubular function and urinary drainage, including suspected obstruction?
+
+[...]
+
+Answer:
+00:12
+
+Which nuclear medicine renal scan is primarily used for evaluation of tubular function and urinary drainage, including suspected obstruction?
+
+MAG3
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:23:47-05:00
+Last seen: 2026-09-28T13:24:38-05:00
+Card ID: 1777926121253
+Note ID: 1777926121252
+
+Question:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is [...].
+
+Answer:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T13:12:28-05:00
@@ -67,7 +167,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 2
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -85,7 +185,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 3
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -103,7 +203,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -127,7 +227,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:31:55-05:00
@@ -145,7 +245,7 @@ Crescent sign -- subchondral fracture in the setting of osteonecrosis.
 
 Images
 
-## Card 6
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-05:00
@@ -169,7 +269,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 7
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -195,7 +295,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 8
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-28T13:00:06-05:00
@@ -217,7 +317,7 @@ What's this?
 
 foramen lacerum
 
-## Card 9
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -241,7 +341,7 @@ marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
 
-## Card 10
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T06:58:58-05:00
@@ -259,7 +359,7 @@ Answer:
 
 In fluoroscopy, dose-area product most related to stochastic cancer risk.
 
-## Card 11
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -277,7 +377,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 12
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:22:04-05:00
@@ -295,7 +395,7 @@ Answer:
 
 The main geometric advantage of a phased array transducer is a small transducer footprint that can still create a large field of view through beam steering
 
-## Card 13
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-05:00
@@ -313,7 +413,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 14
+## Card 19
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -337,7 +437,7 @@ Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
 
-## Card 15
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -355,7 +455,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 16
+## Card 21
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -379,7 +479,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 17
+## Card 22
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -401,7 +501,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 18
+## Card 23
 
 Deck: .NEW::Visual
 Flagged: 2026-05-07T16:29:27-05:00
@@ -427,7 +527,7 @@ Functional immaturity of the colon (normal rectosigmoid ratio with the left side
 
 1/2
 
-## Card 19
+## Card 24
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
@@ -453,7 +553,7 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 20
+## Card 25
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -479,7 +579,7 @@ Coumadin ridge
 
 1/2
 
-## Card 21
+## Card 26
 
 Deck: Saved Cards
 Flagged: 2026-09-25T13:18:30-05:00
@@ -499,7 +599,7 @@ Susac syndrome classically produces round punched-out lesions in the corpus call
 
 Source: Notion Radiology entry.
 
-## Card 22
+## Card 27
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -522,7 +622,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 23
+## Card 28
 
 Deck: .NEW::Visual
 Flagged: 2026-04-21T17:04:29-05:00
