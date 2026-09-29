@@ -44,10 +44,68 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-29 13:20 Central Daylight Time
-Cards: 17
+Updated: 2026-09-29 13:27 Central Daylight Time
+Cards: 18
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T13:26:18-05:00
+Last seen: 2026-09-29T13:26:18-05:00
+Card ID: 1771890403068
+Note ID: 1771890403066
+
+Question:
+00:12
+
+The [...] effect is when measuring or watching something changes the thing you are trying to measure.
+
+Answer:
+00:12
+
+The observer effect is when measuring or watching something changes the thing you are trying to measure.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T07:01:56-05:00
+Last seen: 2026-09-29T13:23:44-05:00
+Card ID: 1775603570020
+Note ID: 1775603570019
+
+Question:
+00:12
+
+What is the recommended treatment for primary hyperoxaluria and oxalosis?
+
+[...]
+
+Answer:
+00:08
+
+What is the recommended treatment for primary hyperoxaluria and oxalosis?
+
+combined liver–kidney transplantation
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-04-13T05:58:39-05:00
+Last seen: 2026-09-29T13:21:52-05:00
+Card ID: 1745603777434
+Note ID: 1745603777432
+
+Question:
+00:12
+
+The oval window receives the [...], while the round window sits at the [...] opening into the scala tympani.
+
+Answer:
+00:08
+
+The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
+
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -65,9 +123,9 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 2
+## Card 5
 
-Deck: ..Due 2026-09-05 to 2026-09-29 Audio
+Deck: Saved Cards
 Flagged: 2026-09-29T08:04:28-05:00
 Last seen: 2026-09-29T08:04:28-05:00
 Card ID: 1790657855414
@@ -83,7 +141,7 @@ Answer:
 
 Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
 
-## Card 3
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-23T13:15:03-05:00
@@ -101,7 +159,7 @@ Answer:
 
 In a subacute cerebral infarct with luxury perfusion, HMPAO uptake can appear preserved or increased because blood flow has returned to injured tissue.
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -121,9 +179,9 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 5
+## Card 8
 
-Deck: ..Due 2026-09-05 to 2026-09-29 Audio
+Deck: Saved Cards
 Flagged: 2026-09-29T07:56:47-05:00
 Last seen: 2026-09-29T07:56:47-05:00
 Card ID: 1790657855438
@@ -139,7 +197,7 @@ Answer:
 
 In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
 
-## Card 6
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -157,7 +215,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 7
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-08-23T07:49:34-05:00
@@ -175,7 +233,7 @@ Answer:
 
 The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
 
-## Card 8
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:06:59-05:00
@@ -197,7 +255,7 @@ What is the typical zonal distribution of cysts in pulmonary Langerhans cell his
 
 Upper lobe predominance with relative sparing of the lung bases
 
-## Card 9
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-02T19:52:53-05:00
@@ -219,29 +277,7 @@ Which lung cancer subtype does not express the tissue marker thyroid transcripti
 
 squamous cell carcinoma
 
-## Card 10
-
-Deck: .NEW::Audio
-Flagged: 2026-09-29T07:01:56-05:00
-Last seen: 2026-09-29T07:01:56-05:00
-Card ID: 1775603570020
-Note ID: 1775603570019
-
-Question:
-00:12
-
-What is the recommended treatment for primary hyperoxaluria and oxalosis?
-
-[...]
-
-Answer:
-00:08
-
-What is the recommended treatment for primary hyperoxaluria and oxalosis?
-
-combined liver–kidney transplantation
-
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T06:58:23-05:00
@@ -259,7 +295,7 @@ Answer:
 
 In an X-ray tube, the actual focal spot is the physical area on the anode that is struck by the bombarding electron beam.
 
-## Card 12
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -283,25 +319,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 13
-
-Deck: .NEW::Audio
-Flagged: 2026-04-13T05:58:39-05:00
-Last seen: 2026-09-29T06:56:18-05:00
-Card ID: 1745603777434
-Note ID: 1745603777432
-
-Question:
-00:12
-
-The oval window receives the [...], while the round window sits at the [...] opening into the scala tympani.
-
-Answer:
-00:08
-
-The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
-
-## Card 14
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-09-29T06:53:55-05:00
@@ -319,7 +337,7 @@ Answer:
 
 The combination of splenomegaly, bulky adenopathy, and pancreatic involvement is more characteristic of lymphoma than pancreatic ductal adenocarcinoma.
 
-## Card 15
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:52:34-05:00
@@ -349,7 +367,7 @@ Q28. Incorrect; difficulty: hard. Vital Concept: Mesentero-axial gastric volvulu
 
 Open review Q28
 
-## Card 16
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -367,7 +385,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 17
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:51:10-05:00
