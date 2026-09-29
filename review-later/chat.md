@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-29 13:14 Central Daylight Time
+Updated: 2026-09-29 13:20 Central Daylight Time
 Cards: 17
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T13:16:51-05:00
+Last seen: 2026-09-29T13:17:19-05:00
+Card ID: 1765507990137
+Note ID: 1765507990136
+
+Question:
+00:12
+
+The standard treatment for osteoblastoma is [...].
+
+Answer:
+00:12
+
+The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
+
+## Card 2
 
 Deck: ..Due 2026-09-05 to 2026-09-29 Audio
 Flagged: 2026-09-29T08:04:28-05:00
@@ -65,7 +83,7 @@ Answer:
 
 Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-09-23T13:15:03-05:00
@@ -83,7 +101,7 @@ Answer:
 
 In a subacute cerebral infarct with luxury perfusion, HMPAO uptake can appear preserved or increased because blood flow has returned to injured tissue.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -103,7 +121,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 4
+## Card 5
 
 Deck: ..Due 2026-09-05 to 2026-09-29 Audio
 Flagged: 2026-09-29T07:56:47-05:00
@@ -121,7 +139,7 @@ Answer:
 
 In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
 
-## Card 5
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-08-03T21:52:07-05:00
@@ -139,7 +157,7 @@ Answer:
 
 An abdominal aortic diameter of at least 3.0 cm is classified as aneurysmal.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-23T07:49:34-05:00
@@ -156,24 +174,6 @@ Answer:
 00:08
 
 The sinus tympani lies medial to the pyramidal eminence on the posterior wall of the meso/epitympanum and is a hidden recess for recurrent cholesteatoma.
-
-## Card 7
-
-Deck: ..Due 2026-09-05 to 2026-09-29 Audio
-Flagged: 2026-09-29T07:40:08-05:00
-Last seen: 2026-09-29T07:40:08-05:00
-Card ID: 1765507990137
-Note ID: 1765507990136
-
-Question:
-00:12
-
-The standard treatment for osteoblastoma is [...].
-
-Answer:
-00:12
-
-The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
 ## Card 8
 
