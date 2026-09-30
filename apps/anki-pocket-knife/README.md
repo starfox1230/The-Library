@@ -98,13 +98,16 @@ To edit the standing ChatGPT prompt, change `review_later_chat_prompt.txt` in th
   "commit_message": "Update Anki Review Later",
   "git_publish": true,
   "auto_publish_after_sync": true,
+  "publish_branch": "main",
   "history_days": 45
 }
 ```
 
 The generated page stores your range as a relative preference: selecting “Today” still means the new current day tomorrow, “7 days” advances with the calendar, and an exact date is remembered as its offset from today. `ChatGPT` copies the standing instructions plus the visible cards; `Cards` omits the standing instructions.
 
-After a collection sync finishes, Pocket Knife waits for media sync to become idle, snapshots Review Later on Anki's main thread, and performs file and Git work in a background task. No-content-change runs do not commit. Git/network failures are written to `user_files\review_later_publish.log`, never fail Anki sync, and are retried by a later manual publish or sync. The public GitHub Pages URL is `https://starfox1230.github.io/The-Library/review-later/`.
+After a collection sync finishes, Pocket Knife waits for media sync to become idle, snapshots Review Later on Anki's main thread, and performs file and Git work in a background task. It also checks on profile startup. Publishing fetches the latest `origin/main` (or `publish_branch`) and uses a private Git index to commit only the generated output directory on top of that remote version. Your checkout, local branch, staged edits, and unrelated local commits are preserved. Competing GitHub updates are retried without force-pushing. No-content-change runs verify the remote without creating a commit.
+
+Git/network failures show an Anki notification and are written to `user_files\review_later_publish.log`. Automatic publishing retries after 30, 60, and 120 seconds; a later manual publish, sync, or profile startup can retry again. Uploads are marked pending before network calls so a timeout cannot silently clear that state. `review_later_publish_status.json` records the last successful check, export timestamp, and published commit. Anki sync itself is unaffected. The public GitHub Pages URL is `https://starfox1230.github.io/The-Library/review-later/`.
 
 ## Manual install
 

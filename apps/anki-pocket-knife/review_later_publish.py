@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import subprocess
 import sys
 import time
 from typing import Any
@@ -19,6 +18,7 @@ from aqt.qt import QMessageBox, QTimer
 from aqt.utils import tooltip
 
 from .common import addon_root, user_files_dir
+from .review_later_git import publish_generated_files
 from .review_later_publish_core import (
     cards_markdown,
     chat_markdown,
@@ -41,6 +41,7 @@ DEFAULT_CONFIG = {
     "commit_message": "Update Anki Review Later",
     "git_publish": True,
     "auto_publish_after_sync": True,
+    "publish_branch": "main",
     "history_days": 45,
 }
 _LOCAL_MEDIA_ATTR_RE = re.compile(
@@ -50,6 +51,7 @@ _LOCAL_MEDIA_ATTR_RE = re.compile(
 _PUBLISH_RUNNING = False
 _AUTO_PENDING = False
 _AUTO_TIMER: QTimer | None = None
+_AUTO_RETRY_COUNT = 0
 _INSTALLED = False
 
 
@@ -357,69 +359,16 @@ def _generate(snapshot: dict[str, Any], output: Path) -> dict[str, Any]:
     }
 
 
-def _run_git(repository: Path, *args: str, timeout: int = 120) -> subprocess.CompletedProcess[str]:
-    environment = dict(os.environ)
-    environment["GIT_TERMINAL_PROMPT"] = "0"
-    environment["GCM_INTERACTIVE"] = "Never"
-    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform.startswith("win") else 0
-    result = subprocess.run(
-        ["git", *args],
-        cwd=str(repository),
-        env=environment,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=timeout,
-        creationflags=creationflags,
-        check=False,
-    )
-    return result
-
-
-def _git_error(action: str, result: subprocess.CompletedProcess[str]) -> RuntimeError:
-    detail = (result.stderr or result.stdout or "unknown Git error").strip()
-    return RuntimeError(f"{action} failed ({result.returncode}): {detail}")
-
-
 def _git_publish(repository: Path, relative_output: str, config: dict[str, Any]) -> dict[str, Any]:
-    add = _run_git(repository, "add", "--", relative_output)
-    if add.returncode != 0:
-        raise _git_error("git add", add)
-
-    diff = _run_git(repository, "diff", "--cached", "--quiet", "--", relative_output)
-    if diff.returncode not in {0, 1}:
-        raise _git_error("git diff", diff)
-
-    committed = False
-    if diff.returncode == 1:
-        message = str(config.get("commit_message", "Update Anki Review Later") or "Update Anki Review Later")
-        commit = _run_git(
-            repository,
-            "commit",
-            "--only",
-            "-m",
-            message,
-            "--",
-            relative_output,
-        )
-        if commit.returncode != 0:
-            raise _git_error("git commit", commit)
-        committed = True
-
-    status = _load_status()
-    push_pending = bool(status.get("push_pending", False))
-    pushed = False
-    if committed or push_pending:
-        # The first publish may include the full active queue's media. Subsequent
-        # pushes are normally small, but allow enough time for that initial pack.
-        push = _run_git(repository, "push", timeout=10 * 60)
-        if push.returncode != 0:
-            _save_status(push_pending=True, last_error=(push.stderr or push.stdout or "git push failed").strip())
-            raise _git_error("git push", push)
-        pushed = True
-        _save_status(push_pending=False, last_error="")
-    return {"committed": committed, "pushed": pushed}
+    # Persist this before network calls, including calls that can time out.
+    _save_status(push_pending=True)
+    result = publish_generated_files(
+        repository, relative_output,
+        message=str(config.get("commit_message", "Update Anki Review Later") or "Update Anki Review Later"),
+        branch=str(config.get("publish_branch", "main") or "main"),
+    )
+    _save_status(push_pending=False, last_error="", last_published_commit=result["published_commit"])
+    return result
 
 
 def _publish_worker(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -435,17 +384,15 @@ def _publish_worker(snapshot: dict[str, Any]) -> dict[str, Any]:
 
 
 def _publish_done(future: Future[dict[str, Any]], *, manual: bool) -> None:
-    global _PUBLISH_RUNNING
+    global _PUBLISH_RUNNING, _AUTO_RETRY_COUNT
     _PUBLISH_RUNNING = False
     try:
         result = future.result()
     except Exception as exc:
         message = str(exc)
-        _append_log(f"Publish failed: {message}")
-        _save_status(last_success=False, last_error=message)
-        if manual:
-            QMessageBox.warning(mw, "Review Later Publishing", f"Publishing failed.\n\n{message}\n\nLog: {LOG_PATH}")
+        _report_failure(message, manual=manual)
     else:
+        _AUTO_RETRY_COUNT = 0
         count = int(result.get("count", 0) or 0)
         changed = bool(result.get("generated_changed", False))
         committed = bool(result.get("committed", False))
@@ -462,6 +409,9 @@ def _publish_done(future: Future[dict[str, Any]], *, manual: bool) -> None:
             last_count=count,
             last_content_hash=str(result.get("content_hash", "") or ""),
             last_output=str(result.get("output", "") or ""),
+            last_success_at=datetime.now().astimezone().isoformat(timespec="seconds"),
+            last_export_updated_at=str(result.get("updated_at", "") or ""),
+            last_retained_count=int(result.get("retained_count", 0) or 0),
         )
         if manual:
             tooltip(summary, parent=mw, period=5000)
@@ -469,8 +419,26 @@ def _publish_done(future: Future[dict[str, Any]], *, manual: bool) -> None:
         _schedule_auto_publish(1500)
 
 
+def _report_failure(message: str, *, manual: bool) -> None:
+    global _AUTO_RETRY_COUNT
+    _append_log(f"Publish failed: {message}")
+    _save_status(last_success=False, last_error=message)
+    if manual:
+        QMessageBox.warning(mw, "Review Later Publishing", f"Publishing failed.\n\n{message}\n\nLog: {LOG_PATH}")
+    else:
+        retrying = _AUTO_RETRY_COUNT < 3
+        tooltip(
+            "Review Later website was not updated. "
+            + ("Upload failed; retrying shortly." if retrying else "Upload failed; use Publish Review Later Website to retry."),
+            parent=mw, period=10000,
+        )
+        if retrying:
+            _AUTO_RETRY_COUNT += 1
+            _schedule_auto_publish(30000 * (2 ** (_AUTO_RETRY_COUNT - 1)))
+
+
 def _start_publish(*, manual: bool) -> None:
-    global _PUBLISH_RUNNING, _AUTO_PENDING
+    global _PUBLISH_RUNNING, _AUTO_PENDING, _AUTO_RETRY_COUNT
     if _PUBLISH_RUNNING:
         if not manual:
             _AUTO_PENDING = True
@@ -481,15 +449,15 @@ def _start_publish(*, manual: bool) -> None:
         if manual:
             QMessageBox.information(mw, "Review Later Publishing", "Open an Anki profile first.")
         return
+    if manual:
+        _AUTO_RETRY_COUNT = 0
+    _AUTO_PENDING = False
     try:
         snapshot = _snapshot()
     except Exception as exc:
         message = str(exc)
-        _append_log(f"Could not prepare publish snapshot: {message}")
-        if manual:
-            QMessageBox.warning(mw, "Review Later Publishing", message)
+        _report_failure(f"Could not prepare publish snapshot: {message}", manual=manual)
         return
-    _AUTO_PENDING = False
     _PUBLISH_RUNNING = True
     mw.taskman.run_in_background(
         lambda: _publish_worker(snapshot),
@@ -513,10 +481,11 @@ def _schedule_auto_publish(delay_ms: int = 1500) -> None:
 
 
 def _on_sync_did_finish() -> None:
-    global _AUTO_PENDING
+    global _AUTO_PENDING, _AUTO_RETRY_COUNT
     if not bool(_load_config().get("auto_publish_after_sync", True)):
         return
     _AUTO_PENDING = True
+    _AUTO_RETRY_COUNT = 0
     media_syncer = getattr(mw, "media_syncer", None)
     try:
         if media_syncer is not None and media_syncer.is_syncing():
@@ -524,6 +493,12 @@ def _on_sync_did_finish() -> None:
     except Exception:
         pass
     _schedule_auto_publish()
+
+
+def _on_profile_did_open() -> None:
+    # Also recover pending uploads after an Anki restart without requiring
+    # another collection sync to happen first.
+    _schedule_auto_publish(3000)
 
 
 def _on_media_sync_state_changed(running: bool) -> None:
@@ -536,6 +511,9 @@ def install() -> None:
     if _INSTALLED:
         return
     _prepare_config_for_startup()
+    profile_opened = getattr(gui_hooks, "profile_did_open", None)
+    if profile_opened is not None:
+        profile_opened.append(_on_profile_did_open)
     sync_finished = getattr(gui_hooks, "sync_did_finish", None)
     if sync_finished is not None:
         sync_finished.append(_on_sync_did_finish)
