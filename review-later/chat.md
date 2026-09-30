@@ -44,10 +44,126 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-30 07:55 Central Daylight Time
-Cards: 14
+Updated: 2026-09-30 12:02 Central Daylight Time
+Cards: 20
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-09-30T12:00:30-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
+
+Question:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+
+Answer:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-30T11:57:33-05:00
+Last seen: 2026-09-30T11:57:43-05:00
+Card ID: 1790657855438
+Note ID: 1790657855437
+
+Question:
+00:12
+
+In a small hyperlucent oligemic lung, occurrence on the side [...] favors proximal interruption of the pulmonary artery.
+
+Answer:
+00:12
+
+In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-24T06:15:09-05:00
+Last seen: 2026-09-30T11:54:45-05:00
+Card ID: 1706766611199
+Note ID: 1706766611198
+
+Question:
+00:12
+
+If the spinoglenoid notch is compressed, [...] would be denervated.
+
+Answer:
+00:08
+
+If the spinoglenoid notch is compressed, the infraspinatus muscle would be denervated.
+
+A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperintense cystic lesion is seen centered on the spinoglenoid notch, contiguous with the posterior glenoid labrum and connecting to a focal posterior labral tear/detachment "paralabral cyst". The suprascapular notch appears normal. Swollen infraspinatus muscle elicits abnormal bright signal in STIR
+
+https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-09-30T11:51:27-05:00
+Last seen: 2026-09-30T11:51:27-05:00
+Card ID: 1777331177518
+Note ID: 1777331177515
+
+Question:
+00:12
+
+No cloze ⁨1⁩ found on card.
+Please either add a cloze deletion, or use the Empty Cards tool.
+More information
+
+Answer:
+No cloze ⁨1⁩ found on card.
+Please either add a cloze deletion, or use the Empty Cards tool.
+More information
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:09:26-05:00
+Last seen: 2026-09-30T11:44:54-05:00
+Card ID: 1762544589804
+Note ID: 1762544589803
+
+Question:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for [...].
+
+Answer:
+00:12
+
+A metastatic lesion in the hand or foot should raise strong suspicion for lung cancer.
+
+Notion AIRP Lecture
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-04-13T05:58:39-05:00
+Last seen: 2026-09-30T11:35:00-05:00
+Card ID: 1745603777434
+Note ID: 1745603777432
+
+Question:
+00:12
+
+The oval window receives the [...], while the round window sits at the [...] opening into the scala tympani.
+
+Answer:
+00:08
+
+The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
+
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -65,7 +181,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 2
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-05:00
@@ -83,7 +199,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 3
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-30T07:53:15-05:00
@@ -101,7 +217,7 @@ Answer:
 
 Excess aluminum in a Tc-99m sulfur colloid kit can cause diffuse lung uptake.
 
-## Card 4
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
@@ -119,7 +235,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 5
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
@@ -145,7 +261,7 @@ Core Radiology 2nd ed., MSK: 988. Femoral heads are common sites of infarction i
 
 Full source page:
 
-## Card 6
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -163,7 +279,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 7
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T13:12:28-05:00
@@ -183,7 +299,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 8
+## Card 14
 
 Deck: Other::Radiology (All)::.Visual::Everything Else
 Flagged: 2026-09-30T07:48:51-05:00
@@ -209,7 +325,7 @@ usual interstitial pneumonia, or UIP
 
 Basal and subpleural honeycombing
 
-## Card 9
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T07:01:56-05:00
@@ -231,7 +347,7 @@ What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 combined liver–kidney transplantation
 
-## Card 10
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -257,7 +373,7 @@ Coumadin ridge
 
 1/2
 
-## Card 11
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:52:34-05:00
@@ -287,7 +403,7 @@ Q28. Incorrect; difficulty: hard. Vital Concept: Mesentero-axial gastric volvulu
 
 Open review Q28
 
-## Card 12
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
@@ -313,7 +429,7 @@ reverse halo sign/atoll sign in pulmonary mucormycosis
 
 1/2
 
-## Card 13
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -331,7 +447,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 14
+## Card 20
 
 Deck: Saved Cards
 Flagged: 2026-09-30T02:27:20-05:00
