@@ -44,7 +44,27 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-30 01:08 Central Daylight Time
-Cards: 0
+Updated: 2026-09-30 07:38 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-30T02:27:20-05:00
+Last seen: 2026-09-30T02:27:20-05:00
+Card ID: 1785635742776
+Note ID: 1785635742775
+
+Question:
+00:12
+
+Hypervascular liver metastases often come from [what primaries?].
+
+Answer:
+00:12
+
+Hypervascular liver metastases often come from neuroendocrine tumors, clear-cell renal cell carcinoma, thyroid carcinoma, melanoma, or choriocarcinoma.
+
+Gastrointestinal stromal tumor may also produce hypervascular liver metastases.
+
+Source: Notion Radiology note.
