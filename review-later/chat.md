@@ -44,10 +44,92 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-09-30 12:02 Central Daylight Time
-Cards: 20
+Updated: 2026-09-30 23:28 Central Daylight Time
+Cards: 24
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-17T06:40:03-05:00
+Last seen: 2026-09-30T21:19:54-05:00
+Card ID: 1765507990186
+Note ID: 1765507990185
+
+Question:
+00:12
+
+In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
+
+Answer:
+00:12
+
+In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-15T06:32:26-05:00
+Last seen: 2026-09-30T17:54:45-05:00
+Card ID: 1786336094574
+Note ID: 1786336094573
+
+Question:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the [...], creating a tongue-shaped fragment.
+
+Answer:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the posterior calcaneal tuberosity, creating a tongue-shaped fragment.
+
+The Achilles tendon pulls the posterior fragment superiorly.
+
+Source: Maroufi et al., 2023.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-29T06:51:10-05:00
+Last seen: 2026-09-30T17:44:21-05:00
+Card ID: 1778780546915
+Note ID: 1778780546914
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Diagnosis?
+
+Organo-axial volvulus
+
+Incorrect; difficulty: Hard.
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T06:31:55-05:00
+Last seen: 2026-09-30T17:41:36-05:00
+Card ID: 1776094221605
+Note ID: 1776094221602
+
+Question:
+What classic sign is seen here and what does it represent??
+
+ ↻
+
+Answer:
+Crescent sign -- subchondral fracture in the setting of osteonecrosis.
+
+Images
+
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -65,7 +147,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 2
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-30T11:57:33-05:00
@@ -83,7 +165,7 @@ Answer:
 
 In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-24T06:15:09-05:00
@@ -105,7 +187,7 @@ A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperinte
 
 https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-09-30T11:51:27-05:00
@@ -125,7 +207,7 @@ No cloze ⁨1⁩ found on card.
 Please either add a cloze deletion, or use the Empty Cards tool.
 More information
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -145,7 +227,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -163,7 +245,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -181,7 +263,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-05:00
@@ -199,7 +281,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 9
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-30T07:53:15-05:00
@@ -217,7 +299,7 @@ Answer:
 
 Excess aluminum in a Tc-99m sulfur colloid kit can cause diffuse lung uptake.
 
-## Card 10
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
@@ -235,7 +317,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 11
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
@@ -261,7 +343,7 @@ Core Radiology 2nd ed., MSK: 988. Femoral heads are common sites of infarction i
 
 Full source page:
 
-## Card 12
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -279,7 +361,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 13
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T13:12:28-05:00
@@ -299,7 +381,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 14
+## Card 18
 
 Deck: Other::Radiology (All)::.Visual::Everything Else
 Flagged: 2026-09-30T07:48:51-05:00
@@ -325,7 +407,7 @@ usual interstitial pneumonia, or UIP
 
 Basal and subpleural honeycombing
 
-## Card 15
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T07:01:56-05:00
@@ -347,7 +429,7 @@ What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 combined liver–kidney transplantation
 
-## Card 16
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -373,7 +455,7 @@ Coumadin ridge
 
 1/2
 
-## Card 17
+## Card 21
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:52:34-05:00
@@ -403,7 +485,7 @@ Q28. Incorrect; difficulty: hard. Vital Concept: Mesentero-axial gastric volvulu
 
 Open review Q28
 
-## Card 18
+## Card 22
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
@@ -429,7 +511,7 @@ reverse halo sign/atoll sign in pulmonary mucormycosis
 
 1/2
 
-## Card 19
+## Card 23
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -447,7 +529,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 20
+## Card 24
 
 Deck: Saved Cards
 Flagged: 2026-09-30T02:27:20-05:00
