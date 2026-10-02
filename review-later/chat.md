@@ -44,10 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-02 11:51 Central Daylight Time
+Updated: 2026-10-02 12:39 Central Daylight Time
 Cards: 4
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-07-19T07:05:17-05:00
+Last seen: 2026-10-02T12:02:43-05:00
+Card ID: 1784115991229
+Note ID: 1784115991227
+
+Question:
+00:12
+
+A [...] is an abnormal communication from the left ventricle to the right atrium
+
+Answer:
+00:12
+
+A Gerbode defect is an abnormal communication from the left ventricle to the right atrium
+
+The shunt traverses the membranous septal region and may be congenital or acquired.
+
+Notion cardiothoracic lecture note.
+
+## Card 2
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:17:37-05:00
@@ -65,7 +87,7 @@ Answer:
 
 Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -82,28 +104,6 @@ Answer:
 00:12
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
-
-## Card 3
-
-Deck: Saved Cards
-Flagged: 2026-07-19T07:05:17-05:00
-Last seen: 2026-10-02T07:38:45-05:00
-Card ID: 1784115991229
-Note ID: 1784115991227
-
-Question:
-00:12
-
-A [...] is an abnormal communication from the left ventricle to the right atrium
-
-Answer:
-00:12
-
-A Gerbode defect is an abnormal communication from the left ventricle to the right atrium
-
-The shunt traverses the membranous septal region and may be congenital or acquired.
-
-Notion cardiothoracic lecture note.
 
 ## Card 4
 
