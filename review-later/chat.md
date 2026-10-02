@@ -44,10 +44,68 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-01 13:30 Central Daylight Time
-Cards: 19
+Updated: 2026-10-01 22:55 Central Daylight Time
+Cards: 20
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-25T20:05:02-05:00
+Last seen: 2026-10-01T21:01:18-05:00
+Card ID: 1775839995560
+Note ID: 1775839995558
+
+Question:
+00:12
+
+At a serum hCG level of about 1,500 mIU/mL, many early intrauterine pregnancies are [...].
+
+Answer:
+00:12
+
+At a serum hCG level of about 1,500 mIU/mL, many early intrauterine pregnancies are visible on transvaginal ultrasound.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-07-19T07:05:17-05:00
+Last seen: 2026-10-01T20:55:22-05:00
+Card ID: 1784115991229
+Note ID: 1784115991227
+
+Question:
+00:12
+
+A [...] is an abnormal communication from the left ventricle to the right atrium
+
+Answer:
+00:12
+
+A Gerbode defect is an abnormal communication from the left ventricle to the right atrium
+
+The shunt traverses the membranous septal region and may be congenital or acquired.
+
+Notion cardiothoracic lecture note.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-10-01T13:17:37-05:00
+Last seen: 2026-10-01T20:54:18-05:00
+Card ID: 1790657855414
+Note ID: 1790657855413
+
+Question:
+00:12
+
+Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be [...].
+
+Answer:
+00:12
+
+Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
+
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -65,7 +123,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 2
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -87,7 +145,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 3
+## Card 6
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
@@ -109,7 +167,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -129,7 +187,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 5
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -147,29 +205,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 6
-
-Deck: Saved Cards
-Flagged: 2026-07-19T07:05:17-05:00
-Last seen: 2026-10-01T13:19:31-05:00
-Card ID: 1784115991229
-Note ID: 1784115991227
-
-Question:
-00:12
-
-A [...] is an abnormal communication from the left ventricle to the right atrium
-
-Answer:
-00:12
-
-A Gerbode defect is an abnormal communication from the left ventricle to the right atrium
-
-The shunt traverses the membranous septal region and may be congenital or acquired.
-
-Notion cardiothoracic lecture note.
-
-## Card 7
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-07-04T07:41:03-05:00
@@ -187,7 +223,7 @@ Answer:
 
 Hyperechoic renal masses seen on ultrasound that show no acoustic shadowing (or even if they do) require further characterization with CT or MRI to demonstrate fat.
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-23T12:47:27-05:00
@@ -207,25 +243,7 @@ Anomaly of termination in coronary artery anatomy refers to coronary artery fist
 
 Notion AIRP Lecture
 
-## Card 9
-
-Deck: Saved Cards
-Flagged: 2026-10-01T13:17:37-05:00
-Last seen: 2026-10-01T13:17:51-05:00
-Card ID: 1790657855414
-Note ID: 1790657855413
-
-Question:
-00:12
-
-Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be [...].
-
-Answer:
-00:12
-
-Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
-
-## Card 10
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -249,7 +267,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-03-21T07:04:48-05:00
@@ -271,7 +289,7 @@ What type of breast calcification is this?
 
 fine pleomorphic
 
-## Card 12
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
@@ -297,7 +315,7 @@ reverse halo sign/atoll sign in pulmonary mucormycosis
 
 1/2
 
-## Card 13
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:31:55-05:00
@@ -315,7 +333,7 @@ Crescent sign -- subchondral fracture in the setting of osteonecrosis.
 
 Images
 
-## Card 14
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:52:34-05:00
@@ -345,7 +363,7 @@ Q28. Incorrect; difficulty: hard. Vital Concept: Mesentero-axial gastric volvulu
 
 Open review Q28
 
-## Card 15
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:28:31-05:00
@@ -367,7 +385,7 @@ Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
 
 Full source page for context.
 
-## Card 16
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-06-03T06:19:03-05:00
@@ -385,7 +403,7 @@ Answer:
 
 Dopamine agonists such as cabergoline or bromocriptine suppress lactation by decreasing prolactin release.
 
-## Card 17
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:35:23-05:00
@@ -403,7 +421,7 @@ Answer:
 
 If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
 
-## Card 18
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -421,7 +439,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 19
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
