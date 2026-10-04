@@ -1,6 +1,7 @@
 """Build the reviewed first eight daily quiz files. Run from any directory."""
 import json
 from pathlib import Path
+from export_quizduel import build_exports
 
 ROOT = Path(__file__).resolve().parent
 
@@ -376,7 +377,9 @@ def build():
                     'correctOptionId': chr(97 + shift), 'explanation': explanation,
                     'source': {'reference': f'Isaiah {reference}', 'url': url},
                 })
-        (ROOT / f'{date}.json').write_text(json.dumps({'date': date, 'levels': levels}, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        doc = {'date': date, 'levels': levels}
+        doc['quizDuel'] = build_exports(doc)
+        (ROOT / f'{date}.json').write_text(json.dumps(doc, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     build()

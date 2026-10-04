@@ -4,6 +4,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from export_quizduel import build_exports
 
 APP = Path(__file__).resolve().parent.parent
 QUIZZES = APP / 'quizzes'
@@ -78,6 +79,8 @@ def validate(path, daily):
             expected = f'https://www.churchofjesuschrist.org/study/scriptures/ot/isa/{chapter}.{verse}?lang=eng'
             if source.get('url') != expected:
                 fail(f'{path}: source URL mismatch in {q["id"]}')
+    if doc.get('quizDuel') != build_exports(doc):
+        fail(f'{path}: missing or stale QuizDuel exports; run export_quizduel.py --write')
     return len(ids)
 
 def main():
@@ -86,7 +89,7 @@ def main():
     if not paths:
         fail('No daily quiz files found')
     total = sum(validate(path, daily) for path in paths)
-    print(f'Validated {len(paths)} dates, {total} questions, and daily scripture references.')
+    print(f'Validated {len(paths)} dates, {total} questions, daily scripture references, and {len(paths) * 3} QuizDuel exports.')
 
 if __name__ == '__main__':
     try:

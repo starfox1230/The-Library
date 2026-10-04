@@ -5,6 +5,7 @@
     ['high-school', 'High School'],
     ['expert', 'PhD / Expert'],
   ];
+  const QUIZDUEL_URL = 'https://quiz-duel.lovable.app/';
   const element = (tag, className, text) => {
     const node = document.createElement(tag);
     if (className) node.className = className;
@@ -62,12 +63,72 @@
       addHeading(date, 'Choose your level');
       const list = element('div', 'cfm-quiz__levels');
       for (const [id, label] of LEVELS) {
+        const row = element('div', 'cfm-quiz__level-row');
         const choice = button(label, () => start(id));
         choice.setAttribute('aria-label', label);
-        list.append(choice);
+        const status = element('p', 'cfm-quiz__export-status');
+        status.setAttribute('role', 'status');
+        const copy = button('Copy JSON + QuizDuel ↗', () => exportLevel(id, label, copy, status), 'cfm-quiz__export');
+        copy.setAttribute('aria-label', `Copy ${label} JSON and open QuizDuel`);
+        row.append(choice, copy, status);
+        list.append(row);
       }
       content.append(list);
       list.querySelector('button').focus();
+    }
+    function legacyCopy(text) {
+      const previous = document.activeElement;
+      const input = element('textarea', 'cfm-quiz__clipboard');
+      input.value = text;
+      input.setAttribute('aria-label', 'QuizDuel JSON');
+      shell.append(input);
+      try {
+        input.focus();
+        input.select();
+        if (!document.execCommand('copy')) throw new Error('Clipboard unavailable');
+      } finally {
+        input.remove();
+        previous?.focus();
+      }
+    }
+    async function exportLevel(id, label, copy, status) {
+      const quiz = data?.quizDuel?.[id];
+      if (!quiz?.quizName || quiz.questions?.length !== 10) {
+        status.textContent = 'This level’s QuizDuel export is unavailable. Please reload.';
+        return;
+      }
+      copy.disabled = true;
+      status.textContent = 'Copying…';
+      let destination = null;
+      try {
+        const text = JSON.stringify(quiz, null, 2);
+        // Start clipboard access and reserve a tab inside the click gesture.
+        // Navigate only after copying succeeds, even when permission takes time.
+        const copying = navigator.clipboard?.writeText
+          ? navigator.clipboard.writeText(text)
+          : Promise.resolve(legacyCopy(text));
+        try {
+          destination = window.open('about:blank', '_blank');
+          if (destination) destination.opener = null;
+        } catch { /* Offer a normal link if the browser blocks new tabs. */ }
+        await copying;
+        status.textContent = `${label} JSON copied. Paste it into QuizDuel to create a match.`;
+        if (destination && !destination.closed) {
+          destination.location.replace(QUIZDUEL_URL);
+        } else {
+          status.append(document.createTextNode(' Your browser blocked the new tab. '));
+          const link = element('a', '', 'Open QuizDuel');
+          link.href = QUIZDUEL_URL;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          status.append(link);
+        }
+      } catch {
+        if (destination && !destination.closed) destination.close();
+        status.textContent = 'Could not copy JSON. Allow clipboard access, then try again.';
+      } finally {
+        copy.disabled = false;
+      }
     }
     function start(selectedLevel) {
       if (!data?.levels?.[selectedLevel] || data.levels[selectedLevel].length !== 10) return;
@@ -163,7 +224,7 @@
     overlay.addEventListener('keydown', event => {
       if (event.key === 'Escape') { event.preventDefault(); close(); }
       if (event.key !== 'Tab') return;
-      const focusable = [...overlay.querySelectorAll('button:not(:disabled), a[href]')];
+      const focusable = [...overlay.querySelectorAll('button:not(:disabled), a[href], textarea')];
       const first = focusable[0], last = focusable[focusable.length - 1];
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
