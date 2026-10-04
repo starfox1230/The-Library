@@ -208,7 +208,7 @@
       closeButton.focus();
       const thisRequest = ++requestId;
       try {
-        const response = await fetch(`quizzes/${date}.json`);
+        const response = await fetch(`quizzes/${date}.json?v=quizduel-1`);
         if (!response.ok) throw new Error('No quiz has been published for this date yet.');
         const loaded = await response.json();
         if (overlay.hidden || thisRequest !== requestId) return;
