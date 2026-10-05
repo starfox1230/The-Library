@@ -44,7 +44,45 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-05 07:06 Central Daylight Time
-Cards: 0
+Updated: 2026-10-05 13:11 Central Daylight Time
+Cards: 2
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-04T12:42:43-05:00
+Last seen: 2026-10-05T07:16:53-05:00
+Card ID: 1782588006937
+Note ID: 1782588006936
+
+Question:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as [...].
+
+Answer:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as osteoporosis or osseous hemangioma.
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-17T06:40:03-05:00
+Last seen: 2026-10-05T07:15:57-05:00
+Card ID: 1765507990186
+Note ID: 1765507990185
+
+Question:
+00:12
+
+In a right aortic arch, origin of the [...] from the front of the arch suggests mirror image branching pattern.
+
+Answer:
+00:12
+
+In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
