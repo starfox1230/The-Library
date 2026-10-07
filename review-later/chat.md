@@ -44,10 +44,46 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-07 13:18 Central Daylight Time
-Cards: 8
+Updated: 2026-10-07 13:30 Central Daylight Time
+Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-07T13:29:25-05:00
+Last seen: 2026-10-07T13:29:39-05:00
+Card ID: 1780270217302
+Note ID: 1780270217301
+
+Question:
+00:12
+
+In gamma cameras, a diverging collimator [has what effect on images?]
+
+Answer:
+00:08
+
+In gamma cameras, a diverging collimator minimizes the image
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-30T11:57:33-05:00
+Last seen: 2026-10-07T13:20:27-05:00
+Card ID: 1790657855438
+Note ID: 1790657855437
+
+Question:
+00:12
+
+In a small hyperlucent oligemic lung, occurrence on the side [...] favors proximal interruption of the pulmonary artery.
+
+Answer:
+00:12
+
+In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
+
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -69,7 +105,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -87,7 +123,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -107,7 +143,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -131,7 +167,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-05:00
@@ -151,7 +187,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -169,7 +205,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T07:01:56-05:00
@@ -191,7 +227,7 @@ What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 combined liver–kidney transplantation
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
