@@ -44,10 +44,100 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-06 06:55 Central Daylight Time
-Cards: 6
+Updated: 2026-10-06 22:26 Central Daylight Time
+Cards: 11
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-30T07:52:00-05:00
+Last seen: 2026-10-06T13:38:22-05:00
+Card ID: 1789015833872
+Note ID: 1789015833870
+
+Question:
+00:12
+
+[...] are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+Answer:
+00:12
+
+Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+## Card 2
+
+Deck: ..Due 2026-09-12 to 2026-10-06 Audio
+Flagged: 2026-10-06T13:32:41-05:00
+Last seen: 2026-10-06T13:32:41-05:00
+Card ID: 1780270217302
+Note ID: 1780270217301
+
+Question:
+00:12
+
+In gamma cameras, a diverging collimator [has what effect on images?]
+
+Answer:
+00:08
+
+In gamma cameras, a diverging collimator minimizes the image
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-04-23T06:20:28-05:00
+Last seen: 2026-10-06T07:26:36-05:00
+Card ID: 1774650412198
+Note ID: 1774650412197
+
+Question:
+00:12
+
+The [which osseous tunnel] is located in the lateral wall of the sphenoid sinus.
+
+Answer:
+00:12
+
+The foramen rotundum is located in the lateral wall of the sphenoid sinus.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-02T12:48:53-05:00
+Last seen: 2026-10-06T07:24:12-05:00
+Card ID: 1745951641620
+Note ID: 1745951641619
+
+Question:
+00:12
+
+Idiopathic intracranial hypertension is characterized by [...].
+
+Answer:
+00:08
+
+Idiopathic intracranial hypertension is characterized by dilated/edematous optic nerve sheath, vertical tortuosity of the optic nerve, flattening of the posterior globe, and optic nerve head protrusion, partially empty sella, and transverse sinus stenosis.
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-07-12T13:28:50-05:00
+Last seen: 2026-10-06T07:22:35-05:00
+Card ID: 1755729983389
+Note ID: 1755729983387
+
+Question:
+00:12
+
+The rotator interval is the space between [...]; it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
+
+Answer:
+00:08
+
+The rotator interval is the space between supraspinatus (superiorly) and subscapularis (inferiorly); it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
+
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-10T05:44:13-05:00
@@ -104,7 +194,7 @@ multiple normal (Fig 11) and abnormal (Fig 12)
 waveforms, each with its corresponding identifying
 characteristics and conventional name.
 
-## Card 2
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T16:22:13-05:00
@@ -130,7 +220,7 @@ Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classi
 
 Full source page:
 
-## Card 3
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
@@ -152,7 +242,7 @@ Diagnosis?
 
 dorsal dermal sinus
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -178,7 +268,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 5
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -202,7 +292,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 6
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
