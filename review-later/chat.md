@@ -44,10 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-06 22:26 Central Daylight Time
-Cards: 11
+Updated: 2026-10-06 22:31 Central Daylight Time
+Cards: 12
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-10-06T22:31:28-05:00
+Last seen: 2026-10-06T22:31:28-05:00
+Card ID: 1756983809359
+Note ID: 1756983809358
+
+Question:
+00:12
+
+Findings? Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Findings? Diagnosis?
+
+joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the humeral head and glenoid, intra-articular and para-articular calcifications. Pyrophosphate arthropathy.
+
+1/2
+
+## Card 2
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -65,9 +91,9 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 2
+## Card 3
 
-Deck: ..Due 2026-09-12 to 2026-10-06 Audio
+Deck: .NEW::Audio
 Flagged: 2026-10-06T13:32:41-05:00
 Last seen: 2026-10-06T13:32:41-05:00
 Card ID: 1780270217302
@@ -83,7 +109,7 @@ Answer:
 
 In gamma cameras, a diverging collimator minimizes the image
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-04-23T06:20:28-05:00
@@ -101,7 +127,7 @@ Answer:
 
 The foramen rotundum is located in the lateral wall of the sphenoid sinus.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-02T12:48:53-05:00
@@ -119,7 +145,7 @@ Answer:
 
 Idiopathic intracranial hypertension is characterized by dilated/edematous optic nerve sheath, vertical tortuosity of the optic nerve, flattening of the posterior globe, and optic nerve head protrusion, partially empty sella, and transverse sinus stenosis.
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-07-12T13:28:50-05:00
@@ -137,7 +163,7 @@ Answer:
 
 The rotator interval is the space between supraspinatus (superiorly) and subscapularis (inferiorly); it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-10T05:44:13-05:00
@@ -194,7 +220,7 @@ multiple normal (Fig 11) and abnormal (Fig 12)
 waveforms, each with its corresponding identifying
 characteristics and conventional name.
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T16:22:13-05:00
@@ -220,7 +246,7 @@ Core Radiology 2nd ed., MSK: 984. Short fourth or fifth metacarpal is the classi
 
 Full source page:
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
@@ -242,7 +268,7 @@ Diagnosis?
 
 dorsal dermal sinus
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -268,7 +294,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 10
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -292,7 +318,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
