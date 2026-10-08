@@ -5,11 +5,12 @@ import re
 import sys
 from pathlib import Path
 from export_quizduel import build_exports
+from quality import QUALITY_START, validate_quality
 
 APP = Path(__file__).resolve().parent.parent
 QUIZZES = APP / 'quizzes'
 LEVELS = ('kid', 'high-school', 'expert')
-SOURCE = re.compile(r'^Isaiah (\d+):(\d+)(?:-(?:(\d+):)?(\d+))?$')
+SOURCE = re.compile(r'^(.+?) (\d+):(\d+)(?:-(?:(\d+):)?(\d+))?$')
 FORBIDDEN = re.compile(r'\b(?:all|none) of the above\b', re.I)
 
 def fail(message):
@@ -42,7 +43,8 @@ def validate(path, daily):
     if set(doc.get('levels', {})) != set(LEVELS):
         fail(f'{path}: expected exactly three levels')
     assigned = daily[date]
-    assigned_refs = [(chapter, verse) for book, chapter, verse in assigned if book == 'Isaiah']
+    schedule = json.loads((APP / 'cfm-schedule-2026.json').read_text(encoding='utf-8'))
+    link_bases = {r['display']: r['linkBase'] for w in schedule for r in w.get('readings', [])}
     ids, stems = set(), set()
     for level in LEVELS:
         questions = doc['levels'][level]
@@ -71,14 +73,16 @@ def validate(path, daily):
             match = SOURCE.fullmatch(source.get('reference', ''))
             if not match:
                 fail(f'{path}: malformed source in {q["id"]}')
-            chapter, verse, end_chapter, end_verse = match.groups()
-            first = (int(chapter), int(verse))
-            last = (int(end_chapter or chapter), int(end_verse or verse))
-            if first not in assigned_refs or last not in assigned_refs or assigned_refs.index(first) > assigned_refs.index(last):
+            book, chapter, verse, end_chapter, end_verse = match.groups()
+            first = (book, int(chapter), int(verse))
+            last = (book, int(end_chapter or chapter), int(end_verse or verse))
+            if first not in assigned or last not in assigned or assigned.index(first) > assigned.index(last):
                 fail(f'{path}: source outside daily assignment in {q["id"]}')
-            expected = f'https://www.churchofjesuschrist.org/study/scriptures/ot/isa/{chapter}.{verse}?lang=eng'
+            expected = f'https://www.churchofjesuschrist.org/study/scriptures/{link_bases[book]}/{chapter}.{verse}?lang=eng'
             if source.get('url') != expected:
                 fail(f'{path}: source URL mismatch in {q["id"]}')
+    if date >= QUALITY_START:
+        validate_quality(doc)
     if doc.get('quizDuel') != build_exports(doc):
         fail(f'{path}: missing or stale QuizDuel exports; run export_quizduel.py --write')
     return len(ids)

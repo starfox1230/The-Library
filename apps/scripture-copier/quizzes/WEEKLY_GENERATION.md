@@ -37,6 +37,32 @@ In the app, **Copy JSON + QuizDuel** copies only that level's complete object an
 
 ## Item-writing standard
 
+### Required correction and publication gates (October 7, 2026)
+
+The October 5–11 generation run built distractors from other items' keyed answers. This produced repeated choices, mixed grammatical categories, and questions answerable by elimination without reading. Structural validation passed because it checked only individual option uniqueness. Do not use a shared answer pool, rotate another question's answers into an item, or reuse the old October 5–11 bank as an authoring template.
+
+For every date from October 7 forward, including already prepared future dates, inspect content quality before considering the date complete. Do not rewrite past dates. An existing file is not evidence that its content has passed review. Correct verified flaws in current or future dates; preserve valid items.
+
+Write each item's three distractors specifically for its own stem. No full answer-choice text may repeat within a level's ten questions. Read the stem with each of the four options aloud in your review: each must answer the same question, fit grammatically, and use the same semantic category. Names compete with names, actions with actions, reasons with reasons. Kid questions require the same care; simplify reading, never supply the answer in the stem or make wrong options silly.
+
+Keep option word counts close. `quality.py` rejects an option-length spread greater than `max(3, shortest * 0.5)`, and rejects a keyed answer that is uniquely longest or uniquely shortest in more than four of ten questions. Prefer natural equal-length options; if varying lengths, vary keyed length rank as well. Do not fix length failures by padding an option with filler. The stored key distribution must be 3/3/2/2 in an irregular order, not a repeating A/B/C/D cycle. The UI still shuffles options.
+
+Perform two explicit passes after authoring: (1) with the assigned verses, verify one best answer, relevance, each distractor's reason for being wrong, and every explanatory claim; (2) without relying on passage knowledge, attempt to guess by grammar, length, sophistication, stem repetition, absolutes, repeated choices, and answer position. Then compare all ten together for duplication and clues from other questions. Mechanical gates supplement this semantic review; they cannot prove grammar, plausibility, or one-best-answer quality.
+
+Only after reviewing every item, attach a content-bound review to each daily JSON:
+
+```python
+from quality import bank_hash, REVIEW_CHECKS
+doc['qualityReview'] = {
+    'questionSha256': bank_hash(doc),
+    'checks': REVIEW_CHECKS,
+}
+```
+
+This records completion of `source-grounding`, `one-best-answer`, `grammar-and-category`, `plausible-distractors`, `no-stem-giveaway`, and `no-testwise-clues`. Do not blindly sign generated questions. Any authored-content edit changes the hash and requires another review. Regenerate `quizDuel` exports after corrections. Run `test_quality.py`, `export_quizduel.py` without `--write`, and `validate.py` before committing; Pages runs the quality regression tests and validator before deployment. Earlier dates retain structural/source validation without retroactive rewriting.
+
+The source validator now derives scripture book names and official URL paths from the schedule, so future non-Isaiah weeks must use their own assigned books rather than adapting Isaiah references.
+
 Use the [NBME Item-Writing Guide](https://www.nbme.org/sites/default/files/2021-02/NBME_Item%20Writing%20Guide_R_6.pdf) and [Vanderbilt Center for Teaching guide](https://cft.vanderbilt.edu/guides-sub-pages/writing-good-multiple-choice-test-questions/) as the item-writing baseline. Adapt their assessment principles to scripture comprehension rather than medical testing.
 
 - Test a central person, event, teaching, image, relationship, or consequence that is worth remembering. Prefer understanding to trivia. A thoughtful reader should enjoy the moment of recognition.

@@ -1,0 +1,17 @@
+# Current quiz correction
+
+The October 5–11 weekly run supplied options from other items' correct answers. For example, the October 7 kid messenger question offered both a place (the ends of the earth) and an action (sing together) as answers to a question about a message. The following items recycled that same set. The JSON schema and source-reference checks accepted it because each individual item still had four distinct strings and a valid key.
+
+Corrected only October 7–11: 10 kid, 10 high-school, and 10 expert questions per day, 150 authored questions and 15 derived QuizDuel exports. Earlier questions remain unchanged. The exact readings are Isaiah 52:3–53:5, 53:6–54:11, 54:12–55:12, 55:13–57:4, and 57:5–21. Read these slices and the October 5–11 manual before authoring.
+
+Reviewed every stem and four choices for grammatical fit, common category, one defensible key, and explanation/source agreement; reviewed each set without relying on the passage for length, sophistication, repeated wording, and positional clues. Kid items use concrete language without embedding the answer. Higher levels test relationships and interpretive distinctions, including the servant's treatment versus his work for others, temporary wrath versus enduring kindness, invitation versus response, gathering versus failed leadership, and broad peace versus the moral contrast with wickedness. Wrong options are authored for the individual stem, not drawn from a pool.
+
+Every level has 40 unique option strings. Word counts differ by at most two within an item; most are equal. Across all 15 quizzes only three keys are uniquely longest, one per affected quiz. Uniquely shortest keys range from zero to four per quiz. Stored key positions have irregular 3/3/2/2 distributions and the UI independently shuffles choices. Each daily bank includes a SHA-256 review signature; changing authored content invalidates it.
+
+The publication gate checks reused options, normalized duplicates, literal stem leakage, option length spreads, longest/shortest-key patterns, balanced positions, and current review signatures. Regression tests reproduce these failure modes. These mechanical checks complement the required semantic review; they do not establish grammar or theological accuracy by themselves. Source checking now uses each scheduled book and official path, supporting later weeks beyond Isaiah.
+
+The existing Friday automation retains its schedule and Sol High settings, but now explicitly inspects already prepared current/future dates, prohibits pooled choices, and requires the two review passes before signing, exporting, validation, and deployment. Updated browser cache handling ensures reopened quizzes fetch the corrected JSON. The mobile date/mode header now wraps instead of expanding the layout viewport from 390px to 405px, which previously caused incorrect tap coordinates after focus scrolled the feedback panel.
+
+Validation: nine publication-gate regression tests passed; all 15 dates, 450 questions, source references, and 45 derived exports passed structural/export validation. Browser checks passed mobile and desktop copy/navigation, clipboard denial and popup blocking, all 150 corrected questions through completion, scripture references, and normal reading controls. Earlier bank playback remains covered.
+
+Baseline: [NBME Item-Writing Guide](https://www.nbme.org/sites/default/files/2021-02/NBME_Item%20Writing%20Guide_R_6.pdf), especially one-best-answer structure, homogeneous options, grammatical cues, and conspicuous correct-option length.

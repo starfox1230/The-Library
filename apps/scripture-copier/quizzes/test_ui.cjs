@@ -136,7 +136,8 @@ async function checkExports(page, context, date, width) {
       await selectDate(page, '2026-09-27');
       await page.locator('#play-quiz').waitFor({ state: 'visible' });
       await checkExports(page, context, '2026-09-27', width);
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow at ${width}`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `overflow at ${width}`);
+      assert.equal(await page.evaluate(() => innerWidth), width, 'content must not expand the mobile layout viewport');
       assert.match(await page.locator('#manual-links a').getAttribute('href'), /week|2026\/39/);
       await page.locator('#toggle-btn').click();
       assert.equal(await page.locator('#toggle-btn').textContent(), 'Show Verses');
@@ -156,6 +157,15 @@ async function checkExports(page, context, date, width) {
         await playLevel(page, 'expert', '2026-10-04');
         await page.locator('#prev-btn').click();
         assert.match(await page.locator('#day-info').textContent(), /10\/03\/2026/);
+      }
+      // Exercise the corrected bank and every future prepared date, not only the original sample.
+      await selectDate(page, '2026-10-07');
+      await checkExports(page, context, '2026-10-07', width);
+      if (width === 390) {
+        for (const date of ['2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11']) {
+          await selectDate(page, date);
+          for (const level of ['kid', 'high-school', 'expert']) await playLevel(page, level, date);
+        }
       }
       await context.close();
     }
