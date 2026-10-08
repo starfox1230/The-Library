@@ -42,7 +42,7 @@ def validate_quality(doc):
         if longest > 4 or shortest > 4:
             raise ValueError(f"{doc['date']} {level}: length predicts answers ({longest} uniquely longest, {shortest} uniquely shortest)")
         counts = Counter(positions)
-        if set(counts) != {0,1,2,3} or max(counts.values()) > 3:
+        if set(counts) != {0,1,2,3} or sorted(counts.values()) != [2,2,3,3]:
             raise ValueError(f"{doc['date']} {level}: unbalanced stored answer positions {dict(counts)}")
     review = doc.get('qualityReview', {})
     if review.get('questionSha256') != bank_hash(doc) or review.get('checks') != REVIEW_CHECKS:
