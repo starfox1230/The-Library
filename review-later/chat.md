@@ -44,14 +44,114 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-08 13:12 Central Daylight Time
-Cards: 7
+Updated: 2026-10-08 13:32 Central Daylight Time
+Cards: 11
 
 ## Card 1
 
+Deck: .NEW::Visual
+Flagged: 2026-04-22T06:40:19-05:00
+Last seen: 2026-10-08T13:30:51-05:00
+Card ID: 1776454739669
+Note ID: 1776454739669
+
+Question:
+00:12
+
+Most likely diagnosis in patient with hypoglycemia and finger clubbing?
+
+[...]
+
+Answer:
+00:08
+
+Most likely diagnosis in patient with hypoglycemia and finger clubbing?
+
+solitary fibrous tumor
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-27T07:43:51-05:00
+Last seen: 2026-10-08T13:29:59-05:00
+Card ID: 1768330036762
+Note ID: 1768330036761
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Diagnosis?
+
+deep cerebral venous thrombosis (leading to venous congestion and infarction in deep brain structures)
+
+1/2
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-10-06T22:31:28-05:00
+Last seen: 2026-10-08T13:29:30-05:00
+Card ID: 1756983809359
+Note ID: 1756983809358
+
+Question:
+00:12
+
+Findings? Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Findings? Diagnosis?
+
+joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the humeral head and glenoid, intra-articular and para-articular calcifications. Pyrophosphate arthropathy.
+
+1/2
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-07-11T10:04:05-05:00
+Last seen: 2026-10-08T13:26:36-05:00
+Card ID: 1783397643342
+Note ID: 1783397643341
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
+
+Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
+
+Full source page:
+
+## Card 5
+
 Deck: Saved Cards
 Flagged: 2026-08-24T06:23:09-05:00
-Last seen: 2026-10-08T07:51:02-05:00
+Last seen: 2026-10-08T13:26:21-05:00
 Card ID: 1786709128376
 Note ID: 1786709128375
 
@@ -73,7 +173,7 @@ Omental infarction is usually a larger heterogeneous area of inflamed fat center
 
 Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
 
-## Card 2
+## Card 6
 
 Deck: ..Due 2026-09-14 to 2026-10-08 Audio
 Flagged: 2026-10-08T07:44:38-05:00
@@ -91,7 +191,7 @@ Answer:
 
 On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -109,7 +209,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 4
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:17:37-05:00
@@ -127,7 +227,7 @@ Answer:
 
 Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:33:26-05:00
@@ -151,7 +251,7 @@ marrow stimulation in setting of colony-stimulating factors
 
 Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-08T06:48:42-05:00
@@ -175,7 +275,7 @@ First and second ribs.
 
 Nukes Quiz Session. User-authored question-answer structure preserved.
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
