@@ -44,10 +44,60 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-08 06:49 Central Daylight Time
-Cards: 2
+Updated: 2026-10-08 06:52 Central Daylight Time
+Cards: 4
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-08-24T06:23:09-05:00
+Last seen: 2026-10-08T06:52:31-05:00
+Card ID: 1786709128376
+Note ID: 1786709128375
+
+Question:
+00:12
+
+What is the most likely diagnosis in the anterior abdomen?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis in the anterior abdomen?
+
+Omental infarction
+
+Omental infarction is usually a larger heterogeneous area of inflamed fat centered in the omentum rather than directly abutting the colon.
+
+Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-03T05:33:26-05:00
+Last seen: 2026-10-08T06:51:53-05:00
+Card ID: 1779059682569
+Note ID: 1779059682568
+
+Question:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+39-year-old female with a history of non-Hodgkin’s lymphoma who completed several cycles of chemotherapy two weeks ago. Most likely diagnosis?
+
+marrow stimulation in setting of colony-stimulating factors
+
+Q1. Correct; difficulty: moderate. The sagittal positron-emission tomography (PET) shows diffuse marrow uptake of fluorodeoxyglucose (FDG) throughout the spine and sternum (red arrows) as well as several sites of FDG uptake in enlarged abdominal lymph nodes (yellow arrows). Correct answer: Use of colony-stimulating factors.
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-10-08T06:48:42-05:00
@@ -71,7 +121,7 @@ First and second ribs.
 
 Nukes Quiz Session. User-authored question-answer structure preserved.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
