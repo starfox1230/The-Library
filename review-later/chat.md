@@ -44,10 +44,58 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-07 22:59 Central Daylight Time
-Cards: 18
+Updated: 2026-10-07 23:22 Central Daylight Time
+Cards: 20
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-03-27T06:41:27-05:00
+Last seen: 2026-10-07T23:19:57-05:00
+Card ID: 1760473131343
+Note ID: 1760473131342
+
+Question:
+Diagnosis?
+
+ ↻
+
+Answer:
+Mylohyoid boutonniere (herniation of the sublingual duct)
+
+Images
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-29T06:52:34-05:00
+Last seen: 2026-10-07T23:04:56-05:00
+Card ID: 1780338677480
+Note ID: 1780338677479
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/8
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mesentero-axial gastric volvulus
+
+1/8
+
+Q28. Incorrect; difficulty: hard. Vital Concept: Mesentero-axial gastric volvulus involves stomach rotation along the mesenteroaxial plane perpendicular to the lesser-greater curvature line. The antrum and pylorus rotate upward and anteriorly. The key CT finding is antropyloric junction positioned superior and anterior to the gastroesophageal junction.
+
+Open review Q28
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:28:31-05:00
@@ -69,7 +117,7 @@ Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
 
 Full source page for context.
 
-## Card 2
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -91,7 +139,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-21T13:22:25-05:00
@@ -117,7 +165,7 @@ pleural (ball under the carpet, so not juxtapleural)
 
 1/2
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-07-28T11:53:25-05:00
@@ -139,7 +187,7 @@ Most likely diagnosis?
 
 subpulmonic course of aberrant left coronary artery arising from the right coronary cusp
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-07-25T19:51:45-05:00
@@ -185,7 +233,7 @@ Normal:
 
 Abnormal:
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-04-21T17:04:29-05:00
@@ -207,7 +255,7 @@ What pattern?
 
 reticular pattern
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-05-07T16:29:27-05:00
@@ -233,7 +281,7 @@ Functional immaturity of the colon (normal rectosigmoid ratio with the left side
 
 1/2
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-03-24T00:32:05-05:00
@@ -255,7 +303,7 @@ Most likely underlying condition?
 
 acute myocardial infarct with emboli
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-07T13:29:25-05:00
@@ -273,7 +321,7 @@ Answer:
 
 In gamma cameras, a diverging collimator minimizes the image
 
-## Card 10
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-09-30T11:57:33-05:00
@@ -291,7 +339,7 @@ Answer:
 
 In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
 
-## Card 11
+## Card 13
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -313,7 +361,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 12
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -331,7 +379,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 13
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -351,7 +399,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 14
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -375,7 +423,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 15
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-05:00
@@ -395,7 +443,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 16
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -413,7 +461,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 17
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T07:01:56-05:00
@@ -435,7 +483,7 @@ What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 combined liver–kidney transplantation
 
-## Card 18
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
