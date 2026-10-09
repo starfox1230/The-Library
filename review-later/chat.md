@@ -45,6 +45,40 @@ Be flexible if the conversation reveals another useful category or task.
 # Anki Speed Streak — Review Later
 
 Updated: 2026-10-09 07:53 Central Daylight Time
-Cards: 0
+Cards: 2
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-09T07:16:48-05:00
+Last seen: 2026-10-09T07:16:48-05:00
+Card ID: 1764886091049
+Note ID: 1764886091048
+
+Question:
+00:12
+
+On bone scintigraphy, a typical bone island shows [...].
+
+Answer:
+00:12
+
+On bone scintigraphy, a typical bone island shows no significant radionuclide uptake and appears cold.
+
+## Card 2
+
+Deck: ..Due 2026-09-14 to 2026-10-08 Audio
+Flagged: 2026-10-09T07:16:41-05:00
+Last seen: 2026-10-09T07:16:41-05:00
+Card ID: 1775708030972
+Note ID: 1775708030970
+
+Question:
+00:12
+
+On ultrasound, [...] usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
+
+Answer:
+00:12
+
+On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
