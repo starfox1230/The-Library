@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-09 07:55 Central Daylight Time
-Cards: 2
+Updated: 2026-10-09 13:10 Central Daylight Time
+Cards: 3
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-30T07:53:15-05:00
+Last seen: 2026-10-09T08:17:50-05:00
+Card ID: 1776289176154
+Note ID: 1776289176153
+
+Question:
+00:12
+
+Excess aluminum in a Tc-99m sulfur colloid kit can cause [...].
+
+Answer:
+00:12
+
+Excess aluminum in a Tc-99m sulfur colloid kit can cause diffuse lung uptake.
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T07:16:48-05:00
@@ -65,7 +83,7 @@ Answer:
 
 On bone scintigraphy, a typical bone island shows no significant radionuclide uptake and appears cold.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T07:16:41-05:00
