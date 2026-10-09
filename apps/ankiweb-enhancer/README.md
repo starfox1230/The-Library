@@ -66,15 +66,24 @@ sides as AnkiWeb updates them. It does not change your saved Anki cards or add
 speech playback. Editors, scripts, and media are left alone; incomplete markers
 are preserved rather than guessing how much text to remove.
 
+Version **0.1.4** fixes the review host: AnkiWeb sends authenticated reviews to
+**`https://ankiuser.net/study`**. Earlier versions only loaded on `ankiweb.net`,
+so Chrome could show the correct installed version while none of the extension
+features ran during review. Site access to the additional exact HTTPS host was
+explicitly approved by the user. Reload the extension and refresh the review tab
+after updating; Chrome may ask you to allow access to the added review host.
+
 Milestone 1, selected-answer feedback, and TTS cleanup are implemented. Focus mode, dark mode, F/D/G/S toggles,
 gamification, a popup, settings, and persistent preferences are deferred.
 
 ## Permissions and privacy
 
-The sole site access declaration is `content_scripts.matches`:
-**`https://ankiweb.net/*`**, restricted to the exact HTTPS host. Matching all paths
-allows the content script to survive AnkiWeb's client-side navigation from decks
-to review. Actions require `/study` and the verified review structure.
+Site access is declared in `content_scripts.matches` for only
+**`https://ankiweb.net/*`** and **`https://ankiuser.net/*`**, restricted to those
+two exact HTTPS hosts, with no subdomain wildcards. AnkiWeb uses `ankiuser.net`
+for deck management and review. Matching all paths allows the content script
+to survive client-side navigation from decks to review. Actions require `/study`
+and the verified review structure.
 
 There is **no `permissions` list**, no extra `host_permissions`, and no access to
 other websites, history, cookies, passwords, or the clipboard. There is no
@@ -106,7 +115,8 @@ refresh AnkiWeb. No collection data or settings need to be cleaned up.
   inspect its isolated world. `AnkiWebEnhancer.dom.getSnapshot()` reports the
   detected phase and button elements without exposing card contents.
 - On `chrome://extensions`, inspect **Errors**, if displayed, and **Details**.
-  Confirm site access is allowed on `https://ankiweb.net`.
+  Confirm site access is allowed on both `https://ankiweb.net` and
+  `https://ankiuser.net`. The review tab normally uses the latter hostname.
 - There is no background service worker, so no **Inspect service worker** link
   is expected. If a later milestone adds one, inspect it from this same page.
 - If a shortcut does nothing, check input focus, a modal dialog, the debounce,
@@ -183,10 +193,12 @@ Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
 The ZIP contains only the manifest, the five content scripts, and this README.
 
-Validation on October 9, 2026: **36 tests passed** with the actual unpacked
+Validation on October 9, 2026: **41 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
 The focus regression tests cover card/background clicks, preservation of answer
 input focus, and replacement Show Answer controls without page scrolling.
+The review fixtures now default to `ankiuser.net/study`; both exact Anki hosts
+are covered, and HTTP/lookalike hosts remain excluded by the manifest.
 The authenticated AnkiWeb checklist above remains a manual verification step.

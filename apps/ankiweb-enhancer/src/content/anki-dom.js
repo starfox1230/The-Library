@@ -16,8 +16,12 @@
   });
   const grades = ["again", "hard", "good", "easy"];
 
+  function isAllowedOrigin() {
+    return location.origin === "https://ankiweb.net" || location.origin === "https://ankiuser.net";
+  }
+
   function isReviewRoute() {
-    return location.origin === "https://ankiweb.net" && /^\/study\/?$/.test(location.pathname);
+    return isAllowedOrigin() && /^\/study\/?$/.test(location.pathname);
   }
 
   function isVisible(element) {
@@ -90,7 +94,7 @@
   }
 
   app.dom = Object.freeze({
-    isReviewRoute, isReviewScreen, getSnapshot, showAnswer,
+    isAllowedOrigin, isReviewRoute, isReviewScreen, getSnapshot, showAnswer,
     getCardContent: () => getReviewElements()?.card ?? null,
     getFeedbackAnchor: () => getReviewElements()?.controls.getBoundingClientRect() ?? null,
     isAnswerVisible: () => getSnapshot().phase === "answer",

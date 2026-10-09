@@ -1,7 +1,7 @@
 (() => {
   "use strict";
-  if (location.origin !== "https://ankiweb.net" || window !== window.top) return;
   const app = globalThis.AnkiWebEnhancer;
+  if (!app.dom.isAllowedOrigin() || window !== window.top) return;
   if (app.started) return;
   app.started = true;
   const dom = app.dom;

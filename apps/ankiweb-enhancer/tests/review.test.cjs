@@ -65,7 +65,7 @@ after(async () => {
   if (profile) fs.rmSync(profile, { recursive: true, force: true });
 });
 
-async function review(url = "https://ankiweb.net/study") {
+async function review(url = "https://ankiuser.net/study") {
   const page = await context.newPage();
   await page.goto(url);
   await page.locator("#ansarea button").waitFor();
@@ -76,10 +76,10 @@ async function clicks(page) {
   return page.evaluate(() => window.clicks);
 }
 
-test("manifest requests only exact HTTPS AnkiWeb content-script access", () => {
+test("manifest requests only the two exact HTTPS Anki hosts", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
   assert.equal(manifest.manifest_version, 3);
-  assert.deepEqual(manifest.content_scripts[0].matches, ["https://ankiweb.net/*"]);
+  assert.deepEqual(manifest.content_scripts[0].matches, ["https://ankiweb.net/*", "https://ankiuser.net/*"]);
   for (const key of ["permissions", "host_permissions", "background", "externally_connectable", "web_accessible_resources"])
     assert.equal(manifest[key], undefined);
   for (const file of manifest.content_scripts[0].js) assert.ok(fs.existsSync(path.join(root, file)));
@@ -464,7 +464,17 @@ test('TTS cleanup leaves editors, scripts, media, and unmatched text alone', asy
   } finally { await page.close(); }
 });
 
-for (const url of ["https://example.com/study", "https://ankiweb.net/account/login", "https://ankiweb.net/study/finished"]) {
+test('AnkiWeb host remains supported alongside the real ankiuser review host', async () => {
+  const page = await review('https://ankiweb.net/study');
+  try {
+    await page.keyboard.press('Space');
+    assert.deepEqual(await clicks(page), ['reveal']);
+    await page.waitForTimeout(400); await page.keyboard.press('3');
+    assert.deepEqual(await clicks(page), ['reveal', 'good']);
+  } finally { await page.close(); }
+});
+
+for (const url of ["https://example.com/study", "https://ankiweb.net/account/login", "https://ankiweb.net/study/finished", "https://ankiuser.net/account/login", "https://ankiuser.net/study/finished", "https://ankiuser.net.example.com/study", "http://ankiuser.net/study"]) {
   test(`no extension button actions on ${url}`, async () => {
     const page = await review(url);
     try {

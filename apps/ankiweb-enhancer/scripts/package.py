@@ -6,7 +6,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 root = Path(__file__).resolve().parents[1]
 manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
 assert manifest["manifest_version"] == 3
-assert manifest["content_scripts"][0]["matches"] == ["https://ankiweb.net/*"]
+assert manifest["content_scripts"][0]["matches"] == ["https://ankiweb.net/*", "https://ankiuser.net/*"]
 assert not manifest.get("permissions") and not manifest.get("host_permissions")
 files = ["manifest.json", "README.md", *manifest["content_scripts"][0]["js"]]
 output = root / "dist" / "ankiweb-enhancer-milestone-1.zip"
