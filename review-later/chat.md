@@ -44,7 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-09 07:53 Central Daylight Time
+Updated: 2026-10-09 07:55 Central Daylight Time
 Cards: 2
 
 ## Card 1
@@ -67,7 +67,7 @@ On bone scintigraphy, a typical bone island shows no significant radionuclide up
 
 ## Card 2
 
-Deck: ..Due 2026-09-14 to 2026-10-08 Audio
+Deck: .NEW::Audio
 Flagged: 2026-10-09T07:16:41-05:00
 Last seen: 2026-10-09T07:16:41-05:00
 Card ID: 1775708030972
