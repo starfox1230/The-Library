@@ -1,4 +1,4 @@
-# AnkiWeb Enhancer — Milestone 1
+# AnkiWeb Enhancer — Milestone 2
 
 Private, locally installed Manifest V3 Chrome extension. It clicks AnkiWeb's
 existing review buttons. AnkiWeb continues to display cards, choose due cards,
@@ -6,7 +6,7 @@ schedule reviews, record ratings, and sync your collection.
 
 ## Install with Load unpacked
 
-1. Download `ankiweb-enhancer-milestone-1.zip` from `dist/`, or clone this repository.
+1. Download `ankiweb-enhancer-milestone-2.zip` from `dist/`, or clone this repository.
 2. **Extract the ZIP first.** Keep the extracted folder in a permanent location.
 3. In Chrome, enter `chrome://extensions` in the address bar.
 4. Turn on **Developer mode** at the upper right.
@@ -30,6 +30,8 @@ it breaks the installation. This is a Chrome extension, not an Anki desktop add-
 | 2 | Hard, only when its button is present on the answer side |
 | 3 | Good, only when its button is present on the answer side |
 | 4 | Easy, only when its button is present on the answer side |
+| F | Toggle focus mode while reviewing |
+| D | Toggle night mode while reviewing |
 
 Missing buttons are never reassigned: `3` always means Good. Space and Enter
 do nothing on the answer side, even when a grading button has keyboard focus.
@@ -73,8 +75,29 @@ features ran during review. Site access to the additional exact HTTPS host was
 explicitly approved by the user. Reload the extension and refresh the review tab
 after updating; Chrome may ask you to allow access to the added review host.
 
-Milestone 1, selected-answer feedback, and TTS cleanup are implemented. Focus mode, dark mode, F/D/G/S toggles,
-gamification, a popup, settings, and persistent preferences are deferred.
+## Milestone 2: focus and night mode
+
+Version **0.2.0** adds independent **F** (focus) and **D** (night) toggles. Press
+either again to switch it off immediately, without reloading. Both shortcuts
+share the input protection and held-key safeguards of the review shortcuts.
+
+Focus mode hides AnkiWeb's navigation/header/footer and the review toolbar
+(Edit, Limits, and font controls). It reduces top spacing while keeping the
+card, Show Answer, grading buttons, and AnkiWeb's own new/learning/review counts
+visible. Press F again to reach the hidden navigation or toolbar.
+
+Night mode darkens the page, card surface, navigation, and answer-control bar,
+with readable inherited text and brighter due-count colors. It does not invert
+images, change media, or apply blanket text/background overrides inside cards.
+Explicit card colors and backgrounds remain, so a custom card can retain its
+own light panels or color choices. Check your custom cards with D enabled.
+
+The modes stay enabled through card changes and client-side navigation in the
+same tab. Their CSS only applies to the review screen: leaving review restores
+the normal interface, and returning restores the modes. A page refresh starts
+both modes off. Persistent preferences, popup/settings, and configurable keys
+remain milestone 4 work; game statistics and the G shortcut remain milestone 3
+work. The S shortcut is not implemented yet.
 
 ## Permissions and privacy
 
@@ -92,7 +115,8 @@ external API, remote script, or server in the extension. The script checks only
 review structure, button labels, and input focus, and transiently reads rendered
 card text to remove unsupported TTS blocks. It does not read credential values,
 store card contents, or transmit them. It runs in Chrome's isolated content-script world,
-in the top frame only. No service worker is needed in milestone 1.
+in the top frame only. No service worker is needed in milestone 2. The new modes
+use local CSS and in-memory flags, with no additional Chrome permissions.
 
 Chrome documents this approach in [Content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
 and [Load an unpacked extension](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
@@ -156,11 +180,17 @@ outside an embedded card iframe to return keyboard focus to the review page.
       editing works and no review is submitted, including on key release.
 - [ ] Ctrl/Alt/Shift combinations and IME composition do not trigger shortcuts.
 - [ ] Navigate out of review and back, or move to the next card: no refresh is needed.
-- [ ] Refresh AnkiWeb: controls still work; no preferences exist to corrupt in milestone 1.
+- [ ] Press F twice: navigation hides/restores while cards, ratings, and due counts remain.
+- [ ] Press D twice: night mode switches on/off independently of focus mode.
+- [ ] With night mode on, card images retain their colors and custom formatting is preserved.
+- [ ] Type F/D inside a card input: the text is entered without toggling modes.
+- [ ] Hold F/D: each key press toggles only once.
+- [ ] With both modes on, reveal and grade several cards; keyboard controls and feedback work.
+- [ ] Leave review and return: styling disappears outside review and returns during review.
+- [ ] Refresh AnkiWeb: keyboard controls work, and both modes start off.
 - [ ] The extension does nothing on login, deck lists, finished review, or other websites.
 
-Focus/dark toggles, game statistics, and settings tests begin with their respective
-future milestones and are intentionally not applicable to this build.
+Game statistics and persistent-settings tests begin with their future milestones.
 
 ## Architecture and developer validation
 
@@ -172,10 +202,12 @@ ankiweb-enhancer/
     keyboard.js       # Capture events, protect editing, suppress native duplicates
     answer-feedback.js # Brief click-through selected-rating label
     card-cleanup.js   # Remove unsupported TTS echoes from displayed card text
+    review-modes.js   # Independent, review-only focus/night flags
+    review-modes.css  # Reversible CSS using adapter-assigned attributes
     content.js        # Bootstrap, debounce, transition latch, MutationObserver
   tests/review.test.cjs
   scripts/package.py
-  dist/ankiweb-enhancer-milestone-1.zip
+  dist/ankiweb-enhancer-milestone-2.zip
   README.md
 ```
 
@@ -191,9 +223,9 @@ If Playwright is installed outside Node's usual search paths, set `NODE_PATH` to
 that package directory. `ANKI_TEST_BROWSER` can point to an existing Playwright
 Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
-The ZIP contains only the manifest, the five content scripts, and this README.
+The ZIP contains only the manifest, the six content scripts, mode CSS, and this README.
 
-Validation on October 9, 2026: **41 tests passed** with the actual unpacked
+Validation on October 9, 2026: **49 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
@@ -201,4 +233,7 @@ The focus regression tests cover card/background clicks, preservation of answer
 input focus, and replacement Show Answer controls without page scrolling.
 The review fixtures now default to `ankiuser.net/study`; both exact Anki hosts
 are covered, and HTTP/lookalike hosts remain excluded by the manifest.
+Milestone 2 tests cover independent/reversible toggles, input protection, held
+keys, navigation and DOM replacement, review-only styling, image preservation,
+explicit card formatting, and continued reveal/grading with both modes enabled.
 The authenticated AnkiWeb checklist above remains a manual verification step.

@@ -8,8 +8,9 @@ manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
 assert manifest["manifest_version"] == 3
 assert manifest["content_scripts"][0]["matches"] == ["https://ankiweb.net/*", "https://ankiuser.net/*"]
 assert not manifest.get("permissions") and not manifest.get("host_permissions")
-files = ["manifest.json", "README.md", *manifest["content_scripts"][0]["js"]]
-output = root / "dist" / "ankiweb-enhancer-milestone-1.zip"
+files = ["manifest.json", "README.md", *manifest["content_scripts"][0]["js"],
+         *manifest["content_scripts"][0].get("css", [])]
+output = root / "dist" / "ankiweb-enhancer-milestone-2.zip"
 output.parent.mkdir(exist_ok=True)
 with ZipFile(output, "w", compression=ZIP_DEFLATED) as archive:
     for name in sorted(files):

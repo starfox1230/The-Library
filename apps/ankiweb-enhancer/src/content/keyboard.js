@@ -5,6 +5,7 @@
   const actions = Object.freeze({
     " ": "reveal", Enter: "reveal",
     "1": "again", "2": "hard", "3": "good", "4": "easy",
+    f: "focus", d: "dark",
   });
   const editableSelector = 'input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]';
   const interactiveSelector = 'a[href], audio, video, summary, [role="slider"], [role="spinbutton"]';
@@ -50,7 +51,7 @@
     }
 
     function keydown(event) {
-      const action = actions[event.key];
+      const action = actions[event.key.length === 1 ? event.key.toLowerCase() : event.key];
       if (!action || !dom.isReviewScreen()) return;
       ownedReleases.add(event.code || event.key);
       // AnkiWeb grades on document keyup, without checking text fields. Stop

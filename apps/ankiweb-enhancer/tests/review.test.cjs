@@ -13,10 +13,18 @@ let profile;
 
 // Same structure and native document keyup behavior as the public AnkiWeb
 // reviewer, but without network access, accounts, collections, or scheduling.
-const fixture = `<!doctype html><html><body>
-<nav><input id="search" aria-label="Search"></nav>
-<div id="quiz"><div id="qa_box"><div id="qa">Fixture question</div></div>
-<div id="ansarea"></div></div>
+const fixture = `<!doctype html><html><head><style>
+html { background: white !important; } body { color: black; }
+nav { background: #eee; padding: 10px; } .card { background: white; color: black; }
+#qa { margin-top: 30px; } #ansarea { background: white; }
+</style></head><body>
+<nav><input id="search" aria-label="Search"><a href="/decks">Decks</a></nav>
+<main><div id="quiz">
+<div class="float-start" id="review-tools"><a href="/study/options">Limits</a></div>
+<div class="float-end" id="counts"><span class="count new">3</span> +
+<span class="count learn">4</span> + <span class="count review">5</span></div>
+<div id="qa_box" class="card"><div id="qa">Fixture question</div></div>
+<div id="ansarea"></div></div></main>
 <script>
 window.clicks = []; window.nativeGrades = []; window.slow = false;
 window.labels = ['Again', 'Hard', 'Good', 'Easy'];
@@ -83,6 +91,7 @@ test("manifest requests only the two exact HTTPS Anki hosts", () => {
   for (const key of ["permissions", "host_permissions", "background", "externally_connectable", "web_accessible_resources"])
     assert.equal(manifest[key], undefined);
   for (const file of manifest.content_scripts[0].js) assert.ok(fs.existsSync(path.join(root, file)));
+  for (const file of manifest.content_scripts[0].css) assert.ok(fs.existsSync(path.join(root, file)));
 });
 
 test("Space and Enter reveal once; numbers cannot grade the question", async () => {
@@ -461,6 +470,135 @@ test('TTS cleanup leaves editors, scripts, media, and unmatched text alone', asy
     assert.equal(await page.locator('#qa audio').count(), 1);
     assert.equal(await page.locator('#qa script').textContent(), '"[anki:tts]Script[/anki:tts]"');
     assert.ok((await page.locator('#qa p').innerText()).includes('Keep unmatched [anki:tts'));
+  } finally { await page.close(); }
+});
+
+test('F and D independently toggle focus and night mode without a reload', async () => {
+  const page = await review();
+  try {
+    await page.keyboard.press('f');
+    assert.equal(await page.locator('nav').isVisible(), false);
+    assert.equal(await page.locator('#review-tools').isVisible(), false);
+    assert.equal(await page.locator('#qa').isVisible(), true);
+    assert.equal(await page.locator('#ansarea').isVisible(), true);
+    assert.equal(await page.locator('#counts').isVisible(), true);
+    await page.keyboard.press('d');
+    assert.equal(await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(18, 20, 25)');
+    await page.keyboard.press('f');
+    assert.equal(await page.locator('nav').isVisible(), true);
+    assert.equal(await page.locator('#review-tools').isVisible(), true);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), '');
+    await page.keyboard.press('d');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), null);
+    assert.equal(await page.locator('#qa_box').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)');
+    assert.deepEqual(await clicks(page), []);
+  } finally { await page.close(); }
+});
+
+test('night mode preserves card images and explicit text/background formatting', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      document.querySelector('#qa').innerHTML = '<img id="card-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">' +
+        '<span id="formatted" style="color:rgb(220,80,120);background-color:rgb(255,255,255);font-weight:700">Card formatting</span>';
+    });
+    const imageSource = await page.locator('#card-image').getAttribute('src');
+    await page.keyboard.press('d');
+    assert.equal(await page.locator('#card-image').getAttribute('src'), imageSource);
+    assert.equal(await page.locator('#card-image').evaluate(element => getComputedStyle(element).filter), 'none');
+    assert.deepEqual(await page.locator('#formatted').evaluate(element => {
+      const style = getComputedStyle(element);
+      return [style.color, style.backgroundColor, style.fontWeight];
+    }), ['rgb(220, 80, 120)', 'rgb(255, 255, 255)', '700']);
+    assert.equal(await page.locator('#qa').evaluate(element => getComputedStyle(element).color), 'rgb(229, 231, 235)');
+    assert.equal(await page.locator('#counts .learn').evaluate(element => getComputedStyle(element).color), 'rgb(255, 184, 97)');
+  } finally { await page.close(); }
+});
+
+test('F/D stay out of typing fields and ignore modified key combinations', async () => {
+  const page = await review();
+  try {
+    await page.locator('#search').click(); await page.keyboard.type('fdFD');
+    assert.equal(await page.locator('#search').inputValue(), 'fdFD');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), null);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), null);
+    await page.locator('#qa').click();
+    await page.keyboard.press('Shift+F'); await page.keyboard.press('Alt+d');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), null);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), null);
+    assert.deepEqual(await clicks(page), []);
+  } finally { await page.close(); }
+});
+
+test('holding mode keys toggles once, independent of the review debounce', async () => {
+  const page = await review();
+  try {
+    await page.keyboard.down('f'); await page.keyboard.down('f'); await page.keyboard.up('f');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), '');
+    await page.keyboard.down('d'); await page.keyboard.down('d'); await page.keyboard.up('d');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), '');
+    await page.keyboard.press('Space');
+    await page.waitForTimeout(400); await page.keyboard.press('1');
+    assert.deepEqual(await clicks(page), ['reveal', 'again']);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), '');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), '');
+  } finally { await page.close(); }
+});
+
+test('modes survive replaced review DOM, turn off outside review, and return on reentry', async () => {
+  const page = await review();
+  try {
+    await page.keyboard.press('f'); await page.keyboard.press('d');
+    await page.evaluate(() => {
+      document.querySelector('#quiz').replaceWith(document.querySelector('#quiz').cloneNode(true));
+      window.showQuestion();
+    });
+    await page.waitForFunction(() => document.querySelector('#qa').hasAttribute('data-ankiweb-card-text'));
+    assert.equal(await page.locator('nav').isVisible(), false);
+    await page.evaluate(() => { history.pushState({}, '', '/decks'); document.querySelector('#qa').textContent = 'Deck list'; });
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-ankiweb-review'));
+    assert.equal(await page.locator('nav').isVisible(), true);
+    await page.evaluate(() => { history.pushState({}, '', '/study'); window.showQuestion(); });
+    await page.waitForFunction(() => document.documentElement.hasAttribute('data-ankiweb-dark'));
+    assert.equal(await page.locator('nav').isVisible(), false);
+    await page.reload();
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), null);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), null);
+  } finally { await page.close(); }
+});
+
+test('focus mode does not hide navigation or media embedded in card content', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => { document.querySelector('#qa').innerHTML = '<nav id="card-nav">Card navigation</nav><audio controls></audio>'; });
+    await page.keyboard.press('f');
+    assert.equal(await page.locator('body > nav').isVisible(), false);
+    assert.equal(await page.locator('#card-nav').isVisible(), true);
+    assert.equal(await page.locator('#qa audio').isVisible(), true);
+  } finally { await page.close(); }
+});
+
+test('mode shortcuts are blocked by a visible modal dialog', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      const dialog = document.createElement('dialog'); dialog.textContent = 'Dialog';
+      document.body.append(dialog); dialog.showModal();
+    });
+    await page.keyboard.press('f'); await page.keyboard.press('d');
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-focus'), null);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-dark'), null);
+  } finally { await page.close(); }
+});
+
+test('mode shortcuts and mode CSS leave a non-review page alone', async () => {
+  const page = await review('https://ankiuser.net/decks');
+  try {
+    await page.locator('#qa').click();
+    await page.keyboard.press('f'); await page.keyboard.press('d');
+    assert.equal(await page.locator('nav').isVisible(), true);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-review'), null);
+    assert.equal(await page.locator('#qa_box').evaluate(element => getComputedStyle(element).backgroundColor), 'rgb(255, 255, 255)');
   } finally { await page.close(); }
 });
 

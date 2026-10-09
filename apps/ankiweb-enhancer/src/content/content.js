@@ -21,6 +21,10 @@
   }
 
   function perform(action) {
+    if (action === "focus" || action === "dark") {
+      if (dom.getSnapshot().phase !== "none") app.modes.toggle(action);
+      return;
+    }
     observeTransition();
     const snapshot = dom.getSnapshot();
     if (action === "reveal" ? snapshot.phase !== "question" :
@@ -65,6 +69,7 @@
   // review view during client-side navigation. Cleanup reads text transiently;
   // no card text is stored or transmitted.
   const observer = new MutationObserver(() => {
+    app.modes.sync();
     app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
     observeTransition();
     if (!dom.isReviewRoute()) app.feedback.clear();
@@ -74,7 +79,8 @@
     childList: true, subtree: true, characterData: true, attributes: true,
     attributeFilter: ["disabled", "aria-disabled", "hidden", "inert", "aria-hidden", "class", "style", "aria-label", "open"],
   });
-  window.addEventListener("popstate", observeTransition);
+  window.addEventListener("popstate", () => { observeTransition(); app.modes.sync(); });
+  app.modes.sync();
   app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
   keyboard.restoreRevealFocus();
 })();

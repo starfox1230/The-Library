@@ -13,6 +13,11 @@
     cardContent: "#qa, #qa_box",
     blocked: '[hidden], [inert], [aria-hidden="true"]',
     dialog: 'dialog[open], [aria-modal="true"], [role="dialog"], .modal.show',
+    cardSurface: "#qa_box",
+    navigation: "nav, .navbar, header, footer",
+    reviewToolbar: ":scope > .float-start",
+    counts: ":scope > .float-end .count",
+    main: "main",
   });
   const grades = ["again", "hard", "good", "easy"];
 
@@ -85,6 +90,28 @@
     return true;
   }
 
+  function markModeElements() {
+    const elements = getReviewElements();
+    if (!elements) return false;
+    // Keep site selectors in the adapter. CSS only uses extension-owned markers.
+    elements.quiz.setAttribute("data-ankiweb-quiz", "");
+    elements.controls.setAttribute("data-ankiweb-controls", "");
+    elements.card.setAttribute("data-ankiweb-card-text", "");
+    elements.quiz.querySelector(selectors.cardSurface)?.setAttribute("data-ankiweb-card-surface", "");
+    elements.quiz.closest(selectors.main)?.setAttribute("data-ankiweb-review-main", "");
+    for (const node of document.querySelectorAll(selectors.navigation)) {
+      if (!elements.quiz.contains(node) && !node.contains(elements.quiz))
+        node.setAttribute("data-ankiweb-chrome", "");
+    }
+    for (const node of elements.quiz.querySelectorAll(selectors.reviewToolbar))
+      node.setAttribute("data-ankiweb-chrome", "");
+    for (const node of elements.quiz.querySelectorAll(selectors.counts)) {
+      const kind = ["new", "learn", "review"].find(name => node.classList.contains(name));
+      if (kind) node.setAttribute("data-ankiweb-count", kind);
+    }
+    return true;
+  }
+
   function answer(grade) {
     const snapshot = getSnapshot();
     const button = snapshot.grades[grade];
@@ -94,7 +121,7 @@
   }
 
   app.dom = Object.freeze({
-    isAllowedOrigin, isReviewRoute, isReviewScreen, getSnapshot, showAnswer,
+    isAllowedOrigin, isReviewRoute, isReviewScreen, getSnapshot, showAnswer, markModeElements,
     getCardContent: () => getReviewElements()?.card ?? null,
     getFeedbackAnchor: () => getReviewElements()?.controls.getBoundingClientRect() ?? null,
     isAnswerVisible: () => getSnapshot().phase === "answer",
