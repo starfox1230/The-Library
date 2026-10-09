@@ -62,8 +62,10 @@
 
   const keyboard = app.keyboard.install({ dom, perform });
   // No polling. Observe the document because AnkiWeb can replace the entire
-  // review view during client-side navigation. No card text is read or stored.
+  // review view during client-side navigation. Cleanup reads text transiently;
+  // no card text is stored or transmitted.
   const observer = new MutationObserver(() => {
+    app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
     observeTransition();
     if (!dom.isReviewRoute()) app.feedback.clear();
     keyboard.restoreRevealFocus();
@@ -73,5 +75,6 @@
     attributeFilter: ["disabled", "aria-disabled", "hidden", "inert", "aria-hidden", "class", "style", "aria-label", "open"],
   });
   window.addEventListener("popstate", observeTransition);
+  app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
   keyboard.restoreRevealFocus();
 })();

@@ -415,6 +415,55 @@ test('feedback does not intercept next-question clicks or steal input focus', as
   } finally { await page.close(); }
 });
 
+test('TTS echo disappears across formatted spans while the normal card remains intact', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      document.querySelector('#qa').innerHTML = '<p id="normal">Original <b>cloze</b> text.</p>' +
+        '<p>[anki:tts lang=en_US voices=Apple_Evan_(Enhanced) speed=1.1]Duplicate <span>[...]</span> text.[/anki:tts] &#x20;</p>';
+    });
+    await page.waitForFunction(() => !document.querySelector('#qa').textContent.includes('[anki:tts'));
+    assert.equal(await page.locator('#normal').innerText(), 'Original cloze text.');
+    assert.equal(await page.locator('#normal b').innerText(), 'cloze');
+    assert.ok(!(await page.locator('#qa').innerText()).includes('Duplicate'));
+    await page.keyboard.press('Space');
+    assert.deepEqual(await clicks(page), ['reveal']);
+  } finally { await page.close(); }
+});
+
+test('multiple TTS blocks are removed on successive question and answer updates', async () => {
+  const page = await review();
+  try {
+    for (const side of ['question', 'answer']) {
+      await page.evaluate(side => {
+        if (side === 'answer') window.showAnswer(); else window.showQuestion();
+        document.querySelector('#qa').innerHTML = 'Keep A [anki:tts lang=en_US]echo 1[/anki:tts]' +
+          ' Keep B [anki:tts lang=en_US]<b>echo 2</b>[/anki:tts] Keep C';
+      }, side);
+      await page.waitForFunction(() => !document.querySelector('#qa').textContent.includes('[anki:tts'));
+      assert.equal(await page.locator('#qa').innerText(), 'Keep A Keep B Keep C');
+    }
+  } finally { await page.close(); }
+});
+
+test('TTS cleanup leaves editors, scripts, media, and unmatched text alone', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      document.querySelector('#qa').innerHTML = '<textarea>[anki:tts]Editable[/anki:tts]</textarea>' +
+        '<div contenteditable="true">[anki:tts]Edit me[/anki:tts]</div>' +
+        '<audio controls></audio><script type="application/json">"[anki:tts]Script[/anki:tts]"</script>' +
+        '<p>Keep unmatched [anki:tts lang=en_US]text without a closing marker.</p>';
+    });
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#qa textarea').inputValue(), '[anki:tts]Editable[/anki:tts]');
+    assert.equal(await page.locator('#qa [contenteditable]').innerText(), '[anki:tts]Edit me[/anki:tts]');
+    assert.equal(await page.locator('#qa audio').count(), 1);
+    assert.equal(await page.locator('#qa script').textContent(), '"[anki:tts]Script[/anki:tts]"');
+    assert.ok((await page.locator('#qa p').innerText()).includes('Keep unmatched [anki:tts'));
+  } finally { await page.close(); }
+});
+
 for (const url of ["https://example.com/study", "https://ankiweb.net/account/login", "https://ankiweb.net/study/finished"]) {
   test(`no extension button actions on ${url}`, async () => {
     const page = await review(url);

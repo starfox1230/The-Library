@@ -59,7 +59,14 @@ mouse ratings both trigger it. The label is click-through and never takes focus.
 It confirms which rating was selected; it does not claim the server finished
 recording the review. A newer rating replaces the previous label immediately.
 
-Milestone 1 and selected-answer feedback are implemented. Focus mode, dark mode, F/D/G/S toggles,
+Version **0.1.3** removes complete unsupported `[anki:tts …]…[/anki:tts]`
+blocks, including their duplicated spoken text, from the rendered card on
+AnkiWeb. Normal card text and cloze formatting remain. This runs on both card
+sides as AnkiWeb updates them. It does not change your saved Anki cards or add
+speech playback. Editors, scripts, and media are left alone; incomplete markers
+are preserved rather than guessing how much text to remove.
+
+Milestone 1, selected-answer feedback, and TTS cleanup are implemented. Focus mode, dark mode, F/D/G/S toggles,
 gamification, a popup, settings, and persistent preferences are deferred.
 
 ## Permissions and privacy
@@ -73,8 +80,9 @@ There is **no `permissions` list**, no extra `host_permissions`, and no access t
 other websites, history, cookies, passwords, or the clipboard. There is no
 storage, authentication code, networking, analytics, telemetry, advertising,
 external API, remote script, or server in the extension. The script checks only
-review structure, button labels, and input focus; it does not read credential
-values or store card contents. It runs in Chrome's isolated content-script world,
+review structure, button labels, and input focus, and transiently reads rendered
+card text to remove unsupported TTS blocks. It does not read credential values,
+store card contents, or transmit them. It runs in Chrome's isolated content-script world,
 in the top frame only. No service worker is needed in milestone 1.
 
 Chrome documents this approach in [Content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
@@ -153,6 +161,7 @@ ankiweb-enhancer/
     anki-dom.js       # Review route, selectors, button detection, normal clicks
     keyboard.js       # Capture events, protect editing, suppress native duplicates
     answer-feedback.js # Brief click-through selected-rating label
+    card-cleanup.js   # Remove unsupported TTS echoes from displayed card text
     content.js        # Bootstrap, debounce, transition latch, MutationObserver
   tests/review.test.cjs
   scripts/package.py
@@ -172,9 +181,9 @@ If Playwright is installed outside Node's usual search paths, set `NODE_PATH` to
 that package directory. `ANKI_TEST_BROWSER` can point to an existing Playwright
 Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
-The ZIP contains only the manifest, the four content scripts, and this README.
+The ZIP contains only the manifest, the five content scripts, and this README.
 
-Validation on October 9, 2026: **33 tests passed** with the actual unpacked
+Validation on October 9, 2026: **36 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.

@@ -91,6 +91,7 @@
 
   app.dom = Object.freeze({
     isReviewRoute, isReviewScreen, getSnapshot, showAnswer,
+    getCardContent: () => getReviewElements()?.card ?? null,
     getFeedbackAnchor: () => getReviewElements()?.controls.getBoundingClientRect() ?? null,
     isAnswerVisible: () => getSnapshot().phase === "answer",
     getAnswerButtons: () => getSnapshot().grades,
