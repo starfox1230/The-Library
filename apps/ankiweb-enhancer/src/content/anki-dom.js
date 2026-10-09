@@ -122,6 +122,7 @@
 
   app.dom = Object.freeze({
     isAllowedOrigin, isReviewRoute, isReviewScreen, getSnapshot, showAnswer, markModeElements,
+    isFinishedRoute: () => isAllowedOrigin() && /^\/study\/finished\/?$/.test(location.pathname),
     getCardContent: () => getReviewElements()?.card ?? null,
     getFeedbackAnchor: () => getReviewElements()?.controls.getBoundingClientRect() ?? null,
     isAnswerVisible: () => getSnapshot().phase === "answer",

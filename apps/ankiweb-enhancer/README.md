@@ -1,4 +1,4 @@
-# AnkiWeb Enhancer — Milestone 2
+# AnkiWeb Enhancer — Milestone 3
 
 Private, locally installed Manifest V3 Chrome extension. It clicks AnkiWeb's
 existing review buttons. AnkiWeb continues to display cards, choose due cards,
@@ -6,7 +6,7 @@ schedule reviews, record ratings, and sync your collection.
 
 ## Install with Load unpacked
 
-1. Download `ankiweb-enhancer-milestone-2.zip` from `dist/`, or clone this repository.
+1. Download `ankiweb-enhancer-milestone-3.zip` from `dist/`, or clone this repository.
 2. **Extract the ZIP first.** Keep the extracted folder in a permanent location.
 3. In Chrome, enter `chrome://extensions` in the address bar.
 4. Turn on **Developer mode** at the upper right.
@@ -32,6 +32,8 @@ it breaks the installation. This is a Chrome extension, not an Anki desktop add-
 | 4 | Easy, only when its button is present on the answer side |
 | F | Toggle focus mode while reviewing |
 | D | Toggle night mode while reviewing |
+| G | Toggle session statistics while reviewing |
+| T | Toggle the top pace-timer bar while reviewing |
 
 Missing buttons are never reassigned: `3` always means Good. Space and Enter
 do nothing on the answer side, even when a grading button has keyboard focus.
@@ -96,8 +98,48 @@ The modes stay enabled through card changes and client-side navigation in the
 same tab. Their CSS only applies to the review screen: leaving review restores
 the normal interface, and returning restores the modes. A page refresh starts
 both modes off. Persistent preferences, popup/settings, and configurable keys
-remain milestone 4 work; game statistics and the G shortcut remain milestone 3
-work. The S shortcut is not implemented yet.
+remain milestone 4 work. The S shortcut is not implemented yet.
+
+## Milestone 3: review statistics and pace timer
+
+Version **0.3.0** implements the user's revised milestone 3: **no XP, combo,
+streak, score, or grading rewards**. A compact floating strip at the top shows:
+
+- **Cards reviewed:** completed review actions this tab/session. A repeated
+  appearance of the same card counts again; this is not a unique-card count.
+- **Reviews/min:** completed reviews divided by active review minutes, including
+  thinking time on the current card.
+- **Sec/card:** average active time across completed cards, from the question
+  appearing through rating selection, including time reading the answer. It
+  shows a dash until the first completed review.
+
+Keyboard and ordinary mouse ratings both count. A grade counts once when the
+next question appears or AnkiWeb moves to `/study/finished`. Reveal clicks,
+blocked shortcuts, disabled buttons, and a rating that never advances the
+review do not increase the count. This measures observed review transitions;
+it is not server acknowledgment or collection-wide statistics. No undocumented
+AnkiWeb APIs or card IDs are read.
+
+The **top timer** follows the locally installed Speed Streak add-on's basic
+visual pattern: a slim shrinking bar, remaining seconds, and separate question
+and answer phases. It starts at **12 seconds on the question**, resets to
+**8 seconds when the answer appears**, and resets for the next card. It changes
+from blue to amber to red as time runs down. At zero it stays at zero while you
+continue reviewing; it never reveals, grades, sounds an alarm, or changes your
+collection. These initial durations match the installed Speed Streak settings;
+duration customization can be added with milestone 4 settings.
+
+**G** independently hides/shows the statistics; **T** independently hides/shows
+the timer. Both start visible and automatically match **D** night mode or day
+mode. The strip reserves space above the page, is click-through, and never takes
+focus. Hiding either part does not restart timing or lose statistics.
+
+Time pauses in a hidden tab, outside the review screen, during visible modal
+dialogs, and while waiting for a rating to advance. Pauses and grading-response
+latency are excluded from pace/average calculations. An unfinished card is
+discarded when leaving review; session totals remain available on return in
+the same tab. **Refreshing starts a fresh session**, with both parts visible.
+Nothing persists between tabs or refreshes in this milestone.
 
 ## Permissions and privacy
 
@@ -112,11 +154,12 @@ There is **no `permissions` list**, no extra `host_permissions`, and no access t
 other websites, history, cookies, passwords, or the clipboard. There is no
 storage, authentication code, networking, analytics, telemetry, advertising,
 external API, remote script, or server in the extension. The script checks only
-review structure, button labels, and input focus, and transiently reads rendered
+review structure, button labels, input focus, and elapsed timing, and transiently reads rendered
 card text to remove unsupported TTS blocks. It does not read credential values,
 store card contents, or transmit them. It runs in Chrome's isolated content-script world,
-in the top frame only. No service worker is needed in milestone 2. The new modes
-use local CSS and in-memory flags, with no additional Chrome permissions.
+in the top frame only. No service worker is needed in milestone 3. Modes,
+statistics, and timer use local code and in-memory values, with no additional
+Chrome permissions.
 
 Chrome documents this approach in [Content scripts](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts)
 and [Load an unpacked extension](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
@@ -188,9 +231,20 @@ outside an embedded card iframe to return keyboard focus to the review page.
 - [ ] With both modes on, reveal and grade several cards; keyboard controls and feedback work.
 - [ ] Leave review and return: styling disappears outside review and returns during review.
 - [ ] Refresh AnkiWeb: keyboard controls work, and both modes start off.
+- [ ] Grade using both keyboard and mouse: cards reviewed increases exactly once
+      per completed review, including Again and the final card.
+- [ ] Reveal without grading, or wait on a slow grading response: no premature count.
+- [ ] Stats show reviews/minute and average seconds per completed card, with no XP/combo.
+- [ ] G hides/shows stats; T hides/shows the timer independently, without losing counts.
+- [ ] Type G/T in a field or hold either key: typing stays protected and toggles do not repeat.
+- [ ] Timer starts at 12 seconds on the question and 8 on the answer; timeout never grades.
+- [ ] Timer/stat colors match day and D night mode, including with F focus mode on.
+- [ ] Switch to another tab or open a modal: timing pauses and resumes without restarting.
+- [ ] Leave review: the strip and reserved spacing disappear; return to see session totals.
+- [ ] Refresh: stats reset to zero and average shows a dash until a review completes.
 - [ ] The extension does nothing on login, deck lists, finished review, or other websites.
 
-Game statistics and persistent-settings tests begin with their future milestones.
+Persistent-settings tests begin with milestone 4.
 
 ## Architecture and developer validation
 
@@ -204,10 +258,12 @@ ankiweb-enhancer/
     card-cleanup.js   # Remove unsupported TTS echoes from displayed card text
     review-modes.js   # Independent, review-only focus/night flags
     review-modes.css  # Reversible CSS using adapter-assigned attributes
+    session.js       # Active timing, confirmed review totals, themed top strip
+    session.css      # Reserve page space while the timer/stats are visible
     content.js        # Bootstrap, debounce, transition latch, MutationObserver
   tests/review.test.cjs
   scripts/package.py
-  dist/ankiweb-enhancer-milestone-2.zip
+  dist/ankiweb-enhancer-milestone-3.zip
   README.md
 ```
 
@@ -223,9 +279,9 @@ If Playwright is installed outside Node's usual search paths, set `NODE_PATH` to
 that package directory. `ANKI_TEST_BROWSER` can point to an existing Playwright
 Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
-The ZIP contains only the manifest, the six content scripts, mode CSS, and this README.
+The ZIP contains only the manifest, seven content scripts, two CSS files, and this README.
 
-Validation on October 9, 2026: **49 tests passed** with the actual unpacked
+Validation on October 9, 2026: **57 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
@@ -236,4 +292,10 @@ are covered, and HTTP/lookalike hosts remain excluded by the manifest.
 Milestone 2 tests cover independent/reversible toggles, input protection, held
 keys, navigation and DOM replacement, review-only styling, image preservation,
 explicit card formatting, and continued reveal/grading with both modes enabled.
+Milestone 3 tests cover all rating counts, mouse input, delayed/failed transitions,
+final-card completion, precise pace/average arithmetic, question/answer resets,
+timeout without grading, visibility/modal pauses, independent G/T toggles,
+theme matching, input protection, navigation, and refresh resets. The timer uses
+a small interval to redraw its UI; review DOM detection still uses the observer,
+not polling. Day, night/focus, and narrow layouts were also visually inspected.
 The authenticated AnkiWeb checklist above remains a manual verification step.

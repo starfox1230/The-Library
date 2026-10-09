@@ -12,17 +12,30 @@
 
   function observeTransition() {
     if (!pending) return;
-    if (!dom.isReviewRoute()) { pending = null; return; }
+    if (!dom.isReviewRoute()) {
+      if (pending !== "reveal" && dom.isFinishedRoute()) app.session.completeReview();
+      else app.session.cancelReview();
+      pending = null;
+      return;
+    }
     const phase = dom.getSnapshot().phase;
     // A removed/disabled button or unrelated DOM mutation is NOT confirmation.
     // A grade remains locked until AnkiWeb actually renders the next question.
     if ((pending === "reveal" && phase === "answer") ||
-        (pending !== "reveal" && phase === "question")) pending = null;
+        (pending !== "reveal" && phase === "question")) {
+      if (pending !== "reveal") app.session.completeReview();
+      pending = null;
+    }
   }
 
   function perform(action) {
+    if (action === "stats" || action === "timer") {
+      if (dom.getSnapshot().phase !== "none") app.session.toggle(action);
+      return;
+    }
     if (action === "focus" || action === "dark") {
       if (dom.getSnapshot().phase !== "none") app.modes.toggle(action);
+      app.session.sync();
       return;
     }
     observeTransition();
@@ -36,10 +49,11 @@
     lastActionAt = now;
     const anchor = action === "reveal" ? null : dom.getFeedbackAnchor();
     dispatching = true;
+    if (action !== "reveal") app.session.beginReview();
     try {
       const clicked = action === "reveal" ? dom.showAnswer() :
         ({ again: dom.answerAgain, hard: dom.answerHard, good: dom.answerGood, easy: dom.answerEasy })[action]();
-      if (!clicked) pending = null;
+      if (!clicked) { pending = null; app.session.cancelReview(); }
       else if (action !== "reveal") app.feedback.show(action, anchor);
     } finally {
       dispatching = false;
@@ -58,8 +72,10 @@
       pending = action;
       lastActionAt = performance.now();
       const anchor = dom.getFeedbackAnchor();
+      if (action !== "reveal") app.session.beginReview();
       if (action !== "reveal") queueMicrotask(() => {
         if (!event.defaultPrevented) app.feedback.show(action, anchor);
+        else app.session.cancelReview();
       });
     }
   }, true);
@@ -72,6 +88,7 @@
     app.modes.sync();
     app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
     observeTransition();
+    app.session.sync();
     if (!dom.isReviewRoute()) app.feedback.clear();
     keyboard.restoreRevealFocus();
   });
@@ -79,8 +96,9 @@
     childList: true, subtree: true, characterData: true, attributes: true,
     attributeFilter: ["disabled", "aria-disabled", "hidden", "inert", "aria-hidden", "class", "style", "aria-label", "open"],
   });
-  window.addEventListener("popstate", () => { observeTransition(); app.modes.sync(); });
+  window.addEventListener("popstate", () => { observeTransition(); app.modes.sync(); app.session.sync(); });
   app.modes.sync();
+  app.session.sync();
   app.cardCleanup.hideUnsupportedTts(dom.getCardContent());
   keyboard.restoreRevealFocus();
 })();

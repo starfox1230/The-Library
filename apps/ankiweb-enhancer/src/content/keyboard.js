@@ -5,7 +5,7 @@
   const actions = Object.freeze({
     " ": "reveal", Enter: "reveal",
     "1": "again", "2": "hard", "3": "good", "4": "easy",
-    f: "focus", d: "dark",
+    f: "focus", d: "dark", g: "stats", t: "timer",
   });
   const editableSelector = 'input, textarea, select, [role="textbox"], [role="searchbox"], [role="combobox"]';
   const interactiveSelector = 'a[href], audio, video, summary, [role="slider"], [role="spinbutton"]';

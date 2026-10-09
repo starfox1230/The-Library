@@ -84,6 +84,212 @@ async function clicks(page) {
   return page.evaluate(() => window.clicks);
 }
 
+// Inspect the isolated content-script world on our local fixture only.
+async function isolated(page) {
+  const client = await context.newCDPSession(page);
+  const worlds = [];
+  client.on('Runtime.executionContextCreated', event => worlds.push(event.context.id));
+  await client.send('Runtime.enable');
+  for (const contextId of worlds) {
+    const probe = await client.send('Runtime.evaluate', {
+      contextId, expression: 'Boolean(globalThis.AnkiWebEnhancer?.session)', returnByValue: true,
+    });
+    if (probe.result.value) return async expression => {
+      const result = await client.send('Runtime.evaluate', { contextId, expression, returnByValue: true });
+      assert.equal(result.exceptionDetails, undefined);
+      return result.result.value;
+    };
+  }
+  throw new Error('Extension isolated world was not found');
+}
+
+test('session stats start empty with no XP or combo, and count every grade once', async () => {
+  const page = await review();
+  try {
+    const stats = page.locator('#ankiweb-enhancer-session');
+    assert.equal(await stats.locator('#cards').textContent(), '0');
+    assert.equal(await stats.locator('#average').textContent(), '—');
+    assert.doesNotMatch(await stats.textContent(), /XP|combo/i);
+    for (const [index, key] of ['1', '2', '3', '4'].entries()) {
+      await page.evaluate(() => window.showAnswer());
+      if (index) await page.waitForTimeout(370);
+      await page.keyboard.press(key);
+      await page.waitForFunction(expected => document.querySelector('#ankiweb-enhancer-session')
+        .shadowRoot.querySelector('#cards').textContent === String(expected), index + 1);
+    }
+    assert.deepEqual(await clicks(page), ['again', 'hard', 'good', 'easy']);
+    assert.equal(Number(await stats.locator('#average').textContent()) > 0, true);
+    assert.equal(Number(await stats.locator('#rate').textContent()) > 0, true);
+  } finally { await page.close(); }
+});
+
+test('stats wait for the next question; slow, duplicate, and failed clicks do not inflate counts', async () => {
+  const page = await review();
+  try {
+    const cards = page.locator('#ankiweb-enhancer-session #cards');
+    await page.evaluate(() => { window.slow = true; window.showAnswer(); });
+    await page.keyboard.press('3');
+    await page.waitForTimeout(400);
+    await page.keyboard.press('4');
+    await page.locator('#qa').evaluate(element => { element.style.color = 'red'; });
+    assert.equal(await cards.textContent(), '0');
+    assert.deepEqual(await clicks(page), ['good']);
+    await page.evaluate(() => window.showQuestion());
+    await page.waitForFunction(() => document.querySelector('#ankiweb-enhancer-session')
+      .shadowRoot.querySelector('#cards').textContent === '1');
+    await page.keyboard.press('3'); // A number on the question cannot count.
+    assert.equal(await cards.textContent(), '1');
+    await page.evaluate(() => window.showAnswer());
+    await page.locator('#ansarea button').filter({ hasText: 'Again' }).click();
+    assert.equal(await cards.textContent(), '1');
+    await page.evaluate(() => window.showQuestion());
+    await page.waitForFunction(() => document.querySelector('#ankiweb-enhancer-session')
+      .shadowRoot.querySelector('#cards').textContent === '2');
+    await page.evaluate(() => {
+      window.showAnswer();
+      for (const button of document.querySelectorAll('#ansarea button')) button.onclick = () => {};
+    });
+    await page.waitForTimeout(370);
+    await page.keyboard.press('2');
+    assert.equal(await cards.textContent(), '2');
+  } finally { await page.close(); }
+});
+
+test('pace timer resets by side, never grades on timeout, and stats use full card thinking time', async () => {
+  const page = await review();
+  try {
+    const run = await isolated(page);
+    const initial = await run(`globalThis.testNow = performance.now();
+      Object.defineProperty(performance, 'now', {value: () => globalThis.testNow});
+      AnkiWebEnhancer.session.snapshot()`);
+    await run('testNow += 14000; AnkiWebEnhancer.session.sync()');
+    assert.equal(await page.locator('#ankiweb-enhancer-session .value').textContent(), '0.0s');
+    assert.equal(await page.locator('#ankiweb-enhancer-session .timer').getAttribute('data-urgency'), 'late');
+    assert.deepEqual(await clicks(page), []);
+    await page.keyboard.press('Space');
+    assert.equal(await page.locator('#ankiweb-enhancer-session .value').textContent(), '8.0s');
+    await run('testNow += 4000; AnkiWebEnhancer.session.sync()');
+    await page.keyboard.press('3');
+    const result = await run('AnkiWebEnhancer.session.snapshot()');
+    assert.equal(result.reviews, 1);
+    assert.ok(Math.abs(result.completedMs - initial.activeMs - 18000) < 1);
+    assert.equal(result.averageSeconds, result.completedMs / 1000);
+    assert.ok(Math.abs(result.reviewsPerMinute - 60000 / result.completedMs) < 0.001);
+    assert.equal(await page.locator('#ankiweb-enhancer-session .value').textContent(), '12.0s');
+  } finally { await page.close(); }
+});
+
+test('hidden tabs and modal dialogs pause timing without restarting the current card', async () => {
+  const page = await review();
+  try {
+    const run = await isolated(page);
+    await run(`globalThis.testNow = performance.now();
+      Object.defineProperty(performance, 'now', {value: () => globalThis.testNow});
+      globalThis.testHidden = false;
+      Object.defineProperty(document, 'hidden', {get: () => globalThis.testHidden});`);
+    await run('testNow += 2000; AnkiWebEnhancer.session.sync()');
+    const before = await run('AnkiWebEnhancer.session.snapshot()');
+    await run("testHidden = true; document.dispatchEvent(new Event('visibilitychange')); testNow += 30000");
+    assert.equal((await run('AnkiWebEnhancer.session.snapshot()')).activeMs, before.activeMs);
+    await run("testHidden = false; document.dispatchEvent(new Event('visibilitychange'))");
+    await page.evaluate(() => {
+      const dialog = document.createElement('dialog'); dialog.textContent = 'Paused';
+      document.body.append(dialog); dialog.showModal();
+    });
+    await run('testNow += 30000');
+    assert.equal((await run('AnkiWebEnhancer.session.snapshot()')).activeMs, before.activeMs);
+    await page.evaluate(() => document.querySelector('dialog').remove());
+    await run('testNow += 1000; AnkiWebEnhancer.session.sync()');
+    const after = await run('AnkiWebEnhancer.session.snapshot()');
+    assert.equal(after.phase, 'question');
+    assert.equal(after.activeMs, before.activeMs + 1000);
+    assert.equal(after.phaseMs, before.phaseMs + 1000);
+  } finally { await page.close(); }
+});
+
+test('G and T independently toggle stats/timer, preserve timing, and match both themes', async () => {
+  const page = await review();
+  try {
+    const host = page.locator('#ankiweb-enhancer-session');
+    const initialColor = await host.locator('.wrap').evaluate(node => getComputedStyle(node).backgroundColor);
+    assert.equal(initialColor, 'rgb(255, 255, 255)');
+    await page.keyboard.press('d');
+    assert.equal(await host.locator('.wrap').evaluate(node => getComputedStyle(node).backgroundColor), 'rgb(23, 26, 32)');
+    await page.keyboard.down('g'); await page.keyboard.down('g'); await page.keyboard.up('g');
+    assert.equal(await host.locator('.metrics').isVisible(), false);
+    assert.equal(await host.locator('.timer').isVisible(), true);
+    await page.keyboard.press('t');
+    assert.equal(await host.isVisible(), false);
+    assert.equal(await page.locator('body').evaluate(node => getComputedStyle(node).paddingTop), '0px');
+    await page.evaluate(() => window.showAnswer()); await page.keyboard.press('1');
+    await page.keyboard.press('g');
+    assert.equal(await host.locator('#cards').textContent(), '1');
+    assert.equal(await host.locator('.metrics').isVisible(), true);
+    assert.equal(await host.locator('.timer').isVisible(), false);
+    await page.keyboard.press('t'); await page.keyboard.press('d');
+    assert.equal(await host.locator('.timer').isVisible(), true);
+    assert.equal(await host.locator('.wrap').evaluate(node => getComputedStyle(node).backgroundColor), initialColor);
+    assert.equal(await host.evaluate(node => getComputedStyle(node).pointerEvents), 'none');
+    assert.ok(await page.locator('body').evaluate(node => parseFloat(getComputedStyle(node).paddingTop)) > 40);
+  } finally { await page.close(); }
+});
+
+test('G/T stay out of text entry, modifiers and dialogs', async () => {
+  const page = await review();
+  try {
+    const host = page.locator('#ankiweb-enhancer-session');
+    await page.locator('#search').click(); await page.keyboard.type('gtGT');
+    assert.equal(await page.locator('#search').inputValue(), 'gtGT');
+    await page.locator('#qa').click();
+    await page.keyboard.press('Control+g'); await page.keyboard.press('Alt+t');
+    assert.equal(await host.locator('.metrics').isVisible(), true);
+    assert.equal(await host.locator('.timer').isVisible(), true);
+    await page.evaluate(() => {
+      const dialog = document.createElement('dialog'); dialog.textContent = 'Modal';
+      document.body.append(dialog); dialog.showModal();
+    });
+    await page.keyboard.press('g'); await page.keyboard.press('t');
+    assert.equal(await host.locator('.metrics').isVisible(), true);
+    assert.equal(await host.locator('.timer').isVisible(), true);
+    assert.deepEqual(await clicks(page), []);
+  } finally { await page.close(); }
+});
+
+test('final card counts on finished route; leaving review removes UI, reentry preserves stats, refresh resets', async () => {
+  const page = await review();
+  try {
+    const run = await isolated(page);
+    await page.evaluate(() => {
+      window.showAnswer();
+      for (const button of document.querySelectorAll('#ansarea button')) button.onclick = () => {
+        history.pushState({}, '', '/study/finished'); document.querySelector('#quiz').remove();
+      };
+    });
+    await page.keyboard.press('4');
+    assert.equal((await run('AnkiWebEnhancer.session.snapshot()')).reviews, 1);
+    assert.equal(await page.locator('#ankiweb-enhancer-session').isVisible(), false);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-session-ui'), null);
+    await page.evaluate(() => {
+      history.pushState({}, '', '/study');
+      document.querySelector('main').innerHTML = '<div id="quiz"><div id="qa_box"><div id="qa"></div></div><div id="ansarea"></div></div>';
+      window.showQuestion();
+    });
+    assert.equal(await page.locator('#ankiweb-enhancer-session #cards').textContent(), '1');
+    await page.reload();
+    assert.equal(await page.locator('#ankiweb-enhancer-session #cards').textContent(), '0');
+    assert.equal(await page.locator('#ankiweb-enhancer-session #average').textContent(), '—');
+  } finally { await page.close(); }
+});
+
+test('session UI is absent on non-review pages', async () => {
+  const page = await review('https://ankiuser.net/decks');
+  try {
+    await page.keyboard.press('g'); await page.keyboard.press('t');
+    assert.equal(await page.locator('#ankiweb-enhancer-session').count(), 0);
+    assert.equal(await page.locator('html').getAttribute('data-ankiweb-session-ui'), null);
+  } finally { await page.close(); }
+});
+
 test("manifest requests only the two exact HTTPS Anki hosts", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
   assert.equal(manifest.manifest_version, 3);
