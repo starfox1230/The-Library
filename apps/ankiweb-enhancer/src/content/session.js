@@ -4,6 +4,7 @@
   const limits = Object.freeze({ question: 12000, answer: 8000 });
   const enabled = { stats: true, timer: true };
   let host = null, ui = null, ticker = null;
+  let animationFrame = null;
   let phase = "none", card = null, lastTick = performance.now();
   let phaseMs = 0, cardMs = 0, completedMs = 0, reviews = 0;
   let running = false, waiting = null;
@@ -84,7 +85,7 @@
         .track { height: 5px; border-radius: 999px; overflow: hidden;
           flex: 1; background: var(--track); }
         .fill { width: 100%; height: 100%; transform-origin: left center;
-          background: var(--fill); border-radius: inherit; }
+          background: var(--fill); border-radius: inherit; will-change: transform; }
         .timer[data-urgency="warning"] { --fill: var(--warning); }
         .timer[data-urgency="late"] { --fill: var(--late); }
         .timer[data-urgency="late"] .value { color: var(--late); }
@@ -116,6 +117,27 @@
     document.body.append(host);
   }
 
+  function renderBar(data) {
+    const ratio = data.remainingMs / (limits[phase] || 1);
+    ui.fill.style.transform = `scaleX(${ratio})`;
+    ui.timer.dataset.urgency = ratio === 0 ? "late" : ratio <= 0.25 ? "warning" : "normal";
+  }
+
+  function scheduleBar(data) {
+    const animate = host?.isConnected && enabled.timer && !data.paused && data.remainingMs > 0;
+    if (!animate) {
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    } else if (animationFrame === null) {
+      animationFrame = requestAnimationFrame(() => {
+        animationFrame = null;
+        const current = snapshot();
+        renderBar(current);
+        scheduleBar(current);
+      });
+    }
+  }
+
   function render() {
     if (!host || !ui) return;
     const data = snapshot();
@@ -130,9 +152,10 @@
     setText(ui.average, data.averageSeconds === null ? "—" : data.averageSeconds.toFixed(1));
     setText(ui.phase, phase === "answer" ? "Answer" : "Question");
     setText(ui.value, `${(data.remainingMs / 1000).toFixed(1)}s`);
-    const ratio = data.remainingMs / (limits[phase] || 1);
-    ui.fill.style.transform = `scaleX(${ratio})`;
-    ui.timer.dataset.urgency = ratio === 0 ? "late" : ratio <= 0.25 ? "warning" : "normal";
+    // Animate only the transform at the display's frame rate. Text/statistics
+    // retain their slower refresh; no layout measurements or DOM polling per frame.
+    renderBar(data);
+    scheduleBar(data);
     ui.timer.setAttribute("aria-label", `${phase} pace timer: ${(data.remainingMs / 1000).toFixed(1)} seconds remaining${data.paused ? ", paused" : ""}`);
     const root = document.documentElement;
     root.toggleAttribute("data-ankiweb-session-ui", shown);

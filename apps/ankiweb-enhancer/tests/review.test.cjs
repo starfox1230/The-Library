@@ -290,6 +290,39 @@ test('session UI is absent on non-review pages', async () => {
   } finally { await page.close(); }
 });
 
+test('timer shrinks on display frames, freezes during pause, and resets instantly on reveal', async () => {
+  const page = await review();
+  try {
+    const samples = await page.evaluate(() => new Promise(resolve => {
+      const fill = document.querySelector('#ankiweb-enhancer-session').shadowRoot.querySelector('.fill');
+      const values = [];
+      function sample() {
+        values.push(new DOMMatrix(getComputedStyle(fill).transform).a);
+        if (values.length === 24) resolve(values);
+        else requestAnimationFrame(sample);
+      }
+      requestAnimationFrame(sample);
+    }));
+    assert.ok(new Set(samples).size >= 20, `Expected frame-rate movement, got ${new Set(samples).size} positions`);
+    assert.ok(samples.every((value, index) => !index || value <= samples[index - 1]));
+    const fill = page.locator('#ankiweb-enhancer-session .fill');
+    await page.evaluate(() => {
+      const dialog = document.createElement('dialog'); dialog.textContent = 'Pause';
+      document.body.append(dialog); dialog.showModal();
+    });
+    const paused = await fill.evaluate(node => getComputedStyle(node).transform);
+    await page.waitForTimeout(250);
+    assert.equal(await fill.evaluate(node => getComputedStyle(node).transform), paused);
+    await page.evaluate(() => document.querySelector('dialog').remove());
+    await page.waitForTimeout(80);
+    assert.notEqual(await fill.evaluate(node => getComputedStyle(node).transform), paused);
+    await page.keyboard.press('Space');
+    assert.ok(await fill.evaluate(node => new DOMMatrix(getComputedStyle(node).transform).a) > 0.98);
+    assert.equal(await page.locator('#ankiweb-enhancer-session .phase').textContent(), 'Answer');
+    assert.deepEqual(await clicks(page), ['reveal']);
+  } finally { await page.close(); }
+});
+
 test("manifest requests only the two exact HTTPS Anki hosts", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
   assert.equal(manifest.manifest_version, 3);

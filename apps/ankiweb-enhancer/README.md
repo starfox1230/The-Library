@@ -129,6 +129,12 @@ continue reviewing; it never reveals, grades, sounds an alarm, or changes your
 collection. These initial durations match the installed Speed Streak settings;
 duration customization can be added with milestone 4 settings.
 
+Version **0.3.1** makes the shrinking bar move smoothly at the display's frame
+rate using `requestAnimationFrame` and a compositor-friendly transform. Its
+position follows actual elapsed time, so pauses stop immediately and new sides
+reset immediately. Animation stops while paused, hidden, toggled off, or at zero;
+text and statistics still refresh at 100 ms rather than every animation frame.
+
 **G** independently hides/shows the statistics; **T** independently hides/shows
 the timer. Both start visible and automatically match **D** night mode or day
 mode. The strip reserves space above the page, is click-through, and never takes
@@ -281,7 +287,7 @@ Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
 The ZIP contains only the manifest, seven content scripts, two CSS files, and this README.
 
-Validation on October 9, 2026: **57 tests passed** with the actual unpacked
+Validation on October 9, 2026: **58 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
@@ -296,6 +302,8 @@ Milestone 3 tests cover all rating counts, mouse input, delayed/failed transitio
 final-card completion, precise pace/average arithmetic, question/answer resets,
 timeout without grading, visibility/modal pauses, independent G/T toggles,
 theme matching, input protection, navigation, and refresh resets. The timer uses
-a small interval to redraw its UI; review DOM detection still uses the observer,
+a small interval to redraw text and frame-rate animation for the bar; review DOM detection still uses the observer,
 not polling. Day, night/focus, and narrow layouts were also visually inspected.
 The authenticated AnkiWeb checklist above remains a manual verification step.
+The smooth-bar regression test samples consecutive display frames, verifies
+continuous decreasing movement, and checks pause/resume and immediate reset.
