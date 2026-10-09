@@ -30,11 +30,13 @@
     // Lock before dispatch: synchronous page updates cannot allow a second click.
     pending = action;
     lastActionAt = now;
+    const anchor = action === "reveal" ? null : dom.getFeedbackAnchor();
     dispatching = true;
     try {
       const clicked = action === "reveal" ? dom.showAnswer() :
         ({ again: dom.answerAgain, hard: dom.answerHard, good: dom.answerGood, easy: dom.answerEasy })[action]();
       if (!clicked) pending = null;
+      else if (action !== "reveal") app.feedback.show(action, anchor);
     } finally {
       dispatching = false;
     }
@@ -48,7 +50,14 @@
     const path = event.composedPath();
     const action = snapshot.reveal && path.includes(snapshot.reveal) ? "reveal" :
       Object.entries(snapshot.grades).find(([, button]) => path.includes(button))?.[0];
-    if (action) { pending = action; lastActionAt = performance.now(); }
+    if (action) {
+      pending = action;
+      lastActionAt = performance.now();
+      const anchor = dom.getFeedbackAnchor();
+      if (action !== "reveal") queueMicrotask(() => {
+        if (!event.defaultPrevented) app.feedback.show(action, anchor);
+      });
+    }
   }, true);
 
   const keyboard = app.keyboard.install({ dom, perform });
@@ -56,6 +65,7 @@
   // review view during client-side navigation. No card text is read or stored.
   const observer = new MutationObserver(() => {
     observeTransition();
+    if (!dom.isReviewRoute()) app.feedback.clear();
     keyboard.restoreRevealFocus();
   });
   observer.observe(document, {

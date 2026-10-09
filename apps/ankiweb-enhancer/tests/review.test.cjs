@@ -344,6 +344,77 @@ test("client-side navigation and page reload need no reinjection", async () => {
   } finally { await page.close(); }
 });
 
+for (const [key, label, color] of [
+  ['1', 'Again', 'rgb(255, 105, 97)'], ['2', 'Hard', 'rgb(255, 184, 97)'],
+  ['3', 'Good', 'rgb(97, 255, 184)'], ['4', 'Easy', 'rgb(97, 168, 255)'],
+]) {
+  test(`${label} feedback persists across next question then expires`, async () => {
+    const page = await review();
+    try {
+      await page.evaluate(() => window.showAnswer());
+      await page.keyboard.press(key);
+      const feedback = page.getByRole('status');
+      assert.equal(await feedback.innerText(), label);
+      assert.equal(await feedback.evaluate(element => getComputedStyle(element).backgroundColor), color);
+      assert.equal(await page.getByRole('button', { name: 'Show Answer', exact: true }).count(), 1);
+      await page.waitForTimeout(450);
+      assert.equal(await feedback.innerText(), label);
+      await page.waitForTimeout(550);
+      assert.equal(await feedback.count(), 0);
+    } finally { await page.close(); }
+  });
+}
+
+test('mouse ratings show the same feedback and subsequent rating replaces it', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => window.showAnswer());
+    await page.getByRole('button', { name: 'Hard', exact: true }).click();
+    assert.equal(await page.getByRole('status').innerText(), 'Hard');
+    await page.waitForTimeout(400);
+    await page.evaluate(() => window.showAnswer());
+    await page.keyboard.press('4');
+    assert.equal(await page.getByRole('status').count(), 1);
+    assert.equal(await page.getByRole('status').innerText(), 'Easy');
+    await page.waitForTimeout(550);
+    assert.equal(await page.getByRole('status').innerText(), 'Easy');
+    await page.waitForTimeout(450);
+    assert.equal(await page.getByRole('status').count(), 0);
+  } finally { await page.close(); }
+});
+
+test('reveal, invalid grades, and blocked double grades do not show or extend feedback', async () => {
+  const page = await review();
+  try {
+    await page.keyboard.press('1'); await page.keyboard.press('Space');
+    assert.equal(await page.getByRole('status').count(), 0);
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { window.slow = true; });
+    await page.keyboard.press('1');
+    await page.waitForTimeout(500); await page.keyboard.press('3');
+    assert.equal(await page.getByRole('status').innerText(), 'Again');
+    await page.waitForTimeout(500);
+    assert.equal(await page.getByRole('status').count(), 0);
+    assert.deepEqual(await clicks(page), ['reveal', 'again']);
+  } finally { await page.close(); }
+});
+
+test('feedback does not intercept next-question clicks or steal input focus', async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => window.showAnswer()); await page.keyboard.press('3');
+    assert.equal(await page.getByRole('status').innerText(), 'Good');
+    assert.equal(await page.locator('#ankiweb-enhancer-answer-feedback')
+      .evaluate(element => getComputedStyle(element).pointerEvents), 'none');
+    await page.getByRole('button', { name: 'Show Answer', exact: true }).click();
+    assert.deepEqual(await clicks(page), ['good', 'reveal']);
+    await page.locator('#search').click(); await page.keyboard.type('1234 ');
+    assert.equal(await page.locator('#search').inputValue(), '1234 ');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'search');
+    assert.deepEqual(await clicks(page), ['good', 'reveal']);
+  } finally { await page.close(); }
+});
+
 for (const url of ["https://example.com/study", "https://ankiweb.net/account/login", "https://ankiweb.net/study/finished"]) {
   test(`no extension button actions on ${url}`, async () => {
     const page = await review(url);

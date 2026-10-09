@@ -52,7 +52,14 @@ remain locked until AnkiWeb shows the next question, even if the first response 
 slow. An unrelated DOM update cannot release that lock. If AnkiWeb fails to advance,
 use its normal controls or refresh; the extension does not retry a rating.
 
-Only milestone 1 is implemented. Focus mode, dark mode, F/D/G/S toggles,
+Version **0.1.2** adds Pocket Knife-style selected-answer feedback: a large
+pastel red/orange/green/blue label for Again/Hard/Good/Easy appears over the review
+controls for **900 ms**, including after the next question appears. Keyboard and
+mouse ratings both trigger it. The label is click-through and never takes focus.
+It confirms which rating was selected; it does not claim the server finished
+recording the review. A newer rating replaces the previous label immediately.
+
+Milestone 1 and selected-answer feedback are implemented. Focus mode, dark mode, F/D/G/S toggles,
 gamification, a popup, settings, and persistent preferences are deferred.
 
 ## Permissions and privacy
@@ -120,6 +127,8 @@ outside an embedded card iframe to return keyboard focus to the review page.
 - [ ] Click card text or page background: Show Answer regains focus and Space works.
 - [ ] On a question, 1–4 do not grade or reveal the card.
 - [ ] On answers, 1/2/3/4 activate Again/Hard/Good/Easy respectively.
+- [ ] Mouse and keyboard ratings show the matching colored label for about 900 ms,
+      continuing over the next question without blocking clicks or typing.
 - [ ] An unavailable or disabled Hard/Easy button is not activated or remapped.
 - [ ] Space/Enter on an answer do not accidentally activate a focused grade button.
 - [ ] Hold Space, Enter, or a number: only one click occurs; release before another action.
@@ -143,6 +152,7 @@ ankiweb-enhancer/
   src/content/
     anki-dom.js       # Review route, selectors, button detection, normal clicks
     keyboard.js       # Capture events, protect editing, suppress native duplicates
+    answer-feedback.js # Brief click-through selected-rating label
     content.js        # Bootstrap, debounce, transition latch, MutationObserver
   tests/review.test.cjs
   scripts/package.py
@@ -162,9 +172,9 @@ If Playwright is installed outside Node's usual search paths, set `NODE_PATH` to
 that package directory. `ANKI_TEST_BROWSER` can point to an existing Playwright
 Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
-The ZIP contains only the manifest, the three content scripts, and this README.
+The ZIP contains only the manifest, the four content scripts, and this README.
 
-Validation on October 9, 2026: **26 tests passed** with the actual unpacked
+Validation on October 9, 2026: **33 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
