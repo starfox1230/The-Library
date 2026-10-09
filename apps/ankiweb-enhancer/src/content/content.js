@@ -51,13 +51,17 @@
     if (action) { pending = action; lastActionAt = performance.now(); }
   }, true);
 
-  app.keyboard.install({ dom, perform });
+  const keyboard = app.keyboard.install({ dom, perform });
   // No polling. Observe the document because AnkiWeb can replace the entire
   // review view during client-side navigation. No card text is read or stored.
-  const observer = new MutationObserver(observeTransition);
+  const observer = new MutationObserver(() => {
+    observeTransition();
+    keyboard.restoreRevealFocus();
+  });
   observer.observe(document, {
     childList: true, subtree: true, characterData: true, attributes: true,
     attributeFilter: ["disabled", "aria-disabled", "hidden", "inert", "aria-hidden", "class", "style", "aria-label", "open"],
   });
   window.addEventListener("popstate", observeTransition);
+  keyboard.restoreRevealFocus();
 })();

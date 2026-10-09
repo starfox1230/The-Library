@@ -103,6 +103,60 @@ test("Space and Enter reveal once; numbers cannot grade the question", async () 
   } finally { await page.close(); }
 });
 
+test("clicking card content or page background restores Show Answer focus", async () => {
+  const page = await review();
+  try {
+    await page.locator('#qa').click();
+    await page.waitForFunction(() => document.activeElement?.textContent === 'Show Answer');
+    assert.deepEqual(await clicks(page), []);
+    await page.keyboard.press('Space');
+    assert.deepEqual(await clicks(page), ['reveal']);
+    await page.waitForTimeout(400);
+    await page.evaluate(() => {
+      window.showQuestion();
+      const blank = document.createElement('div'); blank.id = 'background';
+      blank.style.height = '120px'; document.body.append(blank);
+    });
+    await page.locator('#background').click();
+    await page.waitForFunction(() => document.activeElement?.textContent === 'Show Answer');
+    await page.keyboard.press('Space');
+    assert.deepEqual(await clicks(page), ['reveal', 'reveal']);
+  } finally { await page.close(); }
+});
+
+test("focus recovery preserves question-side text input across clicks and mutations", async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      document.querySelector('#qa').innerHTML = '<input id="answer-field">';
+    });
+    await page.locator('#answer-field').click();
+    await page.keyboard.type('1234 ');
+    await page.evaluate(() => document.querySelector('nav').append(document.createElement('span')));
+    await page.waitForTimeout(100);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'answer-field');
+    assert.equal(await page.locator('#answer-field').inputValue(), '1234 ');
+    assert.deepEqual(await clicks(page), []);
+  } finally { await page.close(); }
+});
+
+test("new question controls regain focus without autofocus or page scrolling", async () => {
+  const page = await review();
+  try {
+    await page.evaluate(() => {
+      document.body.style.minHeight = '2500px'; window.scrollTo(0, 500);
+      document.querySelector('#ansarea').innerHTML = '<button>Show Answer</button>';
+      document.querySelector('#ansarea button').onclick = () => {
+        window.clicks.push('reveal'); window.showAnswer();
+      };
+    });
+    await page.waitForFunction(() => document.activeElement?.textContent === 'Show Answer');
+    assert.equal(await page.evaluate(() => window.scrollY), 500);
+    await page.keyboard.press('Space');
+    assert.deepEqual(await clicks(page), ['reveal']);
+  } finally { await page.close(); }
+});
+
 for (const [key, label] of [["1", "again"], ["2", "hard"], ["3", "good"], ["4", "easy"]]) {
   test(`${key} clicks only ${label}, with no native keyup duplicate`, async () => {
     const page = await review();

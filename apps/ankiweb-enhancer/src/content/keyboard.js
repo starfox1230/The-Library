@@ -15,15 +15,39 @@
     return element;
   }
 
+  function isProtectedElement(element) {
+    return element instanceof Element && (element.isContentEditable ||
+      element.closest(editableSelector) || element.closest(interactiveSelector));
+  }
+
   function isProtected(event) {
-    return [...event.composedPath(), activeElement()].some(element =>
-      element instanceof Element && (element.isContentEditable ||
-        element.closest(editableSelector) || element.closest(interactiveSelector)));
+    return [...event.composedPath(), activeElement()].some(isProtectedElement);
   }
 
   function install({ dom, perform }) {
     const heldKeys = new Set();
     const ownedReleases = new Set();
+    let focusScheduled = false;
+
+    function restoreRevealFocus() {
+      if (focusScheduled) return;
+      focusScheduled = true;
+      // Wait until the click's default focus change and AnkiWeb's render finish.
+      requestAnimationFrame(() => {
+        focusScheduled = false;
+        const snapshot = dom.getSnapshot();
+        const focused = activeElement();
+        if (snapshot.phase !== "question" || !document.hasFocus() ||
+            focused === snapshot.reveal || isProtectedElement(focused)) return;
+        snapshot.reveal.focus({ preventScroll: true });
+      });
+    }
+
+    function restoreAfterInteraction(event) {
+      // Preserve text entry, media controls, and links. Ordinary card/page clicks
+      // return focus to Show Answer without scrolling or revealing the card.
+      if (dom.isReviewScreen() && !isProtected(event)) restoreRevealFocus();
+    }
 
     function keydown(event) {
       const action = actions[event.key];
@@ -66,7 +90,10 @@
     window.addEventListener("keydown", keydown, true);
     window.addEventListener("keyup", keyup, true);
     window.addEventListener("keypress", keypress, true);
+    window.addEventListener("click", restoreAfterInteraction, true);
+    window.addEventListener("focusin", restoreAfterInteraction, true);
     window.addEventListener("blur", () => { heldKeys.clear(); ownedReleases.clear(); });
+    return { restoreRevealFocus };
   }
 
   app.keyboard = Object.freeze({ install });

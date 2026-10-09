@@ -37,6 +37,11 @@ Holding a key cannot repeat the action. Modified keys and text editing retain
 their normal browser behavior. Shortcuts stay out of inputs, textareas, selects,
 contenteditable elements, and accessible text fields, including shadow DOM fields.
 
+Version **0.1.1** restores focus to **Show Answer** after ordinary clicks on card
+content or the page background, and when AnkiWeb renders a new question. The
+focus change does not scroll the page or reveal the answer. Typing fields,
+links, and media controls keep their focus so you can still interact with them.
+
 AnkiWeb currently has native number shortcuts on **keyup** that do not check text
 fields. During review, this extension stops those events from reaching AnkiWeb
 while preserving typing's default behavior. It owns both keydown and keyup to
@@ -112,6 +117,7 @@ outside an embedded card iframe to return keyboard focus to the review page.
 
 - [ ] On a question, Space reveals the answer once.
 - [ ] On another question, Enter reveals the answer once.
+- [ ] Click card text or page background: Show Answer regains focus and Space works.
 - [ ] On a question, 1–4 do not grade or reveal the card.
 - [ ] On answers, 1/2/3/4 activate Again/Hard/Good/Easy respectively.
 - [ ] An unavailable or disabled Hard/Easy button is not activated or remapped.
@@ -158,8 +164,10 @@ Chromium executable. Tests load the **actual unpacked extension**, use local
 fixtures via request routing, and never log into AnkiWeb or use a real collection.
 The ZIP contains only the manifest, the three content scripts, and this README.
 
-Validation on October 9, 2026: **23 tests passed** with the actual unpacked
+Validation on October 9, 2026: **26 tests passed** with the actual unpacked
 extension loaded in Playwright Chromium on Windows. This covers all grade
 mappings, native-event suppression, debounce, transition locks, editing and
 shadow DOM protection, navigation, reload, and non-review/non-AnkiWeb pages.
+The focus regression tests cover card/background clicks, preservation of answer
+input focus, and replacement Show Answer controls without page scrolling.
 The authenticated AnkiWeb checklist above remains a manual verification step.
