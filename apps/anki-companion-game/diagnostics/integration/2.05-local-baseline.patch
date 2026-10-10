@@ -1,0 +1,46 @@
+--- a/apps/anki-companion-game/speed-streak-addon-v2.05/__init__.py
++++ b/apps/anki-companion-game/speed-streak-addon-v2.05/__init__.py
+@@ -1 +1,2 @@
+-from .reviewer_overlay import install
++from .build_info import BUILD_ID
++from .diagnostic_logging import start, attach, record
+@@ -3,2 +4,11 @@
+-
+-install()
++start(BUILD_ID)
++record("addon_import_started")
++try:
++    from . import reviewer_overlay
++    record("addon_import_complete")
++    record("addon_install_started")
++    reviewer_overlay.install()
++    attach(reviewer_overlay.controller)
++except BaseException as error:
++    record("addon_load_exception", error=type(error).__name__)
++    raise
+--- a/apps/anki-companion-game/speed-streak-addon-v2.05/build_info.py
++++ b/apps/anki-companion-game/speed-streak-addon-v2.05/build_info.py
+@@ -1,0 +2 @@
++BUILD_ID += "+diagnostics.1"
+--- a/apps/anki-companion-game/speed-streak-addon-v2.05/support_dialog.py
++++ b/apps/anki-companion-game/speed-streak-addon-v2.05/support_dialog.py
+@@ -219 +219 @@
+-    button.setMinimumWidth(148)
++    button.setMinimumWidth(180 if button_text == "Copy Support Report" else 148)
+@@ -233 +233 @@
+-        self.resize(650, 400)
++        self.resize(650, 520)
+@@ -287,0 +288,13 @@
++        from .diagnostic_logging import copy_support_report
++        root.addWidget(
++            _action_card(
++                self,
++                icon="↗",
++                icon_color="#7fb0ff",
++                title="Anki closed unexpectedly?",
++                detail="Copy recent diagnostic events, including the previous Anki session. "
++                       "The report contains technical events, not card content. Nothing is sent automatically.",
++                button_text="Copy Support Report",
++                callback=copy_support_report,
++            )
++        )

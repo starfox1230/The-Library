@@ -216,7 +216,7 @@ def _action_card(
 
     button = ModernButton(button_text, card)
     button.setProperty("class", "primaryAction" if primary else "secondaryAction")
-    button.setMinimumWidth(148)
+    button.setMinimumWidth(180 if button_text == "Copy Support Report" else 148)
     button.clicked.connect(callback)
     row.addWidget(button, 0, Qt.AlignmentFlag.AlignVCenter)
     return card
@@ -230,7 +230,7 @@ class SupportDialog(QDialog):
         self.setWindowTitle(f"Speed Streak Help / Feedback - {BUILD_ID}")
         self.setModal(True)
         self.setMinimumWidth(610)
-        self.resize(650, 400)
+        self.resize(650, 520)
         self.setStyleSheet(
             "QDialog { background: #0a1018; }"
             "QLabel { background: transparent; }"
@@ -283,6 +283,19 @@ class SupportDialog(QDialog):
                 detail="If you feel inclined, optional support is available on Ko-fi.",
                 button_text="Open Ko-fi",
                 callback=self._open_kofi,
+            )
+        )
+        from .diagnostic_logging import copy_support_report
+        root.addWidget(
+            _action_card(
+                self,
+                icon="↗",
+                icon_color="#7fb0ff",
+                title="Anki closed unexpectedly?",
+                detail="Copy recent diagnostic events, including the previous Anki session. "
+                       "The report contains technical events, not card content. Nothing is sent automatically.",
+                button_text="Copy Support Report",
+                callback=copy_support_report,
             )
         )
         root.addStretch(1)
