@@ -7,6 +7,8 @@ const { chromium } = require('playwright');
 
 const root = __dirname;
 const url = process.env.CFM_TEST_URL || 'http://localhost:8765/apps/scripture-copier/cfm-2026.html';
+const reviewDates = (process.env.CFM_TEST_DATES || '2026-10-07,2026-10-08,2026-10-09,2026-10-10,2026-10-11')
+  .split(',').map(date => date.trim()).filter(Boolean);
 const edge = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const executablePath = process.env.CFM_BROWSER_PATH || (process.platform === 'win32' && fs.existsSync(edge) ? edge : undefined);
 
@@ -159,17 +161,16 @@ async function checkExports(page, context, date, width) {
         assert.match(await page.locator('#day-info').textContent(), /10\/03\/2026/);
       }
       // Exercise the corrected bank and every future prepared date, not only the original sample.
-      await selectDate(page, '2026-10-07');
-      await checkExports(page, context, '2026-10-07', width);
-      if (width === 390) {
-        for (const date of ['2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11']) {
-          await selectDate(page, date);
+      for (const date of reviewDates) {
+        await selectDate(page, date);
+        await checkExports(page, context, date, width);
+        if (width === 390) {
           for (const level of ['kid', 'high-school', 'expert']) await playLevel(page, level, date);
         }
       }
       await context.close();
     }
     assert.deepEqual(errors, []);
-    console.log('CFM quiz browser smoke test passed (mobile, desktop, QuizDuel clipboard/navigation/failures, levels, completion, exit, and reading controls).');
+    console.log(`CFM quiz browser smoke test passed (${reviewDates.length} reviewed dates, mobile/desktop exports and clipboard/navigation failures, all reviewed levels through completion on mobile, exit, and reading controls).`);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });
