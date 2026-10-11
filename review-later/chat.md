@@ -44,10 +44,122 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-11 08:14 Eastern Daylight Time
-Cards: 20
+Updated: 2026-10-11 08:26 Eastern Daylight Time
+Cards: 25
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:23:47-04:00
+Last seen: 2026-10-11T08:25:04-04:00
+Card ID: 1777926121253
+Note ID: 1777926121252
+
+Question:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is [...].
+
+Answer:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-28T13:00:06-04:00
+Last seen: 2026-10-11T08:19:23-04:00
+Card ID: 1773028619479
+Note ID: 1773028619478
+
+Question:
+00:12
+
+What's this?
+
+[...]
+
+Answer:
+00:12
+
+What's this?
+
+foramen lacerum
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-09-27T07:30:44-04:00
+Last seen: 2026-10-11T08:18:46-04:00
+Card ID: 1785635742760
+Note ID: 1785635742759
+
+Question:
+00:12
+
+What is the most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis?
+
+Periosteal chondroma
+
+The sharply marginated saucer-shaped cortical defect with sclerosis favors a benign periosteal cartilaginous lesion.
+
+Source: Notion Radiology note.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T08:18:31-04:00
+Last seen: 2026-10-11T08:18:33-04:00
+Card ID: 1747693920691
+Note ID: 1747693920690
+
+Question:
+00:12
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+[...]
+
+Answer:
+00:08
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+T1 with fat suppression (demonstrates macroscopic fat (favors AML), as opposed to out-of-phase signal drop, which suggests microscopic fat (could be AML or clear cell RCC)
+
+Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While in/out phase imaging may help in the diagnosis, drop out of a renal mass on out of phase images, either focally or diffuse, raises concern for a clear cell RCC, which can contain intracytoplasmic lipid. To make the diagnosis of an AML on MRI, signal loss on a frequency selective fat suppressed sequence is necessary.
+
+Per ChatGPT
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-07-19T07:24:35-04:00
+Last seen: 2026-10-11T08:16:36-04:00
+Card ID: 1774635744601
+Note ID: 1774635744599
+
+Question:
+00:12
+
+[What part of the tongue] belongs to the oral cavity anatomical region.
+
+Answer:
+00:12
+
+The oral tongue belongs to the oral cavity anatomical region.
+
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-04:00
@@ -65,7 +177,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 2
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T06:42:48-04:00
@@ -85,7 +197,7 @@ The classic finding of melorheostosis is elongated cortical thickening, often de
 
 AIRP Cases - Notion
 
-## Card 3
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-21T13:22:25-04:00
@@ -111,7 +223,7 @@ pleural (ball under the carpet, so not juxtapleural)
 
 1/2
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-10-11T08:05:58-04:00
@@ -248,7 +360,7 @@ countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
 Answer:
 SHOW ALL
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T13:22:43-04:00
@@ -270,7 +382,7 @@ What is the primary difference between subacute granulomatous thyroiditis and su
 
 Subacute granulomatous thyroiditis is classically painful and tender, often with an antecedent viral URI. And subacute lymphocytic thyroiditis is classically painless and commonly occurs postpartum.
 
-## Card 6
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:59:28-04:00
@@ -292,7 +404,7 @@ What angiographic finding is considered diagnostic for popliteal entrapment synd
 
 Medial deviation of the popliteal artery
 
-## Card 7
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:26:18-04:00
@@ -310,7 +422,7 @@ Answer:
 
 Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
 
-## Card 8
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:57:21-04:00
@@ -328,7 +440,7 @@ Answer:
 
 On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
 
-## Card 9
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-04:00
@@ -346,7 +458,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 10
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-04:00
@@ -366,7 +478,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 11
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-04:00
@@ -390,7 +502,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 12
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:51:23-04:00
@@ -408,7 +520,7 @@ Answer:
 
 In Paget's disease of the nipple, about 90 percent of cases have an underlying breast malignancy somewhere in the breast.
 
-## Card 13
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-04:00
@@ -434,7 +546,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 14
+## Card 19
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-04:00
@@ -456,7 +568,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 15
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T13:12:28-04:00
@@ -476,7 +588,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 16
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-10-08T06:48:42-04:00
@@ -500,7 +612,7 @@ First and second ribs.
 
 Nukes Quiz Session. User-authored question-answer structure preserved.
 
-## Card 17
+## Card 22
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-04:00
@@ -518,7 +630,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 18
+## Card 23
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-04:00
@@ -538,7 +650,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 19
+## Card 24
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-04:00
@@ -556,7 +668,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 20
+## Card 25
 
 Deck: .NEW::Visual
 Flagged: 2026-09-06T23:18:41-04:00
