@@ -44,10 +44,211 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-11 08:04 Eastern Daylight Time
-Cards: 16
+Updated: 2026-10-11 08:14 Eastern Daylight Time
+Cards: 20
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-04:00
+Last seen: 2026-10-11T08:09:21-04:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-10T06:42:48-04:00
+Last seen: 2026-10-11T08:08:07-04:00
+Card ID: 1762213567301
+Note ID: 1762213567301
+
+Question:
+00:12
+
+The classic finding of melorheostosis is [...]
+
+Answer:
+00:08
+
+The classic finding of melorheostosis is elongated cortical thickening, often described as a "dripping candle wax" appearance.
+
+AIRP Cases - Notion
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-21T13:22:25-04:00
+Last seen: 2026-10-11T08:06:41-04:00
+Card ID: 1776454600430
+Note ID: 1776454600430
+
+Question:
+00:12
+
+Location?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Location?
+
+pleural (ball under the carpet, so not juxtapleural)
+
+1/2
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-10-11T08:05:58-04:00
+Last seen: 2026-10-11T08:05:58-04:00
+Card ID: 1779054958848
+Note ID: 1779054958848
+
+Question:
+html { overflow: scroll; overflow-x: hidden; }
+.card {
+	font-family: Menlo, baskerville, adobe caslon pro, sans;
+	text-align: center;
+	color: #D7DEE9; /*dark #A6ABB9 light #D7DEE9*/
+	line-height: 1.6em;
+	background-color: #333B45;
+}
+#kard {
+	padding: 0px 0px;
+	background-color:;
+	max-width: 700px;
+	margin: 0 auto;
+	word-wrap: break-word;
+}
+.tags { color: #F87b57; opacity: 0; font-size: 10px; background-color: ; width: 100%; height: ; text-align: center; text-transform: uppercase; position: fixed; padding: 0px; top:0; left: 0; right 0;}
+.tags:active { opacity: 1; position: fixed; cursor: pointer;} .tags:hover { cursor: pointer;}
+tr {font-size: 12px; }
+b { color: IndianRed !important; }
+u { text-decoration: none; color: #5EB3B3;}
+a { color: LightGray !important; text-decoration: none; font-size: 10px; font-style: normal;  }
+::-webkit-scrollbar {
+    /*display: none;   remove scrollbar space */
+    background: #fff;   /* optional: just make scrollbar invisible */
+    width: 0px; }
+::-webkit-scrollbar-thumb { background: #bbb; }
+/* mobile is both iphone and ipad */
+.mobile .tags:hover { opacity: 1; position: relative;}
+/* OCCLUSION CSS START - don't edit this */
+#io-overlay {
+  position:absolute;
+  top:0;
+  width:100%;
+  z-index:3
+}
+#io-original {
+  position:relative;
+  top:0;
+  width:100%;
+  z-index:2
+}
+#io-wrapper {
+  position:relative;
+  width: 100%;
+}
+/* OCCLUSION CSS END */
+/* OTHER STYLES */
+#io-header{
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+#io-footer{
+  max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.8em;
+margin-bottom: 0.8em;
+  font-style: italic;
+ font-size: 14px;
+}
+#io-extra-wrapper{
+  /* the wrapper is needed to center the
+  left-aligned blocks below it */
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.5em;
+}
+#io-extra{
+  text-align:center;
+  display: inline-block;
+}
+.io-extra-entry{
+  margin-top: 0.8em;
+  font-size: 14px;
+  text-align:left;
+}
+.io-field-descr{
+  margin-bottom: 0.2em;
+  font-weight: bold;
+  font-size: 14px;
+}
+#io-revl-btn {
+  font-size: 12px;
+	margin-top: 15px;
+    background-color: #333B45; /*#4CAF50;  Green */
+    border: solid #A6ABB9 2px;
+    color: #A6ABB9;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+	font-family: Menlo, sans;
+border-radius: 0px;
+}
+#io-revl-btn:hover {
+background-color: ;/* #cccccc;  Green */
+    color: ;
+cursor: pointer;
+}
+function countdown( elementName, minutes, seconds )
+{
+    var element, endTime, hours, mins, msLeft, time;
+    function twoDigits( n )
+    {
+        return (n <= 9 ? "0" + n : n);
+    }
+    function updateTimer()
+    {
+        msLeft = endTime - (+new Date);
+        if ( msLeft < 1000 ) {
+            element.innerHTML = "<span style='color:#CC5B5B'>TIME</span>";
+        } else {
+            time = new Date( msLeft );
+            hours = time.getUTCHours();
+            mins = time.getUTCMinutes();
+            element.innerHTML = (hours ? hours + ':' + twoDigits( mins ) : mins) + ':' + twoDigits( time.getUTCSeconds() );
+            setTimeout( updateTimer, time.getUTCMilliseconds() + 500 );
+        }
+    }
+    element = document.getElementById( elementName );
+    endTime = (+new Date) + 1000 * (60*minutes + seconds) + 500;
+    updateTimer();
+}
+countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
+
+Answer:
+SHOW ALL
+
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T13:22:43-04:00
@@ -69,7 +270,7 @@ What is the primary difference between subacute granulomatous thyroiditis and su
 
 Subacute granulomatous thyroiditis is classically painful and tender, often with an antecedent viral URI. And subacute lymphocytic thyroiditis is classically painless and commonly occurs postpartum.
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:59:28-04:00
@@ -91,7 +292,7 @@ What angiographic finding is considered diagnostic for popliteal entrapment synd
 
 Medial deviation of the popliteal artery
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:26:18-04:00
@@ -109,7 +310,7 @@ Answer:
 
 Lateral displacement of the ossicles is characteristic of acquired cholesteatoma arising from pars tensa.
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:57:21-04:00
@@ -127,7 +328,7 @@ Answer:
 
 On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-04:00
@@ -145,7 +346,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-04:00
@@ -165,7 +366,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-04:00
@@ -189,7 +390,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:51:23-04:00
@@ -207,7 +408,7 @@ Answer:
 
 In Paget's disease of the nipple, about 90 percent of cases have an underlying breast malignancy somewhere in the breast.
 
-## Card 9
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-04:00
@@ -233,7 +434,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 10
+## Card 14
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-04:00
@@ -255,7 +456,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 11
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-28T13:12:28-04:00
@@ -275,7 +476,7 @@ Langerhans cell histiocytosis can appear very aggressive in young patients and s
 
 Notion AIRP Lecture
 
-## Card 12
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-10-08T06:48:42-04:00
@@ -299,7 +500,7 @@ First and second ribs.
 
 Nukes Quiz Session. User-authored question-answer structure preserved.
 
-## Card 13
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-04:00
@@ -317,7 +518,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 14
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-04:00
@@ -337,7 +538,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 15
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-04:00
@@ -355,7 +556,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 16
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-09-06T23:18:41-04:00
