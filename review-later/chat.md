@@ -44,10 +44,50 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 06:51 Central Daylight Time
-Cards: 1
+Updated: 2026-10-15 12:24 Central Daylight Time
+Cards: 3
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-11T21:30:04-05:00
+Last seen: 2026-10-15T12:06:27-05:00
+Card ID: 1785635742678
+Note ID: 1785635742677
+
+Question:
+00:12
+
+Classic causes of empyema necessitans include [...].
+
+Answer:
+00:12
+
+Classic causes of empyema necessitans include Actinomyces and tuberculosis.
+
+The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and Mucor.
+
+Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
+
+## Card 2
+
+Deck: Other::Radiology (All)::Audio
+Flagged: 2026-09-20T16:54:13-05:00
+Last seen: 2026-10-15T12:04:14-05:00
+Card ID: 1708409215506
+Note ID: 1708409215505
+
+Question:
+00:12
+
+The most common soft tissue head and neck tumor in child is [...]
+
+Answer:
+00:08
+
+The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
