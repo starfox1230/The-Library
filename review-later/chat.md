@@ -44,7 +44,23 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 06:10 Central Daylight Time
-Cards: 0
+Updated: 2026-10-15 06:51 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T06:31:01-05:00
+Last seen: 2026-10-15T06:31:01-05:00
+Card ID: 1744828478334
+Note ID: 1744828478333
+
+Question:
+00:12
+
+[...] masks the bright area outside the collimated field.
+
+Answer:
+00:08
+
+Shuttering masks the bright area outside the collimated field.
