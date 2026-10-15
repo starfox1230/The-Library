@@ -344,9 +344,66 @@
             opacity: 0.6;
         }
 
+        /* Case navigation and built-in answer key */
+        .case-navigation {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 18px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: var(--border-radius);
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(97, 218, 251, 0.25);
+        }
+        .case-navigation label { font-weight: 600; white-space: nowrap; }
+        .case-navigation select {
+            flex: 1;
+            min-width: 200px;
+            max-width: 550px;
+            padding: 11px 13px;
+            border-radius: 6px;
+            border: 1px solid var(--accent-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font: inherit;
+            cursor: pointer;
+        }
+        .case-navigation select:focus-visible,
+        .answer-toggle:focus-visible {
+            outline: 3px solid var(--accent-color);
+            outline-offset: 3px;
+        }
+        .answer-toggle {
+            align-self: flex-start;
+            padding: 10px 15px;
+            border: 1px solid var(--accent-color);
+            border-radius: var(--border-radius);
+            background: transparent;
+            color: var(--accent-color);
+            font: inherit;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .answer-toggle:hover:not(:disabled) { background: rgba(97, 218, 251, 0.12); }
+        .answer-toggle:disabled { opacity: var(--disabled-opacity); cursor: not-allowed; }
+        .answer-panel {
+            margin: 15px 0 5px;
+            padding: 16px 18px;
+            border-radius: var(--border-radius);
+            background: rgba(76, 175, 80, 0.09);
+            border: 1px solid rgba(76, 175, 80, 0.6);
+        }
+        .answer-panel[hidden] { display: none; }
+        .answer-panel p { margin: 0 0 10px; font-weight: 600; }
+        .answer-panel ol { margin: 0; padding-left: 25px; }
+        .answer-panel li { padding: 4px 0; line-height: 1.5; }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .main-content { flex-direction: column; }
+            .case-navigation { align-items: stretch; flex-direction: column; }
+            .case-navigation select { max-width: none; width: 100%; min-width: 0; box-sizing: border-box; }
             .app-container { padding: 20px; }
             h1 { font-size: 1.5em; }
             .controls { flex-direction: column; gap: 10px; align-items: center; }
@@ -380,6 +437,10 @@
 <body>
     <div class="app-container">
         <h1>ACR Contrast Reaction Simulation</h1>
+        <div class="case-navigation">
+            <label for="case-select">Choose a case</label>
+            <select id="case-select" aria-label="Choose contrast reaction case"></select>
+        </div>
         <div class="main-content">
             <div class="actions-panel">
                 <h2>Available Actions (Select Relevant Steps)</h2>
@@ -391,6 +452,11 @@
             <div class="scenario-panel">
                 <h2 id="scenario-title">Loading Scenario...</h2>
                 <p id="scenario-description">Please wait.</p>
+                <button id="reveal-answer-btn" class="answer-toggle" type="button" aria-expanded="false" aria-controls="correct-answer">Reveal correct answer</button>
+                <section id="correct-answer" class="answer-panel" aria-label="Correct action sequence" hidden>
+                    <p>Correct sequence for this simulation:</p>
+                    <ol id="correct-answer-list"></ol>
+                </section>
                 <hr>
                 <h2>Your Selected Sequence (Click to Remove, Drag to Reorder)</h2>
                 <div id="selected-sequence" class="selected-list">
@@ -419,9 +485,13 @@
             const nextBtn = document.getElementById('next-btn');
             const resetBtn = document.getElementById('reset-btn');
             const feedbackMessageEl = document.getElementById('feedback-message');
+            const caseSelectEl = document.getElementById('case-select');
+            const revealAnswerBtn = document.getElementById('reveal-answer-btn');
+            const correctAnswerEl = document.getElementById('correct-answer');
+            const correctAnswerListEl = document.getElementById('correct-answer-list');
 
             // Basic check if essential elements were found
-            if (!scenarioTitleEl || !availableActionsEl || !selectedSequenceEl || !submitBtn || !nextBtn || !resetBtn) {
+            if (!scenarioTitleEl || !availableActionsEl || !selectedSequenceEl || !submitBtn || !nextBtn || !resetBtn || !caseSelectEl || !revealAnswerBtn || !correctAnswerEl || !correctAnswerListEl) {
                 console.error("ERROR: One or more essential HTML elements not found. Check IDs.");
                 alert("Critical error: UI elements missing. Cannot start simulation.");
                 return; // Stop script execution
@@ -457,6 +527,40 @@
                  { id: 5, title: "Case 5/5: Bronchospasm (Expiratory Wheeze)", description: "Patient presents with Bronchospasm or an Expiratory Wheeze.", correctSequence: ["preserve_iv_monitor", "start_o2", "admin_albuterol", "check_refractory_broncho", "admin_epi"] }
             ];
             console.log("Data (masterActionsList, cases) defined.");
+
+            // Populate the selector from the current scenario data.
+            cases.forEach((caseData, index) => {
+                const option = document.createElement('option');
+                option.value = String(index);
+                option.textContent = caseData.title;
+                caseSelectEl.appendChild(option);
+            });
+            caseSelectEl.addEventListener('change', () => loadCase(Number(caseSelectEl.value)));
+            revealAnswerBtn.addEventListener('click', toggleCorrectAnswer);
+
+            function hideCorrectAnswer() {
+                correctAnswerEl.hidden = true;
+                correctAnswerListEl.replaceChildren();
+                revealAnswerBtn.textContent = 'Reveal correct answer';
+                revealAnswerBtn.setAttribute('aria-expanded', 'false');
+            }
+
+            function toggleCorrectAnswer() {
+                if (!correctAnswerEl.hidden) {
+                    hideCorrectAnswer();
+                    return;
+                }
+                correctAnswerListEl.replaceChildren();
+                cases[currentCaseIndex].correctSequence.forEach(actionId => {
+                    const action = masterActionsList.find(item => item.id === actionId);
+                    const step = document.createElement('li');
+                    step.textContent = action ? action.text : actionId;
+                    correctAnswerListEl.appendChild(step);
+                });
+                correctAnswerEl.hidden = false;
+                revealAnswerBtn.textContent = 'Hide correct answer';
+                revealAnswerBtn.setAttribute('aria-expanded', 'true');
+            }
 
             // --- Core Functions ---
 
@@ -605,6 +709,10 @@
                     return;
                 }
 
+                currentCaseIndex = index;
+                caseSelectEl.value = String(index);
+                hideCorrectAnswer();
+                revealAnswerBtn.disabled = false;
                 actionsDisabled = false; // Ensure actions are enabled for the new case
                 const currentCase = cases[index];
                 if (!currentCase) {
@@ -831,6 +939,7 @@
 
             function resetCurrentCase() {
                  console.log("--- Resetting Current Case ---");
+                 hideCorrectAnswer();
                  // Clear user sequence data
                  userSequence = [];
                  // Clear visual selected list
@@ -887,6 +996,8 @@
 
             function displayCompletion() {
                  console.log("--- Displaying Completion Screen ---");
+                 hideCorrectAnswer();
+                 revealAnswerBtn.disabled = true;
                  actionsDisabled = true; // Disable interactions
 
                  // Update text content
