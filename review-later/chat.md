@@ -44,10 +44,200 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 13:01 Central Daylight Time
-Cards: 5
+Updated: 2026-10-15 13:29 Central Daylight Time
+Cards: 14
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T07:59:28-05:00
+Last seen: 2026-10-15T13:28:42-05:00
+Card ID: 1774547973508
+Note ID: 1774547973507
+
+Question:
+00:12
+
+What angiographic finding is considered diagnostic for popliteal entrapment syndrome?
+
+[...]
+
+Answer:
+00:12
+
+What angiographic finding is considered diagnostic for popliteal entrapment syndrome?
+
+Medial deviation of the popliteal artery
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T13:23:45-05:00
+Last seen: 2026-10-15T13:23:45-05:00
+Card ID: 1776964538990
+Note ID: 1776964538990
+
+Question:
+00:12
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of [...]
+
+Answer:
+00:08
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-11T13:23:47-05:00
+Last seen: 2026-10-15T13:22:40-05:00
+Card ID: 1777926121253
+Note ID: 1777926121252
+
+Question:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is [...].
+
+Answer:
+00:12
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
+
+## Card 4
+
+Deck: Other::aPhysics
+Flagged: 2026-10-15T13:18:40-05:00
+Last seen: 2026-10-15T13:18:40-05:00
+Card ID: 1695010449759
+Note ID: 1695010449758
+
+Question:
+00:12
+
+As x-ray tube voltage (kV) increases, the ratio of characteristic to
+bremsstrahlung x-rays [...]
+
+Answer:
+00:08
+
+As x-ray tube voltage (kV) increases, the ratio of characteristic to
+bremsstrahlung x-rays increase
+
+---------------------------------
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-09-15T06:32:26-05:00
+Last seen: 2026-10-15T13:16:29-05:00
+Card ID: 1786336094574
+Note ID: 1786336094573
+
+Question:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the [...], creating a tongue-shaped fragment.
+
+Answer:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the posterior calcaneal tuberosity, creating a tongue-shaped fragment.
+
+The Achilles tendon pulls the posterior fragment superiorly.
+
+Source: Maroufi et al., 2023.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-04-22T06:27:58-05:00
+Last seen: 2026-10-15T13:09:36-05:00
+Card ID: 1776822423069
+Note ID: 1776822423068
+
+Question:
+00:12
+
+In suspected cardiac amyloid, a positive [...] supports ATTR amyloid.
+
+Answer:
+00:12
+
+In suspected cardiac amyloid, a positive PYP scan supports ATTR amyloid.
+
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T08:18:31-05:00
+Last seen: 2026-10-15T13:08:19-05:00
+Card ID: 1747693920691
+Note ID: 1747693920690
+
+Question:
+00:12
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+[...]
+
+Answer:
+00:08
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+T1 with fat suppression (demonstrates macroscopic fat (favors AML), as opposed to out-of-phase signal drop, which suggests microscopic fat (could be AML or clear cell RCC)
+
+Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While in/out phase imaging may help in the diagnosis, drop out of a renal mass on out of phase images, either focally or diffuse, raises concern for a clear cell RCC, which can contain intracytoplasmic lipid. To make the diagnosis of an AML on MRI, signal loss on a frequency selective fat suppressed sequence is necessary.
+
+Per ChatGPT
+
+## Card 8
+
+Deck: Saved Cards
+Flagged: 2026-07-19T07:05:17-05:00
+Last seen: 2026-10-15T13:08:05-05:00
+Card ID: 1784115991229
+Note ID: 1784115991227
+
+Question:
+00:12
+
+A [...] is an abnormal communication from the left ventricle to the right atrium
+
+Answer:
+00:12
+
+A Gerbode defect is an abnormal communication from the left ventricle to the right atrium
+
+The shunt traverses the membranous septal region and may be congenital or acquired.
+
+Notion cardiothoracic lecture note.
+
+## Card 9
+
+Deck: .NEW::Audio
+Flagged: 2026-09-23T12:47:27-05:00
+Last seen: 2026-10-15T13:07:47-05:00
+Card ID: 1760645679949
+Note ID: 1760645679948
+
+Question:
+00:12
+
+Anomaly of [...] in coronary artery anatomy refers to coronary artery fistula
+
+Answer:
+00:08
+
+Anomaly of termination in coronary artery anatomy refers to coronary artery fistula
+
+Notion AIRP Lecture
+
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -65,7 +255,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 2
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T12:59:18-05:00
@@ -83,7 +273,7 @@ Answer:
 
 Radiochemical impurity is wrong chemical form of the radioisotope.
 
-## Card 3
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -105,7 +295,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 4
+## Card 13
 
 Deck: Other::Radiology (All)::Audio
 Flagged: 2026-09-20T16:54:13-05:00
@@ -123,7 +313,7 @@ Answer:
 
 The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
 
-## Card 5
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
