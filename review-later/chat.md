@@ -44,10 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 16:27 Central Daylight Time
-Cards: 31
+Updated: 2026-10-15 16:32 Central Daylight Time
+Cards: 32
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-05T05:20:27-05:00
+Last seen: 2026-10-15T16:30:54-05:00
+Card ID: 1783397643260
+Note ID: 1783397643259
+
+Question:
+00:12
+
+What do the red arrows indicate on these MRI images?
+
+[...]
+
+Answer:
+00:12
+
+What do the red arrows indicate on these MRI images?
+
+Enlarged median nerve with fat interdigitating between fascicles
+
+Core Radiology 2nd ed., MSK: 964. Fat interdigitating between nerve fascicles is pathognomonic for fibrolipomatous hamartoma.
+
+Full source page:
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-10-15T16:23:41-05:00
@@ -75,7 +101,7 @@ Neurofibromatosis type 2
 
 Q19. Correct; difficulty: easy. Vital Concept: Neurofibromatosis type 2 (NF2) is a rare autosomal dominant neurocutaneous disorder (phakomatosis) characterizes by development of multiple CNS tumors such as intracranial schwannomas (mostly vestibular schwannomas and rarely spinal schwannomas), intracranial and spinal meningiomas, and intraspinal-intramedullary ependymomas.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:06:59-05:00
@@ -97,7 +123,7 @@ What is the typical zonal distribution of cysts in pulmonary Langerhans cell his
 
 Upper lobe predominance with relative sparing of the lung bases
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -123,7 +149,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 4
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -147,7 +173,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 5
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
@@ -173,7 +199,7 @@ Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-07-12T13:28:50-05:00
@@ -191,7 +217,7 @@ Answer:
 
 The rotator interval is the space between supraspinatus (superiorly) and subscapularis (inferiorly); it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:34:53-05:00
@@ -213,7 +239,7 @@ Which nuclear medicine renal scan is primarily used for evaluation of tubular fu
 
 MAG3
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -231,7 +257,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:51:10-05:00
@@ -255,7 +281,7 @@ Organo-axial volvulus
 
 Incorrect; difficulty: Hard.
 
-## Card 10
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
@@ -277,7 +303,7 @@ This is traumatic rather than an unfused ossification center.
 
 Source: Notion Radiology entry.
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T13:23:45-05:00
@@ -295,7 +321,7 @@ Answer:
 
 The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
 
-## Card 12
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:34:58-05:00
@@ -317,7 +343,7 @@ What are the top methods to reduce side lobe artifact?
 
 turn on tissue harmonics, reposition the probe
 
-## Card 13
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
@@ -343,7 +369,7 @@ Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy scl
 
 Full source page:
 
-## Card 14
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-03-27T06:41:27-05:00
@@ -361,7 +387,7 @@ Mylohyoid boutonniere (herniation of the sublingual duct)
 
 Images
 
-## Card 15
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-09-28T13:30:22-05:00
@@ -383,7 +409,7 @@ Arterial hyperenhancement alone can also represent a perfusion anomaly, dysplast
 
 Source note: Conversation facts
 
-## Card 16
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-10-07T13:29:25-05:00
@@ -401,7 +427,7 @@ Answer:
 
 In gamma cameras, a diverging collimator minimizes the image
 
-## Card 17
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-08-20T12:43:54-05:00
@@ -419,7 +445,7 @@ Answer:
 
 In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
 
-## Card 18
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-03-25T19:16:39-05:00
@@ -437,7 +463,7 @@ Answer:
 
 An early imaging complication of subfalcine herniation is dilatation of the contralateral lateral ventricle due to obstruction of the foramen of Monro.
 
-## Card 19
+## Card 20
 
 Deck: Other::aPhysics
 Flagged: 2026-10-15T13:18:40-05:00
@@ -459,7 +485,7 @@ bremsstrahlung x-rays increase
 
 ---------------------------------
 
-## Card 20
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:59:28-05:00
@@ -481,7 +507,7 @@ What angiographic finding is considered diagnostic for popliteal entrapment synd
 
 Medial deviation of the popliteal artery
 
-## Card 21
+## Card 22
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -501,7 +527,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 22
+## Card 23
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -523,7 +549,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 23
+## Card 24
 
 Deck: .NEW::Audio
 Flagged: 2026-04-22T06:27:58-05:00
@@ -541,7 +567,7 @@ Answer:
 
 In suspected cardiac amyloid, a positive PYP scan supports ATTR amyloid.
 
-## Card 24
+## Card 25
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T08:18:31-05:00
@@ -567,7 +593,7 @@ Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While
 
 Per ChatGPT
 
-## Card 25
+## Card 26
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -589,7 +615,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 26
+## Card 27
 
 Deck: .NEW::Audio
 Flagged: 2026-09-23T12:47:27-05:00
@@ -609,7 +635,7 @@ Anomaly of termination in coronary artery anatomy refers to coronary artery fist
 
 Notion AIRP Lecture
 
-## Card 27
+## Card 28
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -627,7 +653,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 28
+## Card 29
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T12:59:18-05:00
@@ -645,7 +671,7 @@ Answer:
 
 Radiochemical impurity is wrong chemical form of the radioisotope.
 
-## Card 29
+## Card 30
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -667,7 +693,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 30
+## Card 31
 
 Deck: Other::Radiology (All)::Audio
 Flagged: 2026-09-20T16:54:13-05:00
@@ -685,7 +711,7 @@ Answer:
 
 The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
 
-## Card 31
+## Card 32
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
