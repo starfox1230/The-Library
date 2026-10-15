@@ -44,10 +44,422 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 13:29 Central Daylight Time
-Cards: 14
+Updated: 2026-10-15 16:27 Central Daylight Time
+Cards: 31
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-10-15T16:23:41-05:00
+Last seen: 2026-10-15T16:23:46-05:00
+Card ID: 1780095027125
+Note ID: 1780095027124
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Neurofibromatosis type 2
+
+1/2
+
+Q19. Correct; difficulty: easy. Vital Concept: Neurofibromatosis type 2 (NF2) is a rare autosomal dominant neurocutaneous disorder (phakomatosis) characterizes by development of multiple CNS tumors such as intracranial schwannomas (mostly vestibular schwannomas and rarely spinal schwannomas), intracranial and spinal meningiomas, and intraspinal-intramedullary ependymomas.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:06:59-05:00
+Last seen: 2026-10-15T16:21:42-05:00
+Card ID: 1768331455467
+Note ID: 1768331455467
+
+Question:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+[...]
+
+Answer:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+Upper lobe predominance with relative sparing of the lung bases
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-10-06T22:31:28-05:00
+Last seen: 2026-10-15T16:20:27-05:00
+Card ID: 1756983809359
+Note ID: 1756983809358
+
+Question:
+00:12
+
+Findings? Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Findings? Diagnosis?
+
+joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the humeral head and glenoid, intra-articular and para-articular calcifications. Pyrophosphate arthropathy.
+
+1/2
+
+## Card 4
+
+Deck: Saved Cards
+Flagged: 2026-10-01T13:11:39-05:00
+Last seen: 2026-10-15T16:19:10-05:00
+Card ID: 1787199507814
+Note ID: 1787199507813
+
+Question:
+00:12
+
+What is the most likely diagnosis in adult?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis in adult?
+
+Subependymoma
+
+Source: Notion Radiology entry.
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-08-19T06:36:04-05:00
+Last seen: 2026-10-15T16:18:40-05:00
+Card ID: 1786336094644
+Note ID: 1786336094643
+
+Question:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+[...]
+
+Answer:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+directly contacts the cortex without intervening normal white matter
+
+Experimental multiple-sclerosis candidate from the reporting-phrases set.
+
+Source: Notion Radiology note.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-07-12T13:28:50-05:00
+Last seen: 2026-10-15T16:17:06-05:00
+Card ID: 1755729983389
+Note ID: 1755729983387
+
+Question:
+00:12
+
+The rotator interval is the space between [...]; it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
+
+Answer:
+00:08
+
+The rotator interval is the space between supraspinatus (superiorly) and subscapularis (inferiorly); it contains the long head of the biceps tendon and the superior glenohumeral ligament (SGHL) and coracohumeral ligament (CHL).
+
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T15:34:53-05:00
+Last seen: 2026-10-15T16:16:08-05:00
+Card ID: 1776188393061
+Note ID: 1776188393061
+
+Question:
+00:12
+
+Which nuclear medicine renal scan is primarily used for evaluation of tubular function and urinary drainage, including suspected obstruction?
+
+[...]
+
+Answer:
+00:12
+
+Which nuclear medicine renal scan is primarily used for evaluation of tubular function and urinary drainage, including suspected obstruction?
+
+MAG3
+
+## Card 8
+
+Deck: .NEW::Audio
+Flagged: 2026-04-13T05:58:39-05:00
+Last seen: 2026-10-15T16:14:14-05:00
+Card ID: 1745603777434
+Note ID: 1745603777432
+
+Question:
+00:12
+
+The oval window receives the [...], while the round window sits at the [...] opening into the scala tympani.
+
+Answer:
+00:08
+
+The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
+
+## Card 9
+
+Deck: .NEW::Visual
+Flagged: 2026-09-29T06:51:10-05:00
+Last seen: 2026-10-15T16:05:25-05:00
+Card ID: 1778780546915
+Note ID: 1778780546914
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Diagnosis?
+
+Organo-axial volvulus
+
+Incorrect; difficulty: Hard.
+
+## Card 10
+
+Deck: Saved Cards
+Flagged: 2026-08-12T20:19:09-05:00
+Last seen: 2026-10-15T16:02:08-05:00
+Card ID: 1786559000557
+Note ID: 1786559000556
+
+Question:
+00:12
+
+An acute fracture of the posterolateral talar process is a [...].
+
+Answer:
+00:12
+
+An acute fracture of the posterolateral talar process is a Shepherd fracture.
+
+This is traumatic rather than an unfused ossification center.
+
+Source: Notion Radiology entry.
+
+## Card 11
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T13:23:45-05:00
+Last seen: 2026-10-15T15:56:58-05:00
+Card ID: 1776964538990
+Note ID: 1776964538990
+
+Question:
+00:12
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of [...]
+
+Answer:
+00:08
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
+
+## Card 12
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:34:58-05:00
+Last seen: 2026-10-15T15:52:23-05:00
+Card ID: 1775063675193
+Note ID: 1775063675193
+
+Question:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+[...]
+
+Answer:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+turn on tissue harmonics, reposition the probe
+
+## Card 13
+
+Deck: .NEW::Visual
+Flagged: 2026-07-11T10:04:05-05:00
+Last seen: 2026-10-15T15:45:11-05:00
+Card ID: 1783397643342
+Note ID: 1783397643341
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
+
+Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
+
+Full source page:
+
+## Card 14
+
+Deck: .NEW::Visual
+Flagged: 2026-03-27T06:41:27-05:00
+Last seen: 2026-10-15T15:44:28-05:00
+Card ID: 1760473131343
+Note ID: 1760473131342
+
+Question:
+Diagnosis?
+
+ ↻
+
+Answer:
+Mylohyoid boutonniere (herniation of the sublingual duct)
+
+Images
+
+## Card 15
+
+Deck: Saved Cards
+Flagged: 2026-09-28T13:30:22-05:00
+Last seen: 2026-10-15T15:39:09-05:00
+Card ID: 1784115991409
+Note ID: 1784115991407
+
+Question:
+00:12
+
+In an appropriate HCC-risk liver, a classic HCC pattern is nonrim arterial phase hyperenhancement plus [...].
+
+Answer:
+00:12
+
+In an appropriate HCC-risk liver, a classic HCC pattern is nonrim arterial phase hyperenhancement plus washout, capsule, or threshold growth.
+
+Arterial hyperenhancement alone can also represent a perfusion anomaly, dysplastic nodule, or early HCC.
+
+Source note: Conversation facts
+
+## Card 16
+
+Deck: .NEW::Audio
+Flagged: 2026-10-07T13:29:25-05:00
+Last seen: 2026-10-15T15:38:16-05:00
+Card ID: 1780270217302
+Note ID: 1780270217301
+
+Question:
+00:12
+
+In gamma cameras, a diverging collimator [has what effect on images?]
+
+Answer:
+00:08
+
+In gamma cameras, a diverging collimator minimizes the image
+
+## Card 17
+
+Deck: .NEW::Audio
+Flagged: 2026-08-20T12:43:54-05:00
+Last seen: 2026-10-15T15:33:08-05:00
+Card ID: 1776883789576
+Note ID: 1776883789575
+
+Question:
+00:12
+
+In a 1.5D transducer array, elevational focusing is usually achieved with [...].
+
+Answer:
+00:12
+
+In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
+
+## Card 18
+
+Deck: .NEW::Audio
+Flagged: 2026-03-25T19:16:39-05:00
+Last seen: 2026-10-15T15:30:22-05:00
+Card ID: 1773288779474
+Note ID: 1773288779473
+
+Question:
+00:12
+
+An early imaging complication of subfalcine herniation is [...] due to obstruction of the foramen of Monro.
+
+Answer:
+00:12
+
+An early imaging complication of subfalcine herniation is dilatation of the contralateral lateral ventricle due to obstruction of the foramen of Monro.
+
+## Card 19
+
+Deck: Other::aPhysics
+Flagged: 2026-10-15T13:18:40-05:00
+Last seen: 2026-10-15T15:22:24-05:00
+Card ID: 1695010449759
+Note ID: 1695010449758
+
+Question:
+00:12
+
+As x-ray tube voltage (kV) increases, the ratio of characteristic to
+bremsstrahlung x-rays [...]
+
+Answer:
+00:08
+
+As x-ray tube voltage (kV) increases, the ratio of characteristic to
+bremsstrahlung x-rays increase
+
+---------------------------------
+
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:59:28-05:00
@@ -69,25 +481,7 @@ What angiographic finding is considered diagnostic for popliteal entrapment synd
 
 Medial deviation of the popliteal artery
 
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-10-15T13:23:45-05:00
-Last seen: 2026-10-15T13:23:45-05:00
-Card ID: 1776964538990
-Note ID: 1776964538990
-
-Question:
-00:12
-
-The main concern with tattoos in MRIs is heating of the tattoo by absorption of [...]
-
-Answer:
-00:08
-
-The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
-
-## Card 3
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:23:47-05:00
@@ -107,29 +501,7 @@ In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephr
 
 In Crack the Core, the “Michael Jackson lesion” is multilocular cystic nephroma.
 
-## Card 4
-
-Deck: Other::aPhysics
-Flagged: 2026-10-15T13:18:40-05:00
-Last seen: 2026-10-15T13:18:40-05:00
-Card ID: 1695010449759
-Note ID: 1695010449758
-
-Question:
-00:12
-
-As x-ray tube voltage (kV) increases, the ratio of characteristic to
-bremsstrahlung x-rays [...]
-
-Answer:
-00:08
-
-As x-ray tube voltage (kV) increases, the ratio of characteristic to
-bremsstrahlung x-rays increase
-
----------------------------------
-
-## Card 5
+## Card 22
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -151,7 +523,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 6
+## Card 23
 
 Deck: .NEW::Audio
 Flagged: 2026-04-22T06:27:58-05:00
@@ -169,7 +541,7 @@ Answer:
 
 In suspected cardiac amyloid, a positive PYP scan supports ATTR amyloid.
 
-## Card 7
+## Card 24
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T08:18:31-05:00
@@ -195,7 +567,7 @@ Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While
 
 Per ChatGPT
 
-## Card 8
+## Card 25
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -217,7 +589,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 9
+## Card 26
 
 Deck: .NEW::Audio
 Flagged: 2026-09-23T12:47:27-05:00
@@ -237,7 +609,7 @@ Anomaly of termination in coronary artery anatomy refers to coronary artery fist
 
 Notion AIRP Lecture
 
-## Card 10
+## Card 27
 
 Deck: Saved Cards
 Flagged: 2026-09-30T07:52:00-05:00
@@ -255,7 +627,7 @@ Answer:
 
 Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
 
-## Card 11
+## Card 28
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T12:59:18-05:00
@@ -273,7 +645,7 @@ Answer:
 
 Radiochemical impurity is wrong chemical form of the radioisotope.
 
-## Card 12
+## Card 29
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -295,7 +667,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 13
+## Card 30
 
 Deck: Other::Radiology (All)::Audio
 Flagged: 2026-09-20T16:54:13-05:00
@@ -313,7 +685,7 @@ Answer:
 
 The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
 
-## Card 14
+## Card 31
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
