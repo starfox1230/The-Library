@@ -44,10 +44,46 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-15 12:24 Central Daylight Time
-Cards: 3
+Updated: 2026-10-15 13:01 Central Daylight Time
+Cards: 5
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-09-30T07:52:00-05:00
+Last seen: 2026-10-15T13:00:58-05:00
+Card ID: 1789015833872
+Note ID: 1789015833870
+
+Question:
+00:12
+
+[...] are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+Answer:
+00:12
+
+Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T12:59:18-05:00
+Last seen: 2026-10-15T12:59:18-05:00
+Card ID: 1776290396660
+Note ID: 1776290396659
+
+Question:
+00:12
+
+[...] impurity is wrong chemical form of the radioisotope.
+
+Answer:
+00:12
+
+Radiochemical impurity is wrong chemical form of the radioisotope.
+
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-09-11T21:30:04-05:00
@@ -69,7 +105,7 @@ The lecture specifically included oral flora/Actinomyces, TB, Blastomyces, and M
 
 Source: Notion Radiology Notes — Watts pneumonia lecture, 2026-07-30.
 
-## Card 2
+## Card 4
 
 Deck: Other::Radiology (All)::Audio
 Flagged: 2026-09-20T16:54:13-05:00
@@ -87,7 +123,7 @@ Answer:
 
 The most common soft tissue head and neck tumor in child is rhabdomyosarcoma
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
