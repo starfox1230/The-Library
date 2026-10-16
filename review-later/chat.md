@@ -44,7 +44,71 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-16 06:23 Central Daylight Time
-Cards: 0
+Updated: 2026-10-16 06:42 Central Daylight Time
+Cards: 3
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-16T06:42:15-05:00
+Last seen: 2026-10-16T06:42:15-05:00
+Card ID: 1792100344240
+Note ID: 1792100344240
+
+Question:
+00:12
+
+In ACR contrast reactions, hypotension plus [...]cardia suggests vasovagal reaction.
+
+Answer:
+00:12
+
+In ACR contrast reactions, hypotension plus bradycardia suggests vasovagal reaction.
+
+In ACR contrast reactions, hypotension plus bradycardia suggests vasovagal reaction.
+
+In ACR contrast reactions, hypotension plus tachycardia suggests vasovagal reaction.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T13:23:45-05:00
+Last seen: 2026-10-16T06:32:05-05:00
+Card ID: 1776964538990
+Note ID: 1776964538990
+
+Question:
+00:12
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of [...]
+
+Answer:
+00:08
+
+The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-08-19T06:36:04-05:00
+Last seen: 2026-10-16T06:27:02-05:00
+Card ID: 1786336094644
+Note ID: 1786336094643
+
+Question:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+[...]
+
+Answer:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+directly contacts the cortex without intervening normal white matter
+
+Experimental multiple-sclerosis candidate from the reporting-phrases set.
+
+Source: Notion Radiology note.
