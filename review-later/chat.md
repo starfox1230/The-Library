@@ -44,14 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-16 06:42 Central Daylight Time
+Updated: 2026-10-16 12:22 Central Daylight Time
 Cards: 3
 
 ## Card 1
 
 Deck: .NEW::Audio
 Flagged: 2026-10-16T06:42:15-05:00
-Last seen: 2026-10-16T06:42:15-05:00
+Last seen: 2026-10-16T07:36:25-05:00
 Card ID: 1792100344240
 Note ID: 1792100344240
 
