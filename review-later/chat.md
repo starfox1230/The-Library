@@ -44,32 +44,160 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-16 12:52 Central Daylight Time
-Cards: 12
+Updated: 2026-10-16 15:39 Central Daylight Time
+Cards: 18
 
 ## Card 1
 
-Deck: .NEW::Audio
-Flagged: 2026-07-10T12:45:53-05:00
-Last seen: 2026-10-16T12:52:01-05:00
-Card ID: 1779919013065
-Note ID: 1779919013065
+Deck: .NEW::Visual
+Flagged: 2026-09-27T07:43:51-05:00
+Last seen: 2026-10-16T14:38:38-05:00
+Card ID: 1768330036762
+Note ID: 1768330036761
 
 Question:
 00:12
 
-Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+Diagnosis?
+
+[...]
+
+1/2
 
 Answer:
 00:12
 
-Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+Diagnosis?
+
+deep cerebral venous thrombosis (leading to venous congestion and infarction in deep brain structures)
+
+1/2
 
 ## Card 2
 
+Deck: Saved Cards
+Flagged: 2026-08-24T06:23:09-05:00
+Last seen: 2026-10-16T14:36:48-05:00
+Card ID: 1786709128376
+Note ID: 1786709128375
+
+Question:
+00:12
+
+What is the most likely diagnosis in the anterior abdomen?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis in the anterior abdomen?
+
+Omental infarction
+
+Omental infarction is usually a larger heterogeneous area of inflamed fat centered in the omentum rather than directly abutting the colon.
+
+Source: CTisus teaching file and Giambelluca et al., Insights into Imaging 2019.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-30T07:40:43-05:00
+Last seen: 2026-10-16T14:34:38-05:00
+Card ID: 1768319986519
+Note ID: 1768319986519
+
+Question:
+00:12
+
+Sign and diagnosis in immunocompromised patient with fever?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Sign and diagnosis in immunocompromised patient with fever?
+
+reverse halo sign/atoll sign in pulmonary mucormycosis
+
+1/2
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-08-13T13:19:44-05:00
+Last seen: 2026-10-16T14:31:57-05:00
+Card ID: 1776199228458
+Note ID: 1776199228458
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+ameloblastoma
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-10-15T16:23:41-05:00
+Last seen: 2026-10-16T14:26:05-05:00
+Card ID: 1780095027125
+Note ID: 1780095027124
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Neurofibromatosis type 2
+
+1/2
+
+Q19. Correct; difficulty: easy. Vital Concept: Neurofibromatosis type 2 (NF2) is a rare autosomal dominant neurocutaneous disorder (phakomatosis) characterizes by development of multiple CNS tumors such as intracranial schwannomas (mostly vestibular schwannomas and rarely spinal schwannomas), intracranial and spinal meningiomas, and intraspinal-intramedullary ependymomas.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-06-28T21:32:48-05:00
+Last seen: 2026-10-16T14:14:49-05:00
+Card ID: 1778865815597
+Note ID: 1778865815596
+
+Question:
+00:12
+
+I-123 thyroid scintigraphy images are typically acquired with a [...] collimator.
+
+Answer:
+00:12
+
+I-123 thyroid scintigraphy images are typically acquired with a pinhole collimator.
+
+## Card 7
+
 Deck: Other::aPhysics
 Flagged: 2026-10-15T13:18:40-05:00
-Last seen: 2026-10-16T12:49:35-05:00
+Last seen: 2026-10-16T14:11:52-05:00
 Card ID: 1695010449759
 Note ID: 1695010449758
 
@@ -87,7 +215,25 @@ bremsstrahlung x-rays increase
 
 ---------------------------------
 
-## Card 3
+## Card 8
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-10-16T12:52:01-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
+
+Question:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+
+Answer:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -110,7 +256,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 4
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
@@ -128,7 +274,7 @@ Answer:
 
 Shuttering masks the bright area outside the collimated field.
 
-## Card 5
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-10-04T19:57:56-05:00
@@ -148,7 +294,7 @@ Neuromyelitis optica spectrum disorder optic neuritis commonly involves the post
 
 Source: Notion Radiology entry.
 
-## Card 6
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
@@ -168,7 +314,7 @@ Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus syste
 
 Notion AIRP Lecture
 
-## Card 7
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
@@ -186,7 +332,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 8
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-09-14T18:16:11-05:00
@@ -206,7 +352,7 @@ Answer:
 What is the malignant potential of Lipoblastoma?
 None.
 
-## Card 9
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-10-16T12:26:24-05:00
@@ -228,7 +374,7 @@ An 8-year-old patient with suspected lower extremity osteomyelitis presents with
 
 Tc-99m MDP three-phase bone scan
 
-## Card 10
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-10-16T06:42:15-05:00
@@ -250,7 +396,7 @@ In ACR contrast reactions, hypotension plus bradycardia suggests vasovagal react
 
 In ACR contrast reactions, hypotension plus tachycardia suggests vasovagal reaction.
 
-## Card 11
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T13:23:45-05:00
@@ -268,7 +414,7 @@ Answer:
 
 The main concern with tattoos in MRIs is heating of the tattoo by absorption of radiofrequency waves
 
-## Card 12
+## Card 18
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
