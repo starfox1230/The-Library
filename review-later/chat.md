@@ -44,10 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-17 07:30 Central Daylight Time
-Cards: 3
+Updated: 2026-10-17 08:25 Central Daylight Time
+Cards: 4
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-10-17T07:34:13-05:00
+Last seen: 2026-10-17T07:34:13-05:00
+Card ID: 1760465594822
+Note ID: 1760465594822
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+tornwaldt cyst (also pituitary tumor)
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T12:59:18-05:00
@@ -65,7 +87,7 @@ Answer:
 
 Radiochemical impurity is wrong chemical form of the radioisotope.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-07-06T06:36:12-05:00
@@ -202,7 +224,7 @@ countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
 Answer:
 SHOW ALL
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-10-17T07:20:52-05:00
