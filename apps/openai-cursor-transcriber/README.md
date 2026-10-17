@@ -5,6 +5,7 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 ## What it does
 
 - Press `F3` once to start recording.
+- If Windows has muted the default microphone, the app asks before recording and offers an **Unmute microphone** button. If no audio arrives, it points you to check your headset mute switch and Windows input device.
 - Recording starts immediately, and the loading indicator stays up only until the microphone actually starts delivering audio. By default there is no extra artificial delay.
 - After that, the recording badge appears near your cursor with the 60-second countdown.
 - Press `F3` again to stop.

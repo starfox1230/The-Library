@@ -8,7 +8,7 @@ from time import perf_counter
 
 import sounddevice
 from PySide6.QtCore import QObject, QTimer, Signal
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from pynput.keyboard import GlobalHotKeys
 
 from .audio import MicrophoneRecorder
@@ -19,6 +19,7 @@ from .hotkey_polling import (
     is_windows_hotkey_polling_available,
     parse_pollable_hotkey,
 )
+from .microphone_mute import get_default_microphone_muted, set_default_microphone_muted
 from .openai_client import TranscriptionClient, friendly_openai_error
 from .overlay import CursorOverlay
 from .tray import CursorTray
@@ -206,6 +207,12 @@ class CursorTranscriberApp(QObject):
 
     def _begin_recording_warmup(self) -> None:
         self._transcript_visible = False
+        if get_default_microphone_muted() is True and not self._confirm_microphone_unmute():
+            self._overlay.show_error("The microphone is muted. Unmute it before recording.")
+            self._overlay.schedule_hide(4200)
+            self._set_tray_error()
+            return
+
         try:
             self._recorder.start()
         except sounddevice.PortAudioError:
@@ -230,6 +237,32 @@ class CursorTranscriberApp(QObject):
         self._set_tray_arming()
         self._ready_poll_timer.start()
         logging.info("Recording started, waiting for microphone readiness")
+
+    def _confirm_microphone_unmute(self) -> bool:
+        prompt = QMessageBox()
+        prompt.setIcon(QMessageBox.Icon.Warning)
+        prompt.setWindowTitle("Microphone is muted")
+        prompt.setText("Your default microphone is muted in Windows.")
+        prompt.setInformativeText("Unmute it now to start recording?")
+        unmute_button = prompt.addButton("Unmute microphone", QMessageBox.ButtonRole.AcceptRole)
+        prompt.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        prompt.setDefaultButton(unmute_button)
+        prompt.exec()
+
+        if prompt.clickedButton() is not unmute_button:
+            logging.info("Recording cancelled because the microphone is muted")
+            return False
+
+        if set_default_microphone_muted(False):
+            logging.info("Default microphone endpoint unmuted from the recording prompt")
+            return True
+
+        QMessageBox.warning(
+            None,
+            "Could not unmute microphone",
+            "Windows did not unmute the default microphone. Check its mute switch and input settings, then try again.",
+        )
+        return False
 
     def _stop_recording(self) -> None:
         self._ready_poll_timer.stop()
@@ -286,6 +319,17 @@ class CursorTranscriberApp(QObject):
         if self._shutting_down or not self._is_arming or self._capture_started_at is None:
             return
         if not self._recorder.has_received_audio():
+            if (perf_counter() - self._capture_started_at) * 1000.0 >= 3000:
+                self._ready_poll_timer.stop()
+                self._is_arming = False
+                self._recorder.discard()
+                self._capture_started_at = None
+                self._overlay.show_error(
+                    "No microphone audio detected. Check your headset mute switch and Windows input device."
+                )
+                self._overlay.schedule_hide(5000)
+                self._set_tray_error()
+                logging.warning("No microphone audio arrived within three seconds")
             return
 
         elapsed_ms = (perf_counter() - self._capture_started_at) * 1000.0
