@@ -70,6 +70,18 @@
   /* Category Filters (collapsible) */
   .filterbar { margin: 6px 0 12px; }
   .filter-panel[hidden] { display: none !important; }
+  .filter-search {
+    grid-column: 1 / -1;
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 12px;
+    background: var(--card-2);
+    color: var(--text);
+    font: inherit;
+  }
+  .filter-search::placeholder { color: var(--muted); }
+  .filter-search:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .sticky-nav {
     position: sticky;
     top: 0;
@@ -246,6 +258,7 @@
             <span>Filters</span><span aria-hidden="true">&#9662;</span>
           </button>
           <div id="filterPanel" class="filter-panel" hidden>
+            <input class="filter-search" id="talkSearch" type="search" placeholder="Search speakers or titles..." aria-label="Search speakers or talk titles" autocomplete="off">
             <label class="chk"><input type="checkbox" id="catAll" checked> <span>All</span></label>
             <label class="chk"><input type="checkbox" id="catFirst"> <span>First Presidency</span></label>
             <label class="chk"><input type="checkbox" id="catTwelve"> <span>Quorum of the Twelve</span></label>
@@ -490,6 +503,8 @@ const catAll   = document.getElementById('catAll');
 const catFirst = document.getElementById('catFirst');
 const catTwelve= document.getElementById('catTwelve');
 const catWomen = document.getElementById('catWomen');
+const talkSearch = document.getElementById('talkSearch');
+let searchQuery = '';
 
 function percent(){ return Math.round((state.watched.length / talks.length) * 100); }
 
@@ -581,6 +596,10 @@ function applyCategoryFilter(arr){
   });
 }
 
+function normalizeSearchText(value){
+  return String(value || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase();
+}
+
 function filteredTalks(){
   const f = currentFilter();
   let base;
@@ -588,7 +607,14 @@ function filteredTalks(){
   else if(f==='seen')  base = talks.filter(t=>isWatched(t.videoId));
   else if(f==='faves') base = talks.filter(t=>isFav(t.videoId));
   else base = talks; // 'all'
-  const filtered = applyCategoryFilter(base);
+  let filtered = applyCategoryFilter(base);
+  const query = normalizeSearchText(searchQuery.trim());
+  if(query){
+    filtered = filtered.filter(t =>
+      normalizeSearchText(t.title).includes(query) ||
+      normalizeSearchText(t.speaker).includes(query)
+    );
+  }
   if(f==='seen'){
     const seenMap = state.seenAt || {};
     filtered.sort((a,b)=>{
@@ -926,6 +952,13 @@ function onCatChange(ev){
   }
   saveState(state);
   renderAll();
+}
+
+if (talkSearch) {
+  talkSearch.addEventListener('input', (event) => {
+    searchQuery = event.target.value;
+    renderList();
+  });
 }
 
 if (btnFilterToggle) {
