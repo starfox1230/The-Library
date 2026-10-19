@@ -44,7 +44,63 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-19 06:37 Central Daylight Time
-Cards: 0
+Updated: 2026-10-19 06:48 Central Daylight Time
+Cards: 3
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T15:35:23-05:00
+Last seen: 2026-10-19T06:42:39-05:00
+Card ID: 1775839995565
+Note ID: 1775839995564
+
+Question:
+00:12
+
+If the serum hCG level is above [...] and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
+
+Answer:
+00:12
+
+If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-20T16:40:46-05:00
+Last seen: 2026-10-19T06:40:21-05:00
+Card ID: 1752528695810
+Note ID: 1752528695810
+
+Question:
+00:12
+
+Intravenous Ritalin use is associated with what type of emphysema?
+
+[...]
+
+Answer:
+00:08
+
+Intravenous Ritalin use is associated with what type of emphysema?
+
+Panlobular emphysema
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-26T07:29:24-05:00
+Last seen: 2026-10-19T06:40:03-05:00
+Card ID: 1772171419599
+Note ID: 1772171419598
+
+Question:
+00:12
+
+[...] is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
+
+Answer:
+00:12
+
+Duty factor is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
