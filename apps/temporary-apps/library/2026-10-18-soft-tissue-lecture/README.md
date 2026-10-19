@@ -1,5 +1,13 @@
 # Soft Tissue Lecture Lab
 
+## Visual Anki diagnosis cards
+
+The October 19 addition is in [anki/review.html](anki/review.html), with a direct
+download of [the APKG](anki/soft-tissue-visual-diagnosis.apkg). It contains 33
+diagnosis-only `saCloze++` notes for `Saved Cards`, with 55 individually cropped
+and sequence-labeled front panels. See [anki/README.md](anki/README.md) for the
+selection, source mapping, validation and rebuild instructions.
+
 Image-first preparation for Dr. Yulia Melenevsky's October 19, 2026 noon conference.
 
 - Both assigned PDFs, downloadable and readable in-app as 29 sharp page renders.
