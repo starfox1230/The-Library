@@ -6,6 +6,12 @@ Contains the 38-video **Malignant Liver Lesions on MRI** course index read from 
 
 Users capture transcripts from accessible Medality lesson pages, then select and copy any combination in the workspace. Transcript text and personal notes are stored in this browser's `localStorage`; neither is uploaded to GitHub or sent to an external service. Export JSON backups to move between devices. The workspace does not transcribe audio, bulk-crawl a course, bypass access restrictions, or change course progress.
 
+## Phone use
+
+Open **Use this on my phone** for a QR code, a phone-link copy button, and **Send saved library**. Sharing uses the browser's file share sheet when supported, otherwise a JSON download. On the phone, visit the same page and choose **Import saved library file**. No account or Chrome extension is required on the phone. The file transfers saved transcripts and notes; the link alone does not. Repeat the transfer after making more changes. This is manual transfer, not automatic synchronization.
+
+When a device has no saved transcripts, **Start with LI-RADS study notes** immediately prepares the original first-pass focus prompts. No empty file is exported when there is nothing personal to transfer. Mobile controls use larger tap targets, and the lesson editor supports direct transcript pasting.
+
 ## Use
 
 1. Install or update the extension from **Download extension v1.1**. Extract first, then load the folder containing `manifest.json` at `chrome://extensions`. For an existing installation, replace its files in place, click Reload, then refresh Medality and this workspace.

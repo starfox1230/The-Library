@@ -19,6 +19,7 @@
     const all = items(), search = $('search').value.toLowerCase(), group = $('group').value;
     visible = all.filter(item => (!group || item.group === group) && (!$('only-saved').checked || item.text?.trim()) && `${item.title} ${item.focus || ''} ${item.note || ''}`.toLowerCase().includes(search));
     $('saved-count').textContent = `${all.filter(item => item.text?.trim()).length} / ${all.length}`;
+    $('empty-state').hidden = all.some(item => item.text?.trim());
     const list = $('lesson-list'); list.replaceChildren();
     for (const item of visible) {
       const row = document.createElement('div'); row.className = 'lesson';
@@ -61,6 +62,7 @@
   }
   function importItems(raw) {
     const clean = C.imported(raw), next = { ...saved };
+    if (!clean.length) { message('The extension is connected, but it has no saved transcripts yet. On a Medality lesson, click Save transcript first, then return here and import again. No text files are needed.'); return; }
     for (const item of clean) {
       if (!item.text.trim()) continue;
       next[item.url] = { ...saved[item.url], ...item, note: saved[item.url]?.note || '' };
@@ -71,10 +73,38 @@
   $('select-all').addEventListener('click', () => { visible.forEach(item => selected.add(item.url)); render(); });
   $('select-none').addEventListener('click', () => { selected.clear(); render(); });
   $('select-first').addEventListener('click', () => { selected.clear(); MEDALITY_COURSE.filter(item => item.firstPass).forEach(item => selected.add(item.url)); render(); });
+  $('start-notes').addEventListener('click', () => {
+    $('mode').value = 'notes'; $('select-first').click();
+    message('The LI-RADS first-pass study notes are ready to copy. These are study prompts; they are not the video transcripts.');
+    $('preview').scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+  });
   ['mode','timestamps','prompt'].forEach(id => $(id).addEventListener('change', updatePacket));
   $('copy-packet').addEventListener('click', () => void copy($('preview').value));
   $('download-packet').addEventListener('click', () => download('liver-mri-study-packet.txt', $('preview').value, 'text/plain'));
   $('export-backup').addEventListener('click', () => download('liver-mri-study-backup.json', JSON.stringify({ format: 'medality-study-v1', items: Object.values(saved) }, null, 2), 'application/json'));
+  $('copy-phone-link').addEventListener('click', async () => {
+    const target = $('transfer-status');
+    try { await navigator.clipboard.writeText('https://starfox1230.github.io/The-Library/apps/medality-study/'); target.textContent = 'Phone link copied. Send it to yourself or scan the code.'; }
+    catch { target.textContent = 'Scan the QR code above, or share this page using your browser’s Share button.'; }
+  });
+  $('send-library').addEventListener('click', async () => {
+    const target = $('transfer-status');
+    const entries = Object.values(saved).filter(item => item.text?.trim() || item.note?.trim());
+    if (!entries.length) { target.textContent = 'There are no saved transcripts or personal notes to transfer yet. The course links and study prompts are already available on your phone.'; return; }
+    const content = JSON.stringify({ format: 'medality-study-v1', items: entries }, null, 2);
+    const file = new File([content], 'liver-mri-saved-library.json', { type: 'application/json' });
+    try {
+      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], title: 'My liver MRI study library' });
+        target.textContent = 'Library handed to your sharing app. On your phone, open this page and import the file.';
+      } else {
+        download(file.name, content, 'application/json');
+        target.textContent = 'Saved library downloaded. Send that file to your phone, then use Import saved library file on this page.';
+      }
+    } catch (error) {
+      target.textContent = error?.name === 'AbortError' ? 'Sharing canceled. Your saved library is unchanged.' : 'Sharing was unavailable. Use Export my transcripts & notes as JSON below, then transfer that file to your phone.';
+    }
+  });
   $('save-editor').addEventListener('click', () => {
     if (!editing) return;
     const old = saved[editing.url] || {}, text = $('edit-text').value;
@@ -99,7 +129,7 @@
         next[item.url] = { ...saved[item.url], ...item, note: typeof original?.note === 'string' ? original.note.slice(0,200000) : saved[item.url]?.note || '' };
       }
       if (persist(next)) { render(); message(`Imported ${clean.length} lesson entries.`); }
-    } catch (error) { message(`Import failed: ${error.message}`); }
+    } catch (error) { message(`Could not import this file. Choose a library exported from this study workspace or from the Medality extension. A Soft Tissue lecture file or unrelated document will not work here. ${error.message}`); }
     $('file').value = '';
   });
   $('import-extension').addEventListener('click', () => {

@@ -105,5 +105,44 @@ test('imported HTML is displayed as text rather than executed markup', async () 
   const e = workspace(), d=e.w.document;
   e.w.postMessage = data => { if (data.type === 'request-captures') e.w.dispatchEvent(new e.w.MessageEvent('message',{origin:e.w.location.origin,source:e.w,data:{channel:'medality-study',type:'captures',requestId:data.requestId,items:[{url:lesson,title:'<img src=x onerror=alert(1)>',text:'<script>bad()</script>'}]}})); };
   d.getElementById('import-extension').click(); await tick();
-  assert.equal(d.querySelectorAll('img').length,0); assert.match(d.getElementById('lesson-list').textContent,/<img/); e.close();
+  assert.equal(d.getElementById('lesson-list').querySelectorAll('img').length,0); assert.match(d.getElementById('lesson-list').textContent,/<img/); e.close();
+});
+
+test('new device can start with useful study notes without importing a file', () => {
+  const e=workspace(), d=e.w.document;
+  assert.equal(d.getElementById('empty-state').hidden,false);
+  d.getElementById('start-notes').click();
+  assert.equal(d.getElementById('mode').value,'notes');
+  assert.equal(d.getElementById('selection-count').textContent,'11 selected');
+  assert.ok(d.getElementById('preview').value.length>100);
+  e.close();
+});
+test('empty device does not create an empty phone-transfer file', () => {
+  const e=workspace(), d=e.w.document;
+  d.getElementById('send-library').click();
+  assert.match(d.getElementById('transfer-status').textContent,/no saved transcripts/);
+  e.close();
+});
+test('phone file sharing carries saved transcripts and notes, and leaves source intact', async () => {
+  const boot=workspace(), url=boot.w.MEDALITY_COURSE[0].url;boot.close();
+  const entry={url,title:'Synthetic case',text:'Synthetic transcript.',note:'Personal note.'};
+  const e=workspace({[url]:entry});let shared;
+  e.w.navigator.canShare=()=>true;
+  e.w.navigator.share=async data=>{shared=data;};
+  e.w.document.getElementById('send-library').click();await tick();
+  assert.equal(shared.files[0].name,'liver-mri-saved-library.json');
+  const reader=new e.w.FileReader();
+  const content=await new Promise(resolve=>{reader.onload=()=>resolve(reader.result);reader.readAsText(shared.files[0]);});
+  const data=JSON.parse(content);
+  assert.equal(data.items[0].note,'Personal note.');
+  assert.equal(e.w.MedalityCore.imported(data)[0].text,'Synthetic transcript.');
+  assert.equal(JSON.parse(e.w.localStorage.getItem('medality-study-v1'))[url].note,'Personal note.');
+  e.close();
+});
+test('connected extension with zero captures explains the required first save', async () => {
+  const e=workspace(), d=e.w.document;
+  e.w.postMessage=data=>{if(data.type==='request-captures')e.w.dispatchEvent(new e.w.MessageEvent('message',{origin:e.w.location.origin,source:e.w,data:{channel:'medality-study',type:'captures',requestId:data.requestId,items:[]}}));};
+  d.getElementById('import-extension').click();await tick();
+  assert.match(d.getElementById('message').textContent,/Save transcript first/);
+  e.close();
 });
