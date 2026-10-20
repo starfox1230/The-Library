@@ -147,17 +147,48 @@ test('connected extension with zero captures explains the required first save', 
   e.close();
 });
 
-test('download button opens an offered video link and explains unavailable lessons', () => {
-  const e = env('<h1>Example</h1><a href="https://example.com/lecture.mp4">Download video</a><a href="https://example.com/notes.pdf">Download notes</a>');
-  e.w.chrome = { runtime: { onMessage: { addListener() {} } } };
-  const link = e.w.document.querySelector('a'); let clicked = 0;
-  link.getClientRects = () => [{}];
-  link.addEventListener('click', event => { event.preventDefault(); clicked++; });
+test('download button sends the current lecture to helper and shows completion', async () => {
+  const e = env('<h1>Example</h1><iframe src="https://player.vimeo.com/video/123?autoplay=1&h=abc"></iframe>');
+  const sent = [];
+  e.w.setTimeout = fn => { fn(); return 0; };
+  e.w.chrome = { runtime: { onMessage: { addListener() {} }, sendMessage: async message => {
+    sent.push(message);
+    return message.type === 'medality-download' ? {ok:true,job:'abc'} : {ok:true,state:'complete',message:'Saved in Downloads / Medality'};
+  } } };
   e.w.eval(read('extension/transcript-core.js')); e.w.eval(read('extension/transcript.js'));
   const root = e.w.document.getElementById('medality-transcript-tools').shadowRoot;
-  root.querySelector('#download').click(); assert.equal(clicked, 1);
-  assert.match(root.querySelector('[role="status"]').textContent, /Opened/);
-  link.remove(); root.querySelector('#download').click();
-  assert.match(root.querySelector('[role="status"]').textContent, /No video download/);
+  root.querySelector('#download').click(); await tick();
+  assert.equal(sent[0].video, 'https://player.vimeo.com/video/123?h=abc');
+  assert.equal(sent[1].job, 'abc');
+  assert.match(root.querySelector('[role="status"]').textContent, /Saved/);
+  assert.equal(root.querySelector('#download').disabled, false);
   e.close();
+});
+
+test('download button explains missing player and helper errors', async () => {
+  const e = env('<h1>Example</h1>');
+  e.w.chrome = {runtime:{onMessage:{addListener(){}},sendMessage:async()=>({ok:false,error:'Start helper first'})}};
+  e.w.eval(read('extension/transcript-core.js')); e.w.eval(read('extension/transcript.js'));
+  const root = e.w.document.getElementById('medality-transcript-tools').shadowRoot;
+  root.querySelector('#download').click(); await tick();
+  assert.match(root.querySelector('[role="status"]').textContent, /No supported video/);
+  const frame = e.w.document.createElement('iframe');frame.src='https://player.vimeo.com/video/123';e.w.document.body.append(frame);
+  root.querySelector('#download').click(); await tick();
+  assert.match(root.querySelector('[role="status"]').textContent, /Start helper first/);
+  assert.equal(root.querySelector('#download').disabled,false);e.close();
+});
+
+test('background download bridge rejects unrelated sites and passes only lesson URL and video', async () => {
+  const vm = require('node:vm'); const listeners = [], requests = [];
+  const context = { self:{MEDALITY_HELPER_TOKEN:'synthetic'}, importScripts(){}, URL,
+    chrome:{commands:{onCommand:{addListener(){}}},runtime:{onMessage:{addListener:fn=>listeners.push(fn)}}},
+    fetch:async (url,options)=>{requests.push({url,options});return {ok:true,json:async()=>({job:'a'.repeat(32)})};} };
+  vm.runInNewContext(read('extension/background.js'),context);
+  const listener = listeners[0];
+  assert.equal(listener({type:'medality-download',video:'https://player.vimeo.com/video/123'},{url:'https://medality.com.evil.test/'},()=>{}),undefined);
+  assert.equal(requests.length,0);
+  const reply = await new Promise(resolve=>listener({type:'medality-download',video:'https://player.vimeo.com/video/123',page:'https://evil.test/'},{url:lesson},resolve));
+  assert.equal(reply.ok,true);
+  assert.equal(JSON.parse(requests[0].options.body).page,lesson);
+  assert.equal(requests[0].options.headers['X-Medality-Token'],'synthetic');
 });

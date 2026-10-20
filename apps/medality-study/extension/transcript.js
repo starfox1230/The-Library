@@ -49,23 +49,31 @@
       const message = String(error?.message || error); notice(message); return { ok: false, error: message };
     }
   }
-  function downloadVideo() {
-    // Use only download links that the lesson itself exposes. Embedded player
-    // configuration, streaming manifests and protected media are not inspected.
-    const candidates = [...document.querySelectorAll('a[href]')].filter(a => {
-      if (a.closest('[hidden], [aria-hidden="true"]') || !a.getClientRects().length) return false;
-      const name = `${a.textContent} ${a.getAttribute('aria-label') || ''}`;
-      return /download/i.test(name) && (/video|lecture|mp4/i.test(name) || /\.(mp4|m4v|webm)(?:$|[?#])/i.test(a.href));
-    });
-    const link = candidates.find(a => {
-      try { return new URL(a.href).protocol === 'https:'; } catch { return false; }
-    });
-    if (!link) {
-      notice('No video download is offered on this lesson. Embedded playback alone does not provide a download.');
-      return;
-    }
-    link.click();
-    notice('Opened the lesson’s video download. Follow any download options shown by Medality.');
+  let downloading = false;
+  async function downloadVideo() {
+    if (downloading) return;
+    const button = root.querySelector('#download');
+    try {
+      const frame = [...document.querySelectorAll('iframe[src]')].find(f => {
+        try { const u = new URL(f.src); return u.protocol === 'https:' && u.hostname === 'player.vimeo.com' && /^\/video\/[0-9]+$/.test(u.pathname); } catch { return false; }
+      });
+      if (!frame) throw new Error('No supported video found on this lesson.');
+      const video = new URL(frame.src);
+      const hash = video.searchParams.get('h');
+      video.search = hash ? new URLSearchParams({h:hash}).toString() : '';
+      downloading = true; button.disabled = true; notice('Starting video download…');
+      let result = await chrome.runtime.sendMessage({type:'medality-download',video:video.href});
+      if (!result?.ok) throw new Error(result?.error || 'Download helper unavailable.');
+      const job = result.job;
+      do {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        result = await chrome.runtime.sendMessage({type:'medality-download-status',job});
+        if (!result?.ok) throw new Error(result?.error || 'Lost connection to download helper.');
+        notice(result.message);
+      } while (result.state === 'working');
+      if (result.state === 'error') throw new Error(result.message);
+    } catch (error) { notice(String(error.message || error)); }
+    finally { downloading = false; button.disabled = false; }
   }
   function mount() {
     const heading = document.querySelector('h1');

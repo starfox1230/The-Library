@@ -1,4 +1,4 @@
-# Medality Remember Speed v1.2
+# Medality Remember Speed v1.3
 
 Keeps your preferred video speed (2x by default) and adds transcript copy/save controls.
 
@@ -26,15 +26,19 @@ The copy/save action can open the site's existing Transcript panel. If no suppor
 - A separate bridge runs only on the exact The-Library Medality study workspace path. It shares saved captures with that page after a user import request.
 - Captures and preferences are stored locally. The public app stores imported transcripts and notes in this browser's localStorage; it does not upload them to GitHub.
 - Permissions: `storage` and `clipboardWrite`. No cookies, browsing-history, download, all-sites, or Vimeo-wide permission.
-- No course crawling, automatic captures, auto-advancing, progress changes, stream extraction, or audio transcription.
+- No course crawling, automatic captures, auto-advancing, progress changes, or audio transcription.
 - Disabling automatic speed leaves the current video's rate as it is. To update or remove the extension, use `chrome://extensions`.
 
 ## Verification
 
-23 automated checks passed: 13 speed checks and 10 transcript/workspace checks, using synthetic text and simulated Chrome/player APIs. The live Medality transcript DOM was inspected. The workspace's selection, preview, clipboard copy, and clear-selection behavior were tested in Chrome. Installation/reload and the actual Medality-to-hosted-page transfer still require a live installed-extension check.
+30 JavaScript checks and 2 Python validation checks pass. They cover speed, transcripts, workspace, download controls, helper errors, and sender/URL validation. The helper successfully downloaded and merged the live Morphologic Cirrhosis lecture; FFprobe confirmed both audio and video. The updated button still requires an extension reload and live installed-extension test.
 
 Official Vimeo Player SDK 2.30.4 is bundled. See `vendor/VIMEO-LICENSE.md` and https://github.com/vimeo/player.js.
 
-## Video download button
+## Video downloads for offline study
 
-**Download video** opens a visible video-download link supplied by the current lesson, when one exists. If the lesson offers no download, the toolbar says so. This does not extract Vimeo streams or bypass disabled downloads. No additional permissions are needed. After updating the unpacked extension, click Reload at chrome://extensions and refresh the lesson.
+Version 1.3 adds **Download video** to the lesson toolbar. It downloads the current Vimeo lecture's available video and audio streams and merges them into an MP4 in `Downloads/Medality`. It reports progress and completion. It does not advance lessons or download an entire course.
+
+Chrome needs a small local helper to merge the streams. Requires Python, yt-dlp (`python -m pip install yt-dlp`), and FFmpeg (`winget install Gyan.FFmpeg`). Double-click `helper/Start.cmd` in the installed extension folder and leave its window open while downloading. On first launch it creates a local pairing token; reload the extension at `chrome://extensions` and refresh the lesson once. Later launches retain that token. Close the helper window when finished. No Windows startup entry is installed.
+
+The extension gains access only to `http://127.0.0.1:18764/*` for the helper. The helper listens only on loopback and authenticates requests with the generated token. No cookies are read or exported. It accepts only Medality lesson URLs and Vimeo player video IDs, handles one download at a time, and reports unavailable or protected streams as errors. Downloaded files and pairing tokens must never be committed to GitHub. Transfer the MP4 to your phone using your preferred file-transfer method.
