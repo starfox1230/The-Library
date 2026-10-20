@@ -192,3 +192,20 @@ test('background download bridge rejects unrelated sites and passes only lesson 
   assert.equal(JSON.parse(requests[0].options.body).page,lesson);
   assert.equal(requests[0].options.headers['X-Medality-Token'],'synthetic');
 });
+
+
+test('all extension source files are valid UTF-8 for Chrome', () => {
+  const { readdirSync } = require('node:fs');
+  const decoder = new TextDecoder('utf-8', { fatal: true });
+  function check(folder) {
+    for (const entry of readdirSync(folder, {withFileTypes:true})) {
+      if (entry.name === '__pycache__') continue;
+      const path = resolve(folder, entry.name);
+      if (entry.isDirectory()) check(path);
+      else if (/\.(js|json|html|css)$/.test(entry.name)) {
+        assert.doesNotThrow(() => decoder.decode(readFileSync(path)), path);
+      }
+    }
+  }
+  check(resolve(root, 'extension'));
+});

@@ -61,7 +61,7 @@
       const video = new URL(frame.src);
       const hash = video.searchParams.get('h');
       video.search = hash ? new URLSearchParams({h:hash}).toString() : '';
-      downloading = true; button.disabled = true; notice('Starting video download…');
+      downloading = true; button.disabled = true; notice('Starting video downloadâ€¦');
       let result = await chrome.runtime.sendMessage({type:'medality-download',video:video.href});
       if (!result?.ok) throw new Error(result?.error || 'Download helper unavailable.');
       const job = result.job;
