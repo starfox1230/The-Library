@@ -14,15 +14,17 @@
       if (MedalityTranscript.extract(document).length) finish();
     });
   }
-  async function current() {
+  async function current(expectedURL = null) {
+    const guard = () => { if (expectedURL && MedalityTranscript.canonical(location.href) !== expectedURL) throw new Error("Lesson changed before capture finished."); };
+    guard();
     for (let attempt = 0; attempt < 2 && !MedalityTranscript.extract(document).length; attempt++) {
       const buttons = [...document.querySelectorAll('button')].filter(button => /Transcript/.test(button.textContent) && !button.closest('[hidden], [aria-hidden="true"]'));
       const button = buttons.find(button => button.textContent.trim() === 'Transcript') || buttons[0];
       if (!button) break;
-      button.click();
-      await waitForCues();
+      guard(); button.click();
+      await waitForCues(); guard();
     }
-    return MedalityTranscript.capture(document, location.href);
+    guard(); return MedalityTranscript.capture(document, location.href);
   }
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); }
@@ -42,13 +44,58 @@
       if (action === 'copy') {
         await copy(MedalityTranscript.format(item)); notice('Transcript copied');
       } else if (action === 'save') {
-        await chrome.storage.local.set({ [`transcript:${item.url}`]: item }); notice('Saved — import it in Study workspace');
+        await chrome.storage.local.set({ [`transcript:${item.url}`]: item }); notice('Saved — open Recently watched to review');
       }
       return { ok: true, title: item.title, cues: item.cues.length };
     } catch (error) {
       const message = String(error?.message || error); notice(message); return { ok: false, error: message };
     }
   }
+  globalThis.MedalityAutoCapture = async (expectedURL, progress) => {
+    const sameLesson = () => { try { return MedalityTranscript.canonical(location.href) === expectedURL; } catch { return false; } };
+    if (!sameLesson()) return;
+    const key = `watch:${expectedURL}`, transcriptKey = `transcript:${expectedURL}`;
+    let watch, recorded = false;
+    try {
+      const existing = await chrome.storage.local.get([key,transcriptKey]);
+      if (!sameLesson()) return;
+      if (existing[key] && existing[transcriptKey]?.text?.trim()) return;
+      watch = existing[key] || {url:expectedURL,title:document.querySelector('h1')?.textContent.trim() || 'Medality lesson',course:document.querySelector('[aria-label="breadcrumb"] a')?.textContent.trim() || 'Medality',watchedAt:new Date().toISOString(),progress};
+      // Save the watch first so a missing transcript still leaves a useful record.
+      await chrome.storage.local.set({[key]:{...watch,transcriptStatus:'pending'}});
+      recorded = true;
+      let item;
+      if (existing[transcriptKey]?.text?.trim()) {
+        item = existing[transcriptKey];
+      } else if (MedalityTranscript.extract(document,{includeHidden:true}).length) {
+        item = MedalityTranscript.capture(document,location.href,{includeHidden:true});
+      } else {
+        // Use the site's panel, then restore Cases without touching playback.
+        const cases = [...document.querySelectorAll('button')].find(b => /^Cases(?:\s|\()/.test(b.textContent.trim()));
+        const restoreCases = cases && (cases.getAttribute('aria-selected') === 'true' || cases.getAttribute('data-state') === 'active' || [...document.querySelectorAll('a[href*="ambrahealth"]')].some(a => a.getClientRects().length)) && !cases.closest('[hidden], [aria-hidden="true"]');
+        let interacted = false;
+        const changed = event => {if(event.isTrusted) interacted = true;};
+        document.addEventListener('pointerdown',changed,true);
+        document.addEventListener('keydown',changed,true);
+        try { item = await current(expectedURL); }
+        finally {
+          document.removeEventListener('pointerdown',changed,true);
+          document.removeEventListener('keydown',changed,true);
+          if (restoreCases && !interacted && sameLesson() && cases.isConnected) cases.click();
+        }
+      }
+      if (!sameLesson() || item.url !== expectedURL) {
+        await chrome.storage.local.set({[key]:{...watch,transcriptStatus:'unavailable'}}); return;
+      }
+      await chrome.storage.local.set({[transcriptKey]:item,[key]:{...watch,transcriptStatus:'saved'}});
+      notice('Saved at 90% — open Recently watched to review');
+    } catch (error) {
+      if (watch) {
+        try { await chrome.storage.local.set({[key]:{...watch,transcriptStatus:'unavailable'}}); } catch {}
+      }
+      if (sameLesson()) notice(recorded ? 'Watched lecture recorded; transcript unavailable. Use Save transcript to retry.' : 'Could not save your watched lecture. Extension storage may be full; export a backup.');
+    }
+  };
   let downloading = false;
   async function downloadVideo() {
     if (downloading) return;
@@ -81,9 +128,13 @@
     if (!host?.isConnected) {
       host = document.createElement('div'); host.id = 'medality-transcript-tools';
       root = host.attachShadow({ mode: 'open' });
-      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><button id="download">Download video</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
+      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><button id="download">Download video</button><button id="history">Recently watched ↗</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
       root.querySelector('#copy').addEventListener('click', () => void run('copy'));
       root.querySelector('#save').addEventListener('click', () => void run('save'));
+      root.querySelector('#history').addEventListener('click', async () => {
+        try { const result = await chrome.runtime.sendMessage({type:'medality-open-history'}); if (!result?.ok) throw new Error('Could not open Recently watched. Use the extension popup.'); }
+        catch (error) { notice(error.message); }
+      });
       root.querySelector('#download').addEventListener('click', downloadVideo);
       label = root.querySelector('span'); heading.after(host);
     }

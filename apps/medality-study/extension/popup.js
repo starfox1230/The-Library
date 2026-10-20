@@ -10,7 +10,7 @@
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const result = await chrome.tabs.sendMessage(tab.id, { type: 'medality-transcript-action', action }, { frameId: 0 });
       if (!result.ok) throw new Error(result.error);
-      transcriptStatus.textContent = action === 'copy' ? `Copied: ${result.title}` : `Saved: ${result.title}. Import it in the study workspace.`;
+      transcriptStatus.textContent = action === 'copy' ? `Copied: ${result.title}` : `Saved: ${result.title}. Open Recently watched to review it.`;
     } catch (error) {
       transcriptStatus.textContent = error?.message?.includes('Receiving end') ? 'Open or refresh a Medality lesson first.' : String(error?.message || error);
     }
@@ -29,6 +29,12 @@
     } catch { transcriptStatus.textContent = 'Could not export saved transcripts.'; }
   });
 
+  const autoCapture = document.getElementById('auto-capture');
+  chrome.storage.local.get({autoCapture:true}).then(value=>{autoCapture.checked=value.autoCapture!==false;});
+  autoCapture.addEventListener('change',async()=>{
+    try { await chrome.storage.local.set({autoCapture:autoCapture.checked}); transcriptStatus.textContent=autoCapture.checked?'Automatic transcript saving on at 90%.':'Automatic transcript saving paused.'; }
+    catch { transcriptStatus.textContent='Could not save preference.'; }
+  });
   async function refresh() {
     if (saving) return;
     try {

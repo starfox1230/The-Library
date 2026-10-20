@@ -14,14 +14,14 @@ When a device has no saved transcripts, **Start with LI-RADS study notes** immed
 
 ## Use
 
-1. Install or update the extension from **Download extension v1.1**. Extract first, then load the folder containing `manifest.json` at `chrome://extensions`. For an existing installation, replace its files in place, click Reload, then refresh Medality and this workspace.
+1. Install or update the extension from **Download extension v1.4**. Extract first, then load the folder containing `manifest.json` at `chrome://extensions`. For an existing installation, replace its files in place, click Reload, then refresh Medality and this workspace.
 2. On Medality use **Copy transcript** or **Save transcript** beside the lesson title. The extension can open the existing transcript panel when asked; if it cannot find transcript rows, it explains that text is unavailable. It uses observed timestamped `[data-item]` transcript rows, not the whole page's text.
 3. In the hosted workspace choose **Import extension captures**. Alternatively export saved transcripts from the extension popup and import the JSON file.
 4. Select individual lessons, all shown lessons, none, or the LI-RADS first-pass subset. The preview shows exactly what will be copied. Transcript-only, notes-only, combined, timestamped and optional study-prompt formats are available. Missing transcripts are counted and omitted from transcript output.
 
 ## Extension
 
-The `extension/` folder is **Medality Remember Speed v1.1.0**. It retains 2x default speed enforcement with selectable speeds and an off switch. The official Vimeo Player SDK 2.30.4 and its MIT license are bundled.
+The `extension/` folder is **Medality Remember Speed v1.4.0**. It retains 2x default speed enforcement with selectable speeds and an off switch. The official Vimeo Player SDK 2.30.4 and its MIT license are bundled.
 
 - `storage`: local playback preferences and individually keyed transcript captures.
 - `clipboardWrite`: user-triggered copy button and copy shortcut.
@@ -37,3 +37,11 @@ Buildless HTML/CSS/JavaScript served by the repository's existing GitHub Pages w
 Run `npm ci` and `npm test` in this folder. Tests use synthetic transcript text and mock Chrome/player APIs. Package the `extension` folder as `downloads/medality-study-extension.zip` after edits. Do not commit personal captures, authentication details, installed dependencies or browser profiles.
 
 Live Medality row structure was inspected. Automated verification covers transcript parsing, copy/save actions, absence handling, imports, preservation of notes, packet selection, timestamp formatting, source filtering and the extension-to-workspace bridge. End-to-end testing of an installed extension requires the user's installation/reload; a hosted-page test alone does not establish that an extension is installed.
+
+## Recently watched inbox
+
+https://starfox1230.github.io/The-Library/apps/medality-study/recent.html
+
+Version 1.4 records the current lesson at 90% playback position and saves its available transcript locally. It is enabled by default with a separate off switch. Seeking past 90% qualifies. Replays keep one entry per lecture and the first watched timestamp. The extension's own history.html page reads storage directly; recent.html receives library updates through the exact-origin/path bridge. Select any lectures or the latest five and copy their transcripts in chronological viewing order, without an import step. Missing transcripts remain visible as watched lectures. The history view includes manual captures, clearly labelled separately, and cannot reconstruct earlier browsing.
+
+Export/import library backup supports manual phone transfer. Captured text and pairing tokens are never committed or uploaded to GitHub. No local video helper is required for this feature. Export before uninstalling the extension, which deletes its local storage.

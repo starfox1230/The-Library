@@ -1,10 +1,10 @@
 (() => {
   'use strict';
   const stamp = /^(?:\d{1,2}:)?\d{1,2}:\d{2}(?:\.\d+)?$/;
-  function extract(doc) {
+  function extract(doc, options = {}) {
     const groups = new Map();
     for (const row of doc.querySelectorAll('[data-item]')) {
-      if (row.closest('[hidden], [aria-hidden="true"]')) continue;
+      if (!options.includeHidden && row.closest('[hidden], [aria-hidden="true"]')) continue;
       const parts = Array.from(row.querySelectorAll('p')).map(p => (p.innerText || p.textContent || '').trim());
       if (parts.length < 2 || !stamp.test(parts[0]) || !parts[1]) continue;
       const parent = row.parentElement;
@@ -21,8 +21,8 @@
     if (!url.pathname.includes('/unit/')) throw new Error('Open a lesson first.');
     return `https://medality.com${url.pathname.replace(/\/?$/, '/')}`;
   }
-  function capture(doc, href) {
-    const cues = extract(doc);
+  function capture(doc, href, options = {}) {
+    const cues = extract(doc, options);
     if (!cues.length) throw new Error('No transcript found. Open the lesson’s Transcript panel, then try again.');
     const url = canonical(href);
     const title = doc.querySelector('h1')?.textContent.trim() || 'Medality lesson';

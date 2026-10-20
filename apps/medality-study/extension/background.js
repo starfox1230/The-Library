@@ -29,3 +29,13 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   task.then(data=>reply({ok:true,...data})).catch(error=>reply({ok:false,error:error.message}));
   return true;
 });
+
+chrome.runtime.onMessage.addListener((message,sender,reply)=>{
+  if (message?.type !== 'medality-open-history') return;
+  try {
+    const url = new URL(sender.url);
+    if (url.protocol !== 'https:' || !/(^|\.)(medality|mrionline)\.com$/.test(url.hostname)) return;
+    chrome.tabs.create({url:chrome.runtime.getURL('history.html')}).then(()=>reply({ok:true})).catch(()=>reply({ok:false}));
+    return true;
+  } catch { return; }
+});
