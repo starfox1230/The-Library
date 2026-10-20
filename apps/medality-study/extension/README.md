@@ -1,4 +1,4 @@
-# Medality Remember Speed v1.1
+# Medality Remember Speed v1.2
 
 Keeps your preferred video speed (2x by default) and adds transcript copy/save controls.
 
@@ -26,7 +26,7 @@ The copy/save action can open the site's existing Transcript panel. If no suppor
 - A separate bridge runs only on the exact The-Library Medality study workspace path. It shares saved captures with that page after a user import request.
 - Captures and preferences are stored locally. The public app stores imported transcripts and notes in this browser's localStorage; it does not upload them to GitHub.
 - Permissions: `storage` and `clipboardWrite`. No cookies, browsing-history, download, all-sites, or Vimeo-wide permission.
-- No course crawling, automatic captures, auto-advancing, progress changes, media downloads, or audio transcription.
+- No course crawling, automatic captures, auto-advancing, progress changes, stream extraction, or audio transcription.
 - Disabling automatic speed leaves the current video's rate as it is. To update or remove the extension, use `chrome://extensions`.
 
 ## Verification
@@ -34,3 +34,7 @@ The copy/save action can open the site's existing Transcript panel. If no suppor
 23 automated checks passed: 13 speed checks and 10 transcript/workspace checks, using synthetic text and simulated Chrome/player APIs. The live Medality transcript DOM was inspected. The workspace's selection, preview, clipboard copy, and clear-selection behavior were tested in Chrome. Installation/reload and the actual Medality-to-hosted-page transfer still require a live installed-extension check.
 
 Official Vimeo Player SDK 2.30.4 is bundled. See `vendor/VIMEO-LICENSE.md` and https://github.com/vimeo/player.js.
+
+## Video download button
+
+**Download video** opens a visible video-download link supplied by the current lesson, when one exists. If the lesson offers no download, the toolbar says so. This does not extract Vimeo streams or bypass disabled downloads. No additional permissions are needed. After updating the unpacked extension, click Reload at chrome://extensions and refresh the lesson.

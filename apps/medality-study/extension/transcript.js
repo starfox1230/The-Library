@@ -49,15 +49,34 @@
       const message = String(error?.message || error); notice(message); return { ok: false, error: message };
     }
   }
+  function downloadVideo() {
+    // Use only download links that the lesson itself exposes. Embedded player
+    // configuration, streaming manifests and protected media are not inspected.
+    const candidates = [...document.querySelectorAll('a[href]')].filter(a => {
+      if (a.closest('[hidden], [aria-hidden="true"]') || !a.getClientRects().length) return false;
+      const name = `${a.textContent} ${a.getAttribute('aria-label') || ''}`;
+      return /download/i.test(name) && (/video|lecture|mp4/i.test(name) || /\.(mp4|m4v|webm)(?:$|[?#])/i.test(a.href));
+    });
+    const link = candidates.find(a => {
+      try { return new URL(a.href).protocol === 'https:'; } catch { return false; }
+    });
+    if (!link) {
+      notice('No video download is offered on this lesson. Embedded playback alone does not provide a download.');
+      return;
+    }
+    link.click();
+    notice('Opened the lesson�s video download. Follow any download options shown by Medality.');
+  }
   function mount() {
     const heading = document.querySelector('h1');
     if (!heading || !location.pathname.includes('/unit/')) { host?.remove(); return; }
     if (!host?.isConnected) {
       host = document.createElement('div'); host.id = 'medality-transcript-tools';
       root = host.attachShadow({ mode: 'open' });
-      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
+      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><button id="download">Download video</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
       root.querySelector('#copy').addEventListener('click', () => void run('copy'));
       root.querySelector('#save').addEventListener('click', () => void run('save'));
+      root.querySelector('#download').addEventListener('click', downloadVideo);
       label = root.querySelector('span'); heading.after(host);
     }
     const count = MedalityTranscript.extract(document).length;

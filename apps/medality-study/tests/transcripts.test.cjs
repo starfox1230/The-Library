@@ -146,3 +146,18 @@ test('connected extension with zero captures explains the required first save', 
   assert.match(d.getElementById('message').textContent,/Save transcript first/);
   e.close();
 });
+
+test('download button opens an offered video link and explains unavailable lessons', () => {
+  const e = env('<h1>Example</h1><a href="https://example.com/lecture.mp4">Download video</a><a href="https://example.com/notes.pdf">Download notes</a>');
+  e.w.chrome = { runtime: { onMessage: { addListener() {} } } };
+  const link = e.w.document.querySelector('a'); let clicked = 0;
+  link.getClientRects = () => [{}];
+  link.addEventListener('click', event => { event.preventDefault(); clicked++; });
+  e.w.eval(read('extension/transcript-core.js')); e.w.eval(read('extension/transcript.js'));
+  const root = e.w.document.getElementById('medality-transcript-tools').shadowRoot;
+  root.querySelector('#download').click(); assert.equal(clicked, 1);
+  assert.match(root.querySelector('[role="status"]').textContent, /Opened/);
+  link.remove(); root.querySelector('#download').click();
+  assert.match(root.querySelector('[role="status"]').textContent, /No video download/);
+  e.close();
+});
