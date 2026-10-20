@@ -21,7 +21,7 @@ When a device has no saved transcripts, **Start with LI-RADS study notes** immed
 
 ## Extension
 
-The `extension/` folder is **Medality Remember Speed v1.4.0**. It retains 2x default speed enforcement with selectable speeds and an off switch. The official Vimeo Player SDK 2.30.4 and its MIT license are bundled.
+The `extension/` folder is **Medality Remember Speed v1.5.0**. It retains 2x default speed enforcement with selectable speeds and an off switch. The official Vimeo Player SDK 2.30.4 and its MIT license are bundled.
 
 - `storage`: local playback preferences and individually keyed transcript captures.
 - `clipboardWrite`: user-triggered copy button and copy shortcut.
@@ -45,3 +45,5 @@ https://starfox1230.github.io/The-Library/apps/medality-study/recent.html
 Version 1.4 records the current lesson at 90% playback position and saves its available transcript locally. It is enabled by default with a separate off switch. Seeking past 90% qualifies. Replays keep one entry per lecture and the first watched timestamp. The extension's own history.html page reads storage directly; recent.html receives library updates through the exact-origin/path bridge. Select any lectures or the latest five and copy their transcripts in chronological viewing order, without an import step. Missing transcripts remain visible as watched lectures. The history view includes manual captures, clearly labelled separately, and cannot reconstruct earlier browsing.
 
 Export/import library backup supports manual phone transfer. Captured text and pairing tokens are never committed or uploaded to GitHub. No local video helper is required for this feature. Export before uninstalling the extension, which deletes its local storage.
+
+Version 1.5 fixes autoplay transition tracking using actual video identity and fallback progress polling. It also restores audio after autoplay muting, with a remembered mute preference, an off switch, and a Restore sound button. These apply across supported Medality lesson courses, not just the indexed liver course. Live inspection confirmed an iframe muted while the site UI reported sound on; the active lesson was unmuted through the site controls without starting playback. Full installed-extension autoplay verification requires Reload after updating.

@@ -2,7 +2,9 @@
   'use strict';
   if (window.top !== window) return;
   const workspace = 'https://starfox1230.github.io/The-Library/apps/medality-study/';
-  let host, root, label, timer;
+  let host, root, label, timer, toolbarURL = location.href;
+  globalThis.MedalityTrackingNotice = text => { if (!downloading) notice(text); };
+  globalThis.MedalityAudioNotice = text => notice(text);
   function notice(text) { if (label) label.textContent = text; }
   function waitForCues(milliseconds = 1800) {
     return new Promise(resolve => {
@@ -59,7 +61,7 @@
     try {
       const existing = await chrome.storage.local.get([key,transcriptKey]);
       if (!sameLesson()) return;
-      if (existing[key] && existing[transcriptKey]?.text?.trim()) return;
+      if (existing[key] && existing[transcriptKey]?.text?.trim()) {notice('Already saved — open Recently watched to review'); return;}
       watch = existing[key] || {url:expectedURL,title:document.querySelector('h1')?.textContent.trim() || 'Medality lesson',course:document.querySelector('[aria-label="breadcrumb"] a')?.textContent.trim() || 'Medality',watchedAt:new Date().toISOString(),progress};
       // Save the watch first so a missing transcript still leaves a useful record.
       await chrome.storage.local.set({[key]:{...watch,transcriptStatus:'pending'}});
@@ -123,17 +125,21 @@
     finally { downloading = false; button.disabled = false; }
   }
   function mount() {
+    if (toolbarURL !== location.href) {toolbarURL = location.href; if(label)label.textContent='Waiting for this lesson’s player…';}
     const heading = document.querySelector('h1');
     if (!heading || !location.pathname.includes('/unit/')) { host?.remove(); return; }
     if (!host?.isConnected) {
       host = document.createElement('div'); host.id = 'medality-transcript-tools';
       root = host.attachShadow({ mode: 'open' });
-      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><button id="download">Download video</button><button id="history">Recently watched ↗</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
+      root.innerHTML = `<style>:host{display:block;margin:12px 0;font:13px/1.45 system-ui,sans-serif;color:#e4f5f1}.bar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}button,a{font:inherit;font-weight:650;border:1px solid #658c8c;border-radius:6px;padding:8px 11px;background:#173e47;color:#e4f5f1;cursor:pointer;text-decoration:none}button:hover,a:hover{background:#255765}button:focus-visible,a:focus-visible{outline:2px solid #7fe6c3;outline-offset:3px}span{color:#c9dadb;max-width:500px}</style><div class="bar"><button id="copy">Copy transcript</button><button id="save">Save transcript</button><button id="download">Download video</button><button id="history">Recently watched ↗</button><button id="audio">Restore sound</button><a href="${workspace}" target="_blank" rel="noopener noreferrer">Study workspace ↗</a><span role="status" aria-live="polite"></span></div>`;
       root.querySelector('#copy').addEventListener('click', () => void run('copy'));
       root.querySelector('#save').addEventListener('click', () => void run('save'));
       root.querySelector('#history').addEventListener('click', async () => {
         try { const result = await chrome.runtime.sendMessage({type:'medality-open-history'}); if (!result?.ok) throw new Error('Could not open Recently watched. Use the extension popup.'); }
         catch (error) { notice(error.message); }
+      });
+      root.querySelector('#audio').addEventListener('click', async () => {
+        const ok = await globalThis.MedalityRestoreAudio?.(); notice(ok ? 'Sound restored. Press Play if the video is paused.' : 'Use Medality’s Unmute control, then press Play.');
       });
       root.querySelector('#download').addEventListener('click', downloadVideo);
       label = root.querySelector('span'); heading.after(host);

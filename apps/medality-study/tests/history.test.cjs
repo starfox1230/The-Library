@@ -9,15 +9,16 @@ const rows='<div><div data-item="0"><p>0:01</p><p>Synthetic transcript.</p></div
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(html='<h1>First lesson</h1>'+rows,settings={}){
  const dom=new JSDOM(html,{url,runScripts:'outside-only'}),w=dom.window,stored={...settings},changes=[];
+ const intervals=[];w.setInterval=fn=>{intervals.push(fn);return intervals.length;};
  const original=w.MutationObserver,observers=[];
  w.MutationObserver=class extends original{constructor(fn){super(fn);observers.push(this);}};
  w.chrome={storage:{local:{get:async query=>query===null?{...stored}:Array.isArray(query)?Object.fromEntries(query.filter(k=>k in stored).map(k=>[k,stored[k]])):{...query,...stored},set:async obj=>{const delta=Object.fromEntries(Object.entries(obj).map(([k,v])=>[k,{oldValue:stored[k],newValue:v}]));Object.assign(stored,obj);changes.forEach(fn=>fn(delta,'local'));}},onChanged:{addListener:fn=>changes.push(fn)}},runtime:{getURL:p=>'chrome-extension://synthetic/'+p,onMessage:{addListener(){}},sendMessage:async()=>({})}};
- return {w,stored,close(){observers.forEach(o=>o.disconnect());w.close();}};
+ return {w,stored,intervals,close(){observers.forEach(o=>o.disconnect());w.close();}};
 }
 function captureScripts(e){e.w.eval(read('extension/transcript-core.js'));e.w.eval(read('extension/transcript.js'));}
 function tracker(e){
  const players=[];
- e.w.Vimeo={Player:class{constructor(element){this.handlers={};this.element=element;players.push(this);}on(event,fn){this.handlers[event]=fn;}off(event){delete this.handlers[event];}emit(event,data){this.handlers[event]?.(data);}}};
+ e.w.Vimeo={Player:class{constructor(element){this.handlers={};this.element=element;this.seconds=0;this.duration=100;players.push(this);}async getVideoId(){return this.element.src.split('/video/')[1].split('?')[0];}async getCurrentTime(){return this.seconds;}async getDuration(){return this.duration;}on(event,fn){this.handlers[event]=fn;}off(event){delete this.handlers[event];}emit(event,data){if(event==='timeupdate'){this.seconds=data.seconds;this.duration=data.duration;}this.handlers[event]?.(data);}}};
  e.w.eval(read('extension/watch-tracker.js'));return players;
 }
 test('90% event saves a lecture and transcript once, preserving original watch time on replay',async()=>{
@@ -35,7 +36,7 @@ test('disabled tracking, unknown durations and stale events after navigation do 
  await e.w.chrome.storage.local.set({autoCapture:true});
  players[0].emit('timeupdate',{seconds:95,duration:0});await tick();assert.equal(Object.keys(e.stored).length,1);
  e.w.history.pushState({},'',url.replace('first','next'));players[0].emit('timeupdate',{seconds:99,duration:100});await tick();assert.equal(Object.keys(e.stored).length,1);
- players[0].emit('loaded',{});players[0].emit('timeupdate',{seconds:90,duration:100});await tick();assert.ok(e.stored['watch:'+url.replace('first','next')]);e.close();
+ e.w.document.querySelector('iframe').src='https://player.vimeo.com/video/456';players[0].emit('loaded',{});await tick();players[0].emit('timeupdate',{seconds:90,duration:100});await tick();assert.ok(e.stored['watch:'+url.replace('first','next')]);e.close();
 });
 test('native playback threshold captures without calling playback or completion controls',async()=>{
  const e=setup('<h1>First</h1><video></video>'+rows);captureScripts(e);tracker(e);await tick();
@@ -108,4 +109,18 @@ test('public history adapter stores incoming extension captures locally and igno
  handlers[0]({source:{},origin:w.location.origin,data:message});assert.equal(Object.keys(await w.MedalityStorage.local.get()).length,0);
  handlers[0]({source:w,origin:w.location.origin,data:message});const stored=await w.MedalityStorage.local.get();assert.equal(stored['transcript:'+url].text,'Text');assert.equal(stored['transcript:'+url].note,'My note');assert.ok(stored['watch:'+url]);
  assert.match(w.localStorage.getItem('medality-watched-v1'),/First/);w.close();
+});
+
+
+test('autoplay works when player loads before route change and when route changes before player',async()=>{
+ const e=setup('<h1>First</h1><iframe src="https://player.vimeo.com/video/123"></iframe>'+rows);captureScripts(e);const p=tracker(e);await tick();
+ p[0].emit('timeupdate',{seconds:95,duration:100});await tick();assert.ok(e.stored['watch:'+url]);
+ const frame=e.w.document.querySelector('iframe');frame.src='https://player.vimeo.com/video/456';p[0].seconds=0;p[0].emit('loaded',{});await tick();
+ const next=url.replace('first','second');e.w.history.pushState({},'',next);p[0].emit('timeupdate',{seconds:95,duration:100});await tick();assert.ok(e.stored['watch:'+next]);
+ const third=url.replace('first','third');e.w.history.pushState({},'',third);p[0].emit('timeupdate',{seconds:99,duration:100});await tick();assert.equal(e.stored['watch:'+third],undefined);
+ frame.src='https://player.vimeo.com/video/789';p[0].seconds=95;e.intervals.forEach(fn=>fn());await tick();assert.ok(e.stored['watch:'+third]);e.close();
+});
+test('polling captures at 90% even if timeupdate subscriptions are lost',async()=>{
+ const e=setup('<h1>First</h1><iframe src="https://player.vimeo.com/video/123"></iframe>'+rows);captureScripts(e);const p=tracker(e);await tick();
+ delete p[0].handlers.timeupdate;p[0].seconds=95;e.intervals.forEach(fn=>fn());await tick();assert.equal(e.stored['watch:'+url].transcriptStatus,'saved');e.close();
 });

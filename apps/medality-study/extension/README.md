@@ -1,4 +1,4 @@
-# Medality Remember Speed v1.4
+# Medality Remember Speed v1.5
 
 Keeps your preferred video speed (2x by default), saves watched transcripts at 90%, and gives you a selectable recent-lecture inbox.
 
@@ -53,3 +53,12 @@ The extension gains access only to `http://127.0.0.1:18764/*` for the helper. Th
 - Extension page uses Chrome local storage directly and updates live without importing. The public recent.html page requests the same library through the scoped bridge and keeps a local browser copy; no capture text is committed or uploaded to GitHub.
 - Export full library backup before uninstalling the extension. Import that JSON on a phone at the public Recently watched page. Phone transfer is manual; the URL alone contains no transcripts.
 - Transcript saving and review do not need the video download helper or a server.
+
+## Autoplay fixes (v1.5)
+
+- Tracking verifies the actual Vimeo video ID against the current iframe, URL, and previously observed lesson/video pairs. Handles player-before-route and route-before-player transitions without depending on the loaded event's timing.
+- Re-subscribes after iframe loads; an independent 1.5-second progress poll covers lost timeupdate subscriptions. Playback is never started or sought by tracking.
+- Toolbar resets stale saved messages on navigation and shows current lesson tracking percentage.
+- Keep sound on between lessons is enabled by default. Restores remembered mute choice and an audible volume if autoplay resets volume to zero. Deliberate Medality Mute/Unmute clicks or M shortcut are remembered. An off switch is in the popup, and Restore sound is available on the lesson toolbar. No play command is issued; browser autoplay restrictions can still require a user click.
+- Supports Medality/MRI Online /unit/ lessons across courses with Vimeo or ordinary HTML video. Transcript capture requires the supported transcript rows. No course list restricts tracking.
+- Does not reconstruct records for previously missed lessons. Manual Save transcript puts a missed lecture in the review inbox as a manual capture.

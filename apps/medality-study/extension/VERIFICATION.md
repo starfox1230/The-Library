@@ -1,9 +1,7 @@
-# Version 1.4 verification
+# Version 1.5 verification
 
-- 41 JavaScript tests: playback speed, copy/save, download controls, UTF-8 encoding, 90% automatic saving, duplicate prevention, missing transcripts, navigation races, native/Vimeo events, history order/selection/copy, safe rendering, bridge scoping and public-page local storage.
-- 2 Python video-helper URL validation tests remain available.
-- Browser QA: imported existing LI-RADS 5 JSON backup, selected and copied transcript in the new recent.html page.
-- Public page and extension page share the same view code; extension version reads chrome.storage directly, hosted version uses a scoped bridge or manual JSON import.
-- No extension reload is performed automatically; live installed-extension 90% tracking requires Reload and a refreshed Medality lesson.
-- No automatic backfill of earlier watching. 90% is playback position; seeking counts.
-- UTF-8 validation covers every extension JS/JSON/HTML/CSS file before packaging.
+47 automated JavaScript checks pass. Added regression cases cover both autoplay transition orders, missed timeupdate events, automatic audio restoration, preservation of deliberate mute, disabled audio preference, explicit sound restoration, and iframe reuse. All extension JS/JSON/HTML/CSS decode as UTF-8.
+
+Live inspection: Benign Liver Lesions / Indeterminate Liver Mass on US: Hemangioma had a muted Vimeo video while the Medality control said Mute. Toggling the site control restored muted=false while paused=true. The inbox contained a saved watched Ciliated Hepatic Foregut Cyst entry, confirming cross-course capture.
+
+The updated installed extension needs Reload and refreshed lesson tabs. New automatic audio/tracking behavior has automated regression coverage but has not yet been verified in a reloaded installed extension. Earlier missed watches are not reconstructed.

@@ -35,6 +35,9 @@
     try { await chrome.storage.local.set({autoCapture:autoCapture.checked}); transcriptStatus.textContent=autoCapture.checked?'Automatic transcript saving on at 90%.':'Automatic transcript saving paused.'; }
     catch { transcriptStatus.textContent='Could not save preference.'; }
   });
+  const rememberAudio = document.getElementById('remember-audio');
+  chrome.storage.local.get({rememberAudio:true}).then(value=>{rememberAudio.checked=value.rememberAudio!==false;});
+  rememberAudio.addEventListener('change',()=>chrome.storage.local.set({rememberAudio:rememberAudio.checked}));
   async function refresh() {
     if (saving) return;
     try {

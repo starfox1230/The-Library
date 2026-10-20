@@ -139,7 +139,7 @@
     window.postMessage({ channel: 'medality-study', type: 'request-captures', requestId: id }, location.origin);
     setTimeout(() => {
       if (request !== id) return; request = null;
-      message('Extension not detected. Update to v1.4, refresh this page and try again. You can also export JSON from the extension popup and use Import JSON file.');
+      message('Extension not detected. Update to v1.5, refresh this page and try again. You can also export JSON from the extension popup and use Import JSON file.');
     }, 2500);
   });
   window.addEventListener('message', event => {
