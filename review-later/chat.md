@@ -44,10 +44,92 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-21 17:48 Central Daylight Time
-Cards: 7
+Updated: 2026-10-21 18:00 Central Daylight Time
+Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-19T12:40:50-05:00
+Last seen: 2026-10-21T17:55:41-05:00
+Card ID: 1761622373549
+Note ID: 1761622373547
+
+Question:
+00:12
+
+The units of measure for radioactivity are [...].
+
+Answer:
+00:12
+
+The units of measure for radioactivity are the curie (Ci) or becquerel (Bq).
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-26T15:53:48-05:00
+Last seen: 2026-10-21T17:53:26-05:00
+Card ID: 1785498425558
+Note ID: 1785498425557
+
+Question:
+00:12
+
+Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+
+[...]
+
+Answer:
+00:12
+
+Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+
+Ulcer-like projection
+
+Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-09-07T06:39:44-05:00
+Last seen: 2026-10-21T17:52:08-05:00
+Card ID: 1788754072546
+Note ID: 1788754072545
+
+Question:
+00:12
+
+Biliary cast syndrome can produce a [...] pattern of liver enzyme abnormalities.
+
+Answer:
+00:12
+
+Biliary cast syndrome can produce a cholestatic pattern of liver enzyme abnormalities.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-21T17:50:02-05:00
+Last seen: 2026-10-21T17:50:19-05:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-10-15T16:23:41-05:00
@@ -75,7 +157,7 @@ Neurofibromatosis type 2
 
 Q19. Correct; difficulty: easy. Vital Concept: Neurofibromatosis type 2 (NF2) is a rare autosomal dominant neurocutaneous disorder (phakomatosis) characterizes by development of multiple CNS tumors such as intracranial schwannomas (mostly vestibular schwannomas and rarely spinal schwannomas), intracranial and spinal meningiomas, and intraspinal-intramedullary ependymomas.
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-05:00
@@ -93,7 +175,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T13:22:43-05:00
@@ -115,29 +197,7 @@ What is the primary difference between subacute granulomatous thyroiditis and su
 
 Subacute granulomatous thyroiditis is classically painful and tender, often with an antecedent viral URI. And subacute lymphocytic thyroiditis is classically painless and commonly occurs postpartum.
 
-## Card 4
-
-Deck: ..Due 2026-09-27 to 2026-10-21 Audio
-Flagged: 2026-10-21T07:23:51-05:00
-Last seen: 2026-10-21T07:23:51-05:00
-Card ID: 1753327112541
-Note ID: 1753327112541
-
-Question:
-00:12
-
-What histologic pattern of interstitial lung disease is associated with asbestosis?
-
-[...]
-
-Answer:
-00:08
-
-What histologic pattern of interstitial lung disease is associated with asbestosis?
-
-Usual interstitial pneumonia (UIP)
-
-## Card 5
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:57:21-05:00
@@ -155,7 +215,7 @@ Answer:
 
 On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-10-20T23:25:42-05:00
@@ -187,7 +247,7 @@ Q45. Correct; difficulty: hard. Vital Concept: Cardiac amyloidosis demonstrates 
 
 Open review Q45
 
-## Card 7
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-10-11T08:05:58-05:00
