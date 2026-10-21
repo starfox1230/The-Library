@@ -5,9 +5,11 @@ test('worker accepts only own-extension RadPrimer messages and opens only its lo
   const context={importScripts:()=>{},RadCore:require('../extension/core.js'),RadDB:{saveCapture:async c=>{saved++;return c;}},chrome:{runtime:{id:'ours',getURL:p=>'chrome-extension://ours/'+p,onMessage:{addListener:f=>{listener=f;}}},action:{onClicked:{addListener:f=>{icon=f;}}},tabs:{create:args=>created.push(args)}}};
   vm.runInNewContext(fs.readFileSync(path.join(runtime,'background.js'),'utf8'),context);
   const c=await record();let response;
-  assert.equal(listener({type:'rp:save',capture:c},{id:'other',tab:{url:'https://app.radprimer.com/assessment/a'}},r=>{response=r;}),undefined);assert.equal(saved,0);
-  assert.equal(listener({type:'rp:save',capture:c},{id:'ours',tab:{url:'https://app.radprimer.com.evil.test/'}},r=>{response=r;}),undefined);assert.equal(saved,0);
-  const pending=new Promise(resolve=>listener({type:'rp:save',capture:c},{id:'ours',tab:{url:'https://app.radprimer.com/assessment/a'}},resolve));
+  assert.equal(listener({type:'rp:save',capture:c},{id:'other',frameId:0,url:'https://app.radprimer.com/assessment/a',tab:{id:1}},r=>{response=r;}),undefined);assert.equal(saved,0);
+  assert.equal(listener({type:'rp:save',capture:c},{id:'ours',frameId:0,url:'https://app.radprimer.com.evil.test/',tab:{id:1,url:'https://app.radprimer.com/assessment/a'}},r=>{response=r;}),undefined);assert.equal(saved,0);
+  assert.equal(listener({type:'rp:save',capture:c},{id:'ours',frameId:1,url:'https://app.radprimer.com/assessment/a',tab:{id:1}},r=>{response=r;}),undefined);assert.equal(saved,0);
+  // Chrome may omit protected tab.url without tabs permission; sender.url remains authoritative.
+  const pending=new Promise(resolve=>listener({type:'rp:save',capture:c},{id:'ours',frameId:0,url:'https://app.radprimer.com/assessment/a',tab:{id:1}},resolve));
   assert.equal((await pending).ok,true);assert.equal(saved,1);icon();assert.equal(created[0].url,'chrome-extension://ours/library.html');
 });
 test('manifest limits access and packages runtime without external code or network access in library',()=>{

@@ -2,7 +2,8 @@ importScripts('core.js', 'db.js');
 'use strict';
 chrome.action.onClicked.addListener(() => chrome.tabs.create({ url: chrome.runtime.getURL('library.html') }));
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
-  if (sender.id !== chrome.runtime.id || !sender.tab?.url?.startsWith('https://app.radprimer.com/')) return;
+  // MessageSender.url identifies the actual document without requesting tabs permission.
+  if (sender.id !== chrome.runtime.id || !sender.tab || sender.frameId !== 0 || !RadCore.safeSource(sender.url)) return;
   if (message?.type === 'rp:open') {
     chrome.tabs.create({ url: chrome.runtime.getURL('library.html') }); respond({ ok: true }); return;
   }
