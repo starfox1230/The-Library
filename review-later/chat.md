@@ -44,10 +44,118 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-21 06:50 Central Daylight Time
-Cards: 2
+Updated: 2026-10-21 17:48 Central Daylight Time
+Cards: 7
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-10-15T16:23:41-05:00
+Last seen: 2026-10-21T13:16:20-05:00
+Card ID: 1780095027125
+Note ID: 1780095027124
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Neurofibromatosis type 2
+
+1/2
+
+Q19. Correct; difficulty: easy. Vital Concept: Neurofibromatosis type 2 (NF2) is a rare autosomal dominant neurocutaneous disorder (phakomatosis) characterizes by development of multiple CNS tumors such as intracranial schwannomas (mostly vestibular schwannomas and rarely spinal schwannomas), intracranial and spinal meningiomas, and intraspinal-intramedullary ependymomas.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-08-09T22:03:42-05:00
+Last seen: 2026-10-21T07:31:20-05:00
+Card ID: 1753054854801
+Note ID: 1753054854800
+
+Question:
+00:12
+
+A Rastelli procedure is used for [...]
+
+Answer:
+00:08
+
+A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-10-09T13:22:43-05:00
+Last seen: 2026-10-21T07:27:58-05:00
+Card ID: 1775710632481
+Note ID: 1775710632481
+
+Question:
+00:12
+
+What is the primary difference between subacute granulomatous thyroiditis and subacute lymphocytic thyroiditis?
+
+[...]
+
+Answer:
+00:12
+
+What is the primary difference between subacute granulomatous thyroiditis and subacute lymphocytic thyroiditis?
+
+Subacute granulomatous thyroiditis is classically painful and tender, often with an antecedent viral URI. And subacute lymphocytic thyroiditis is classically painless and commonly occurs postpartum.
+
+## Card 4
+
+Deck: ..Due 2026-09-27 to 2026-10-21 Audio
+Flagged: 2026-10-21T07:23:51-05:00
+Last seen: 2026-10-21T07:23:51-05:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T07:57:21-05:00
+Last seen: 2026-10-21T07:21:42-05:00
+Card ID: 1775708030972
+Note ID: 1775708030970
+
+Question:
+00:12
+
+On ultrasound, [...] usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
+
+Answer:
+00:12
+
+On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
+
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-10-20T23:25:42-05:00
@@ -79,7 +187,7 @@ Q45. Correct; difficulty: hard. Vital Concept: Cardiac amyloidosis demonstrates 
 
 Open review Q45
 
-## Card 2
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-10-11T08:05:58-05:00
