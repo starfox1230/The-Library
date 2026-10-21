@@ -18,8 +18,9 @@
       drafts.delete(key);
       if (current === key) { ui.querySelector('textarea').value = ''; ui.querySelector('[data-highlights]').replaceChildren(); }
       const missing = result.media.failed || result.media.saved < result.media.total;
+      const firstImageError = capture.groups.flatMap(g => g.images).find(i => i.error)?.error;
       status((anki ? 'Saved + queued for Anki. ' : 'Saved. ') + result.media.saved + '/' + result.media.total + ' images offline.' +
-        (missing ? ' Some image files failed—save again to retry.' : '') +
+        (missing ? ' Some image files failed—save again to retry.' + (firstImageError ? ' ' + firstImageError + '.' : '') : '') +
         (!result.answered ? ' Question only: answer it, then save again for explanations and keys.' : ' Answers, explanations and image keys included.'));
     } catch (error) { status('Not saved: ' + error.message); }
     finally { busy = false; ui.querySelectorAll('button,textarea').forEach(b => { b.disabled = false; }); refresh(); }

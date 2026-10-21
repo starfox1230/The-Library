@@ -38,8 +38,13 @@
     if (u.origin !== 'https://app.radprimer.com' || !u.pathname.startsWith('/images/')) throw new Error('Unsupported image source');
     const response = await fetch(u.href, { credentials: 'same-origin', signal: AbortSignal.timeout(20000) });
     if (!response.ok) throw new Error('Image download returned ' + response.status);
-    const blob = await response.blob();
-    if (!/^image\/(png|jpeg|webp|gif)(;|$)/i.test(blob.type) || blob.size > 25 * 1024 * 1024 || !blob.size) throw new Error('Invalid or oversized image response');
+    const received = await response.blob();
+    // RadPrimer serves JPEG bytes with the image/jpg alias. Normalize before
+    // FileReader creates the data URL: the library deliberately accepts image/jpeg.
+    const type = received.type.toLowerCase().split(';')[0].trim();
+    if (!/^image\/(png|jpe?g|webp|gif)$/.test(type)) throw new Error('Unsupported image response type: ' + (type || '(missing)'));
+    if (received.size > 25 * 1024 * 1024 || !received.size) throw new Error('Empty image or image exceeds 25 MB');
+    const blob = type === 'image/jpg' ? received.slice(0, received.size, 'image/jpeg') : received;
     return new Promise((resolve, reject) => {
       const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = () => reject(reader.error); reader.readAsDataURL(blob);
     });
