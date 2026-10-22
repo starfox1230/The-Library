@@ -1,8 +1,8 @@
 (async function () {
   'use strict';
   const $ = selector => document.querySelector(selector);
-  let cases = [], view = 'all', active = '', revealed = false, chosen = -1;
-  const noteDrafts = new Map(), groupState = new Map();
+  let cases = [], view = 'all', active = '', revealed = false, chosen = -1, pane = 'question', casesCollapsed = false, fitFrame;
+  const noteDrafts = new Map(), groupState = new Map(), imageViews = new Map();
   const isExtension = location.protocol === 'chrome-extension:';
   $('#web-notice').hidden = isExtension;
   if (isExtension) {
@@ -40,7 +40,7 @@
     const list = $('#case-list'); list.replaceChildren();
     const filtered = cases.filter(matches).sort((a,b) => Date.parse(b.savedAt) - Date.parse(a.savedAt));
     for (const c of filtered) {
-      const card = button('', () => { active = c.id; chosen = -1; revealed = false; renderAll(); }, 'case-card' + (active === c.id ? ' active' : ''));
+      const card = button('', () => { active = c.id; chosen = -1; revealed = false; pane = 'question'; renderAll(); }, 'case-card' + (active === c.id ? ' active' : ''));
       card.setAttribute('aria-pressed', active === c.id ? 'true' : 'false');
       const meta = el('div', undefined, 'card-meta'); meta.append(el('span', date(c.savedAt)), el('span', c.sourceLabel || 'RADPrimer'));
       card.append(meta, el('span', c.stem.length > 125 ? c.stem.slice(0,122) + '…' : c.stem, 'stem'));
@@ -55,13 +55,18 @@
     if (!filtered.length) {
       const empty = el('div', undefined, 'empty'); empty.append(el('h3', cases.length ? 'No matching cases' : 'Your next good case starts here'), el('p', cases.length ? 'Try another filter or search.' : 'On RadPrimer, answer a question and choose Save case. It will appear here with its images and explanations.')); list.append(empty);
     }
+    $('.work').classList.toggle('single-case', filtered.length <= 1);
+    $('.work').classList.toggle('cases-collapsed', casesCollapsed);
+    $('#toggle-cases').textContent = 'Cases (' + filtered.length + ')';
+    $('#toggle-cases').disabled = filtered.length <= 1;
+    $('#toggle-cases').setAttribute('aria-expanded', String(filtered.length > 1 && !casesCollapsed));
     return filtered;
   }
   function renderAll() {
     const labels = { all: ['YOUR COLLECTION','Saved cases'], due: ['KEEP IT FAMILIAR','Ready to revisit'], anki: ['ONLY WHAT MATTERS','Your Anki queue'], archive: ['SET ASIDE, STILL HERE','Archived cases'] };
     $('#view-label').textContent = labels[view][0]; $('#collection-title').textContent = labels[view][1];
     const filtered = renderList();
-    if (!filtered.some(c => c.id === active)) { active = filtered[0]?.id || ''; chosen = -1; revealed = false; renderList(); }
+    if (!filtered.some(c => c.id === active)) { active = filtered[0]?.id || ''; chosen = -1; revealed = false; pane = 'question'; renderList(); }
     renderDetail();
   }
   function renderDetail() {
@@ -73,11 +78,32 @@
       if (!isExtension) { const setup = el('a','Install the extension'); setup.href = '../index.html'; empty.append(setup); }
       container.append(empty); return;
     }
-    const head = el('section', undefined, 'detail-head'), meta = el('div', undefined, 'meta');
+    const topbar = el('div', undefined, 'review-topbar'), meta = el('div', undefined, 'meta');
     meta.append(el('span', c.questionLabel + ' · ' + (c.sourceLabel || 'RADPrimer'), 'eyebrow'));
     const source = RadCore.safeSource(c.sourceUrl);
     if (source) { const link = el('a','Source assessment ↗'); link.href = source; link.target = '_blank'; link.rel = 'noreferrer'; link.title = 'Opens the assessment; use the saved question number to return to this question.'; meta.append(link); }
-    head.append(meta, el('p', c.stem, 'stem'));
+    const mc = RadCore.mediaCount(c);
+    meta.append(el('span', mc.saved + '/' + mc.total + ' images offline' + (mc.failed ? ' · Media incomplete: save again on RadPrimer to retry.' : ''), 'save-info'));
+    const focus = button(document.body.classList.contains('images-focus') ? 'Exit image focus' : 'Focus images', () => setImageFocus(!document.body.classList.contains('images-focus')), 'focus-images');
+    focus.id = 'focus-images'; focus.setAttribute('aria-pressed', String(document.body.classList.contains('images-focus')));
+    topbar.append(meta, focus); container.append(topbar);
+    const layout = el('div', undefined, 'review-layout'), inspector = el('section', undefined, 'case-inspector');
+    inspector.setAttribute('aria-label', 'Question, explanations and notes');
+    const tabs = el('div', undefined, 'inspector-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Case information');
+    for (const [key, title] of [['question','Question'],['explanation','Explanation'],['notes','Notes']]) {
+      const tab = button(title, () => { pane = key; renderDetail(); $('#inspector-tab-' + key)?.focus(); });
+      tab.id = 'inspector-tab-' + key; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(pane === key));
+      tab.setAttribute('aria-controls', 'inspector-panel-' + key); tab.tabIndex = pane === key ? 0 : -1; tabs.append(tab);
+    }
+    tabKeys(tabs);
+    const scroll = el('div', undefined, 'inspector-scroll'); inspector.append(tabs, scroll);
+    function addPane(section, key) {
+      section.id = 'inspector-panel-' + key; section.setAttribute('role', 'tabpanel'); section.setAttribute('aria-labelledby', 'inspector-tab-' + key);
+      section.hidden = pane !== key; scroll.append(section);
+    }
+    layout.append(renderImages(c), inspector); container.append(layout);
+    const head = el('section', undefined, 'detail-head');
+    head.append(el('p', c.stem, 'stem'));
     const choices = el('div', undefined, 'choice-list');
     c.answers.forEach((a,index) => {
       const b = button('', () => { chosen = index; renderDetail(); }, 'choice' + (chosen === index ? ' selected' : '') + (revealed && a.correctness === 'correct' ? ' correct' : revealed && chosen === index && a.correctness !== 'correct' ? ' wrong' : ''));
@@ -89,18 +115,20 @@
     if (c.answered) reveal.append(button(revealed ? 'Hide answer & keys' : 'Reveal answer & keys', () => { revealed = !revealed; renderDetail(); }, 'accent'), el('small','Your practice answer stays on this screen only.'));
     else reveal.append(el('p','Question-only save. Answer on RadPrimer, then save this case again to add explanations and image keys.', 'badge warning'));
     head.append(reveal);
-    const mc = RadCore.mediaCount(c);
-    head.append(el('p', mc.saved + '/' + mc.total + ' original images saved offline · ' + c.groups.length + ' image groups' + (mc.failed ? ' · ' + mc.failed + ' images have missing files; save again on RadPrimer to retry.' : ''), 'save-info'));
-    container.append(head);
-    c.groups.forEach(g => container.append(renderGroup(g)));
+    if (revealed) head.append(button('Read explanations →', () => { pane = 'explanation'; renderDetail(); }));
+    addPane(head, 'question');
+    const explanation = el('section', undefined, 'detail-section explanation-pane');
     if (revealed) {
-      const section = el('section', undefined, 'detail-section'); section.append(el('h3','Why this answer'));
-      if (c.teachingPoint) section.append(el('p', c.teachingPoint, 'teaching'));
+      explanation.append(el('h3','Why this answer'));
+      if (c.teachingPoint) explanation.append(el('p', c.teachingPoint, 'teaching'));
       c.answers.forEach(a => {
         const d = el('details'), s = el('summary', (a.correctness === 'correct' ? '✓ Correct · ' : a.correctness ? a.correctness + ' · ' : '') + a.text);
-        d.append(s, el('p', a.explanation || 'No explanation was available in the saved page.')); section.append(d);
-      }); container.append(section);
-    }
+        d.open = a.correctness === 'correct';
+        d.append(s, el('p', a.explanation || 'No explanation was available in the saved page.')); explanation.append(d);
+      });
+    } else if (c.answered) explanation.append(el('h3','Try the case first'), el('p','Reveal the answer when you are ready to read the explanations and image keys.'), button('Reveal answer & keys', () => { revealed = true; renderDetail(); }, 'accent'));
+    else explanation.append(el('p','No answer explanation was saved yet. Answer on RadPrimer, then save this case again.'));
+    addPane(explanation, 'explanation');
     const notes = el('section', undefined, 'detail-section'); notes.append(el('h3','What I want to remember'));
     const label = el('label','Your note','field-label'); label.htmlFor = 'case-notes';
     const textarea = el('textarea'); textarea.id = 'case-notes'; textarea.value = noteDrafts.get(c.id) ?? c.notes; textarea.placeholder = 'A specific fact, a pattern to notice, or why this case matters…';
@@ -142,7 +170,69 @@
       await update({ reviewedAt: RadCore.now(), dueAt: dueAt.toISOString() }, true); showStatus('Review recorded. Next visit: ' + date(dueAt) + '.');
     }));
     notes.append(review, button(c.archived ? 'Restore case' : 'Archive case', async () => { await update({archived:!c.archived},true); showStatus(c.archived ? 'Case restored.' : 'Case archived. You can restore it from Archive.'); }, 'archive-action'));
-    notes.append(el('p', 'Saved ' + date(c.savedAt) + (c.author ? ' · ' + c.author : '') + ' · ' + c.id.slice(0,15), 'save-info')); container.append(notes);
+    notes.append(el('p', 'Saved ' + date(c.savedAt) + (c.author ? ' · ' + c.author : '') + ' · ' + c.id.slice(0,15), 'save-info')); addPane(notes, 'notes');
+    queueImageFit();
+  }
+  function queueImageFit() {
+    cancelAnimationFrame(fitFrame);
+    fitFrame = requestAnimationFrame(() => {
+      const panels = Array.from(document.querySelectorAll('.image-grid > .group')).filter(g => !g.hidden);
+      // Measure actual chrome and controls, including a wrapped web-viewer notice.
+      // Reserve the controls below the image so group/image navigation stays visible.
+      const heights = panels.map(panel => {
+        const stage = panel.querySelector('.image-stage').getBoundingClientRect();
+        const footer = panel.getBoundingClientRect().bottom - stage.bottom;
+        return innerHeight - (stage.top + scrollY) - footer - 32;
+      });
+      const height = Math.max(220, Math.floor(Math.min(...heights, 1200)));
+      panels.forEach(panel => { panel.querySelector('.image-stage').style.height = height + 'px'; });
+      const inspector = $('.inspector-scroll');
+      if (inspector) inspector.style.maxHeight = innerWidth > 640 ? Math.max(220, innerHeight - (inspector.getBoundingClientRect().top + scrollY) - 32) + 'px' : 'none';
+    });
+  }
+  function setImageFocus(value) {
+    document.body.classList.toggle('images-focus', value);
+    const b = $('#focus-images');
+    if (b) { b.textContent = value ? 'Exit image focus' : 'Focus images'; b.setAttribute('aria-pressed', String(value)); }
+    queueImageFit();
+  }
+  function tabKeys(tabs) {
+    tabs.onkeydown = e => {
+      if (!['ArrowLeft','ArrowRight','Home','End'].includes(e.key) || e.target.getAttribute('role') !== 'tab') return;
+      const buttons = Array.from(tabs.querySelectorAll('[role=tab]')), index = buttons.indexOf(e.target);
+      const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (index + (e.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+      e.preventDefault(); buttons[next].click();
+    };
+  }
+  function renderImages(c) {
+    const workspace = el('section', undefined, 'image-workspace'); workspace.setAttribute('aria-label', 'Case images');
+    if (!c.groups.length) { workspace.append(el('div','This case has no saved image groups.','empty')); return workspace; }
+    const state = imageViews.get(c.id) || { group: 0, compare: innerWidth > 900 && c.groups.length === 2 && c.groups.every(g => g.images.length === 1) };
+    state.group = Math.min(state.group, c.groups.length - 1); imageViews.set(c.id, state);
+    const toolbar = el('div', undefined, 'image-toolbar'), tabs = el('div', undefined, 'group-tabs');
+    tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Image groups');
+    const grid = el('div', undefined, 'image-grid' + (state.compare && c.groups.length > 1 ? ' comparing' : ''));
+    c.groups.forEach((g, index) => {
+      const tab = button(g.title + ' · ' + g.images.length, () => { state.group = index; renderDetail(); $('#image-group-tab-' + index)?.focus(); });
+      tab.id = 'image-group-tab-' + index; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(state.group === index));
+      tab.setAttribute('aria-controls', 'image-group-panel-' + index); tab.tabIndex = state.group === index ? 0 : -1; tabs.append(tab);
+      const panel = renderGroup(g); panel.id = 'image-group-panel-' + index; panel.classList.toggle('primary-group', index === state.group);
+      // In comparison mode show only the selected group and its next neighbor.
+      panel.hidden = index !== state.group && !(state.compare && index === (state.group + 1) % c.groups.length);
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', tab.id); grid.append(panel);
+    });
+    tabKeys(tabs); toolbar.append(tabs);
+    if (c.groups.length > 1) {
+      const compare = button(state.compare ? 'Single group' : 'Compare groups', () => { state.compare = !state.compare; renderDetail(); $('.compare-groups')?.focus(); }, 'compare-groups');
+      compare.setAttribute('aria-pressed', String(state.compare)); toolbar.append(compare);
+    }
+    workspace.onkeydown = e => {
+      if (!['ArrowLeft','ArrowRight'].includes(e.key) || e.target.getAttribute('role') === 'tab' || e.target.matches('input,textarea,select')) return;
+      const panel = grid.querySelector('#image-group-panel-' + state.group);
+      const b = panel?.querySelector(e.key === 'ArrowRight' ? '[data-image-next]' : '[data-image-previous]');
+      if (b && !b.disabled) { e.preventDefault(); b.click(); }
+    };
+    workspace.append(toolbar, grid); return workspace;
   }
   function selectField(title,id,options,value,change) {
     const label = el('label',title), select = el('select'); select.id = id; select.setAttribute('aria-label',title);
@@ -156,6 +246,7 @@
     const groupHead = el('div',undefined,'group-head'); groupHead.append(el('h3',g.title),el('span',g.images.length+' images','badge')); section.append(groupHead);
     const stage = el('div',undefined,'image-stage'), controls=el('div',undefined,'image-controls'), thumbs=el('div',undefined,'thumbs'), caption=el('p','', 'caption');
     const previous = button('← Previous', () => { index=Math.max(0,index-1); draw(); }), next=button('Next →',()=>{index=Math.min(g.images.length-1,index+1);draw();}), counter=el('span');
+    previous.dataset.imagePrevious = ''; next.dataset.imageNext = ''; counter.setAttribute('aria-live','polite');
     const toggle=button('Show annotations',()=>{annotated=!annotated;draw();},'annotation');
     controls.append(previous,counter,next,toggle);
     g.images.forEach((i,n)=>{
@@ -176,7 +267,8 @@
       Array.from(thumbs.children).forEach((b,n)=>{b.classList.toggle('active',n===index);b.setAttribute('aria-pressed',n===index?'true':'false');});
       caption.textContent=revealed?(i.caption||'No image key was available for this image.'):'Reveal the answer to see the image key.';
     }
-    section.append(stage,controls,thumbs,caption);draw();return section;
+    const key = el('details', undefined, 'image-key'); key.append(el('summary','Image key'), caption);
+    section.append(stage,controls,thumbs,key);draw();return section;
   }
   function download(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
   $('#backup').onclick=async()=>{
@@ -194,8 +286,11 @@
       const count=await RadDB.importBackup(JSON.parse(await file.text()));cases=await RadDB.all();renderAll();showStatus('Imported '+count+' cases. Existing notes, review dates and queue status were preserved.');}catch(error){showError(error);}finally{e.target.value='';}
   };
   $('#search').oninput=renderAll;$('#tier-filter').onchange=renderAll;
-  $('#views').querySelectorAll('button').forEach(b=>{b.onclick=()=>{view=b.dataset.view;revealed=false;chosen=-1;renderAll();};});
+  $('#toggle-cases').onclick=()=>{casesCollapsed=!casesCollapsed;renderList();queueImageFit();};
+  $('#views').querySelectorAll('button').forEach(b=>{b.onclick=()=>{view=b.dataset.view;revealed=false;chosen=-1;pane='question';renderAll();};});
   $('#close-image').onclick=()=>$('#image-dialog').close();
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#image-dialog').open)setImageFocus(false);});
+  window.addEventListener('resize',queueImageFit);
   // Refresh after another tab saves a case, without discarding an unsaved note.
   window.addEventListener('focus',async()=>{if(noteDrafts.size)return;try{cases=await RadDB.all();renderAll();}catch(e){showError(e);}});
   try{cases=await RadDB.all();renderAll();}catch(e){showError(e);}
