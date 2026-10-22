@@ -2,6 +2,7 @@
 import argparse
 import json
 import re
+import hashlib
 from pathlib import Path
 
 
@@ -16,6 +17,7 @@ def validate(private):
         assert all(rel in {p['id'] for p in guide} for rel in point.get('related', []))
     assert not (root/'corpus.json').exists(), 'Private corpus must not be placed in public app directory'
     assert not (root/'assets').exists(), 'Private source images must remain outside public repository'
+    assert not (root/'documents').exists(), 'Complete source PDFs must remain private'
     if private:
         corpus = json.loads((private/'corpus.json').read_text(encoding='utf-8'))
         sources = {s['id']: s for s in corpus['sources']}
@@ -32,6 +34,12 @@ def validate(private):
             for ref in point['refs']:
                 assert 1 <= ref['page'] <= len(sources[ref['source']]['pages']), (point['id'],ref)
         for source in sources.values():
+            import fitz
+            pdf = private/source['pdf']
+            assert pdf.is_file(), source['id']
+            assert hashlib.sha256(pdf.read_bytes()).hexdigest() == source['sha256'], source['id']
+            with fitz.open(pdf) as document:
+                assert len(document) == len(source['pages']), source['id']
             assert len({p['id'] for p in source['pages']}) == len(source['pages'])
             for page in source['pages']:
                 assert (private/page['image']).is_file(), page['image']

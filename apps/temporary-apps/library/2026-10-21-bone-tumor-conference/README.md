@@ -5,13 +5,13 @@ October 22, 2026 case-conference preparation, based on the assigned Helms bone t
 - [Library entry](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-21-bone-tumor-conference/index.html)
 - [Private complete reading room](https://bone-tumor-conference-oct22.glut4.chatgpt.site)
 
-The public page contains the interface and 200 original consolidated study points. The complete source reader and figure atlas are hosted in the owner-private reading room. Original textbook pages, publisher slides, and source images are deliberately absent from this public repository.
+The public page contains the interface and 200 original consolidated study points. The complete source reader and figure atlas are hosted in the owner-private reading room. Original textbook pages, publisher slides, source images, and complete downloadable PDFs are deliberately absent from this public repository.
 
 ## Use
 
 Night mode is the default. Use the top-bar Day/Night toggle to switch; the browser remembers the preference separately from study progress.
 
-Check a point to remove it from **To study**. **Show all** and **Completed** bring it back. **Key point / Favorite**, **Review**, and notes are independent of completion. **Your flags** collects saved material and links it back to its context. The source reader separately tracks whole pages and individual passages; checked passages can be hidden. Image captions can be hidden for rehearsal, although text printed inside a source image remains visible.
+Check a point to remove it from **To study**. **Show all** and **Completed** bring it back. **Key point / Favorite**, **Review**, and notes are independent of completion. **Your flags** collects saved material and links it back to its context. The source reader keeps page navigation, document switching, zoom and PDF links visible while the page scrolls independently. Zoom stays set between pages; each document remembers its last page. Use arrow keys or Page Up/Down, jump directly by page number, or swipe horizontally in Fit page mode. Focus view fills the viewport. **Read & next** completes a page and advances in one tap; the last page advances into the next document. **Text & flags** opens the checkable passages alongside the viewer (as an overlay on phones). Each document has **Open full PDF** and **Download PDF** links. Source page completion remains separate from guide completion. Image captions can be hidden for rehearsal, although text printed inside a source image remains visible.
 
 Annotations stay in localStorage in the current browser and origin. There is no automatic cross-device sync. Export/import transfers progress and keeps the newest saved version of each whole item. Export from both devices before combining concurrent edits. No API keys, external writes, or analytics are used.
 
@@ -34,7 +34,7 @@ Chapter 3's supplied PDF ends at printed page 73, although its metadata lists th
 
 ## Rebuild private source material
 
-`build_sources.py` accepts local chapter PDFs and the ACR and RSNA PDFs, and writes the **private** `corpus.json` and assets. Requires PyMuPDF and Pillow. The RSNA PDF was rendered from the original 59-slide PPTX using PowerPoint. Do not commit its generated output here.
+`build_sources.py` accepts local chapter PDFs and the ACR and RSNA PDFs, and writes the **private** `corpus.json`, assets, and copies of all complete PDFs in `documents/`. Requires PyMuPDF and Pillow. The RSNA PDF was rendered from the original 59-slide PPTX using PowerPoint. Do not commit its generated output here.
 
 ```powershell
 python build_sources.py --chapters 'PATH_TO_CHAPTER_FOLDER' --acr 'ACR.pdf' --rsna 'RSNA.pdf' --output 'PRIVATE_SITE/dist'

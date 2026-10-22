@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 from pathlib import Path
 
 import fitz
@@ -29,6 +30,8 @@ def generate(chapters, acr, output, rsna=None):
     output.mkdir(parents=True, exist_ok=True)
     assets = output / 'assets'
     assets.mkdir(exist_ok=True)
+    documents = output / 'documents'
+    documents.mkdir(exist_ok=True)
     files = [
         ('helms2', next(chapters.glob('*Chapter 2*.pdf')), 'Imaging Features of Bone Tumors', 'https://drive.google.com/file/d/1uPXC1o329tX-9FLDpPiEJ0qZbvlWqIjn/view', 33),
         ('helms3', next(chapters.glob('*Chapter 3*.pdf')), 'Bone Tumors Radiologists Should Know', 'https://drive.google.com/file/d/16RgomRmQ6EfO4nyPl2wz6M8WwVqyKjaX/view', 49),
@@ -40,6 +43,8 @@ def generate(chapters, acr, output, rsna=None):
     for sid, path, title, url, printed in files:
         doc = fitz.open(path)
         source = {'id': sid, 'title': title, 'url': url, 'description': 'Fundamentals of Skeletal Radiology, 6th edition. Copyright Elsevier. Personal study copy.' if sid.startswith('helms') else '2023 consensus guideline and May 2024 Figure 9 erratum. E-only report templates remain linked from the original article.', 'sha256': hashlib.sha256(path.read_bytes()).hexdigest(), 'pages': []}
+        shutil.copyfile(path, documents / f'{sid}.pdf')
+        source.update(pdf=f'documents/{sid}.pdf', pdfFilename=f'bone-tumor-{sid}.pdf')
         for pi, page in enumerate(doc):
             page_id = f'{sid}-p{pi+1}'
             # ClinicalKey's personal download footer contains the user's email.
@@ -130,6 +135,8 @@ def generate(chapters, acr, output, rsna=None):
         corpus['coverage'][sid] = {'pages': len(source['pages']), 'figures': sum(f['source'] == sid for f in corpus['figures'])}
     rsna_source = {'id': 'rsna', 'title': 'RSNA: Radiographic Evaluation of Bone Tumors', 'url': 'https://pubs.rsna.org/do/10.1148/rg.230048.pres/full/', 'description': 'González-Huete et al., RadioGraphics 2023. Assigned educational exhibit. Each gallery entry preserves the whole slide and all panels, labels and diagrams.', 'pages': []}
     if rsna:
+        shutil.copyfile(rsna, documents / 'rsna.pdf')
+        rsna_source.update(pdf='documents/rsna.pdf', pdfFilename='bone-tumor-rsna.pdf')
         deck = fitz.open(rsna)
         rsna_source['sha256'] = hashlib.sha256(rsna.read_bytes()).hexdigest()
         for si, slide in enumerate(deck):
