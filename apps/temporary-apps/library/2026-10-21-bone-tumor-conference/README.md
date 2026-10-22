@@ -9,6 +9,8 @@ The public page contains the interface and 200 original consolidated study point
 
 ## Use
 
+Night mode is the default. Use the top-bar Day/Night toggle to switch; the browser remembers the preference separately from study progress.
+
 Check a point to remove it from **To study**. **Show all** and **Completed** bring it back. **Key point / Favorite**, **Review**, and notes are independent of completion. **Your flags** collects saved material and links it back to its context. The source reader separately tracks whole pages and individual passages; checked passages can be hidden. Image captions can be hidden for rehearsal, although text printed inside a source image remains visible.
 
 Annotations stay in localStorage in the current browser and origin. There is no automatic cross-device sync. Export/import transfers progress and keeps the newest saved version of each whole item. Export from both devices before combining concurrent edits. No API keys, external writes, or analytics are used.
