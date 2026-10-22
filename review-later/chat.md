@@ -44,10 +44,114 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-22 06:10 Central Daylight Time
-Cards: 5
+Updated: 2026-10-22 06:19 Central Daylight Time
+Cards: 8
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-26T07:29:03-05:00
+Last seen: 2026-10-22T06:17:30-05:00
+Card ID: 1790272665570
+Note ID: 1790272665569
+
+Question:
+00:12
+
+What’s the black structure in the left atrium?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What’s the black structure in the left atrium?
+
+Coumadin ridge
+
+1/2
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-10-20T23:25:42-05:00
+Last seen: 2026-10-22T06:17:17-05:00
+Card ID: 1780338677546
+Note ID: 1780338677545
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/3
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Cardiac amyloidosis
+
+1/3
+
+Cardiac MRI with diffuse non-coronary subendocardial/transmural delayed enhancement.
+
+Q45. Correct; difficulty: hard. Vital Concept: Cardiac amyloidosis demonstrates characteristic global subendocardial or transmural late gadolinium enhancement in a non-coronary distribution.
+
+Open review Q45
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-10-21T22:27:15-05:00
+Last seen: 2026-10-22T06:11:53-05:00
+Card ID: 1755604983830
+Note ID: 1755604983829
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+tillaux Fracture
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-10-21T22:14:56-05:00
+Last seen: 2026-10-22T06:11:19-05:00
+Card ID: 1763305086221
+Note ID: 1763305086221
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+CLIPPERS
+
+Notion AIRP Lecture
+
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-07T07:38:00-05:00
@@ -67,7 +171,7 @@ Stress perfusion defect with matching LGE suggests scar.
 
 Stress perfusion defect without matching LGE suggests inducible ischemia; fixed defect with matching LGE suggests infarct scar.
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:26:18-05:00
@@ -85,7 +189,7 @@ Answer:
 
 The observer effect is when measuring or watching something changes the thing you are trying to measure.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-24T06:15:09-05:00
@@ -107,7 +211,7 @@ A large well-circumscribed lobulated fluid intensity T1 hypointense/T2 hyperinte
 
 https://radiopaedia.org/cases/suprascapular-neuropathy-paralabral-cyst?lang=us
 
-## Card 4
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
@@ -132,27 +236,3 @@ directly contacts the cortex without intervening normal white matter
 Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
-
-## Card 5
-
-Deck: .NEW::Visual
-Flagged: 2026-10-21T22:14:56-05:00
-Last seen: 2026-10-22T04:00:00-05:00
-Card ID: 1763305086221
-Note ID: 1763305086221
-
-Question:
-00:12
-
-Diagnosis?
-
-[...]
-
-Answer:
-00:08
-
-Diagnosis?
-
-CLIPPERS
-
-Notion AIRP Lecture
