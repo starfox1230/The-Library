@@ -2,7 +2,7 @@
   'use strict';
   const $ = selector => document.querySelector(selector);
   let cases = [], view = 'all', active = '', revealed = false, chosen = -1, pane = 'question', casesCollapsed = false, fitFrame;
-  const noteDrafts = new Map(), groupState = new Map(), imageViews = new Map();
+  const noteDrafts = new Map(), groupState = new Map(), imageViews = new Map(), openKeys = new Set();
   const isExtension = location.protocol === 'chrome-extension:';
   $('#web-notice').hidden = isExtension;
   if (isExtension) {
@@ -40,7 +40,7 @@
     const list = $('#case-list'); list.replaceChildren();
     const filtered = cases.filter(matches).sort((a,b) => Date.parse(b.savedAt) - Date.parse(a.savedAt));
     for (const c of filtered) {
-      const card = button('', () => { active = c.id; chosen = -1; revealed = false; pane = 'question'; renderAll(); }, 'case-card' + (active === c.id ? ' active' : ''));
+      const card = button('', () => { active = c.id; chosen = -1; revealed = false; openKeys.clear(); pane = 'question'; renderAll(); }, 'case-card' + (active === c.id ? ' active' : ''));
       card.setAttribute('aria-pressed', active === c.id ? 'true' : 'false');
       const meta = el('div', undefined, 'card-meta'); meta.append(el('span', date(c.savedAt)), el('span', c.sourceLabel || 'RADPrimer'));
       card.append(meta, el('span', c.stem.length > 125 ? c.stem.slice(0,122) + '…' : c.stem, 'stem'));
@@ -66,7 +66,7 @@
     const labels = { all: ['YOUR COLLECTION','Saved cases'], due: ['KEEP IT FAMILIAR','Ready to revisit'], anki: ['ONLY WHAT MATTERS','Your Anki queue'], archive: ['SET ASIDE, STILL HERE','Archived cases'] };
     $('#view-label').textContent = labels[view][0]; $('#collection-title').textContent = labels[view][1];
     const filtered = renderList();
-    if (!filtered.some(c => c.id === active)) { active = filtered[0]?.id || ''; chosen = -1; revealed = false; pane = 'question'; renderList(); }
+    if (!filtered.some(c => c.id === active)) { active = filtered[0]?.id || ''; chosen = -1; revealed = false; openKeys.clear(); pane = 'question'; renderList(); }
     renderDetail();
   }
   function renderDetail() {
@@ -112,7 +112,7 @@
       b.setAttribute('aria-pressed', chosen === index ? 'true' : 'false'); choices.append(b);
     }); head.append(choices);
     const reveal = el('div', undefined, 'reveal-row');
-    if (c.answered) reveal.append(button(revealed ? 'Hide answer & keys' : 'Reveal answer & keys', () => { revealed = !revealed; renderDetail(); }, 'accent'), el('small','Your practice answer stays on this screen only.'));
+    if (c.answered) reveal.append(button(revealed ? 'Hide answer & keys' : 'Reveal answer & keys', () => { if (revealed) openKeys.clear(); revealed = !revealed; renderDetail(); }, 'accent'), el('small','Your practice answer stays on this screen only.'));
     else reveal.append(el('p','Question-only save. Answer on RadPrimer, then save this case again to add explanations and image keys.', 'badge warning'));
     head.append(reveal);
     if (revealed) head.append(button('Read explanations →', () => { pane = 'explanation'; renderDetail(); }));
@@ -265,9 +265,19 @@
       counter.textContent=(index+1)+' / '+g.images.length;previous.disabled=index===0;next.disabled=index===g.images.length-1;
       toggle.hidden=!revealed||!i.annotationExpected;toggle.textContent=annotated?'Hide annotations':'Show annotations';
       Array.from(thumbs.children).forEach((b,n)=>{b.classList.toggle('active',n===index);b.setAttribute('aria-pressed',n===index?'true':'false');});
-      caption.textContent=revealed?(i.caption||'No image key was available for this image.'):'Reveal the answer to see the image key.';
+      caption.textContent=revealed?(i.caption||'No image key was available for this image.'):(current()?.answered?'Open image key to reveal the answer.':'No image key was saved. Answer on RadPrimer, then save this case again.');
     }
-    const key = el('details', undefined, 'image-key'); key.append(el('summary','Image key'), caption);
+    const key = el('details', undefined, 'image-key'); key.dataset.groupKey = stateKey;
+    key.open = openKeys.has(stateKey); key.append(el('summary','Image key'), caption);
+    key.addEventListener('toggle', () => {
+      if (!key.isConnected) return;
+      if (!key.open) { openKeys.delete(stateKey); return; }
+      openKeys.add(stateKey);
+      if (!revealed && current()?.answered) {
+        revealed = true; renderDetail();
+        Array.from(document.querySelectorAll('.image-key')).find(k => k.dataset.groupKey === stateKey)?.querySelector('summary').focus({preventScroll:true});
+      }
+    });
     section.append(stage,controls,thumbs,key);draw();return section;
   }
   function download(data,name){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
@@ -287,7 +297,7 @@
   };
   $('#search').oninput=renderAll;$('#tier-filter').onchange=renderAll;
   $('#toggle-cases').onclick=()=>{casesCollapsed=!casesCollapsed;renderList();queueImageFit();};
-  $('#views').querySelectorAll('button').forEach(b=>{b.onclick=()=>{view=b.dataset.view;revealed=false;chosen=-1;pane='question';renderAll();};});
+  $('#views').querySelectorAll('button').forEach(b=>{b.onclick=()=>{view=b.dataset.view;revealed=false;openKeys.clear();chosen=-1;pane='question';renderAll();};});
   $('#image-dialog').onclick=()=>$('#image-dialog').close();
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#image-dialog').open)setImageFocus(false);});
   window.addEventListener('resize',queueImageFit);

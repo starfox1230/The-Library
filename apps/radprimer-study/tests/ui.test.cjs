@@ -97,3 +97,30 @@ test('two single-image groups open side by side on desktop and multiple cases ha
     assert.equal(w.document.querySelector('#toggle-cases').getAttribute('aria-expanded'),'false');
   }finally{dom.window.close();}
 });
+
+test('opening an image key reveals the saved answer and keeps the selected image and key open',async()=>{
+  const {w,dom,load}=boot(fs.readFileSync(path.join(runtime,'library.html'),'utf8'),'https://example.test/extension/library.html');
+  try{
+    await w.RadDB.saveCapture(await record());await load('library.js');
+    w.document.querySelector('#image-group-tab-1').click();w.document.querySelector('#image-group-panel-1 [data-image-next]').click();
+    w.document.querySelector('#image-group-panel-1 .image-key').open=true;await tick();
+    assert.equal(w.document.querySelector('#image-group-panel-1 .image-key').open,true);
+    assert.match(w.document.querySelector('#image-group-panel-1 .caption').textContent,/Key g1-i1/);
+    assert.equal(w.document.querySelector('#image-group-tab-1').getAttribute('aria-selected'),'true');
+    assert.equal(w.document.querySelector('#image-group-panel-1 .thumbs [aria-pressed=true]').getAttribute('aria-label'),'Group 2, image 2');
+    assert.ok(w.document.querySelector('.choice.correct'));assert.equal(w.document.querySelectorAll('.explanation-pane details').length,3);
+    Array.from(w.document.querySelectorAll('button')).find(b=>b.textContent==='Hide answer & keys').click();await tick();
+    assert.equal(w.document.querySelectorAll('.image-key[open]').length,0);assert.equal(w.document.querySelectorAll('.explanation-pane details').length,0);
+  }finally{dom.window.close();}
+});
+
+test('opening a question-only image key does not invent an unavailable answer',async()=>{
+  const {w,dom,load}=boot(fs.readFileSync(path.join(runtime,'library.html'),'utf8'),'https://example.test/extension/library.html');
+  try{
+    const c=await record({answered:false,teachingPoint:''});c.answers.forEach(a=>{a.explanation='';a.correctness='';});c.groups.forEach(g=>g.images.forEach(i=>{i.caption='';}));
+    await w.RadDB.saveCapture(c);await load('library.js');
+    w.document.querySelector('.image-key').open=true;await tick();
+    assert.match(w.document.querySelector('.caption').textContent,/No image key was saved/);assert.equal(w.document.querySelector('.choice.correct'),null);
+    assert.equal(w.document.querySelectorAll('.explanation-pane details').length,0);
+  }finally{dom.window.close();}
+});
