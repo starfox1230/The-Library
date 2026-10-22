@@ -133,381 +133,924 @@ This is a directory of existing creations. Each link opens the original resource
 - [Module 7 - Spatial and Temporal Target Practice](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%207%20-%20Spatial%20and%20Temporal%20Target%20Practice.html): Individual module in the seven-part Ultrasound Physics Interactive Modules collection.
 - [Radiology Basics Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-04-review-later-radiology-basics/index.html): Sixteen mixed-topic lessons, including dysraphism, myeloma, ankle fractures, ECRL, round atelectasis, labral tears, CO injury, magnification/DAP, impedance, marrow, renal masses, breast calcifications, decidual sign, esophagectomy, photon energy, and Doppler depth.
 
+## Last edited: newest first
+
+Dates are source-commit timestamps. Folder and repository scopes may include maintenance or imported content. Sites use the latest saved version source. Times below use their recorded timezone.
+
+- 2026-10-22T06:52:17-05:00 — [Bone Tumor Case Conference](https://bone-tumor-conference-oct22.glut4.chatgpt.site) (Latest saved Site source commit)
+- 2026-10-22T11:51:32Z — [Bone Tumor Conference (Library entry)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-21-bone-tumor-conference/index.html) (GitHub resource folder commit)
+- 2026-10-22T11:19:43Z — [Anki Review Later](https://starfox1230.github.io/The-Library/review-later/index.html) (GitHub resource folder commit)
+- 2026-10-22T02:40:01Z — [RadPrimer Case Library](https://starfox1230.github.io/The-Library/apps/radprimer-study/index.html) (GitHub resource folder commit)
+- 2026-10-22T02:40:01Z — [Anki Card Creation Helper](https://starfox1230.github.io/The-Library/apps/anki-card-creation-codex-helper/index.html) (GitHub resource folder commit)
+- 2026-10-20T04:38:25Z — [Liver MRI Study Workspace](https://starfox1230.github.io/The-Library/apps/medality-study/index.html) (GitHub resource folder commit)
+- 2026-10-19T17:39:48Z — [Soft Tissue Lecture Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-soft-tissue-lecture/index.html) (GitHub resource folder commit)
+- 2026-10-18T23:05:44Z — [Fluoro Field Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-fluoro-field-guide/index.html) (GitHub resource folder commit)
+- 2026-10-17T07:15:23-05:00 — [Moonlight Resident Schedule](https://moonlight-resident-schedule.glut4.chatgpt.site) (Latest saved Site source commit)
+- 2026-10-15T21:53:33Z — [ACR Contrast Reaction Simulation](https://starfox1230.github.io/The-Library/apps/ACR-Contrast-Reaction/index.html) (GitHub resource folder commit)
+- 2026-10-09T18:08:21Z — [AnkiWeb Enhancer](https://github.com/starfox1230/The-Library/blob/main/apps/ankiweb-enhancer/README.md) (GitHub resource folder commit)
+- 2026-10-02T09:40:44-05:00 — [Call Exam Studio](https://call-exam-studio.glut4.chatgpt.site) (Latest saved Site source commit)
+- 2026-09-30T21:39:19Z — [Anki Pocket Knife](https://starfox1230.github.io/The-Library/apps/anki-pocket-knife/index.html) (GitHub resource folder commit)
+- 2026-09-28T14:05:57Z — [Nuclear Medicine Reporting Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-28-nuclear-medicine-reporting-pocket-guide/index.html) (GitHub resource folder commit)
+- 2026-09-25T18:30:59Z — [Germ Cell & Inclusion Cyst Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-25-germ-cell-inclusion-cyst-arcade/index.html) (GitHub resource folder commit)
+- 2026-09-23T03:23:47Z — [Search Pattern Library](https://starfox1230.github.io/The-Library/apps/search-pattern/index.html) (GitHub resource folder commit)
+- 2026-09-23T03:23:47Z — [Brain CT Search Pattern Game](https://starfox1230.github.io/The-Library/apps/search-pattern/brain-ct-game/index.html) (GitHub resource folder commit)
+- 2026-09-19T04:48:27Z — [Radiology Video Library](https://starfox1230.github.io/The-Library/apps/neuroradish-catalog/index.html) (GitHub resource folder commit)
+- 2026-09-18T04:18:05Z — [YouTube / Transcript → Anki & Quiz Tools](https://github.com/starfox1230/YT2anki) (GitHub repository commit)
+- 2026-09-18T00:49:15Z — [Core Studying Textbook Library](https://starfox1230.github.io/The-Library/apps/core-studying/index.html) (GitHub resource folder commit)
+- 2026-09-18T00:49:15Z — [Nuclear Medicine Command Center](https://starfox1230.github.io/The-Library/apps/core-studying/nuclear-medicine-command-center/index.html) (GitHub resource folder commit)
+- 2026-09-18T00:49:15Z — [Core Review Quiz Library](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/index.html) (GitHub resource folder commit)
+- 2026-09-18T00:49:15Z — [MSK Image Bank](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-02-msk-image-bank/index.html) (GitHub resource folder commit)
+- 2026-09-17T22:38:30Z — [Liver Lesion Workflow](https://starfox1230.github.io/The-Library/apps/liver-lesion-workflow/index.html) (GitHub resource folder commit)
+- 2026-09-12T03:17:26Z — [Anki Speed Streak 2.05](https://github.com/starfox1230/The-Library/blob/main/apps/anki-companion-game/speed-streak-addon-v2.05/README.md) (GitHub resource folder commit)
+- 2026-09-09T12:11:56Z — [Compare Revisions 2.0](https://github.com/starfox1230/Compare-Revisions-2.0) (GitHub repository commit)
+- 2026-09-06T22:54:01-05:00 — [Radiology Study OS](https://radiology-study-os.glut4.chatgpt.site) (Latest saved Site source commit)
+- 2026-09-06T13:39:21Z — [Hand Arthropathy Distribution Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-03-hand-arthropathy-distribution-quiz/index.html) (GitHub resource folder commit)
+- 2026-09-06T13:39:21Z — [Xbox Couch Controller for Study](https://github.com/starfox1230/The-Library/blob/main/apps/xbox-couch-controller/README.md) (GitHub resource folder commit)
+- 2026-08-12T19:28:07Z — [Radiology Timer 2026](https://github.com/starfox1230/radiology-timer-2026) (GitHub repository commit)
+- 2026-08-10T11:40:39Z — [Screen Capture Transcriber & Anatomy Capture](https://github.com/starfox1230/The-Library/blob/main/apps/screen-capture-transcriber/README.md) (GitHub resource folder commit)
+- 2026-08-02T19:48:35Z — [Text-to-Speech Tool](https://starfox1230.github.io/TTS/) (GitHub repository commit)
+- 2026-07-19T02:15:45Z — [Liver Imaging Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-19-liver-imaging-teaching-points-review/index.html) (GitHub resource folder commit)
+- 2026-07-18T23:32:13Z — [Radiology Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-18-radiology-teaching-points-review/index.html) (GitHub resource folder commit)
+- 2026-07-17T23:55:02-05:00 — [AI for Radiology Study OS](https://ai-radiology-study-os.glut4.chatgpt.site) (Latest saved Site source commit)
+- 2026-07-11T13:26:54Z — [Contrast Reaction Rapid Response](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-11-contrast-reaction-rapid-response/index.html) (GitHub resource folder commit)
+- 2026-07-04T21:38:02Z — [Quiz HTML Generator](https://starfox1230.github.io/The-Library/apps/quiz-generator/index.html) (GitHub resource folder commit)
+- 2026-07-04T14:48:17Z — [Radiology Basics Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-04-review-later-radiology-basics/index.html) (GitHub resource folder commit)
+- 2026-07-03T04:33:08Z — [Elbow MRI Anatomy Fact Saver](https://starfox1230.github.io/The-Library/apps/elbow-mri-fact-saver/index.html) (GitHub resource folder commit)
+- 2026-06-29T05:15:17Z — [Lung-RADS Neon Trainer](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-neon-trainer/index.html) (GitHub resource folder commit)
+- 2026-06-29T05:06:17Z — [Lung-RADS Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-pocket-guide/index.html) (GitHub resource folder commit)
+- 2026-06-29T04:51:40Z — [RadioGraphics Review Library](https://starfox1230.github.io/The-Library/apps/radiographics-review/index.html) (GitHub resource folder commit)
+- 2026-06-27T20:00:37Z — [Core Study: Today](https://starfox1230.github.io/The-Library/apps/core-studying/study-today.html) (GitHub file commit)
+- 2026-06-24T12:10:01Z — [Core Study Organizer](https://starfox1230.github.io/The-Library/apps/core-studying/study-organizer.html) (GitHub file commit)
+- 2026-06-22T11:07:36Z — [Procedure Prep Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-22-procedure-prep-pocket-guide/index.html) (GitHub resource folder commit)
+- 2026-06-20T13:36:33Z — [RVU Rush: Neon Shift](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-20-rvu-rush-neon-shift/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.01: MRI Physics Overview Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-01-mri-physics-overview-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.02: MRI Machine: Main, Gradient, and RF Coils Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-02-mri-machine-main-gradient-and-rf-coils-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.03: Spin, Precession, Resonance, and Flip Angle Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-03-spin-precession-resonance-and-flip-angle-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.04: T2 Relaxation and Free Induction Decay Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-04-t2-relaxation-and-free-induction-decay-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.05: T1 Relaxation and Longitudinal Recovery Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-05-t1-relaxation-and-longitudinal-recovery-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.06: T1, T2, and Proton-Density Weighting Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-06-t1-t2-and-proton-density-weighting-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.07: MRI Slice Selection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-07-mri-slice-selection-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.08: Frequency-Encoding Gradient Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-08-frequency-encoding-gradient-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.09: Phase-Encoding Gradient Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-09-phase-encoding-gradient-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.10: K-Space Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-10-k-space-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.11: FOV, Matrix, Receiver Bandwidth, and Dwell Time Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-11-fov-matrix-receiver-bandwidth-and-dwell-time-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.12: Receiver Bandwidth and SNR Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-12-receiver-bandwidth-and-snr-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.13: Aliasing and Parallel Imaging Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-13-aliasing-and-parallel-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.14: Chemical-Shift Artifact Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-14-chemical-shift-artifact-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.15: Spin Echo, Multiecho, Multislice, and Fast Spin Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-15-spin-echo-multiecho-multislice-and-fast-spin-echo-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.16: Gradient-Echo MRI Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-16-gradient-echo-mri-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.17: Flip Angle and Ernst Angle Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-17-flip-angle-and-ernst-angle-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.18: Coherent, Spoiled, and SSFP Gradient Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-18-coherent-spoiled-and-ssfp-gradient-echo-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.19: Inversion Recovery, STIR, and FLAIR Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-19-inversion-recovery-stir-and-flair-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.20: Partial Saturation, Saturation Bands, and CHESS Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-20-partial-saturation-saturation-bands-and-chess-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.21: Echo-Planar Imaging and Fast Spin Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-21-echo-planar-imaging-and-fast-spin-echo-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.22: Diffusion-Weighted Imaging and ADC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-22-diffusion-weighted-imaging-and-adc-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.23: High-Velocity Signal Loss and Turbulence Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-23-high-velocity-signal-loss-and-turbulence-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.24: Time-of-Flight Angiography Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-24-time-of-flight-angiography-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.25: Spin Phase Effects and Gradient Moment Nulling Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-25-spin-phase-effects-and-gradient-moment-nulling-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.26: Phase-Contrast MRA and VENC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-26-phase-contrast-mra-and-venc-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.27: Contrast-Enhanced MRA and Gadolinium Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-27-contrast-enhanced-mra-and-gadolinium-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [MRI 03.28: MR Spectroscopy and PRESS Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-28-mr-spectroscopy-and-press-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T13:40:16Z — [Physics Video Quiz Library](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 6: Administrative Regulations, Responsibilities, and Training Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-administrative-regulations-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 7: Emergency Procedures and Special Circumstances Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-emergency-procedures-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 8: Radiation-Measuring Instrumentation and QC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-instrumentation-quality-control-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 1: Introduction and Radiation Protection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-introduction-radiation-protection-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 2: Radiation Biology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-radiation-biology-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 5: Radiopharmaceutical Administration Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-radiopharmaceutical-administration-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 4: Regulatory Exposure Limits Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-regulatory-exposure-limits-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T01:33:58Z — [RISC Chapter 3: Transport and Management of Radioactive Materials Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-transport-management-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-11T00:45:55Z — [Absolute Breast Imaging Review Pathology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-06-10-absolute-breast-pathology-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-10T20:33:31Z — [Interventional Radiology Urinary Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-06-10-ir-urinary-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-10T20:20:01Z — [Interventional Radiology Gastrointestinal Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-06-10-ir-gastrointestinal-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-10T13:26:00Z — [Radiology Physics Review](https://starfox1230.github.io/The-Library/apps/radiology-physics-review/index.html) (GitHub resource folder commit)
+- 2026-06-09T21:54:30Z — [Thoracic Imaging: A Core Review Terms and Signs Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/thoracic-imaging/2026-06-09-thoracic-imaging-terms-signs-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-09T21:50:10Z — [Thoracic Imaging: A Core Review Normal Anatomy Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/thoracic-imaging/2026-06-09-thoracic-imaging-normal-anatomy-quiz/index.html) (GitHub resource folder commit)
+- 2026-06-09T13:32:46Z — [NIS & RISC Audio Player](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-09-manual-audio-player/index.html) (GitHub resource folder commit)
+- 2026-06-08T23:01:01Z — [BoardVitals Reviews](https://starfox1230.github.io/The-Library/apps/boardvitals-reviews/index.html) (GitHub resource folder commit)
+- 2026-06-05T18:01:25Z — [Radionuclide Explorer & Flashcards](https://starfox1230.github.io/The-Library/apps/Radionuclides/index.html) (GitHub resource folder commit)
+- 2026-06-01T01:59:02Z — [SNR Rapid Fire](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-01-snr-rapid-fire/index.html) (GitHub resource folder commit)
+- 2026-05-30T21:40:31Z — [ACLS Megacode Simulator](https://starfox1230.github.io/The-Library/apps/acls-megacode-simulator/index.html) (GitHub resource folder commit)
+- 2026-05-30T21:40:31Z — [Absolute Breast Imaging Review Diagnostic Mammogram and Ultrasound Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-diagnostic-mammogram-ultrasound-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-30T21:40:31Z — [Absolute Breast Imaging Review Interventional Procedures Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-interventional-procedures-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-30T21:40:31Z — [Absolute Breast Imaging Review Breast MRI Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-mri-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-30T21:40:31Z — [Absolute Breast Imaging Review Screening Mammogram Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-screening-mammogram-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-30T20:57:56Z — [Absolute Breast Imaging Review BI-RADS Terminology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-birads-terminology-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-30T20:57:56Z — [Absolute Breast Imaging Review Regulations and Standards of Care Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-regulations-standards-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-29T16:15:01Z — [Radiation Label Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-03-27-radiation-label-arcade/index.html) (GitHub resource folder commit)
+- 2026-05-25T21:14:23Z — [Card Accuracy Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-29-card-accuracy-review/index.html) (GitHub resource folder commit)
+- 2026-05-25T21:04:43Z — [QC Orbit Academy](https://starfox1230.github.io/The-Library/apps/qc-timelines-academy/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Breast Imaging Regulatory Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-27-breast-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Breast Imaging Regulatory Quiz (New)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-27-breast-imaging-quiz-new/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Breast Diagnostic Imaging Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-28-breast-diagnostic-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Gastrointestinal Imaging Pharynx and Esophagus Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-esophagus-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Gastrointestinal Imaging Small Bowel Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-small-bowel-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Gastrointestinal Imaging Stomach Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-stomach-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Interventional Radiology Arterial Interventions Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-arterial-interventions-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Interventional Radiology Fundamentals Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-fundamentals-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Interventional Radiology Thoracic Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-thoracic-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [MSK Congenital and Developmental Anomalies and Dysplasias Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-congenital-developmental-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [MSK Imaging Techniques/Physics/Quality and Safety Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-imaging-techniques-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [MSK Normal/Normal Variants Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-normal-variants-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [MSK Infection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-05-msk-infection-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [MSK Tumors and Tumor-Like Conditions Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-05-msk-tumors-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Neuroradiology Spine Infection, Inflammation, and Demyelination Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-11-neuroradiology-spine-infection-inflammation-demyelination-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Neuroradiology Spine Trauma and Degeneration Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-11-neuroradiology-spine-trauma-degeneration-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Neuroradiology Congenital and Developmental Spine Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-12-neuroradiology-congenital-developmental-spine-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Neuroradiology Spine Neoplasms and Vascular Diseases Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-12-neuroradiology-spine-neoplasms-vascular-diseases-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Endocrine System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-03-nuclear-medicine-endocrine-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Musculoskeletal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-03-nuclear-medicine-msk-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Cardiology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-cardiology-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Gastrointestinal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-gastrointestinal-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Genitourinary System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-genitourinary-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Head and Neck Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-head-neck-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Pediatric Nuclear Medicine Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-pediatric-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Pulmonary System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-pulmonary-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Vascular and Lymphatics Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-vascular-lymphatics-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Nuclear Medicine Oncology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-06-nuclear-medicine-oncology-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Pediatric Genitourinary Tract Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-gu-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Pediatric Gastrointestinal Tract Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Pediatric Musculoskeletal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-msk-imaging-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-25T18:09:06Z — [Ultrasound Vascular Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/ultrasound/2026-05-06-ultrasound-vascular-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-22T01:38:33Z — [Radiology QC Visual Search Guide](https://starfox1230.github.io/The-Library/apps/qc-timelines/index.html) (GitHub resource folder commit)
+- 2026-05-20T18:51:24Z — [Radioisotope Safety Numbers Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-12-radioisotope-safety-numbers-quiz/index.html) (GitHub resource folder commit)
+- 2026-05-17T03:33:03Z — [Radiology Physics Playlist Tracker](https://starfox1230.github.io/The-Library/apps/youtube-radiology-physics/index.html) (GitHub resource folder commit)
+- 2026-05-07T03:16:24Z — [Selectable Testable Radiology Facts](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-testable-radiology-facts/index.html) (GitHub resource folder commit)
+- 2026-04-29T21:28:20Z — [Fact Screensaver Generator](https://starfox1230.github.io/The-Library/apps/night-facts/index.html) (GitHub resource folder commit)
+- 2026-04-29T00:07:04Z — [Ultrasound Fill-in Quiz](https://starfox1230.github.io/The-Library/apps/us-physics-qs/index.html) (GitHub resource folder commit)
+- 2026-04-23T23:05:47Z — [MSK Lecture Case Viewer](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-10-hcg-hyperdrive-blitz/index.html) (GitHub resource folder commit)
+- 2026-04-22T17:09:56Z — [Foundations of CT Pattern Recognition](https://starfox1230.github.io/The-Library/apps/quiz-generator/ct-pattern-recognition-quiz.html) (GitHub file commit)
+- 2026-04-16T04:14:30Z — [ABR 2025 → 2026 Guide Changes](https://starfox1230.github.io/The-Library/apps/abr-guide-diff-summary/index.html) (GitHub resource folder commit)
+- 2026-04-13T21:54:46Z — [RISC Review Workbench](https://starfox1230.github.io/The-Library/apps/risc-review-workbench/index.html) (GitHub resource folder commit)
+- 2026-03-27T17:40:50Z — [Anki Early Review Deck](https://starfox1230.github.io/The-Library/apps/anki-addon-early-review/index.html) (GitHub resource folder commit)
+- 2026-03-19T20:44:24Z — [Radiology To-Do & Match Plan](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-03-19-example-temp-app/index.html) (GitHub resource folder commit)
+- 2026-03-15T22:48:18Z — [Anki Companion Game V2](https://starfox1230.github.io/The-Library/apps/anki-companion-game/anki_companion_game_v2.html) (GitHub file commit)
+- 2026-02-25T22:14:07Z — [Ultrasound Physics Interactive Modules](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/index.html) (GitHub resource folder commit)
+- 2026-02-25T22:14:07Z — [The Tissue Attenuation Calculator](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%205%20-%20The%20Tissue%20Attenuation%20Calculator.html) (GitHub file commit)
+- 2026-02-24T23:56:54Z — [The Decibel Scale Explorer](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%204%20-%20The%20Decibel%20Scale%20Explorer.html) (GitHub file commit)
+- 2026-02-24T23:56:37Z — [The Flashlight Effect: Ultrasound Intensity](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%203%20-%20The%20Flashlight%20Effect.html) (GitHub file commit)
+- 2026-02-24T23:56:22Z — [The Power Multiplier](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%202%20-%20The%20Power%20Multiplier.html) (GitHub file commit)
+- 2026-02-24T23:55:58Z — [The Particle Playground (Pressure & Amplitude)](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%201%20-%20The%20Particle%20Playground.html) (GitHub file commit)
+- 2026-02-24T22:12:12Z — [Module 6 - Wave Interference Sandbox](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%206%20-%20Wave%20Interference%20Sandbox.html) (GitHub file commit)
+- 2026-02-24T22:12:12Z — [Module 7 - Spatial and Temporal Target Practice](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%207%20-%20Spatial%20and%20Temporal%20Target%20Practice.html) (GitHub file commit)
+- 2026-02-16T20:18:34Z — [Q/A/Explanation Scroller](https://starfox1230.github.io/The-Library/apps/qa-reviewer/index.html) (GitHub resource folder commit)
+- 2026-02-15T19:50:02Z — [Radiology Image Viewers](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/index.html) (GitHub resource folder commit)
+- 2026-02-15T19:50:02Z — [Neuro White Matter Viewer](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/neuro-image-search-viewer/index.html) (GitHub resource folder commit)
+- 2026-02-15T19:50:02Z — [Spine Quick Image Explorer](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/spine-quick-image-explorer/index.html) (GitHub resource folder commit)
+- 2026-02-09T11:00:35Z — [Report Follow-Up Tracker](https://starfox1230.github.io/The-Library/apps/report-follow-up-tracker/index.html) (GitHub resource folder commit)
+- 2026-02-04T22:14:12Z — [Breast Pathology DDx Helper](https://starfox1230.github.io/The-Library/apps/breast-pathology-ddx-helper/index.html) (GitHub resource folder commit)
+- 2026-01-27T21:07:53Z — [Breast MRI Lesion Descriptor Builder](https://starfox1230.github.io/The-Library/apps/webapp-test-space/index.html) (GitHub resource folder commit)
+- 2025-12-13T21:44:50Z — [Rotation Scheduler](https://starfox1230.github.io/The-Library/apps/schedule/index.html) (GitHub resource folder commit)
+- 2025-12-07T05:51:53Z — [Lumbar MRI Generator (alternate)](https://starfox1230.github.io/The-Library/apps/lumbar-mri-generator-fixed/index.html) (GitHub resource folder commit)
+- 2025-12-03T22:41:25Z — [Bone Age Report Generator](https://starfox1230.github.io/Bone-Age/) (GitHub repository commit)
+- 2025-12-03T05:55:16Z — [Radiology Anki Quest](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/index.html) (GitHub resource folder commit)
+- 2025-12-02T17:55:27Z — [Anki APKG Upload Tools](https://starfox1230.github.io/The-Library/apps/anki-apkg-upload-apps/index.html) (GitHub resource folder commit)
+- 2025-12-02T14:35:17Z — [Anki Defense: Card Siege](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-defense-card-siege/index.html) (GitHub resource folder commit)
+- 2025-12-01T15:34:13Z — [Case Timer](https://starfox1230.github.io/The-Library/apps/case-timer/index.html) (GitHub resource folder commit)
+- 2025-12-01T12:58:44Z — [Radiology Rush – Anki Game](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/radiology-rush/index.html) (GitHub resource folder commit)
+- 2025-12-01T12:24:17Z — [Anki Radiology Run](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-radiology-run/index.html) (GitHub resource folder commit)
+- 2025-12-01T04:45:56Z — [Radiology Anki Quest – Answer-to-Survive](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/answer-to-survive/index.html) (GitHub resource folder commit)
+- 2025-12-01T03:33:49Z — [APKG → Text Export](https://starfox1230.github.io/The-Library/apps/apkg-to-txt/index.html) (GitHub resource folder commit)
+- 2025-11-27T04:52:27Z — [Heart Development: Atrial Septation](https://starfox1230.github.io/The-Library/apps/code-snippets/index.html) (GitHub resource folder commit)
+- 2025-11-26T18:24:46Z — [Report Template Library](https://starfox1230.github.io/The-Library/apps/report-generators/index.html) (GitHub resource folder commit)
+- 2025-11-26T18:24:46Z — [Pancreatic Adenocarcinoma Report Template](https://starfox1230.github.io/The-Library/apps/report-generators/templates/pancreatic-adenocarcinoma/index.html) (GitHub resource folder commit)
+- 2025-11-26T02:01:24Z — [Cardiac Shunt Hemodynamics Timeline](https://starfox1230.github.io/The-Library/apps/cardiact-shunt-timeline/index.html) (GitHub resource folder commit)
+- 2025-11-22T05:14:07Z — [RadFlow Template Mode](https://starfox1230.github.io/The-Library/apps/radflow/index.html) (GitHub resource folder commit)
+- 2025-11-21T15:33:21Z — [Self-Paced AIRP Dashboard](https://starfox1230.github.io/The-Library/apps/airp-dashboard/index.html) (GitHub resource folder commit)
+- 2025-11-19T05:56:55Z — [Renal Osteodystrophy: The Complete Loop](https://starfox1230.github.io/The-Library/apps/renal-osteodystrophy/index.html) (GitHub resource folder commit)
+- 2025-11-03T06:41:22Z — [AIRP Full Lecture Roster](https://starfox1230.github.io/The-Library/apps/airp-full-roster/index.html) (GitHub resource folder commit)
+- 2025-10-25T05:00:49Z — [Lumbar Spine MRI Report Builder](https://starfox1230.github.io/The-Library/apps/mr-lumbar-spine-tool/index.html) (GitHub resource folder commit)
+- 2025-10-25T04:55:42Z — [Cervical Spine MRI Report Builder](https://starfox1230.github.io/The-Library/apps/cervical-spine-mr-tool/index.html) (GitHub resource folder commit)
+- 2025-10-02T02:27:00Z — [Physics Question Bank (Local)](https://starfox1230.github.io/The-Library/apps/physics-questions/index.html) (GitHub resource folder commit)
+- 2025-09-30T01:48:38Z — [AHA LV 17-Segment Quiz](https://starfox1230.github.io/The-Library/apps/myocardial-segments/index.html) (GitHub resource folder commit)
+- 2025-09-22T17:57:27Z — [Anki Lightning Drill](https://starfox1230.github.io/The-Library/apps/anki-game/index.html) (GitHub resource folder commit)
+- 2025-09-22T14:09:59Z — [Anki Catch-Up Viewer](https://starfox1230.github.io/The-Library/apps/anki-catch-up/index.html) (GitHub resource folder commit)
+- 2025-09-22T09:25:18Z — [Moonlighting Shift Earnings](https://starfox1230.github.io/The-Library/apps/moonlighting/index.html) (GitHub resource folder commit)
+- 2025-09-05T04:17:11Z — [Quiz Competition Generator](https://starfox1230.github.io/The-Library/apps/quiz-competition/index.html) (GitHub resource folder commit)
+- 2025-08-22T10:48:52Z — [Radionuclide Slideshow](https://starfox1230.github.io/The-Library/apps/Radionuclides/slideshow.html) (GitHub file commit)
+- 2025-08-21T17:42:34Z — [Compare Revisions Live](https://github.com/starfox1230/compare-revisions-live) (GitHub repository commit)
+- 2025-08-15T14:02:43Z — [Realtime Multiplayer Quiz](https://github.com/starfox1230/realtime-quiz) (GitHub repository commit)
+- 2025-07-10T22:50:18Z — [StudyPace Planner](https://starfox1230.github.io/The-Library/apps/core-study-plan/index.html) (GitHub resource folder commit)
+- 2025-06-29T22:51:35Z — [Cardiac Nuclear Imaging Quiz](https://starfox1230.github.io/The-Library/apps/cardiac-nuclear-imaging/index.html) (GitHub resource folder commit)
+- 2025-06-28T02:23:55Z — [Study Timer Tracker](https://github.com/starfox1230/call-timer) (GitHub repository commit)
+- 2025-06-16T02:03:46Z — [Call Timer Display](https://starfox1230.github.io/The-Library/apps/call-timer-display-only/index.html) (GitHub resource folder commit)
+- 2025-06-16T01:19:43Z — [Report Search](https://starfox1230.github.io/The-Library/apps/report-search/index.html) (GitHub resource folder commit)
+- 2025-05-17T06:51:05Z — [Informatics 1–2 Quiz](https://starfox1230.github.io/The-Library/apps/informatics-1-2/index.html) (GitHub resource folder commit)
+- 2025-05-10T04:31:17Z — [Anki True-Template Swipe Feed](https://starfox1230.github.io/The-Library/apps/dueanki-scroll/index.html) (GitHub resource folder commit)
+- 2025-05-02T17:28:55Z — [Cavernous Sinus Lesion Algorithm](https://starfox1230.github.io/The-Library/apps/cavernous-sinus-algorithm/index.html) (GitHub resource folder commit)
+- 2025-04-30T05:10:49Z — [Cavernous Sinus Lesions Quiz](https://starfox1230.github.io/The-Library/apps/cavernous-sinus/index.html) (GitHub resource folder commit)
+- 2025-04-22T11:36:32Z — [CT Findings Library](https://starfox1230.github.io/The-Library/apps/casestacks-notes/index.html) (GitHub resource folder commit)
+- 2025-04-22T02:42:26Z — [Call Report Phrase Library](https://starfox1230.github.io/The-Library/apps/2nd-call-report-database/index.html) (GitHub resource folder commit)
+- 2025-04-20T19:59:47Z — [IR Consult Rounding Sheet](https://starfox1230.github.io/The-Library/apps/ir-tracker/index.html) (GitHub resource folder commit)
+- 2025-04-18T12:04:10Z — [Radiology Prep Tracker (server version)](https://github.com/starfox1230/radiology-tracker) (GitHub repository commit)
+- 2025-04-15T04:52:08Z — [Radiology Prep Tracker](https://starfox1230.github.io/The-Library/apps/call-prep-tracker/index.html) (GitHub resource folder commit)
+- 2025-04-14T23:23:57Z — [Suprahyoid Neck Imaging Quiz](https://starfox1230.github.io/The-Library/apps/suprahyoid-neck/index.html) (GitHub resource folder commit)
+- 2025-04-11T06:16:47Z — [Arthritis Imaging Findings Quiz](https://starfox1230.github.io/The-Library/apps/arthritis-core-quiz/index.html) (GitHub resource folder commit)
+- 2025-04-07T13:54:20Z — [Temporal Lobe Epilepsy & Mimics Quiz](https://starfox1230.github.io/The-Library/apps/sid-lecture-epilepsy/index.html) (GitHub resource folder commit)
+- 2025-04-07T13:52:25Z — [Intramedullary Tumor Mimics Quiz](https://starfox1230.github.io/The-Library/apps/intramedullary-tumor-mimics/index.html) (GitHub resource folder commit)
+- 2025-04-07T04:04:43Z — [Intramedullary Spinal Lesions Quiz](https://starfox1230.github.io/The-Library/apps/intramedullary-spinal-cord-tumors/index.html) (GitHub resource folder commit)
+- 2025-04-06T15:05:31Z — [Extra-axial Brain Tumor Quiz (alternate)](https://starfox1230.github.io/The-Library/apps/extra-axial-brain-tumor/index.html) (GitHub resource folder commit)
+- 2025-04-06T12:48:14Z — [Extra-axial Tumors Quiz](https://starfox1230.github.io/The-Library/apps/Extra-Axial-Tumors/index.html) (GitHub resource folder commit)
+- 2025-03-30T03:57:24Z — [Glucose Glide: GLUT2 Transport Demo](https://starfox1230.github.io/The-Library/apps/Glycolysis/index.html) (GitHub resource folder commit)
+- 2025-03-30T03:50:27Z — [Interactive ACLS Algorithm Trainer](https://starfox1230.github.io/The-Library/apps/ACLS/index.html) (GitHub resource folder commit)
+- 2025-03-30T03:44:43Z — [Female Genitourinary Quiz](https://starfox1230.github.io/The-Library/apps/Core-Gynecology-Qs/index.html) (GitHub resource folder commit)
+- 2025-02-09T21:28:46Z — [AnkiScroll GI](https://starfox1230.github.io/AnkiScroll_GI/) (GitHub repository commit)
+- 2025-01-05T17:36:56Z — [SpaceLearn Upper GI Surgeries Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Upper-GI-Surgeries/index.html) (GitHub resource folder commit)
+- 2025-01-05T17:31:38Z — [SpaceLearn Gastric Disorders Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Stomach/index.html) (GitHub resource folder commit)
+- 2025-01-05T17:02:05Z — [SpaceLearn Esophageal Disorders Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Esophagus%202/index.html) (GitHub resource folder commit)
+- 2025-01-05T04:59:24Z — [NightScan Esophagus Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Esophagus/index.html) (GitHub resource folder commit)
+- 2025-01-05T03:32:02Z — [NightScan Skeletal Imaging Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Skeletal-Imaging-Tutor.html) (GitHub file commit)
+- 2024-12-31T04:59:54Z — [Body CaseStacks Progress Tracker](https://starfox1230.github.io/Body-CaseStacks/) (GitHub repository commit)
+- 2024-11-21T02:56:43Z — [RadPrimer Progress Bar](https://starfox1230.github.io/RadPrimer-Progress-Bar/) (GitHub repository commit)
+- 2024-11-08T03:42:08Z — [Compare Revisions (original)](https://github.com/starfox1230/Compare-Revisions) (GitHub repository commit)
+- 2024-11-06T23:40:20Z — [Radiology Report Summarizer 2.0](https://github.com/starfox1230/radiology-report-summarizer-2.0) (GitHub repository commit)
+- 2024-10-17T15:20:54Z — [IR Countdown Timer](https://starfox1230.github.io/IR-Countdown/) (GitHub repository commit)
+- 2024-09-17T02:21:06Z — [Radiology Report Summarizer (original)](https://github.com/starfox1230/radiology-report-summarizer) (GitHub repository commit)
+- 2024-08-29T05:35:02Z — [Transcript Organizer (MRI-Physics repository)](https://starfox1230.github.io/MRI-Physics/) (GitHub repository commit)
+- 2023-08-16T04:26:27Z — [Bone Lesion Differential Game](https://starfox1230.github.io/Bone-Lesion-Differential/) (GitHub repository commit)
+
 ## Complete inventory by type
 
 ### Learn & visualize
 
 - [ACR Contrast Reaction Simulation](https://starfox1230.github.io/The-Library/apps/ACR-Contrast-Reaction/index.html) — Scenario simulation that asks you to select and order relevant response actions. (Existing web app)
+  - Last edited: 2026-10-15T21:53:33Z · GitHub resource folder commit · commit 5a20bc2a79f5.
 - [AI for Radiology Study OS](https://ai-radiology-study-os.glut4.chatgpt.site) — Two primers: clinical AI development (data, labels, training/testing, metrics, bias, deployment) and using AI results (DICOM, orchestration, PACS presentation, human interaction, documentation). Includes reading, visual lessons, listening, and testing. (Private Site · sign-in required)
+  - Last edited: 2026-07-17T23:55:02-05:00 · Latest saved Site source commit · commit 51cc16e9bec9.
 - [Bone Tumor Conference (Library entry)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-21-bone-tumor-conference/index.html) — 200 teaching points organized around lesion description, margins, matrix/location/age, ACR Bone-RADS, common and malignant tumors, mimics, histology, case management, visual discriminators, and structured reporting. The private Site is linked below. (Existing web app)
+  - Last edited: 2026-10-22T11:51:32Z · GitHub resource folder commit · commit af5726c1ecb1.
   - [Private Bone Tumor Case Conference Site](https://bone-tumor-conference-oct22.glut4.chatgpt.site)
 - [Breast Pathology DDx Helper](https://starfox1230.github.io/The-Library/apps/breast-pathology-ddx-helper/index.html) — Breast pathology differential helper based on an AIRP lecture transcript. (Existing web app)
+  - Last edited: 2026-02-04T22:14:12Z · GitHub resource folder commit · commit d128d46306a3.
 - [Cardiac Shunt Hemodynamics Timeline](https://starfox1230.github.io/The-Library/apps/cardiact-shunt-timeline/index.html) — Visual timeline for cardiac shunt hemodynamics. (Existing web app)
+  - Last edited: 2025-11-26T02:01:24Z · GitHub resource folder commit · commit 4fd2015931f1.
 - [Cavernous Sinus Lesion Algorithm](https://starfox1230.github.io/The-Library/apps/cavernous-sinus-algorithm/index.html) — Stepwise differential using epicenter, T2/FLAIR/T1 signal, enhancement, flow voids, morphology, and bone destruction. (Existing web app)
+  - Last edited: 2025-05-02T17:28:55Z · GitHub resource folder commit · commit 4f8a23277109.
 - [Contrast Reaction Rapid Response](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-11-contrast-reaction-rapid-response/index.html) — Immediate actions, medication/dosing, monitoring/disposition, escalation pitfalls, and rapid checklist. (Existing web app)
+  - Last edited: 2026-07-11T13:26:54Z · GitHub resource folder commit · commit bac85fde591b.
 - [Fluoro Field Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-fluoro-field-guide/index.html) — Purpose-driven fluoroscopy preparation, altered postoperative anatomy, views, endpoints, and upper GI leak-study approach. (Existing web app)
+  - Last edited: 2026-10-18T23:05:44Z · GitHub resource folder commit · commit 009717f034aa.
 - [Germ Cell & Inclusion Cyst Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-25-germ-cell-inclusion-cyst-arcade/index.html) — Family tree, teratoma tissue composition, location atlas, nomenclature traps, comparison matrix, and recall games. (Existing web app)
+  - Last edited: 2026-09-25T18:30:59Z · GitHub resource folder commit · commit c5cbe587f071.
 - [Glucose Glide: GLUT2 Transport Demo](https://starfox1230.github.io/The-Library/apps/Glycolysis/index.html) — Small membrane-transport game: move glucose to the GLUT2 transporter to enter the cell. Despite the folder name, this is not a complete glycolysis course. (Existing web app)
+  - Last edited: 2025-03-30T03:57:24Z · GitHub resource folder commit · commit 3bf3d6f2e83d.
 - [Hand Arthropathy Distribution Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-03-hand-arthropathy-distribution-quiz/index.html) — Practice where hand arthropathies occur and recognize distribution patterns. (Existing web app)
+  - Last edited: 2026-09-06T13:39:21Z · GitHub resource folder commit · commit 12418050a939.
 - [Heart Development: Atrial Septation](https://starfox1230.github.io/The-Library/apps/code-snippets/index.html) — Slider-driven visualization of common atrium, septum primum, foramen secundum, septum secundum, foramen primum/ovale, and endocardial cushions. (Existing web app)
+  - Last edited: 2025-11-27T04:52:27Z · GitHub resource folder commit · commit 6f4faddd043d.
 - [Interactive ACLS Algorithm Trainer](https://starfox1230.github.io/The-Library/apps/ACLS/index.html) — Interactive ACLS algorithm practice, adjacent to radiology emergency preparation. (Existing web app)
+  - Last edited: 2025-03-30T03:50:27Z · GitHub resource folder commit · commit 787bc05141e1.
 - [Liver Imaging Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-19-liver-imaging-teaching-points-review/index.html) — CT steatosis, chemical-shift MRI/iron, ascites anatomy, varices, cysts, hemangioma, abscess, FNH, indeterminate liver lesions, enhancement bins, reporting, biopsy, and management. The source notes a gap between its two lecture files. (Existing web app)
+  - Last edited: 2026-07-19T02:15:45Z · GitHub resource folder commit · commit 2b0125eed30f.
 - [Liver Lesion Workflow](https://starfox1230.github.io/The-Library/apps/liver-lesion-workflow/index.html) — A four-bin teaching approach using cirrhotic versus non-cirrhotic liver and arterial hyperenhancement; includes an abscess consideration. (Existing web app)
+  - Last edited: 2026-09-17T22:38:30Z · GitHub resource folder commit · commit 51722b05495e.
 - [Lung-RADS Neon Trainer](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-neon-trainer/index.html) — Practice Lung-RADS category and management choices alongside a reference table. (Existing web app)
+  - Last edited: 2026-06-29T05:15:17Z · GitHub resource folder commit · commit 7c57597850c6.
 - [Lung-RADS Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-pocket-guide/index.html) — Quick scorer, category sheet, edge cases, growth, airway/cysts, thresholds, report phrases, and dictation checklist. (Existing web app)
+  - Last edited: 2026-06-29T05:06:17Z · GitHub resource folder commit · commit 6b9755dfebc7.
 - [Module 6 - Wave Interference Sandbox](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%206%20-%20Wave%20Interference%20Sandbox.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T22:12:12Z · GitHub file commit · commit 77146a4ee8c2.
 - [Module 7 - Spatial and Temporal Target Practice](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%207%20-%20Spatial%20and%20Temporal%20Target%20Practice.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T22:12:12Z · GitHub file commit · commit 77146a4ee8c2.
 - [NightScan Esophagus Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Esophagus/index.html) — Anatomy, diverticula, reflux esophagitis, esophageal cancer, management, complications, and trivia. (Existing web app)
+  - Last edited: 2025-01-05T04:59:24Z · GitHub resource folder commit · commit e66812774e43.
 - [NightScan Skeletal Imaging Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Skeletal-Imaging-Tutor.html) — Tc-MDP bone scans, abnormal tracer distribution, superscans, cancer patterns, bone scan versus skeletal survey, post-treatment changes, prosthesis evaluation, and neuropathic foot. (Existing web app)
+  - Last edited: 2025-01-05T03:32:02Z · GitHub file commit · commit f6946af7cdbf.
 - [Nuclear Medicine Command Center](https://starfox1230.github.io/The-Library/apps/core-studying/nuclear-medicine-command-center/index.html) — Ten Core Radiology sections: PET/CT, cerebrovascular, thyroid, parathyroid, GI, pulmonary, MSK, kidneys, whole-body and other non-PET imaging; 107 Requisites reference sections, key facts, quiz links, and a spliced PDF. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [QC Orbit Academy](https://starfox1230.github.io/The-Library/apps/qc-timelines-academy/index.html) — Ten briefing lessons plus interval sorting and high-yield rules for nuclear medicine, CT, mammography, MRI, ultrasound, dose calibrators, artifacts, and current versus legacy QC wording. (Existing web app)
+  - Last edited: 2026-05-25T21:04:43Z · GitHub resource folder commit · commit 7fda4a621855.
 - [Radiation Label Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-03-27-radiation-label-arcade/index.html) — Practice radiation package-label categories, limits, and surface-memory rules. (Existing web app)
+  - Last edited: 2026-05-29T16:15:01Z · GitHub resource folder commit · commit c9bcf1e1b081.
 - [Radioisotope Safety Numbers Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-12-radioisotope-safety-numbers-quiz/index.html) — Radioactivity, dose equivalent, absorbed dose, external fields, units, and numeric RISC recall. (Existing web app)
+  - Last edited: 2026-05-20T18:51:24Z · GitHub resource folder commit · commit 93d8e95b98bd.
 - [Radiology Basics Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-04-review-later-radiology-basics/index.html) — Sixteen mixed-topic lessons, including dysraphism, myeloma, ankle fractures, ECRL, round atelectasis, labral tears, CO injury, magnification/DAP, impedance, marrow, renal masses, breast calcifications, decidual sign, esophagectomy, photon energy, and Doppler depth. (Existing web app)
+  - Last edited: 2026-07-04T14:48:17Z · GitHub resource folder commit · commit 246d092b5b63.
 - [Radiology Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-18-radiology-teaching-points-review/index.html) — Seventeen sections on PCA/thalamic territories, infarct localization and hemorrhage, DWI/ADC pitfalls, CAA, Heidelberg classification, chronic infarction/CLOCC, cervical trauma, cord injury, spine interpretation, stenosis grading, and reporting. (Existing web app)
+  - Last edited: 2026-07-18T23:32:13Z · GitHub resource folder commit · commit a4b371ae6d79.
 - [Radionuclide Explorer & Flashcards](https://starfox1230.github.io/The-Library/apps/Radionuclides/index.html) — Explore radionuclide properties and recall them with flashcards; includes a separate slideshow. (Existing web app)
+  - Last edited: 2026-06-05T18:01:25Z · GitHub resource folder commit · commit 5a39e724eede.
   - [Educational Emporium version](https://starfox1230.github.io/Educational-Emporium/apps/Radionuclides/index.html)
 - [Renal Osteodystrophy: The Complete Loop](https://starfox1230.github.io/The-Library/apps/renal-osteodystrophy/index.html) — Simulates the kidney–vitamin D–gut–calcium–phosphate–PTH–bone feedback loop, including loss of kidney function. (Existing web app)
+  - Last edited: 2025-11-19T05:56:55Z · GitHub resource folder commit · commit 236bab261c15.
 - [Soft Tissue Lecture Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-soft-tissue-lecture/index.html) — Eight guided lessons and 42 annotated figure examples from two CT/MRI soft-tissue mass papers: fat/T1-bright lesions, subtraction, T2 fluid versus solid tissue, fibrous lesions, mineralization, vessels/bone, and location. (Existing web app)
+  - Last edited: 2026-10-19T17:39:48Z · GitHub resource folder commit · commit a75facb91615.
 - [SpaceLearn Esophageal Disorders Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Esophagus%202/index.html) — Candidiasis, ulcers, herpes, glycogenic acanthosis, Crohn disease, duplication cysts, diverticula, pseudodiverticulosis, papilloma, and webs. (Existing web app)
+  - Last edited: 2025-01-05T17:02:05Z · GitHub resource folder commit · commit 6c5a9f0445bb.
 - [SpaceLearn Gastric Disorders Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Stomach/index.html) — Gastric tumors, gastric ulcers, and miscellaneous gastric conditions. (Existing web app)
+  - Last edited: 2025-01-05T17:31:38Z · GitHub resource folder commit · commit c044144d7f21.
 - [SpaceLearn Upper GI Surgeries Tutor](https://starfox1230.github.io/Learning-App-Hub/apps/Upper-GI-Surgeries/index.html) — Gastric band, Billroth I and II, Roux-en-Y, complications, small-bowel obstruction, and internal hernias. (Existing web app)
+  - Last edited: 2025-01-05T17:36:56Z · GitHub resource folder commit · commit 1830fc172c9a.
 - [The Decibel Scale Explorer](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%204%20-%20The%20Decibel%20Scale%20Explorer.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T23:56:54Z · GitHub file commit · commit 6953ab51178e.
 - [The Flashlight Effect: Ultrasound Intensity](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%203%20-%20The%20Flashlight%20Effect.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T23:56:37Z · GitHub file commit · commit 8a77c7c83ec5.
 - [The Particle Playground (Pressure & Amplitude)](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%201%20-%20The%20Particle%20Playground.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T23:55:58Z · GitHub file commit · commit a8107821fd93.
 - [The Power Multiplier](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%202%20-%20The%20Power%20Multiplier.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-24T23:56:22Z · GitHub file commit · commit eea23fc2e8a4.
 - [The Tissue Attenuation Calculator](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/Module%205%20-%20The%20Tissue%20Attenuation%20Calculator.html) — Individual module in the seven-part Ultrasound Physics Interactive Modules collection. (Existing web app)
+  - Last edited: 2026-02-25T22:14:07Z · GitHub file commit · commit 773525e602ca.
 - [Ultrasound Physics Interactive Modules](https://starfox1230.github.io/The-Library/apps/ultrasound-physics-modules/index.html) — Seven visual modules: pressure/amplitude, power versus pressure, intensity and beam area, decibels, tissue attenuation, interference, and spatial/temporal resolution. (Existing web app)
+  - Last edited: 2026-02-25T22:14:07Z · GitHub resource folder commit · commit 773525e602ca.
 
 ### Quiz & recall
 
 - [Absolute Breast Imaging Review BI-RADS Terminology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-birads-terminology-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T20:57:56Z · GitHub resource folder commit · commit 6132ac82d963.
 - [Absolute Breast Imaging Review Breast MRI Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-mri-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [Absolute Breast Imaging Review Diagnostic Mammogram and Ultrasound Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-diagnostic-mammogram-ultrasound-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [Absolute Breast Imaging Review Interventional Procedures Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-interventional-procedures-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [Absolute Breast Imaging Review Pathology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-06-10-absolute-breast-pathology-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T00:45:55Z · GitHub resource folder commit · commit d1fec2d3f4cf.
 - [Absolute Breast Imaging Review Regulations and Standards of Care Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-regulations-standards-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T20:57:56Z · GitHub resource folder commit · commit 6132ac82d963.
 - [Absolute Breast Imaging Review Screening Mammogram Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/absolute-breast-imaging-review/2026-05-30-absolute-breast-screening-mammogram-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [ACLS Megacode Simulator](https://starfox1230.github.io/The-Library/apps/acls-megacode-simulator/index.html) — Team roles, patient monitor, action controls, event log, checklist, timeline, and debrief for megacode scenarios. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [ACR Contrast Reaction Simulation](https://starfox1230.github.io/The-Library/apps/ACR-Contrast-Reaction/index.html) — Scenario simulation that asks you to select and order relevant response actions. (Existing web app)
+  - Last edited: 2026-10-15T21:53:33Z · GitHub resource folder commit · commit 5a20bc2a79f5.
 - [AHA LV 17-Segment Quiz](https://starfox1230.github.io/The-Library/apps/myocardial-segments/index.html) — Practice myocardial segment locations using the AHA 17-segment model. (Existing web app)
+  - Last edited: 2025-09-30T01:48:38Z · GitHub resource folder commit · commit 8c64737eef88.
 - [AI for Radiology Study OS](https://ai-radiology-study-os.glut4.chatgpt.site) — Two primers: clinical AI development (data, labels, training/testing, metrics, bias, deployment) and using AI results (DICOM, orchestration, PACS presentation, human interaction, documentation). Includes reading, visual lessons, listening, and testing. (Private Site · sign-in required)
+  - Last edited: 2026-07-17T23:55:02-05:00 · Latest saved Site source commit · commit 51cc16e9bec9.
 - [Anki Companion Game V2](https://starfox1230.github.io/The-Library/apps/anki-companion-game/anki_companion_game_v2.html) — Existing Anki companion game; development versions and add-ons remain in the original folder. (Existing web app)
+  - Last edited: 2026-03-15T22:48:18Z · GitHub file commit · commit a8e2bd8b3f5f.
 - [Anki Defense: Card Siege](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-defense-card-siege/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-02T14:35:17Z · GitHub resource folder commit · commit acb201261e1f.
 - [Anki Lightning Drill](https://starfox1230.github.io/The-Library/apps/anki-game/index.html) — Timed per-card review using your uploaded APKG. (Existing web app)
+  - Last edited: 2025-09-22T17:57:27Z · GitHub resource folder commit · commit 4a4aeb047bc1.
 - [Anki Radiology Run](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-radiology-run/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T12:24:17Z · GitHub resource folder commit · commit 20569f20fec2.
 - [Arthritis Imaging Findings Quiz](https://starfox1230.github.io/The-Library/apps/arthritis-core-quiz/index.html) — Recall practice on arthritis imaging findings. (Existing web app)
+  - Last edited: 2025-04-11T06:16:47Z · GitHub resource folder commit · commit 029ff5501b3f.
 - [BoardVitals Reviews](https://starfox1230.github.io/The-Library/apps/boardvitals-reviews/index.html) — Landing page for stored BoardVitals review material. (Existing web app)
+  - Last edited: 2026-06-08T23:01:01Z · GitHub resource folder commit · commit 71998c8a3505.
 - [Bone Lesion Differential Game](https://starfox1230.github.io/Bone-Lesion-Differential/) — Choose likely diagnoses from age range and bone-lesion descriptions. (Existing web app)
+  - Last edited: 2023-08-16T04:26:27Z · GitHub repository commit · commit d98576af746b.
 - [Brain CT Search Pattern Game](https://starfox1230.github.io/The-Library/apps/search-pattern/brain-ct-game/index.html) — Brain CT search-pattern practice in a dedicated game. (Existing web app)
+  - Last edited: 2026-09-23T03:23:47Z · GitHub resource folder commit · commit a0b6f77c2160.
 - [Breast Diagnostic Imaging Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-28-breast-diagnostic-imaging-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-28-breast-diagnostic-imaging-quiz/index.html)
 - [Breast Imaging Regulatory Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-27-breast-imaging-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-27-breast-imaging-quiz/index.html)
 - [Breast Imaging Regulatory Quiz (New)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/breast-imaging/2026-04-27-breast-imaging-quiz-new/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-27-breast-imaging-quiz-new/index.html)
 - [Call Exam Studio](https://call-exam-studio.glut4.chatgpt.site) — Rubric authoring, timed PACS case responses, and formative review for a radiology call-exam pilot. Case inventory was not inspected. (Existing public Site)
+  - Last edited: 2026-10-02T09:40:44-05:00 · Latest saved Site source commit · commit c2dcfef50c34.
 - [Cardiac Nuclear Imaging Quiz](https://starfox1230.github.io/The-Library/apps/cardiac-nuclear-imaging/index.html) — Question set focused on cardiac nuclear imaging. (Existing web app)
+  - Last edited: 2025-06-29T22:51:35Z · GitHub resource folder commit · commit daab46d0db3d.
 - [Cavernous Sinus Lesions Quiz](https://starfox1230.github.io/The-Library/apps/cavernous-sinus/index.html) — Practice differentiating cavernous sinus lesions. (Existing web app)
+  - Last edited: 2025-04-30T05:10:49Z · GitHub resource folder commit · commit d8621f1ec2c0.
 - [Core Review Quiz Library](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/index.html) — Grouped chapter quizzes covering breast (including Absolute Breast Imaging Review), GI, IR, MSK, neuro/spine, nuclear medicine, pediatrics, RISC, thoracic imaging, and vascular ultrasound. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [Extra-axial Brain Tumor Quiz (alternate)](https://starfox1230.github.io/The-Library/apps/extra-axial-brain-tumor/index.html) — An alternate extra-axial tumor quiz route; also represented in Educational Emporium. (Existing web app)
+  - Last edited: 2025-04-06T15:05:31Z · GitHub resource folder commit · commit ba8234a6afb8.
   - [Educational Emporium version](https://starfox1230.github.io/Educational-Emporium/apps/extra-axial-brain-tumor/index.html)
 - [Extra-axial Tumors Quiz](https://starfox1230.github.io/The-Library/apps/Extra-Axial-Tumors/index.html) — Recall practice on extra-axial brain tumors; another version exists at extra-axial-brain-tumor. (Existing web app)
+  - Last edited: 2025-04-06T12:48:14Z · GitHub resource folder commit · commit 951e2f872903.
 - [Female Genitourinary Quiz](https://starfox1230.github.io/The-Library/apps/Core-Gynecology-Qs/index.html) — Female genitourinary/gynecology question set. (Existing web app)
+  - Last edited: 2025-03-30T03:44:43Z · GitHub resource folder commit · commit 07d2a6fa2eca.
 - [Foundations of CT Pattern Recognition](https://starfox1230.github.io/The-Library/apps/quiz-generator/ct-pattern-recognition-quiz.html) — Dedicated CT pattern-recognition question set. (Existing web app)
+  - Last edited: 2026-04-22T17:09:56Z · GitHub file commit · commit 6987b7fefbdc.
 - [Gastrointestinal Imaging Pharynx and Esophagus Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-esophagus-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-gi-imaging-esophagus-quiz/index.html)
 - [Gastrointestinal Imaging Small Bowel Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-small-bowel-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-gi-imaging-small-bowel-quiz/index.html)
 - [Gastrointestinal Imaging Stomach Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/gastrointestinal-imaging/2026-05-06-gi-imaging-stomach-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-gi-imaging-stomach-quiz/index.html)
 - [Germ Cell & Inclusion Cyst Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-25-germ-cell-inclusion-cyst-arcade/index.html) — Family tree, teratoma tissue composition, location atlas, nomenclature traps, comparison matrix, and recall games. (Existing web app)
+  - Last edited: 2026-09-25T18:30:59Z · GitHub resource folder commit · commit c5cbe587f071.
 - [Hand Arthropathy Distribution Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-03-hand-arthropathy-distribution-quiz/index.html) — Practice where hand arthropathies occur and recognize distribution patterns. (Existing web app)
+  - Last edited: 2026-09-06T13:39:21Z · GitHub resource folder commit · commit 12418050a939.
 - [Informatics 1–2 Quiz](https://starfox1230.github.io/The-Library/apps/informatics-1-2/index.html) — Radiology informatics question set. (Existing web app)
+  - Last edited: 2025-05-17T06:51:05Z · GitHub resource folder commit · commit 91d98f003c88.
 - [Interactive ACLS Algorithm Trainer](https://starfox1230.github.io/The-Library/apps/ACLS/index.html) — Interactive ACLS algorithm practice, adjacent to radiology emergency preparation. (Existing web app)
+  - Last edited: 2025-03-30T03:50:27Z · GitHub resource folder commit · commit 787bc05141e1.
 - [Interventional Radiology Arterial Interventions Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-arterial-interventions-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Interventional Radiology Fundamentals Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-fundamentals-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Interventional Radiology Gastrointestinal Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-06-10-ir-gastrointestinal-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-10T20:20:01Z · GitHub resource folder commit · commit e1160b29eea3.
 - [Interventional Radiology Thoracic Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-05-20-ir-thoracic-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Interventional Radiology Urinary Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/interventional-radiology/2026-06-10-ir-urinary-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-10T20:33:31Z · GitHub resource folder commit · commit ddf88a155f64.
 - [Intramedullary Spinal Lesions Quiz](https://starfox1230.github.io/The-Library/apps/intramedullary-spinal-cord-tumors/index.html) — Question set on intramedullary spinal cord lesions and tumors. (Existing web app)
+  - Last edited: 2025-04-07T04:04:43Z · GitHub resource folder commit · commit a3c6c95e739c.
 - [Intramedullary Tumor Mimics Quiz](https://starfox1230.github.io/The-Library/apps/intramedullary-tumor-mimics/index.html) — Recall practice on intramedullary lesion mimics. (Existing web app)
+  - Last edited: 2025-04-07T13:52:25Z · GitHub resource folder commit · commit 87527753f95a.
 - [Liver Imaging Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-19-liver-imaging-teaching-points-review/index.html) — CT steatosis, chemical-shift MRI/iron, ascites anatomy, varices, cysts, hemangioma, abscess, FNH, indeterminate liver lesions, enhancement bins, reporting, biopsy, and management. The source notes a gap between its two lecture files. (Existing web app)
+  - Last edited: 2026-07-19T02:15:45Z · GitHub resource folder commit · commit 2b0125eed30f.
 - [Lung-RADS Neon Trainer](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-neon-trainer/index.html) — Practice Lung-RADS category and management choices alongside a reference table. (Existing web app)
+  - Last edited: 2026-06-29T05:15:17Z · GitHub resource folder commit · commit 7c57597850c6.
 - [MRI 03.01: MRI Physics Overview Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-01-mri-physics-overview-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.02: MRI Machine: Main, Gradient, and RF Coils Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-02-mri-machine-main-gradient-and-rf-coils-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.03: Spin, Precession, Resonance, and Flip Angle Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-03-spin-precession-resonance-and-flip-angle-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.04: T2 Relaxation and Free Induction Decay Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-04-t2-relaxation-and-free-induction-decay-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.05: T1 Relaxation and Longitudinal Recovery Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-05-t1-relaxation-and-longitudinal-recovery-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.06: T1, T2, and Proton-Density Weighting Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-06-t1-t2-and-proton-density-weighting-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.07: MRI Slice Selection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-07-mri-slice-selection-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.08: Frequency-Encoding Gradient Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-08-frequency-encoding-gradient-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.09: Phase-Encoding Gradient Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-09-phase-encoding-gradient-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.10: K-Space Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-10-k-space-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.11: FOV, Matrix, Receiver Bandwidth, and Dwell Time Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-11-fov-matrix-receiver-bandwidth-and-dwell-time-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.12: Receiver Bandwidth and SNR Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-12-receiver-bandwidth-and-snr-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.13: Aliasing and Parallel Imaging Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-13-aliasing-and-parallel-imaging-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.14: Chemical-Shift Artifact Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-14-chemical-shift-artifact-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.15: Spin Echo, Multiecho, Multislice, and Fast Spin Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-15-spin-echo-multiecho-multislice-and-fast-spin-echo-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.16: Gradient-Echo MRI Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-16-gradient-echo-mri-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.17: Flip Angle and Ernst Angle Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-17-flip-angle-and-ernst-angle-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.18: Coherent, Spoiled, and SSFP Gradient Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-18-coherent-spoiled-and-ssfp-gradient-echo-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.19: Inversion Recovery, STIR, and FLAIR Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-19-inversion-recovery-stir-and-flair-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.20: Partial Saturation, Saturation Bands, and CHESS Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-20-partial-saturation-saturation-bands-and-chess-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.21: Echo-Planar Imaging and Fast Spin Echo Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-21-echo-planar-imaging-and-fast-spin-echo-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.22: Diffusion-Weighted Imaging and ADC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-22-diffusion-weighted-imaging-and-adc-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.23: High-Velocity Signal Loss and Turbulence Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-23-high-velocity-signal-loss-and-turbulence-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.24: Time-of-Flight Angiography Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-24-time-of-flight-angiography-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.25: Spin Phase Effects and Gradient Moment Nulling Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-25-spin-phase-effects-and-gradient-moment-nulling-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.26: Phase-Contrast MRA and VENC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-26-phase-contrast-mra-and-venc-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.27: Contrast-Enhanced MRA and Gadolinium Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-27-contrast-enhanced-mra-and-gadolinium-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MRI 03.28: MR Spectroscopy and PRESS Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/mri/2026-06-11-mri-03-28-mr-spectroscopy-and-press-quiz/index.html) — MRI physics video transcript recall; one of 28 existing video-specific quizzes. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [MSK Congenital and Developmental Anomalies and Dysplasias Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-congenital-developmental-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-04-msk-congenital-developmental-quiz/index.html)
 - [MSK Imaging Techniques/Physics/Quality and Safety Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-imaging-techniques-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-04-msk-imaging-techniques-quiz/index.html)
 - [MSK Infection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-05-msk-infection-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-msk-infection-quiz/index.html)
 - [MSK Normal/Normal Variants Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-04-msk-normal-variants-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-04-msk-normal-variants-quiz/index.html)
 - [MSK Tumors and Tumor-Like Conditions Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/msk-imaging/2026-05-05-msk-tumors-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-msk-tumors-quiz/index.html)
 - [Neuroradiology Congenital and Developmental Spine Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-12-neuroradiology-congenital-developmental-spine-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Neuroradiology Spine Infection, Inflammation, and Demyelination Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-11-neuroradiology-spine-infection-inflammation-demyelination-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Neuroradiology Spine Neoplasms and Vascular Diseases Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-12-neuroradiology-spine-neoplasms-vascular-diseases-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Neuroradiology Spine Trauma and Degeneration Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/neuroradiology/2026-05-11-neuroradiology-spine-trauma-degeneration-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
 - [Nuclear Medicine Cardiology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-cardiology-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-cardiology-quiz/index.html)
 - [Nuclear Medicine Command Center](https://starfox1230.github.io/The-Library/apps/core-studying/nuclear-medicine-command-center/index.html) — Ten Core Radiology sections: PET/CT, cerebrovascular, thyroid, parathyroid, GI, pulmonary, MSK, kidneys, whole-body and other non-PET imaging; 107 Requisites reference sections, key facts, quiz links, and a spliced PDF. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [Nuclear Medicine Endocrine System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-03-nuclear-medicine-endocrine-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-03-nuclear-medicine-endocrine-quiz/index.html)
 - [Nuclear Medicine Gastrointestinal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-gastrointestinal-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-gastrointestinal-quiz/index.html)
 - [Nuclear Medicine Genitourinary System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-genitourinary-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-genitourinary-quiz/index.html)
 - [Nuclear Medicine Head and Neck Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-head-neck-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-head-neck-quiz/index.html)
 - [Nuclear Medicine Musculoskeletal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-03-nuclear-medicine-msk-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-03-nuclear-medicine-msk-quiz/index.html)
 - [Nuclear Medicine Oncology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-06-nuclear-medicine-oncology-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-nuclear-medicine-oncology-quiz/index.html)
 - [Nuclear Medicine Pediatric Nuclear Medicine Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-pediatric-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-pediatric-quiz/index.html)
 - [Nuclear Medicine Pulmonary System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-pulmonary-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-pulmonary-quiz/index.html)
 - [Nuclear Medicine Vascular and Lymphatics Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/nuclear-medicine/2026-05-05-nuclear-medicine-vascular-lymphatics-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-05-nuclear-medicine-vascular-lymphatics-quiz/index.html)
 - [Pediatric Gastrointestinal Tract Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-imaging-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-24-pediatric-imaging-quiz/index.html)
 - [Pediatric Genitourinary Tract Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-gu-imaging-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-24-pediatric-gu-imaging-quiz/index.html)
 - [Pediatric Musculoskeletal System Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/pediatric-imaging/2026-04-24-pediatric-msk-imaging-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-24-pediatric-msk-imaging-quiz/index.html)
 - [Physics Question Bank (Local)](https://starfox1230.github.io/The-Library/apps/physics-questions/index.html) — Import NDJSON physics questions, browse/filter, run a quiz, and review results. Requires your own imported bank. (Existing web app)
+  - Last edited: 2025-10-02T02:27:00Z · GitHub resource folder commit · commit dd1134568aae.
 - [Physics Video Quiz Library](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/index.html) — Currently 28 MRI video quizzes: fundamentals, gradients/encoding, k-space, bandwidth/SNR, artifacts, pulse sequences, diffusion, flow/MRA, gadolinium, and spectroscopy. X-ray, CT, and ultrasound categories exist but do not imply populated quiz banks. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [Q/A/Explanation Scroller](https://starfox1230.github.io/The-Library/apps/qa-reviewer/index.html) — Scroll through supplied questions, answers, and explanations; a general review shell rather than a fixed radiology course. (Existing web app)
+  - Last edited: 2026-02-16T20:18:34Z · GitHub resource folder commit · commit 4b545acdf871.
 - [QC Orbit Academy](https://starfox1230.github.io/The-Library/apps/qc-timelines-academy/index.html) — Ten briefing lessons plus interval sorting and high-yield rules for nuclear medicine, CT, mammography, MRI, ultrasound, dose calibrators, artifacts, and current versus legacy QC wording. (Existing web app)
+  - Last edited: 2026-05-25T21:04:43Z · GitHub resource folder commit · commit 7fda4a621855.
 - [Quiz Competition Generator](https://starfox1230.github.io/The-Library/apps/quiz-competition/index.html) — Create quiz games and revisit past games from supplied material. (Existing web app)
+  - Last edited: 2025-09-05T04:17:11Z · GitHub resource folder commit · commit 233bf6b39608.
 - [Quiz HTML Generator](https://starfox1230.github.io/The-Library/apps/quiz-generator/index.html) — Generate standalone HTML quizzes from supplied question material; includes session/profile settings. (Existing web app)
+  - Last edited: 2026-07-04T21:38:02Z · GitHub resource folder commit · commit a8695596a6b5.
 - [Radiation Label Arcade](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-03-27-radiation-label-arcade/index.html) — Practice radiation package-label categories, limits, and surface-memory rules. (Existing web app)
+  - Last edited: 2026-05-29T16:15:01Z · GitHub resource folder commit · commit c9bcf1e1b081.
 - [Radioisotope Safety Numbers Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-12-radioisotope-safety-numbers-quiz/index.html) — Radioactivity, dose equivalent, absorbed dose, external fields, units, and numeric RISC recall. (Existing web app)
+  - Last edited: 2026-05-20T18:51:24Z · GitHub resource folder commit · commit 93d8e95b98bd.
 - [Radiology Anki Quest](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/index.html) — Games launcher for radiology Anki review. (Existing web app)
+  - Last edited: 2025-12-03T05:55:16Z · GitHub resource folder commit · commit 9c02f64476fc.
 - [Radiology Anki Quest – Answer-to-Survive](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/answer-to-survive/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T04:45:56Z · GitHub resource folder commit · commit 6e9537520cb0.
 - [Radiology Basics Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-04-review-later-radiology-basics/index.html) — Sixteen mixed-topic lessons, including dysraphism, myeloma, ankle fractures, ECRL, round atelectasis, labral tears, CO injury, magnification/DAP, impedance, marrow, renal masses, breast calcifications, decidual sign, esophagectomy, photon energy, and Doppler depth. (Existing web app)
+  - Last edited: 2026-07-04T14:48:17Z · GitHub resource folder commit · commit 246d092b5b63.
 - [Radiology Physics Review](https://starfox1230.github.io/The-Library/apps/radiology-physics-review/index.html) — 429 stored questions with sequential/random order, missed-only review, answer explanations, and progress. (Existing web app)
+  - Last edited: 2026-06-10T13:26:00Z · GitHub resource folder commit · commit 0abeb00625cd.
 - [Radiology Rush – Anki Game](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/radiology-rush/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T12:58:44Z · GitHub resource folder commit · commit cb07344b9c97.
 - [Radiology Study OS](https://radiology-study-os.glut4.chatgpt.site) — Synchronized personal plans, daily review, facts, quizzes, and Anki readiness. This is an organizing workspace; individual personal study records were not audited. (Private Site · sign-in required)
+  - Last edited: 2026-09-06T22:54:01-05:00 · Latest saved Site source commit · commit 9c37f47ffcfe.
   - [Private GitHub source mirror](https://github.com/starfox1230/Radiology-Study-OS)
 - [Radiology Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-18-radiology-teaching-points-review/index.html) — Seventeen sections on PCA/thalamic territories, infarct localization and hemorrhage, DWI/ADC pitfalls, CAA, Heidelberg classification, chronic infarction/CLOCC, cervical trauma, cord injury, spine interpretation, stenosis grading, and reporting. (Existing web app)
+  - Last edited: 2026-07-18T23:32:13Z · GitHub resource folder commit · commit a4b371ae6d79.
 - [Radionuclide Explorer & Flashcards](https://starfox1230.github.io/The-Library/apps/Radionuclides/index.html) — Explore radionuclide properties and recall them with flashcards; includes a separate slideshow. (Existing web app)
+  - Last edited: 2026-06-05T18:01:25Z · GitHub resource folder commit · commit 5a39e724eede.
   - [Educational Emporium version](https://starfox1230.github.io/Educational-Emporium/apps/Radionuclides/index.html)
 - [Radionuclide Slideshow](https://starfox1230.github.io/The-Library/apps/Radionuclides/slideshow.html) — Slideshow mode for the existing radionuclide collection. (Existing web app)
+  - Last edited: 2025-08-22T10:48:52Z · GitHub file commit · commit 9c1ef2504175.
 - [Realtime Multiplayer Quiz](https://github.com/starfox1230/realtime-quiz) — Server-based multiplayer quiz host/join workflow; requires supplied question content. (Source / setup required)
+  - Last edited: 2025-08-15T14:02:43Z · GitHub repository commit · commit dd52201d1802.
 - [RISC Chapter 1: Introduction and Radiation Protection Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-introduction-radiation-protection-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 2: Radiation Biology Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-radiation-biology-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 3: Transport and Management of Radioactive Materials Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-transport-management-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 4: Regulatory Exposure Limits Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-regulatory-exposure-limits-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 5: Radiopharmaceutical Administration Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-radiopharmaceutical-administration-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 6: Administrative Regulations, Responsibilities, and Training Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-administrative-regulations-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 7: Emergency Procedures and Special Circumstances Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-emergency-procedures-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [RISC Chapter 8: Radiation-Measuring Instrumentation and QC Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/radioisotope-safety-document-2026/2026-06-10-risc-instrumentation-quality-control-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-11T01:33:58Z · GitHub resource folder commit · commit 674a607844e9.
 - [Selectable Testable Radiology Facts](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-testable-radiology-facts/index.html) — Browse and select radiology facts with favorites. (Existing web app)
+  - Last edited: 2026-05-07T03:16:24Z · GitHub resource folder commit · commit d4004772575b.
 - [SNR Rapid Fire](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-01-snr-rapid-fire/index.html) — Rapid signal-to-noise ratio recall practice. (Existing web app)
+  - Last edited: 2026-06-01T01:59:02Z · GitHub resource folder commit · commit ba466a180744.
 - [Suprahyoid Neck Imaging Quiz](https://starfox1230.github.io/The-Library/apps/suprahyoid-neck/index.html) — Recall practice on suprahyoid neck imaging. (Existing web app)
+  - Last edited: 2025-04-14T23:23:57Z · GitHub resource folder commit · commit 27def87159bb.
 - [Temporal Lobe Epilepsy & Mimics Quiz](https://starfox1230.github.io/The-Library/apps/sid-lecture-epilepsy/index.html) — Question set for the temporal lobe epilepsy lecture and its mimics. (Existing web app)
+  - Last edited: 2025-04-07T13:54:20Z · GitHub resource folder commit · commit 75040896cc78.
 - [Thoracic Imaging: A Core Review Normal Anatomy Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/thoracic-imaging/2026-06-09-thoracic-imaging-normal-anatomy-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-09T21:50:10Z · GitHub resource folder commit · commit c1458b0ebe00.
 - [Thoracic Imaging: A Core Review Terms and Signs Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/thoracic-imaging/2026-06-09-thoracic-imaging-terms-signs-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-06-09T21:54:30Z · GitHub resource folder commit · commit 47cf7bde0d6a.
 - [Ultrasound Fill-in Quiz](https://starfox1230.github.io/The-Library/apps/us-physics-qs/index.html) — Fill-in recall practice for ultrasound physics with answer progression. (Existing web app)
+  - Last edited: 2026-04-29T00:07:04Z · GitHub resource folder commit · commit 497bd11c4db0.
 - [Ultrasound Vascular Quiz](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/core-review/ultrasound/2026-05-06-ultrasound-vascular-quiz/index.html) — Chapter-specific recall practice in the organized Core Review Quiz Library. (Existing web app)
+  - Last edited: 2026-05-25T18:09:06Z · GitHub resource folder commit · commit 2fc47738852d.
   - [Previous top-level route](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-ultrasound-vascular-quiz/index.html)
 - [YouTube / Transcript → Anki & Quiz Tools](https://github.com/starfox1230/YT2anki) — Server-based transcript-to-Anki workflow, cloze reviewer, and YouTube quiz tools. (Source / setup required)
+  - Last edited: 2026-09-18T04:18:05Z · GitHub repository commit · commit 85af37df854e.
 
 ### Images & cases
 
 - [ACLS Megacode Simulator](https://starfox1230.github.io/The-Library/apps/acls-megacode-simulator/index.html) — Team roles, patient monitor, action controls, event log, checklist, timeline, and debrief for megacode scenarios. (Existing web app)
+  - Last edited: 2026-05-30T21:40:31Z · GitHub resource folder commit · commit 71ae290bc65b.
 - [AHA LV 17-Segment Quiz](https://starfox1230.github.io/The-Library/apps/myocardial-segments/index.html) — Practice myocardial segment locations using the AHA 17-segment model. (Existing web app)
+  - Last edited: 2025-09-30T01:48:38Z · GitHub resource folder commit · commit 8c64737eef88.
 - [Bone Tumor Case Conference](https://bone-tumor-conference-oct22.glut4.chatgpt.site) — Private visual study room for the October 22 bone tumor conference; related to the existing Library conference entry. (Private Site · sign-in required)
+  - Last edited: 2026-10-22T06:52:17-05:00 · Latest saved Site source commit · commit b47e6dcd5b28.
 - [Bone Tumor Conference (Library entry)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-21-bone-tumor-conference/index.html) — 200 teaching points organized around lesion description, margins, matrix/location/age, ACR Bone-RADS, common and malignant tumors, mimics, histology, case management, visual discriminators, and structured reporting. The private Site is linked below. (Existing web app)
+  - Last edited: 2026-10-22T11:51:32Z · GitHub resource folder commit · commit af5726c1ecb1.
   - [Private Bone Tumor Case Conference Site](https://bone-tumor-conference-oct22.glut4.chatgpt.site)
 - [Brain CT Search Pattern Game](https://starfox1230.github.io/The-Library/apps/search-pattern/brain-ct-game/index.html) — Brain CT search-pattern practice in a dedicated game. (Existing web app)
+  - Last edited: 2026-09-23T03:23:47Z · GitHub resource folder commit · commit a0b6f77c2160.
 - [Call Exam Studio](https://call-exam-studio.glut4.chatgpt.site) — Rubric authoring, timed PACS case responses, and formative review for a radiology call-exam pilot. Case inventory was not inspected. (Existing public Site)
+  - Last edited: 2026-10-02T09:40:44-05:00 · Latest saved Site source commit · commit c2dcfef50c34.
 - [CT Findings Library](https://starfox1230.github.io/The-Library/apps/casestacks-notes/index.html) — Searchable CT findings notes supporting CaseStacks review. (Existing web app)
+  - Last edited: 2025-04-22T11:36:32Z · GitHub resource folder commit · commit c450f6ed476e.
 - [Foundations of CT Pattern Recognition](https://starfox1230.github.io/The-Library/apps/quiz-generator/ct-pattern-recognition-quiz.html) — Dedicated CT pattern-recognition question set. (Existing web app)
+  - Last edited: 2026-04-22T17:09:56Z · GitHub file commit · commit 6987b7fefbdc.
 - [Hand Arthropathy Distribution Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-03-hand-arthropathy-distribution-quiz/index.html) — Practice where hand arthropathies occur and recognize distribution patterns. (Existing web app)
+  - Last edited: 2026-09-06T13:39:21Z · GitHub resource folder commit · commit 12418050a939.
 - [MSK Image Bank](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-02-msk-image-bank/index.html) — Existing musculoskeletal image collection with a mobile viewer. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [MSK Lecture Case Viewer](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-10-hcg-hyperdrive-blitz/index.html) — Current page is an MSK lecture case-number viewer, despite its older folder name. (Existing web app)
+  - Last edited: 2026-04-23T23:05:47Z · GitHub resource folder commit · commit de44a309ce51.
 - [Neuro White Matter Viewer](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/neuro-image-search-viewer/index.html) — Image-search exploration of white matter and metabolic patterns; incorporates the older leukodystrophy gallery routes. (Existing web app)
+  - Last edited: 2026-02-15T19:50:02Z · GitHub resource folder commit · commit eb5112455fd9.
   - [Older leukodystrophies image search gallery route](https://starfox1230.github.io/The-Library/apps/leukodystrophies-image-search-gallery/index.html)
   - [Older leukodystrophies melas leigh image search gallery route](https://starfox1230.github.io/The-Library/apps/leukodystrophies-melas-leigh-image-search-gallery/index.html)
 - [Radiology Image Viewers](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/index.html) — Launcher for the neuro white-matter/metabolic viewer and spine explorer. (Existing web app)
+  - Last edited: 2026-02-15T19:50:02Z · GitHub resource folder commit · commit eb5112455fd9.
 - [RadPrimer Case Library](https://starfox1230.github.io/The-Library/apps/radprimer-study/index.html) — Chrome extension and review workflow for capturing complete RadPrimer cases, practicing, and selecting smaller high-value facts for Anki. (Existing web app)
+  - Last edited: 2026-10-22T02:40:01Z · GitHub resource folder commit · commit f0dc5d09e62a.
 - [Search Pattern Library](https://starfox1230.github.io/The-Library/apps/search-pattern/index.html) — Organized diagnostic imaging search patterns, with a linked brain CT practice game. (Existing web app)
+  - Last edited: 2026-09-23T03:23:47Z · GitHub resource folder commit · commit a0b6f77c2160.
 - [Soft Tissue Lecture Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-soft-tissue-lecture/index.html) — Eight guided lessons and 42 annotated figure examples from two CT/MRI soft-tissue mass papers: fat/T1-bright lesions, subtraction, T2 fluid versus solid tissue, fibrous lesions, mineralization, vessels/bone, and location. (Existing web app)
+  - Last edited: 2026-10-19T17:39:48Z · GitHub resource folder commit · commit a75facb91615.
 - [Spine Quick Image Explorer](https://starfox1230.github.io/The-Library/apps/radiology-image-viewers/spine-quick-image-explorer/index.html) — Spine-focused image-search exploration; the older top-level spine route redirects here. (Existing web app)
+  - Last edited: 2026-02-15T19:50:02Z · GitHub resource folder commit · commit eb5112455fd9.
   - [Older top-level spine explorer route](https://starfox1230.github.io/The-Library/apps/spine-quick-image-explorer/index.html)
 
 ### Read & watch
 
 - [ABR 2025 → 2026 Guide Changes](https://starfox1230.github.io/The-Library/apps/abr-guide-diff-summary/index.html) — Meaningful changes between 2025 and 2026 RISC and NIS guides, including dose definitions, instrumentation, MR safety, and operations. (Existing web app)
+  - Last edited: 2026-04-16T04:14:30Z · GitHub resource folder commit · commit 45d558b8e3f3.
 - [AI for Radiology Study OS](https://ai-radiology-study-os.glut4.chatgpt.site) — Two primers: clinical AI development (data, labels, training/testing, metrics, bias, deployment) and using AI results (DICOM, orchestration, PACS presentation, human interaction, documentation). Includes reading, visual lessons, listening, and testing. (Private Site · sign-in required)
+  - Last edited: 2026-07-17T23:55:02-05:00 · Latest saved Site source commit · commit 51cc16e9bec9.
 - [AIRP Full Lecture Roster](https://starfox1230.github.io/The-Library/apps/airp-full-roster/index.html) — AIRP lecture list with favorites and completion tracking. (Existing web app)
+  - Last edited: 2025-11-03T06:41:22Z · GitHub resource folder commit · commit 537ebb924f25.
 - [BoardVitals Reviews](https://starfox1230.github.io/The-Library/apps/boardvitals-reviews/index.html) — Landing page for stored BoardVitals review material. (Existing web app)
+  - Last edited: 2026-06-08T23:01:01Z · GitHub resource folder commit · commit 71998c8a3505.
 - [Bone Tumor Case Conference](https://bone-tumor-conference-oct22.glut4.chatgpt.site) — Private visual study room for the October 22 bone tumor conference; related to the existing Library conference entry. (Private Site · sign-in required)
+  - Last edited: 2026-10-22T06:52:17-05:00 · Latest saved Site source commit · commit b47e6dcd5b28.
 - [Bone Tumor Conference (Library entry)](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-21-bone-tumor-conference/index.html) — 200 teaching points organized around lesion description, margins, matrix/location/age, ACR Bone-RADS, common and malignant tumors, mimics, histology, case management, visual discriminators, and structured reporting. The private Site is linked below. (Existing web app)
+  - Last edited: 2026-10-22T11:51:32Z · GitHub resource folder commit · commit af5726c1ecb1.
   - [Private Bone Tumor Case Conference Site](https://bone-tumor-conference-oct22.glut4.chatgpt.site)
 - [Core Studying Textbook Library](https://starfox1230.github.io/The-Library/apps/core-studying/index.html) — Source library spanning Core Radiology, Brant and Helms, CTC, neuro, pediatric imaging, Nuclear Medicine Requisites, War Machine Physics, YT physics, and NIS/RISC guides. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [Elbow MRI Anatomy Fact Saver](https://starfox1230.github.io/The-Library/apps/elbow-mri-fact-saver/index.html) — Elbow MRI anatomy lecture preparation and fact collection. (Existing web app)
+  - Last edited: 2026-07-03T04:33:08Z · GitHub resource folder commit · commit 18ab415c7c4c.
 - [Liver Imaging Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-19-liver-imaging-teaching-points-review/index.html) — CT steatosis, chemical-shift MRI/iron, ascites anatomy, varices, cysts, hemangioma, abscess, FNH, indeterminate liver lesions, enhancement bins, reporting, biopsy, and management. The source notes a gap between its two lecture files. (Existing web app)
+  - Last edited: 2026-07-19T02:15:45Z · GitHub resource folder commit · commit 2b0125eed30f.
 - [Liver MRI Study Workspace](https://starfox1230.github.io/The-Library/apps/medality-study/index.html) — Medality liver MRI lecture capture and review workflow, including malignant liver lesions, a recent-view page, and a ChatGPT-ready review packet. (Existing web app)
+  - Last edited: 2026-10-20T04:38:25Z · GitHub resource folder commit · commit 9711a078f5ce.
   - [Recently watched / review packet](https://starfox1230.github.io/The-Library/apps/medality-study/recent.html)
 - [NIS & RISC Audio Player](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-09-manual-audio-player/index.html) — Listen to existing Non-Interpretive Skills and Radioisotope Safety audio. (Existing web app)
+  - Last edited: 2026-06-09T13:32:46Z · GitHub resource folder commit · commit d781f4f4d0ca.
 - [Nuclear Medicine Command Center](https://starfox1230.github.io/The-Library/apps/core-studying/nuclear-medicine-command-center/index.html) — Ten Core Radiology sections: PET/CT, cerebrovascular, thyroid, parathyroid, GI, pulmonary, MSK, kidneys, whole-body and other non-PET imaging; 107 Requisites reference sections, key facts, quiz links, and a spliced PDF. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [Physics Video Quiz Library](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/physics-video-quizzes/index.html) — Currently 28 MRI video quizzes: fundamentals, gradients/encoding, k-space, bandwidth/SNR, artifacts, pulse sequences, diffusion, flow/MRA, gadolinium, and spectroscopy. X-ray, CT, and ultrasound categories exist but do not imply populated quiz banks. (Existing web app)
+  - Last edited: 2026-06-11T13:40:16Z · GitHub resource folder commit · commit 8c9c3b5edef0.
 - [RadioGraphics Review Library](https://starfox1230.github.io/The-Library/apps/radiographics-review/index.html) — Seven article study pages: NBCA embolization, vulvar carcinoma, macrodystrophia lipomatosa, abdominal/pelvic incidental findings, Lung-RADS 2022, contrast-enhanced US artifacts, and Lung-RADS limits. (Existing web app)
+  - Last edited: 2026-06-29T04:51:40Z · GitHub resource folder commit · commit 8a1d3010a4be.
 - [Radiology Physics Playlist Tracker](https://starfox1230.github.io/The-Library/apps/youtube-radiology-physics/index.html) — Track radiology physics playlist viewing and progress in the original app. (Existing web app)
+  - Last edited: 2026-05-17T03:33:03Z · GitHub resource folder commit · commit 97df7be6a17f.
 - [Radiology QC Visual Search Guide](https://starfox1230.github.io/The-Library/apps/qc-timelines/index.html) — Expandable QC checklist and image-recognition targets for gamma camera/SPECT, CT, hot lab, PET, uptake probes, survey meters, mammography, ultrasound, and MRI. (Existing web app)
+  - Last edited: 2026-05-22T01:38:33Z · GitHub resource folder commit · commit 8755c451fc23.
 - [Radiology Teaching Points Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-18-radiology-teaching-points-review/index.html) — Seventeen sections on PCA/thalamic territories, infarct localization and hemorrhage, DWI/ADC pitfalls, CAA, Heidelberg classification, chronic infarction/CLOCC, cervical trauma, cord injury, spine interpretation, stenosis grading, and reporting. (Existing web app)
+  - Last edited: 2026-07-18T23:32:13Z · GitHub resource folder commit · commit a4b371ae6d79.
 - [Radiology Video Library](https://starfox1230.github.io/The-Library/apps/neuroradish-catalog/index.html) — Four channel libraries with topic/series filters, watch queues, favorites, notes, and available or pasted transcripts. Topics are inferred from video titles. (Existing web app)
+  - Last edited: 2026-09-19T04:48:27Z · GitHub resource folder commit · commit 852682cbfafe.
 - [Radionuclide Slideshow](https://starfox1230.github.io/The-Library/apps/Radionuclides/slideshow.html) — Slideshow mode for the existing radionuclide collection. (Existing web app)
+  - Last edited: 2025-08-22T10:48:52Z · GitHub file commit · commit 9c1ef2504175.
 - [RISC Review Workbench](https://starfox1230.github.io/The-Library/apps/risc-review-workbench/index.html) — Subsection-by-subsection RISC planning-document review with local notes, progress, and text/JSON exports. (Existing web app)
+  - Last edited: 2026-04-13T21:54:46Z · GitHub resource folder commit · commit c59bff12a0e5.
 - [Screen Capture Transcriber & Anatomy Capture](https://github.com/starfox1230/The-Library/blob/main/apps/screen-capture-transcriber/README.md) — Windows study-video recorder with Medality/YouTube integration, timestamped stills and notes, annotation, transcription, session review, and anatomy-to-Anki workflows. (Source / setup required)
+  - Last edited: 2026-08-10T11:40:39Z · GitHub resource folder commit · commit 8756e0096a6a.
 - [Self-Paced AIRP Dashboard](https://starfox1230.github.io/The-Library/apps/airp-dashboard/index.html) — Self-paced AIRP lecture dashboard with backup/sync controls. (Existing web app)
+  - Last edited: 2025-11-21T15:33:21Z · GitHub resource folder commit · commit fe1185394ce3.
 - [Soft Tissue Lecture Lab](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-soft-tissue-lecture/index.html) — Eight guided lessons and 42 annotated figure examples from two CT/MRI soft-tissue mass papers: fat/T1-bright lesions, subtraction, T2 fluid versus solid tissue, fibrous lesions, mineralization, vessels/bone, and location. (Existing web app)
+  - Last edited: 2026-10-19T17:39:48Z · GitHub resource folder commit · commit a75facb91615.
 - [Text-to-Speech Tool](https://starfox1230.github.io/TTS/) — General text-to-speech utility that can support listening to your study text. (Existing web app)
+  - Last edited: 2026-08-02T19:48:35Z · GitHub repository commit · commit 92734a974052.
 - [Transcript Organizer (MRI-Physics repository)](https://starfox1230.github.io/MRI-Physics/) — Splits pasted course transcripts into titled copyable sections. The current implementation is not an MRI physics lesson. (Existing web app)
+  - Last edited: 2024-08-29T05:35:02Z · GitHub repository commit · commit 53454fade96d.
 
 ### Flashcards & Anki
 
 - [Anki APKG Upload Tools](https://starfox1230.github.io/The-Library/apps/anki-apkg-upload-apps/index.html) — Launcher for APKG text export, lightning drills, scrolling, and catch-up tools. (Existing web app)
+  - Last edited: 2025-12-02T17:55:27Z · GitHub resource folder commit · commit 7aa50ff9e13d.
 - [Anki Card Creation Helper](https://starfox1230.github.io/The-Library/apps/anki-card-creation-codex-helper/index.html) — Instructions and source-specific workflows for BoardVitals, Core Radiology, daily learning/conversations, radionuclides, and YouTube anatomy cards. (Existing web app)
+  - Last edited: 2026-10-22T02:40:01Z · GitHub resource folder commit · commit f0dc5d09e62a.
 - [Anki Catch-Up Viewer](https://starfox1230.github.io/The-Library/apps/anki-catch-up/index.html) — Local viewer for supplied APKG content. (Existing web app)
+  - Last edited: 2025-09-22T14:09:59Z · GitHub resource folder commit · commit afc036de8e54.
 - [Anki Companion Game V2](https://starfox1230.github.io/The-Library/apps/anki-companion-game/anki_companion_game_v2.html) — Existing Anki companion game; development versions and add-ons remain in the original folder. (Existing web app)
+  - Last edited: 2026-03-15T22:48:18Z · GitHub file commit · commit a8e2bd8b3f5f.
 - [Anki Defense: Card Siege](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-defense-card-siege/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-02T14:35:17Z · GitHub resource folder commit · commit acb201261e1f.
 - [Anki Early Review Deck](https://starfox1230.github.io/The-Library/apps/anki-addon-early-review/index.html) — Installable add-on for early-review decks. (Existing web app)
+  - Last edited: 2026-03-27T17:40:50Z · GitHub resource folder commit · commit dda4f88c724c.
 - [Anki Lightning Drill](https://starfox1230.github.io/The-Library/apps/anki-game/index.html) — Timed per-card review using your uploaded APKG. (Existing web app)
+  - Last edited: 2025-09-22T17:57:27Z · GitHub resource folder commit · commit 4a4aeb047bc1.
 - [Anki Pocket Knife](https://starfox1230.github.io/The-Library/apps/anki-pocket-knife/index.html) — Installable Anki utility add-on and packaging information. (Existing web app)
+  - Last edited: 2026-09-30T21:39:19Z · GitHub resource folder commit · commit 29c28beff9bb.
 - [Anki Radiology Run](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/anki-radiology-run/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T12:24:17Z · GitHub resource folder commit · commit 20569f20fec2.
 - [Anki Review Later](https://starfox1230.github.io/The-Library/review-later/index.html) — Existing review-later Anki viewer stored at the repository root; included alongside the other saved-card review tools. (Existing web app)
+  - Last edited: 2026-10-22T11:19:43Z · GitHub resource folder commit · commit d704b938c227.
 - [Anki Speed Streak 2.05](https://github.com/starfox1230/The-Library/blob/main/apps/anki-companion-game/speed-streak-addon-v2.05/README.md) — Existing Anki desktop review-game add-on with visual streaks, timers, statistics, and review-later controls. Earlier versions stay in the original folder. (Source / setup required)
+  - Last edited: 2026-09-12T03:17:26Z · GitHub resource folder commit · commit 816430f77552.
 - [Anki True-Template Swipe Feed](https://starfox1230.github.io/The-Library/apps/dueanki-scroll/index.html) — Swipe-style review using your supplied Anki package and templates. (Existing web app)
+  - Last edited: 2025-05-10T04:31:17Z · GitHub resource folder commit · commit f969904b081d.
 - [AnkiScroll GI](https://starfox1230.github.io/AnkiScroll_GI/) — GI-focused scrolling flashcard viewer with saved cards. (Existing web app)
+  - Last edited: 2025-02-09T21:28:46Z · GitHub repository commit · commit 25913eda5236.
 - [AnkiWeb Enhancer](https://github.com/starfox1230/The-Library/blob/main/apps/ankiweb-enhancer/README.md) — Locally installed Chrome extension for AnkiWeb review controls. AnkiWeb retains card scheduling, ratings, and sync. (Source / setup required)
+  - Last edited: 2026-10-09T18:08:21Z · GitHub resource folder commit · commit ba006931a93d.
 - [APKG → Text Export](https://starfox1230.github.io/The-Library/apps/apkg-to-txt/index.html) — Export an uploaded Anki package to text in Anki order. (Existing web app)
+  - Last edited: 2025-12-01T03:33:49Z · GitHub resource folder commit · commit ea9d22b49ee0.
 - [Card Accuracy Review](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-04-29-card-accuracy-review/index.html) — Sortable card-accuracy review table. (Existing web app)
+  - Last edited: 2026-05-25T21:14:23Z · GitHub resource folder commit · commit f03878755f9e.
 - [Fact Screensaver Generator](https://starfox1230.github.io/The-Library/apps/night-facts/index.html) — Generate a fact screensaver from supplied material and revisit saved sessions. (Existing web app)
+  - Last edited: 2026-04-29T21:28:20Z · GitHub resource folder commit · commit 48f95fd7c10f.
 - [Liver MRI Study Workspace](https://starfox1230.github.io/The-Library/apps/medality-study/index.html) — Medality liver MRI lecture capture and review workflow, including malignant liver lesions, a recent-view page, and a ChatGPT-ready review packet. (Existing web app)
+  - Last edited: 2026-10-20T04:38:25Z · GitHub resource folder commit · commit 9711a078f5ce.
   - [Recently watched / review packet](https://starfox1230.github.io/The-Library/apps/medality-study/recent.html)
 - [RadioGraphics Review Library](https://starfox1230.github.io/The-Library/apps/radiographics-review/index.html) — Seven article study pages: NBCA embolization, vulvar carcinoma, macrodystrophia lipomatosa, abdominal/pelvic incidental findings, Lung-RADS 2022, contrast-enhanced US artifacts, and Lung-RADS limits. (Existing web app)
+  - Last edited: 2026-06-29T04:51:40Z · GitHub resource folder commit · commit 8a1d3010a4be.
 - [Radiology Anki Quest](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/index.html) — Games launcher for radiology Anki review. (Existing web app)
+  - Last edited: 2025-12-03T05:55:16Z · GitHub resource folder commit · commit 9c02f64476fc.
 - [Radiology Anki Quest – Answer-to-Survive](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/answer-to-survive/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T04:45:56Z · GitHub resource folder commit · commit 6e9537520cb0.
 - [Radiology Rush – Anki Game](https://starfox1230.github.io/The-Library/apps/radiology-anki-quest/Games/radiology-rush/index.html) — Existing game in Radiology Anki Quest; uses the original game and study content. (Existing web app)
+  - Last edited: 2025-12-01T12:58:44Z · GitHub resource folder commit · commit cb07344b9c97.
 - [Radiology Study OS](https://radiology-study-os.glut4.chatgpt.site) — Synchronized personal plans, daily review, facts, quizzes, and Anki readiness. This is an organizing workspace; individual personal study records were not audited. (Private Site · sign-in required)
+  - Last edited: 2026-09-06T22:54:01-05:00 · Latest saved Site source commit · commit 9c37f47ffcfe.
   - [Private GitHub source mirror](https://github.com/starfox1230/Radiology-Study-OS)
 - [RadPrimer Case Library](https://starfox1230.github.io/The-Library/apps/radprimer-study/index.html) — Chrome extension and review workflow for capturing complete RadPrimer cases, practicing, and selecting smaller high-value facts for Anki. (Existing web app)
+  - Last edited: 2026-10-22T02:40:01Z · GitHub resource folder commit · commit f0dc5d09e62a.
 - [Screen Capture Transcriber & Anatomy Capture](https://github.com/starfox1230/The-Library/blob/main/apps/screen-capture-transcriber/README.md) — Windows study-video recorder with Medality/YouTube integration, timestamped stills and notes, annotation, transcription, session review, and anatomy-to-Anki workflows. (Source / setup required)
+  - Last edited: 2026-08-10T11:40:39Z · GitHub resource folder commit · commit 8756e0096a6a.
 - [Selectable Testable Radiology Facts](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-05-06-testable-radiology-facts/index.html) — Browse and select radiology facts with favorites. (Existing web app)
+  - Last edited: 2026-05-07T03:16:24Z · GitHub resource folder commit · commit d4004772575b.
 - [Xbox Couch Controller for Study](https://github.com/starfox1230/The-Library/blob/main/apps/xbox-couch-controller/README.md) — Windows tray/radial-menu helper with Anki-aware controller shortcuts for couch review; requires local setup and JoyToKey. (Source / setup required)
+  - Last edited: 2026-09-06T13:39:21Z · GitHub resource folder commit · commit 12418050a939.
 - [YouTube / Transcript → Anki & Quiz Tools](https://github.com/starfox1230/YT2anki) — Server-based transcript-to-Anki workflow, cloze reviewer, and YouTube quiz tools. (Source / setup required)
+  - Last edited: 2026-09-18T04:18:05Z · GitHub repository commit · commit 85af37df854e.
 
 ### Study organization
 
 - [AIRP Full Lecture Roster](https://starfox1230.github.io/The-Library/apps/airp-full-roster/index.html) — AIRP lecture list with favorites and completion tracking. (Existing web app)
+  - Last edited: 2025-11-03T06:41:22Z · GitHub resource folder commit · commit 537ebb924f25.
 - [Anki Card Creation Helper](https://starfox1230.github.io/The-Library/apps/anki-card-creation-codex-helper/index.html) — Instructions and source-specific workflows for BoardVitals, Core Radiology, daily learning/conversations, radionuclides, and YouTube anatomy cards. (Existing web app)
+  - Last edited: 2026-10-22T02:40:01Z · GitHub resource folder commit · commit f0dc5d09e62a.
 - [Body CaseStacks Progress Tracker](https://starfox1230.github.io/Body-CaseStacks/) — Track completion counts for trauma, upper-body, and lower-body cases. The repository itself is a tracker, not a case library. (Existing web app)
+  - Last edited: 2024-12-31T04:59:54Z · GitHub repository commit · commit 60d85bc3907b.
 - [Call Timer Display](https://starfox1230.github.io/The-Library/apps/call-timer-display-only/index.html) — Display-only timer/stopwatch. (Existing web app)
+  - Last edited: 2025-06-16T02:03:46Z · GitHub resource folder commit · commit eaa3794f725c.
 - [Case Timer](https://starfox1230.github.io/The-Library/apps/case-timer/index.html) — Time radiology cases and review the past-case log. (Existing web app)
+  - Last edited: 2025-12-01T15:34:13Z · GitHub resource folder commit · commit 5f59814fba90.
 - [Core Study Organizer](https://starfox1230.github.io/The-Library/apps/core-studying/study-organizer.html) — Use your existing Core Study plan and progress. Today requires a plan saved on this device. (Existing web app)
+  - Last edited: 2026-06-24T12:10:01Z · GitHub file commit · commit 689277e5286c.
 - [Core Study: Today](https://starfox1230.github.io/The-Library/apps/core-studying/study-today.html) — Use your existing Core Study plan and progress. Today requires a plan saved on this device. (Existing web app)
+  - Last edited: 2026-06-27T20:00:37Z · GitHub file commit · commit 436e8a27bfae.
 - [Core Studying Textbook Library](https://starfox1230.github.io/The-Library/apps/core-studying/index.html) — Source library spanning Core Radiology, Brant and Helms, CTC, neuro, pediatric imaging, Nuclear Medicine Requisites, War Machine Physics, YT physics, and NIS/RISC guides. (Existing web app)
+  - Last edited: 2026-09-18T00:49:15Z · GitHub resource folder commit · commit be339c5de5ef.
 - [Elbow MRI Anatomy Fact Saver](https://starfox1230.github.io/The-Library/apps/elbow-mri-fact-saver/index.html) — Elbow MRI anatomy lecture preparation and fact collection. (Existing web app)
+  - Last edited: 2026-07-03T04:33:08Z · GitHub resource folder commit · commit 18ab415c7c4c.
 - [Fact Screensaver Generator](https://starfox1230.github.io/The-Library/apps/night-facts/index.html) — Generate a fact screensaver from supplied material and revisit saved sessions. (Existing web app)
+  - Last edited: 2026-04-29T21:28:20Z · GitHub resource folder commit · commit 48f95fd7c10f.
 - [IR Countdown Timer](https://starfox1230.github.io/IR-Countdown/) — Ring-style countdown timer. (Existing web app)
+  - Last edited: 2024-10-17T15:20:54Z · GitHub repository commit · commit 6de01ec52fbd.
 - [Liver MRI Study Workspace](https://starfox1230.github.io/The-Library/apps/medality-study/index.html) — Medality liver MRI lecture capture and review workflow, including malignant liver lesions, a recent-view page, and a ChatGPT-ready review packet. (Existing web app)
+  - Last edited: 2026-10-20T04:38:25Z · GitHub resource folder commit · commit 9711a078f5ce.
   - [Recently watched / review packet](https://starfox1230.github.io/The-Library/apps/medality-study/recent.html)
 - [Quiz HTML Generator](https://starfox1230.github.io/The-Library/apps/quiz-generator/index.html) — Generate standalone HTML quizzes from supplied question material; includes session/profile settings. (Existing web app)
+  - Last edited: 2026-07-04T21:38:02Z · GitHub resource folder commit · commit a8695596a6b5.
 - [Radiology Physics Playlist Tracker](https://starfox1230.github.io/The-Library/apps/youtube-radiology-physics/index.html) — Track radiology physics playlist viewing and progress in the original app. (Existing web app)
+  - Last edited: 2026-05-17T03:33:03Z · GitHub resource folder commit · commit 97df7be6a17f.
 - [Radiology Prep Tracker](https://starfox1230.github.io/The-Library/apps/call-prep-tracker/index.html) — Daily lecture and case goals with overall progress. (Existing web app)
+  - Last edited: 2025-04-15T04:52:08Z · GitHub resource folder commit · commit 4b0a3f71078d.
 - [Radiology Prep Tracker (server version)](https://github.com/starfox1230/radiology-tracker) — Lecture and body CT, chest CT, and ultrasound case goals, with state import/export. (Source / setup required)
+  - Last edited: 2025-04-18T12:04:10Z · GitHub repository commit · commit abe6cb68e037.
 - [Radiology Study OS](https://radiology-study-os.glut4.chatgpt.site) — Synchronized personal plans, daily review, facts, quizzes, and Anki readiness. This is an organizing workspace; individual personal study records were not audited. (Private Site · sign-in required)
+  - Last edited: 2026-09-06T22:54:01-05:00 · Latest saved Site source commit · commit 9c37f47ffcfe.
   - [Private GitHub source mirror](https://github.com/starfox1230/Radiology-Study-OS)
 - [Radiology Timer 2026](https://github.com/starfox1230/radiology-timer-2026) — Compact always-on-top dual timer for radiology studies. (Source / setup required)
+  - Last edited: 2026-08-12T19:28:07Z · GitHub repository commit · commit cd6ab52a5d10.
 - [Radiology Video Library](https://starfox1230.github.io/The-Library/apps/neuroradish-catalog/index.html) — Four channel libraries with topic/series filters, watch queues, favorites, notes, and available or pasted transcripts. Topics are inferred from video titles. (Existing web app)
+  - Last edited: 2026-09-19T04:48:27Z · GitHub resource folder commit · commit 852682cbfafe.
 - [RadPrimer Progress Bar](https://starfox1230.github.io/RadPrimer-Progress-Bar/) — Simple progress tracker toward 1,000 questions. (Existing web app)
+  - Last edited: 2024-11-21T02:56:43Z · GitHub repository commit · commit e6cd886eb88c.
 - [Report Follow-Up Tracker](https://starfox1230.github.io/The-Library/apps/report-follow-up-tracker/index.html) — Track report follow-up work. (Existing web app)
+  - Last edited: 2026-02-09T11:00:35Z · GitHub resource folder commit · commit 5e07e9215f12.
 - [RISC Review Workbench](https://starfox1230.github.io/The-Library/apps/risc-review-workbench/index.html) — Subsection-by-subsection RISC planning-document review with local notes, progress, and text/JSON exports. (Existing web app)
+  - Last edited: 2026-04-13T21:54:46Z · GitHub resource folder commit · commit c59bff12a0e5.
 - [RVU Rush: Neon Shift](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-20-rvu-rush-neon-shift/index.html) — Log radiology studies, track shift work RVUs, and configure daily goals. (Existing web app)
+  - Last edited: 2026-06-20T13:36:33Z · GitHub resource folder commit · commit 5a727cae4314.
 - [Screen Capture Transcriber & Anatomy Capture](https://github.com/starfox1230/The-Library/blob/main/apps/screen-capture-transcriber/README.md) — Windows study-video recorder with Medality/YouTube integration, timestamped stills and notes, annotation, transcription, session review, and anatomy-to-Anki workflows. (Source / setup required)
+  - Last edited: 2026-08-10T11:40:39Z · GitHub resource folder commit · commit 8756e0096a6a.
 - [Self-Paced AIRP Dashboard](https://starfox1230.github.io/The-Library/apps/airp-dashboard/index.html) — Self-paced AIRP lecture dashboard with backup/sync controls. (Existing web app)
+  - Last edited: 2025-11-21T15:33:21Z · GitHub resource folder commit · commit fe1185394ce3.
 - [Study Timer Tracker](https://github.com/starfox1230/call-timer) — Timers and logging by body CT, ultrasound, MRI, and other study types. (Source / setup required)
+  - Last edited: 2025-06-28T02:23:55Z · GitHub repository commit · commit a4c900c50bf6.
 - [StudyPace Planner](https://starfox1230.github.io/The-Library/apps/core-study-plan/index.html) — Daily goals, progress logs, and study-plan settings. (Existing web app)
+  - Last edited: 2025-07-10T22:50:18Z · GitHub resource folder commit · commit 62345aa538e1.
 - [Transcript Organizer (MRI-Physics repository)](https://starfox1230.github.io/MRI-Physics/) — Splits pasted course transcripts into titled copyable sections. The current implementation is not an MRI physics lesson. (Existing web app)
+  - Last edited: 2024-08-29T05:35:02Z · GitHub repository commit · commit 53454fade96d.
 - [Xbox Couch Controller for Study](https://github.com/starfox1230/The-Library/blob/main/apps/xbox-couch-controller/README.md) — Windows tray/radial-menu helper with Anki-aware controller shortcuts for couch review; requires local setup and JoyToKey. (Source / setup required)
+  - Last edited: 2026-09-06T13:39:21Z · GitHub resource folder commit · commit 12418050a939.
 
 ### Clinical reference
 
 - [ABR 2025 → 2026 Guide Changes](https://starfox1230.github.io/The-Library/apps/abr-guide-diff-summary/index.html) — Meaningful changes between 2025 and 2026 RISC and NIS guides, including dose definitions, instrumentation, MR safety, and operations. (Existing web app)
+  - Last edited: 2026-04-16T04:14:30Z · GitHub resource folder commit · commit 45d558b8e3f3.
 - [Breast MRI Lesion Descriptor Builder](https://starfox1230.github.io/The-Library/apps/webapp-test-space/index.html) — Breast MRI lesion descriptor builder; the folder name is generic but the current page is breast-specific. (Existing web app)
+  - Last edited: 2026-01-27T21:07:53Z · GitHub resource folder commit · commit 4a4a0ffdbc86.
 - [Breast Pathology DDx Helper](https://starfox1230.github.io/The-Library/apps/breast-pathology-ddx-helper/index.html) — Breast pathology differential helper based on an AIRP lecture transcript. (Existing web app)
+  - Last edited: 2026-02-04T22:14:12Z · GitHub resource folder commit · commit d128d46306a3.
 - [Cavernous Sinus Lesion Algorithm](https://starfox1230.github.io/The-Library/apps/cavernous-sinus-algorithm/index.html) — Stepwise differential using epicenter, T2/FLAIR/T1 signal, enhancement, flow voids, morphology, and bone destruction. (Existing web app)
+  - Last edited: 2025-05-02T17:28:55Z · GitHub resource folder commit · commit 4f8a23277109.
 - [Contrast Reaction Rapid Response](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-07-11-contrast-reaction-rapid-response/index.html) — Immediate actions, medication/dosing, monitoring/disposition, escalation pitfalls, and rapid checklist. (Existing web app)
+  - Last edited: 2026-07-11T13:26:54Z · GitHub resource folder commit · commit bac85fde591b.
 - [CT Findings Library](https://starfox1230.github.io/The-Library/apps/casestacks-notes/index.html) — Searchable CT findings notes supporting CaseStacks review. (Existing web app)
+  - Last edited: 2025-04-22T11:36:32Z · GitHub resource folder commit · commit c450f6ed476e.
 - [Fluoro Field Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-10-18-fluoro-field-guide/index.html) — Purpose-driven fluoroscopy preparation, altered postoperative anatomy, views, endpoints, and upper GI leak-study approach. (Existing web app)
+  - Last edited: 2026-10-18T23:05:44Z · GitHub resource folder commit · commit 009717f034aa.
 - [Liver Lesion Workflow](https://starfox1230.github.io/The-Library/apps/liver-lesion-workflow/index.html) — A four-bin teaching approach using cirrhotic versus non-cirrhotic liver and arterial hyperenhancement; includes an abscess consideration. (Existing web app)
+  - Last edited: 2026-09-17T22:38:30Z · GitHub resource folder commit · commit 51722b05495e.
 - [Lung-RADS Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-29-lung-rads-pocket-guide/index.html) — Quick scorer, category sheet, edge cases, growth, airway/cysts, thresholds, report phrases, and dictation checklist. (Existing web app)
+  - Last edited: 2026-06-29T05:06:17Z · GitHub resource folder commit · commit 6b9755dfebc7.
 - [Nuclear Medicine Reporting Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-28-nuclear-medicine-reporting-pocket-guide/index.html) — Y-90 planning MAA reporting, intrahepatic/extrahepatic activity, lung shunt, SPECT/CT, Couinaud wording, and core nuclear vocabulary. (Existing web app)
+  - Last edited: 2026-09-28T14:05:57Z · GitHub resource folder commit · commit 27f671e33b2a.
 - [Procedure Prep Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-22-procedure-prep-pocket-guide/index.html) — Patient checks, risk pathway, medication lookup, and universal procedural preparation. (Existing web app)
+  - Last edited: 2026-06-22T11:07:36Z · GitHub resource folder commit · commit 530d9aeedb7d.
 - [Radiology QC Visual Search Guide](https://starfox1230.github.io/The-Library/apps/qc-timelines/index.html) — Expandable QC checklist and image-recognition targets for gamma camera/SPECT, CT, hot lab, PET, uptake probes, survey meters, mammography, ultrasound, and MRI. (Existing web app)
+  - Last edited: 2026-05-22T01:38:33Z · GitHub resource folder commit · commit 8755c451fc23.
 - [Search Pattern Library](https://starfox1230.github.io/The-Library/apps/search-pattern/index.html) — Organized diagnostic imaging search patterns, with a linked brain CT practice game. (Existing web app)
+  - Last edited: 2026-09-23T03:23:47Z · GitHub resource folder commit · commit a0b6f77c2160.
 
 ### Reporting & workflow
 
 - [Bone Age Report Generator](https://starfox1230.github.io/Bone-Age/) — Generate a bone-age report from sex, birthdate, and bone-age inputs; not a bone-age image teaching course. (Existing web app)
+  - Last edited: 2025-12-03T22:41:25Z · GitHub repository commit · commit 8b2c6ee3e1f3.
 - [Breast MRI Lesion Descriptor Builder](https://starfox1230.github.io/The-Library/apps/webapp-test-space/index.html) — Breast MRI lesion descriptor builder; the folder name is generic but the current page is breast-specific. (Existing web app)
+  - Last edited: 2026-01-27T21:07:53Z · GitHub resource folder commit · commit 4a4a0ffdbc86.
 - [Call Report Phrase Library](https://starfox1230.github.io/The-Library/apps/2nd-call-report-database/index.html) — Sentence/block phrase library with merge and unmerge behavior. (Existing web app)
+  - Last edited: 2025-04-22T02:42:26Z · GitHub resource folder commit · commit 885a234995c1.
 - [Cervical Spine MRI Report Builder](https://starfox1230.github.io/The-Library/apps/cervical-spine-mr-tool/index.html) — Level-by-level cervical spine structured report builder and preview. (Existing web app)
+  - Last edited: 2025-10-25T04:55:42Z · GitHub resource folder commit · commit 084b4bd8e274.
 - [Compare Revisions (original)](https://github.com/starfox1230/Compare-Revisions) — Compare resident and attending report changes using text differences. (Source / setup required)
+  - Last edited: 2024-11-08T03:42:08Z · GitHub repository commit · commit 26f2f1b79a94.
 - [Compare Revisions 2.0](https://github.com/starfox1230/Compare-Revisions-2.0) — AI-assisted review of report changes, major/minor findings, and key change phrases. (Source / setup required)
+  - Last edited: 2026-09-09T12:11:56Z · GitHub repository commit · commit 49413e7ba97a.
 - [Compare Revisions Live](https://github.com/starfox1230/compare-revisions-live) — Server-based AI comparison of resident and attending reports. A configured Pages URL does not provide the Python runtime. (Source / setup required)
+  - Last edited: 2025-08-21T17:42:34Z · GitHub repository commit · commit 0a5b70c8eb80.
 - [IR Consult Rounding Sheet](https://starfox1230.github.io/The-Library/apps/ir-tracker/index.html) — Consult rounding-sheet tool for interventional radiology. (Existing web app)
+  - Last edited: 2025-04-20T19:59:47Z · GitHub resource folder commit · commit e44f47a3c430.
 - [Lumbar MRI Generator (alternate)](https://starfox1230.github.io/The-Library/apps/lumbar-mri-generator-fixed/index.html) — Alternate lumbar MRI report generator with general findings and preview. (Existing web app)
+  - Last edited: 2025-12-07T05:51:53Z · GitHub resource folder commit · commit b8dbc683c495.
 - [Lumbar Spine MRI Report Builder](https://starfox1230.github.io/The-Library/apps/mr-lumbar-spine-tool/index.html) — Level-by-level lumbar spine structured report builder and preview. (Existing web app)
+  - Last edited: 2025-10-25T05:00:49Z · GitHub resource folder commit · commit 2e530b6053d1.
 - [Nuclear Medicine Reporting Pocket Guide](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-09-28-nuclear-medicine-reporting-pocket-guide/index.html) — Y-90 planning MAA reporting, intrahepatic/extrahepatic activity, lung shunt, SPECT/CT, Couinaud wording, and core nuclear vocabulary. (Existing web app)
+  - Last edited: 2026-09-28T14:05:57Z · GitHub resource folder commit · commit 27f671e33b2a.
 - [Pancreatic Adenocarcinoma Report Template](https://starfox1230.github.io/The-Library/apps/report-generators/templates/pancreatic-adenocarcinoma/index.html) — Existing dedicated pancreatic adenocarcinoma reporting template. (Existing web app)
+  - Last edited: 2025-11-26T18:24:46Z · GitHub resource folder commit · commit 810aae03ea47.
 - [RadFlow Template Mode](https://starfox1230.github.io/The-Library/apps/radflow/index.html) — Configurable reporting/template flow. (Existing web app)
+  - Last edited: 2025-11-22T05:14:07Z · GitHub resource folder commit · commit 132a3b80badb.
 - [Radiology Report Summarizer (original)](https://github.com/starfox1230/radiology-report-summarizer) — Python server app summarizing report changes into missed major/minor findings and clarified descriptions. (Source / setup required)
+  - Last edited: 2024-09-17T02:21:06Z · GitHub repository commit · commit a2246916f6f0.
 - [Radiology Report Summarizer 2.0](https://github.com/starfox1230/radiology-report-summarizer-2.0) — Structured report-change summaries and scoring in a Python server app. (Source / setup required)
+  - Last edited: 2024-11-06T23:40:20Z · GitHub repository commit · commit 8308364062b0.
 - [Report Follow-Up Tracker](https://starfox1230.github.io/The-Library/apps/report-follow-up-tracker/index.html) — Track report follow-up work. (Existing web app)
+  - Last edited: 2026-02-09T11:00:35Z · GitHub resource folder commit · commit 5e07e9215f12.
 - [Report Search](https://starfox1230.github.io/The-Library/apps/report-search/index.html) — Search tool for radiology report text. (Existing web app)
+  - Last edited: 2025-06-16T01:19:43Z · GitHub resource folder commit · commit 80d44f697a87.
 - [Report Template Library](https://starfox1230.github.io/The-Library/apps/report-generators/index.html) — Launcher for existing report templates. (Existing web app)
+  - Last edited: 2025-11-26T18:24:46Z · GitHub resource folder commit · commit 810aae03ea47.
 
 ### Residency & logistics
 
 - [IR Consult Rounding Sheet](https://starfox1230.github.io/The-Library/apps/ir-tracker/index.html) — Consult rounding-sheet tool for interventional radiology. (Existing web app)
+  - Last edited: 2025-04-20T19:59:47Z · GitHub resource folder commit · commit e44f47a3c430.
 - [Moonlight Resident Schedule](https://moonlight-resident-schedule.glut4.chatgpt.site) — Private resident moonlighting schedules, compensation, openings, and weekly changes; included as a work utility. (Private Site · sign-in required)
+  - Last edited: 2026-10-17T07:15:23-05:00 · Latest saved Site source commit · commit 8d6c295d6158.
 - [Moonlighting Shift Earnings](https://starfox1230.github.io/The-Library/apps/moonlighting/index.html) — Live shift-earnings display; a work utility rather than a subject lesson. (Existing web app)
+  - Last edited: 2025-09-22T09:25:18Z · GitHub resource folder commit · commit 7dc46644e01d.
 - [Radiology To-Do & Match Plan](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-03-19-example-temp-app/index.html) — Neuroradiology match, Core exam, and project-sharing checklist. (Existing web app)
+  - Last edited: 2026-03-19T20:44:24Z · GitHub resource folder commit · commit c9337f778346.
 - [Rotation Scheduler](https://starfox1230.github.io/The-Library/apps/schedule/index.html) — Calendar-grid residency rotation scheduler. (Existing web app)
+  - Last edited: 2025-12-13T21:44:50Z · GitHub resource folder commit · commit 1b06b059cf3b.
 - [RVU Rush: Neon Shift](https://starfox1230.github.io/The-Library/apps/temporary-apps/library/2026-06-20-rvu-rush-neon-shift/index.html) — Log radiology studies, track shift work RVUs, and configure daily goals. (Existing web app)
+  - Last edited: 2026-06-20T13:36:33Z · GitHub resource folder commit · commit 5a727cae4314.
 
 ## Inventory limits
 

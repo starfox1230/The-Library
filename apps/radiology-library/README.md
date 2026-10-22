@@ -40,8 +40,32 @@ The builder validates links and fields, then regenerates `catalog.js` and `INVEN
 
 Saved-link stars use only the browser's local storage. URL query parameters preserve the current view, search, subject/type filters, and grouping, so filtered views can be bookmarked.
 
+## Last edit dates
+
+All 231 resources have a verified source-commit date. Choose **Last edited · newest/oldest** to see chronological month groups, or use **Group by → Last edited**. Type and subject groups can also retain chronological sorting. Every resource card displays its date; expand its source notes for the tracked path, commit SHA, metric, and evidence link. Browser dates and month groups use UTC. Date sorting never prioritizes recommendations over chronology; unknown dates sort last.
+
+The recorded metrics are:
+
+- **GitHub resource folder commit (195 resources):** newest commit touching the resource's folder, including its scripts, banks, styles, and assets. A grouped launcher includes its descendants.
+- **GitHub file commit (13 resources):** newest commit touching a standalone HTML module, so edits to sibling modules do not change its date.
+- **GitHub repository commit (18 resources):** default-branch source commit for a repository-level creation.
+- **Latest saved Site source commit (5 resources):** Git committer timestamp for the exact source SHA referenced by the latest saved Sites version. Version IDs and SHAs were obtained through Sites; timestamps were read from those Git objects. A saved version is not necessarily the live version.
+
+These measure recorded source changes. They can include moves, maintenance, imported content, generated assets, or progress files. They do not measure unsaved local work, database study activity, clinical accuracy, or the day the directory entry was created. Alternate links share the primary resource's date.
+
+Refresh GitHub metrics with the authenticated GitHub CLI:
+
+```sh
+python scripts/refresh_radiology_edit_dates.py
+python scripts/build_radiology_library.py
+```
+
+The refresher pins each repository head before querying path history and writes the catalog only after all GitHub queries succeed. Existing verified Sites metrics are retained. To refresh Sites, first use the native Sites tool to obtain each latest saved version's source SHA, read its Git committer timestamp using authorized source access, and pass a credential-free JSON mapping of resource URL to `lastEdited` metric object with `--sites-file /absolute/path/site-edit-metrics.json`. Never put source access credentials in the catalog or metrics file. The checked timestamp appears in the directory's explanatory footer and JSON download.
+
 ## Verification
 
 All 243 checked public app and alternate-route entry links returned HTTP 200. This establishes link availability, not full functionality of the original apps. Private Sites retain their access controls; source-only/server tools were not run.
 
 The directory was exercised in Chromium at desktop and mobile sizes, including 320, 390, and 768 pixels wide. Checks covered expandable categories, unique resource counts, subject-teaching and helpful views, combined search/subject/type filters, grouping, saved links across reload, removal and empty states, bookmarkable filter URLs, catalog download, and browser errors. No horizontal overflow or JavaScript errors were observed.
+
+Date checks covered all 231 resources, strict newest/oldest ordering across monthly groups, chronological order within type groups, date sorting with filters and the teaching view, URL/reload persistence, unavailable dates sorting last in both directions, and timezone boundaries grouping by UTC month. Source dates span August 2023 through October 2026.
