@@ -288,7 +288,7 @@
   $('#search').oninput=renderAll;$('#tier-filter').onchange=renderAll;
   $('#toggle-cases').onclick=()=>{casesCollapsed=!casesCollapsed;renderList();queueImageFit();};
   $('#views').querySelectorAll('button').forEach(b=>{b.onclick=()=>{view=b.dataset.view;revealed=false;chosen=-1;pane='question';renderAll();};});
-  $('#close-image').onclick=()=>$('#image-dialog').close();
+  $('#image-dialog').onclick=()=>$('#image-dialog').close();
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#image-dialog').open)setImageFocus(false);});
   window.addEventListener('resize',queueImageFit);
   // Refresh after another tab saves a case, without discarding an unsaved note.
