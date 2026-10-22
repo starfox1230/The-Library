@@ -1,4 +1,4 @@
-/* All study annotations remain in this browser. No tracking or remote writes. */
+/* Private Sites syncs progress to the signed-in account; local storage is the offline copy. */
 (() => {
   'use strict';
   const STORAGE_KEY = 'library-bone-tumor-conference-2026-v1';
@@ -9,10 +9,10 @@
   const safeURL = value => { try { const u = new URL(value, location.href); return ['http:', 'https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
   const link = (url, label, cls = '') => safeURL(url) ? `<a class="${cls}" href="${esc(safeURL(url))}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>` : '';
   const state = {view:'guide', query:'', topic:'all', source:'all', scope:'pending', flag:'all', caption:true, imageLimit:24, readerSource:null, readerIndex:0, readerHideRead:true, readerText:false, readerZoom:'width', readerFocus:false, readerPositions:{}, notes:new Set(), annotations:{}, guide:[], corpus:null};
-  let toastTimer, searchTimer, lastFocus;
+  let toastTimer, searchTimer, lastFocus, cloud;
   function toast(message) { const el = $('#toast'); el.textContent = message; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => el.hidden = true, 4200); }
-  function storageStatus(ok) { $('#save-status').textContent = ok ? 'Saved on this device' : 'Saving unavailable · export your progress'; $('#save-status').classList.toggle('error', !ok); }
-  function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({version:1, annotations:state.annotations})); storageStatus(true); } catch { storageStatus(false); } updateNav(); }
+  function storageStatus(ok) { if(cloud&&ok)return;$('#save-status').textContent = ok ? 'Saved on this device' : 'Saving unavailable · export your progress'; $('#save-status').classList.toggle('error', !ok); }
+  function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({version:1, annotations:state.annotations})); storageStatus(true); } catch { storageStatus(false); } updateNav();cloud?.capture(); }
   function readStored() { try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) state.annotations = cleanAnnotations(JSON.parse(raw).annotations); } catch { storageStatus(false); } }
   function cleanAnnotations(raw) {
     const clean = Object.create(null);
@@ -63,7 +63,7 @@
     const gDone = countDone(state.guide.map(g => `g:${g.id}`)), pages = allPages(), pDone = pages.filter(({source,page}) => ann(pageKey(source,page)).done).length, fDone = countDone(figures().map(f => `f:${f.id}`));
     return `<div class="stats-grid"><div class="stat"><div class="stat-label">Study route <span>SYNTHESIS</span></div><strong>${gDone} <small>of ${state.guide.length} points checked</small></strong><div class="progress-track"><i style="width:${state.guide.length ? gDone/state.guide.length*100 : 0}%"></i></div></div><div class="stat"><div class="stat-label">Source reading <span>FULL DOCUMENTS</span></div><strong>${pDone} <small>${pages.length ? `of ${pages.length} pages complete` : 'open the private reader'}</small></strong><div class="progress-track"><i style="width:${pages.length ? pDone/pages.length*100 : 0}%"></i></div></div><div class="stat"><div class="stat-label">Image practice <span>VISUAL REVIEW</span></div><strong>${fDone} <small>${figures().length ? `of ${figures().length} images reviewed` : 'open the private atlas'}</small></strong><div class="progress-track"><i style="width:${figures().length ? fDone/figures().length*100 : 0}%"></i></div></div></div>`;
   }
-  function missingCorpus() { return `<div class="banner"><p><strong>Your complete reading room is private.</strong><br>The source pages and image atlas are available in your private study site. This public Library page contains the study route. Progress is saved separately in each browser and site; use Export / Import to transfer it.</p>${link(PRIVATE_URL,'Open private reading room ↗','primary')}</div>`; }
+  function missingCorpus() { return `<div class="banner"><p><strong>Your complete reading room is private.</strong><br>The source pages and image atlas are available in your private study site. This public Library page contains the study route. The private room automatically syncs your progress across signed-in devices. Use Export / Import once to transfer progress from this public Library page.</p>${link(PRIVATE_URL,'Open private reading room ↗','primary')}</div>`; }
   function filters(view) {
     let html = `<div class="toolbar"><label class="search"><span class="sr-only" hidden>Search ${view === 'images' ? 'images and captions' : 'study material'}</span><input id="search-input" type="search" aria-label="Search ${view === 'images' ? 'images and captions' : 'study material'}" placeholder="${view === 'images' ? 'Search captions, diagnoses, patterns…' : 'Search a diagnosis, clue, or question…'}" value="${esc(state.query)}"></label>`;
     if (view === 'guide') html += `<select id="topic-filter" aria-label="Filter by study topic"><option value="all">All topics</option>${[...new Set(state.guide.map(g => g.topic).filter(Boolean))].map(t => `<option value="${esc(t)}" ${state.topic === t ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
@@ -88,6 +88,7 @@
   function rememberReader() {
     if (state.readerSource) state.readerPositions[state.readerSource] = state.readerIndex;
     try { localStorage.setItem(READER_KEY,JSON.stringify({source:state.readerSource,positions:state.readerPositions,zoom:state.readerZoom})); } catch {}
+    cloud?.capture();
   }
   function restoreReader() {
     try {
@@ -96,6 +97,40 @@
       if(sourceById(stored.source)){state.readerSource=stored.source;state.readerIndex=state.readerPositions[stored.source]||0;}
       if(['page','width','1.25','1.5','2','3'].includes(stored.zoom))state.readerZoom=stored.zoom;
     } catch {}
+  }
+  function startCloudSync() {
+    if(!window.StudySync||!(location.hostname.endsWith('.chatgpt.site')||['localhost','127.0.0.1'].includes(location.hostname)))return;
+    cloud=StudySync.create({
+      snapshot(){
+        const records=[];
+        for(const [key,item]of Object.entries(state.annotations))for(const field of ['done','key','review','note'])if(item[field]!==undefined)records.push({key,field,value:item[field],updated:item.updated||1});
+        try{const reader=JSON.parse(localStorage.getItem(READER_KEY)||'{}');if(sourceById(reader.source))records.push({key:'reader',field:'source',value:reader.source});if(reader.zoom)records.push({key:'reader',field:'zoom',value:reader.zoom});for(const [id,index]of Object.entries(reader.positions||{}))if(sourceById(id))records.push({key:'reader',field:'position:'+id,value:index});}catch{}
+        try{const theme=localStorage.getItem('library-bone-tumor-theme-v1');if(theme)records.push({key:'reader',field:'theme',value:theme});}catch{}
+        return records;
+      },
+      apply(records,{initial}){
+        let changed=false;const reader={positions:{}};
+        for(const row of records){
+          if(row.key==='reader'){if(row.field.startsWith('position:'))reader.positions[row.field.slice(9)]=row.value;else if(row.field==='theme'){try{localStorage.setItem('library-bone-tumor-theme-v1',row.value);}catch{}window.dispatchEvent(new CustomEvent('study-theme',{detail:row.value}));}else reader[row.field]=row.value;continue;}
+          if(!/^(g|f|b|p):/.test(row.key))continue;
+          if(ann(row.key)[row.field]!==row.value)changed=true;
+          state.annotations[row.key]={...ann(row.key),[row.field]:row.value,updated:Math.max(ann(row.key).updated||0,row.updated)};
+        }
+        try{localStorage.setItem(STORAGE_KEY,JSON.stringify({version:1,annotations:state.annotations}));localStorage.setItem(READER_KEY,JSON.stringify(reader));}catch{storageStatus(false);}
+        // Restore the other device's place on opening; don't interrupt an active reading session.
+        if(initial){restoreReader();changed=true;}else for(const [id,index]of Object.entries(reader.positions))if(sourceById(id))state.readerPositions[id]=Math.min(index,sourceById(id).pages.length-1);
+        const active=document.activeElement;
+        if(changed&&!active?.matches('textarea,input,select')&&!$('#detail-dialog').open)render({keepScroll:true});else updateNav();
+      },
+      status(value){
+        const messages={pending:'Saved · waiting to sync',syncing:'Syncing…',synced:'Synced across devices',offline:'Offline · saved on device',error:'Saved on device · retry sync',signin:'Sign in to sync',storage:'Device storage unavailable · export backup'};
+        $('#save-status').textContent=messages[value]||value;$('#save-status').classList.toggle('error',['error','offline','storage'].includes(value));$('#sync-signin').hidden=value!=='signin';$('#save-status').hidden=value==='signin';
+      }
+    });
+    $('#save-status').addEventListener('click',()=>cloud.sync());
+    window.addEventListener('study-theme-change',()=>cloud.capture());
+    window.addEventListener('storage',event=>{if([STORAGE_KEY,READER_KEY].includes(event.key))cloud.sync();});
+    cloud.start();
   }
   function selectDocument(id, index=null) {
     if(!sourceById(id))return;
@@ -211,7 +246,7 @@
   function downloadProgress(){const blob=new Blob([progressJSON()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`bone-tumor-study-progress-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},10000);toast('Backup download requested. Copy the backup text if your browser blocks downloads.');}
   function showImport(){openDialog(dialogShell('Import study progress',`<p>Choose a JSON backup file or paste the backup text. The newest saved version of each whole item is kept.</p><div class="dialog-actions">${btn('choose-progress','Choose backup file','','primary')}</div><label for="import-json">Or paste your progress backup</label><textarea id="import-json" rows="12" style="width:100%;font:12px monospace"></textarea><div class="dialog-actions">${btn('import-text','Import pasted backup','','primary')}</div>`));}
   async function importProgress(file){if(!file)return;if(file.size>15000000){toast('This file is too large to be a study progress export.');return;}try{const data=JSON.parse(await file.text());if(data.app!=='bone-tumor-conference'||data.version!==1||!data.annotations||typeof data.annotations!=='object'||Array.isArray(data.annotations))throw Error('Invalid');const incoming=cleanAnnotations(data.annotations);let count=0;for(const [id,item]of Object.entries(incoming)){if(!state.annotations[id]||item.updated>=(ann(id).updated||0)){state.annotations[id]=item;count++;}}save();render({keepScroll:true});toast(`Imported ${count} saved items. The newest version of each item was kept.`);}catch{toast('Could not import this file. Choose a progress JSON exported from this study app.');}$('#import-file').value='';}
-  function help(){openDialog(dialogShell('Your study workspace',`<div class="dialog-help"><p><strong>Study route:</strong> a synthesis for conference preparation. Check a point to remove it from To study; Show all brings it back. Reveal follow-up answers after rehearsing aloud.</p><p><strong>Source reader:</strong> a document viewer with fixed page controls, retained zoom, document switching, focus view, keyboard arrows, and swipe navigation in Fit page mode. Open Text & flags for checkable passages. Read & next marks a page read and turns it in one tap. Open or download each complete PDF from the viewer toolbar. Completing the study route does not complete the full source reading.</p><p><strong>Image atlas:</strong> browse source figures with captions. Turn captions off for case rehearsal, then open an image to reveal the diagnosis. Some diagnosis text may be printed in the source image itself.</p><p><strong>Key / Favorite and Review are independent.</strong> A key point is worth keeping; a review flag means you want another pass. Completed items keep their flags and notes. Your flags links each item back to its source context.</p><p><strong>Progress is local to this browser and this site.</strong> There is no automatic sync. Export progress, transfer the JSON file, and import it on your other device or site. Import merges saved items and keeps the newest saved version of each whole item. Export from each device before merging if both have new changes.</p><p>If your browser blocks storage or you use private browsing, export before closing. Source text is extracted from the original pages; use the page image to verify tables, layout, and figure relationships.</p><p><strong>Coverage:</strong> 200 consolidated study points; 61 textbook pages, 17 ACR pages including the correction, and all 59 RSNA slides. The atlas has 129 textbook figures, 10 ACR figures, and 59 complete slides with panels grouped. Report templates are on RSNA slides 47–48. The original ACR Figure 9 is flagged as superseded; the atlas uses the correction.</p></div>`));}
+  function help(){openDialog(dialogShell('Your study workspace',`<div class="dialog-help"><p><strong>Study route:</strong> a synthesis for conference preparation. Check a point to remove it from To study; Show all brings it back. Reveal follow-up answers after rehearsing aloud.</p><p><strong>Source reader:</strong> a document viewer with fixed page controls, retained zoom, document switching, focus view, keyboard arrows, and swipe navigation in Fit page mode. Open Text & flags for checkable passages. Read & next marks a page read and turns it in one tap. Open or download each complete PDF from the viewer toolbar. Completing the study route does not complete the full source reading.</p><p><strong>Image atlas:</strong> browse source figures with captions. Turn captions off for case rehearsal, then open an image to reveal the diagnosis. Some diagnosis text may be printed in the source image itself.</p><p><strong>Key / Favorite and Review are independent.</strong> A key point is worth keeping; a review flag means you want another pass. Completed items keep their flags and notes. Your flags links each item back to its source context.</p><p><strong>Your private reading room syncs across devices.</strong> Open this same private Site with the same ChatGPT account on your phone and computer. Progress, flags, favorites, notes, theme, and reading position save automatically. Existing device progress merges on opening. Offline edits stay queued on this device until you reconnect. The save indicator shows when syncing completes; click it to retry. Conflicting edits to the same field use the latest edit; separate flags and notes merge independently. Export remains available as a backup. The public GitHub Library page uses device-only storage; export and import its progress once into the private room.</p><p>If your browser blocks storage or you use private browsing, export before closing. Source text is extracted from the original pages; use the page image to verify tables, layout, and figure relationships.</p><p><strong>Coverage:</strong> 200 consolidated study points; 61 textbook pages, 17 ACR pages including the correction, and all 59 RSNA slides. The atlas has 129 textbook figures, 10 ACR figures, and 59 complete slides with panels grouped. Report templates are on RSNA slides 47–48. The original ACR Figure 9 is flagged as superseded; the atlas uses the correction.</p></div>`));}
   document.addEventListener('click',e=>{
     const target=e.target.closest('[data-action]');if(!target||target.disabled)return;const action=target.dataset.action;e.preventDefault();
     if(action==='view'){changeView(target.dataset.view);return;}
@@ -277,5 +312,5 @@
   $('#detail-dialog').addEventListener('click',e=>{if(e.target===$('#detail-dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
   window.addEventListener('storage',e=>{if(e.key===STORAGE_KEY){try{const incoming=cleanAnnotations(JSON.parse(e.newValue||'{}').annotations);for(const[id,a]of Object.entries(incoming))if(!state.annotations[id]||a.updated>=(ann(id).updated||0))state.annotations[id]=a;const active=document.activeElement;if(!active?.matches('[data-note]'))render({keepScroll:true});else updateNav();}catch{}}});
   async function init(){readStored();const results=await Promise.allSettled([fetch('guide.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw Error('guide');return r.json();}),fetch('corpus.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw Error('corpus');return r.json();})]);if(results[0].status==='fulfilled'){const data=results[0].value;state.guide=Array.isArray(data)?data:(data.guide||data.points||[]);}if(results[1].status==='fulfilled'&&Array.isArray(results[1].value.sources)){state.corpus=results[1].value;restoreReader();}if(!state.guide.length){$('#main').innerHTML=hero('STUDY MATERIAL','The study route could not be loaded.','Refresh this page to try again. The private reading room may still be available.')+missingCorpus();updateNav();return;}if(location.hash==='#reader')state.view='reader';render();}
-  init();
+  init().then(startCloudSync);
 })();

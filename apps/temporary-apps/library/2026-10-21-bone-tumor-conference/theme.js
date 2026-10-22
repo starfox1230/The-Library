@@ -26,9 +26,11 @@
     document.getElementById('theme-toggle').addEventListener('click', () => {
       apply(theme === 'dark' ? 'light' : 'dark');
       try { localStorage.setItem(key, theme); } catch { /* Session-only preference. */ }
+      window.dispatchEvent(new Event('study-theme-change'));
     });
   });
   window.addEventListener('storage', event => {
     if (event.key === key && (event.newValue === 'dark' || event.newValue === 'light')) apply(event.newValue);
   });
+  window.addEventListener('study-theme',event=>{if(event.detail==='light'||event.detail==='dark')apply(event.detail);});
 })();

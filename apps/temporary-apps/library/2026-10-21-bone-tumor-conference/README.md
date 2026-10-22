@@ -9,11 +9,11 @@ The public page contains the interface and 200 original consolidated study point
 
 ## Use
 
-Night mode is the default. Use the top-bar Day/Night toggle to switch; the browser remembers the preference separately from study progress.
+Night mode is the default. Use the top-bar Day/Night toggle to switch; the private reading room syncs that preference with your account.
 
 Check a point to remove it from **To study**. **Show all** and **Completed** bring it back. **Key point / Favorite**, **Review**, and notes are independent of completion. **Your flags** collects saved material and links it back to its context. The source reader keeps page navigation, document switching, zoom and PDF links visible while the page scrolls independently. Zoom stays set between pages; each document remembers its last page. Use arrow keys or Page Up/Down, jump directly by page number, or swipe horizontally in Fit page mode. Focus view fills the viewport. **Read & next** completes a page and advances in one tap; the last page advances into the next document. **Text & flags** opens the checkable passages alongside the viewer (as an overlay on phones). Each document has **Open full PDF** and **Download PDF** links. Source page completion remains separate from guide completion. Image captions can be hidden for rehearsal, although text printed inside a source image remains visible.
 
-Annotations stay in localStorage in the current browser and origin. There is no automatic cross-device sync. Export/import transfers progress and keeps the newest saved version of each whole item. Export from both devices before combining concurrent edits. No API keys, external writes, or analytics are used.
+The private Sites reading room automatically syncs completion, flags, favorites, notes, theme, and reading position across devices signed into the same ChatGPT account. Existing browser progress merges on opening. Local storage holds an offline copy and queued edits; reconnect that device to finish uploading. The header shows **Synced across devices** after successful saves and can be clicked to retry. Independent fields merge; the latest edit wins if both devices change the same field. Reader position restores when opening without moving an active reader. Export/import remains available as a backup. The public GitHub Pages copy uses device-only storage; export/import its progress once into the private room. See [cloud/README.md](cloud/README.md) for server, migration, security, and test details. No API keys or analytics are used.
 
 ## Source coverage
 
@@ -37,8 +37,8 @@ Chapter 3's supplied PDF ends at printed page 73, although its metadata lists th
 `build_sources.py` accepts local chapter PDFs and the ACR and RSNA PDFs, and writes the **private** `corpus.json`, assets, and copies of all complete PDFs in `documents/`. Requires PyMuPDF and Pillow. The RSNA PDF was rendered from the original 59-slide PPTX using PowerPoint. Do not commit its generated output here.
 
 ```powershell
-python build_sources.py --chapters 'PATH_TO_CHAPTER_FOLDER' --acr 'ACR.pdf' --rsna 'RSNA.pdf' --output 'PRIVATE_SITE/dist'
-python validate.py --private 'PRIVATE_SITE/dist'
+python build_sources.py --chapters 'PATH_TO_CHAPTER_FOLDER' --acr 'ACR.pdf' --rsna 'RSNA.pdf' --output 'PRIVATE_SITE/public'
+python validate.py --private 'PRIVATE_SITE/public'
 ```
 
 The generator removes the personally identifying ClinicalKey download footer from reader images and text; source metadata credits Elsevier. Every figure retains a full-page context link. Multi-row panels are grouped using caption boundaries, followed by visual contact-sheet QA. Full original page images remain the authority for tables, reading order, and image relationships.
