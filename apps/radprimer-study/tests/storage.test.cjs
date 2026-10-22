@@ -38,7 +38,6 @@ test('Anki packet includes only active queued cases and leaves queue statuses un
   const {w,dom}=boot();try{
     const c=await record({ankiStatus:'queued',notes:'specific fact'}),done={...c,ankiStatus:'done'},archived={...c,archived:true};
     const p=w.RadCore.packet([c,done,archived]);assert.equal(p.cases.length,1);assert.equal(p.cases[0].notes,'specific fact');assert.ok(p.instructions.includes('saCloze++'));assert.equal(c.ankiStatus,'queued');
-    assert.match(p.instructions,/verified normal imaging counterpart/);assert.match(p.instructions,/locally saved normal image to Extra/);assert.match(p.instructions,/source-page citation/);assert.match(p.instructions,/omit it and report the limitation/);
   }finally{dom.window.close();}
 });
 test('stable case IDs use answer identity, not assessment or question position',async()=>{

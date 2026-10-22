@@ -101,7 +101,7 @@
       section.id = 'inspector-panel-' + key; section.setAttribute('role', 'tabpanel'); section.setAttribute('aria-labelledby', 'inspector-tab-' + key);
       section.hidden = pane !== key; scroll.append(section);
     }
-    layout.append(renderImages(c), inspector); container.append(layout);
+    layout.append(inspector, renderImages(c)); container.append(layout);
     const head = el('section', undefined, 'detail-head');
     head.append(el('p', c.stem, 'stem'));
     const choices = el('div', undefined, 'choice-list');

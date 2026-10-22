@@ -132,17 +132,6 @@ Rules:
 - A `What is the most likely diagnosis?` card must include an image.
 - Arrow-indicated pathology cards are a standard visual-card type when the arrow marks a useful finding. Do not create cards from arbitrary labels or caption trivia.
 
-## Normal counterparts for RadPrimer source packets
-
-When an agent creates image-based cards from a RadPrimer Case Library packet, use the saved images and their image keys/descriptions to look up a verified normal imaging counterpart for the abnormality being taught. This is answer-side enrichment, not permission to expand the selected learning targets.
-
-- Find a genuine normal study of the same anatomy. Match modality, projection or imaging plane, sequence/contrast phase, orientation, level and field of view as closely as possible; match relevant age/skeletal maturity when applicable. Use both the actual source images and their descriptions to judge the match.
-- Prefer accessible, authoritative educational sources with usable image rights. Verify that the depicted structure is normal rather than assuming it from a search thumbnail. Preserve the source-page URL, attribution and available license information.
-- Put the locally saved comparison image in `Extra`, clearly labeled **Normal comparison**, with a brief explanation of the normal appearance. Keep it visually associated with the corresponding pathological image/group. Disclose material differences in framing or technique rather than presenting an imperfect match as identical.
-- Keep the diagnostic framing and anatomical context. Do not distort, mirror, generatively remove pathology from, or synthesize an image and present it as a genuine normal study.
-- If a suitable normal counterpart cannot be verified or acquired, omit it and record the limitation in the build report. Never substitute a guessed normal image or delay reporting the missing comparison until after claiming it was included.
-- Preserve the user's selected facts, the existing `saCloze++` note type and the original card front. A comparison in `Extra` does not create additional tested facts or additional cards by itself.
-
 ## Arrow-Indicated Pathology Cards
 
 Arrow cards are one of the user's two main pathology-image card types. Use them when the source image contains arrows that identify a specific finding, structure, or manifestation worth retrieving. They usually need only the single image that contains the relevant arrow because the target is narrower than a diagnosis card.

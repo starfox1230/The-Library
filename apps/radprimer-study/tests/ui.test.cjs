@@ -50,7 +50,7 @@ test('image-first review switches groups in place and compares them without stac
     const c=await record();await w.RadDB.saveCapture(c);await load('library.js');
     const visible=()=>Array.from(w.document.querySelectorAll('.image-grid > .group')).filter(g=>!g.hidden);
     assert.equal(visible().length,1);assert.equal(visible()[0].id,'image-group-panel-0');
-    assert.ok(w.document.querySelector('.review-layout').firstElementChild.classList.contains('image-workspace'));
+    assert.ok(w.document.querySelector('.review-layout').firstElementChild.classList.contains('case-inspector'));
     assert.ok(w.document.querySelector('.work').classList.contains('single-case'));
     assert.equal(w.document.querySelector('#inspector-panel-question').hidden,false);
     assert.equal(w.document.querySelector('#inspector-panel-notes').hidden,true);
