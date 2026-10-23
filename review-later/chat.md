@@ -44,10 +44,126 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-23 12:53 Central Daylight Time
-Cards: 7
+Updated: 2026-10-23 13:29 Central Daylight Time
+Cards: 13
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-21T17:50:02-05:00
+Last seen: 2026-10-23T13:28:47-05:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-15T12:59:18-05:00
+Last seen: 2026-10-23T13:17:34-05:00
+Card ID: 1776290396660
+Note ID: 1776290396659
+
+Question:
+00:12
+
+[...] impurity is wrong chemical form of the radioisotope.
+
+Answer:
+00:12
+
+Radiochemical impurity is wrong chemical form of the radioisotope.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-10-07T13:29:25-05:00
+Last seen: 2026-10-23T13:04:56-05:00
+Card ID: 1780270217302
+Note ID: 1780270217301
+
+Question:
+00:12
+
+In gamma cameras, a diverging collimator [has what effect on images?]
+
+Answer:
+00:08
+
+In gamma cameras, a diverging collimator minimizes the image
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-09-04T12:42:43-05:00
+Last seen: 2026-10-23T13:04:36-05:00
+Card ID: 1782588006937
+Note ID: 1782588006936
+
+Question:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as [...].
+
+Answer:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as osteoporosis or osseous hemangioma.
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-09-30T07:52:00-05:00
+Last seen: 2026-10-23T13:04:02-05:00
+Card ID: 1789015833872
+Note ID: 1789015833870
+
+Question:
+00:12
+
+[...] are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+Answer:
+00:12
+
+Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:26:21-05:00
+Last seen: 2026-10-23T12:58:02-05:00
+Card ID: 1748033023536
+Note ID: 1748033023536
+
+Question:
+00:12
+
+Intraparenchymal Hemorrhage: On T2-weighted MRI, acute oxyhemoglobin appears [...].
+
+Answer:
+00:08
+
+Intraparenchymal Hemorrhage: On T2-weighted MRI, acute oxyhemoglobin appears hyperintense.
+
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T08:18:31-05:00
@@ -73,7 +189,7 @@ Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While
 
 Per ChatGPT
 
-## Card 2
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -97,7 +213,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 3
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-03-21T07:04:48-05:00
@@ -119,7 +235,7 @@ What type of breast calcification is this?
 
 fine pleomorphic
 
-## Card 4
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -145,7 +261,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 5
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-10-23T06:28:34-05:00
@@ -163,7 +279,7 @@ SHOW ALL
 
 Remarks
 
-## Card 6
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -189,7 +305,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 7
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
