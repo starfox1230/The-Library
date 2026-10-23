@@ -44,10 +44,36 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-23 06:32 Central Daylight Time
-Cards: 6
+Updated: 2026-10-23 12:53 Central Daylight Time
+Cards: 7
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T08:18:31-05:00
+Last seen: 2026-10-23T07:15:01-05:00
+Card ID: 1747693920691
+Note ID: 1747693920690
+
+Question:
+00:12
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+[...]
+
+Answer:
+00:08
+
+In patients with renal masses suspected to be angiomyolipomas, which MR sequence provides the most definitive diagnosis and why?
+
+T1 with fat suppression (demonstrates macroscopic fat (favors AML), as opposed to out-of-phase signal drop, which suggests microscopic fat (could be AML or clear cell RCC)
+
+Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While in/out phase imaging may help in the diagnosis, drop out of a renal mass on out of phase images, either focally or diffuse, raises concern for a clear cell RCC, which can contain intracytoplasmic lipid. To make the diagnosis of an AML on MRI, signal loss on a frequency selective fat suppressed sequence is necessary.
+
+Per ChatGPT
+
+## Card 2
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -71,7 +97,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-03-21T07:04:48-05:00
@@ -93,7 +119,7 @@ What type of breast calcification is this?
 
 fine pleomorphic
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -119,7 +145,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-10-23T06:28:34-05:00
@@ -137,7 +163,7 @@ SHOW ALL
 
 Remarks
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -163,7 +189,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
