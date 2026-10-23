@@ -35,7 +35,7 @@
   }
   function fresh() {
     const types = catalogue();
-    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', sound: false, haptics: true, motion: true, keepAwake: true, countUp: false }, types, selectedTypeId: types[0].id, records: [], active: null };
+    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', sound: false, haptics: true, motion: true, keepAwake: true, countUp: false }, futureGoals: [], types, selectedTypeId: types[0].id, records: [], active: null };
   }
   function elapsed(active, now = Date.now()) {
     return active ? active.elapsedMs + (active.runningSince === null ? 0 : Math.max(0, now - active.runningSince)) : 0;
@@ -80,12 +80,15 @@
     if (!data.types.some(t => t.id === data.selectedTypeId)) throw new Error('Invalid selected study.');
     const s = data.settings;
     if (!s || !text(s.goalName) || !Number.isInteger(s.goalCents) || !number(s.goalCents, 100, 100000000) || !['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].every(key => typeof s[key] === 'boolean')) throw new Error('Invalid goal or preferences in backup.');
+    // Older saved data and backups predate the optional future-goals list.
+    const goals = data.futureGoals === undefined ? [] : data.futureGoals;
+    if (!Array.isArray(goals) || goals.length > 1000 || !goals.every(g => g && text(g.id) && text(g.name) && (g.costCents === null || (Number.isInteger(g.costCents) && number(g.costCents, 100, 100000000)))) || new Set(goals.map(g => g.id)).size !== goals.length) throw new Error('Invalid future goals in backup.');
     if (data.active !== null) {
       const a = data.active;
       if (!a || !validateRecord({ ...a, completedAt: a.startedAt }) || !(a.runningSince === null || number(a.runningSince, a.startedAt, 8640000000000000))) throw new Error('Invalid active timer in backup.');
       if (data.records.some(r => r.id === a.id)) throw new Error('Active case is already completed.');
     }
-    return clone(data);
+    return { ...clone(data), futureGoals: clone(goals) };
   }
   // CSV formula prefixes are escaped for spreadsheet applications, including custom names.
   function csv(records) {

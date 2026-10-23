@@ -74,3 +74,28 @@ test('unpaid modalities still save timing and within-target status', () => {
   assert.equal(r.modality, 'CT'); assert.equal(E.payout(r), 0);
   assert.equal(s.records.length, 1);
 });
+test('older backups gain an empty future list without changing earnings or active timer', () => {
+  const old = E.fresh();
+  E.start(old, 1000); E.finish(old, 61000); E.start(old, 62000);
+  delete old.futureGoals;
+  const restored = E.validate(old);
+  assert.deepEqual(restored.futureGoals, []);
+  assert.deepEqual(restored.records, old.records);
+  assert.deepEqual(restored.active, old.active);
+  assert.equal(E.total(restored.records), 200);
+  assert.equal(old.futureGoals, undefined);
+});
+test('future ideas with or without prices survive a full backup round trip', () => {
+  const s = E.fresh(); E.start(s, 1000); E.finish(s, 61000);
+  s.futureGoals = [{ id: 'next-1', name: 'Headphones', costCents: 24999 }, { id: 'next-2', name: 'A weekend away', costCents: null }];
+  const restored = E.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepEqual(restored, s);
+  assert.equal(restored.settings.goalCents, 90000);
+  assert.equal(E.total(restored.records), 200);
+});
+test('future list validation rejects bad amounts, duplicate ids and malformed lists', () => {
+  for (const goals of [null, {}, [{ id: 'x', name: 'Idea', costCents: -100 }], [{ id: 'x', name: 'Idea', costCents: 1.5 }], [{ id: 'x', name: '', costCents: null }], [{ id: 'x', name: 'One', costCents: null }, { id: 'x', name: 'Two', costCents: null }]]) {
+    const s = E.fresh(); s.futureGoals = goals;
+    assert.throws(() => E.validate(s), /future goals/);
+  }
+});

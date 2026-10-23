@@ -133,6 +133,7 @@
     const today = state.records.filter(r => localDate(r.completedAt) === localDate(Date.now()));
     $('todayStats').textContent = `${today.length} today · ${money(E.total(today))}`;
     if ($('historyDialog').open) renderHistory();
+    if ($('settingsDialog').open) renderFutureGoals();
     updateWakeLock();
   }
   async function updateWakeLock() {
@@ -320,6 +321,70 @@
     $('bulkGroup').replaceChildren(new Option('All categories', '*'), ...[...new Set(state.types.filter(t => t.modality === modality).map(t => t.group))].map(g => new Option(g, g)));
   }
   function renderStudySettings() { typeList($('settingsTypes'), filteredTypes($('settingsSearch').value, settingsFavorites), editType); }
+  function resetFutureGoalForm() {
+    $('futureGoalForm').reset();
+    $('futureGoalForm').elements.id.value = '';
+    $('saveFutureGoal').textContent = 'Add future goal';
+    $('cancelFutureGoal').hidden = true;
+  }
+  function renderFutureGoals() {
+    const list = $('futureGoalList');
+    list.replaceChildren();
+    if (!state.futureGoals.length) { list.append(node('p', 'empty', 'No future goals yet.')); return; }
+    state.futureGoals.forEach(goal => {
+      const card = node('div', 'future-goal');
+      const info = node('div', 'future-goal-info');
+      info.append(node('strong', '', goal.name), node('span', '', goal.costCents === null ? 'Cost not set' : money(goal.costCents)));
+      const actions = node('div', 'future-goal-actions');
+      const use = node('button', '', 'Use goal');
+      use.setAttribute('aria-label', `Use goal: ${goal.name}`);
+      use.onclick = () => {
+        const fields = $('goalForm').elements;
+        fields.goalName.value = goal.name;
+        fields.goalAmount.value = goal.costCents === null ? '' : (goal.costCents / 100).toFixed(2);
+        $('goalForm').scrollIntoView({ block: 'start', behavior: 'instant' });
+        (goal.costCents === null ? fields.goalAmount : fields.goalName).focus({ preventScroll: true });
+        toast('Ready above · Save goal to activate');
+      };
+      const edit = node('button', '', 'Edit');
+      edit.setAttribute('aria-label', `Edit future goal: ${goal.name}`);
+      edit.onclick = () => {
+        const f = $('futureGoalForm').elements;
+        f.id.value = goal.id; f.name.value = goal.name; f.cost.value = goal.costCents === null ? '' : (goal.costCents / 100).toFixed(2);
+        $('saveFutureGoal').textContent = 'Save idea'; $('cancelFutureGoal').hidden = false;
+        f.name.focus();
+      };
+      const remove = node('button', 'remove-goal', 'Delete');
+      remove.setAttribute('aria-label', `Delete future goal: ${goal.name}`);
+      remove.onclick = () => {
+        const removed = mutate(s => {
+          const index = s.futureGoals.findIndex(g => g.id === goal.id);
+          if (index < 0) return null;
+          return { index, goal: s.futureGoals.splice(index, 1)[0] };
+        });
+        if (!removed) return;
+        if ($('futureGoalForm').elements.id.value === goal.id) resetFutureGoalForm();
+        toast('Future goal deleted', () => mutate(s => { if (!s.futureGoals.some(g => g.id === removed.goal.id)) s.futureGoals.splice(Math.min(removed.index, s.futureGoals.length), 0, removed.goal); }));
+      };
+      actions.append(use, edit, remove); card.append(info, actions); list.append(card);
+    });
+  }
+  $('futureGoalForm').onsubmit = event => {
+    event.preventDefault();
+    const f = event.currentTarget.elements;
+    const name = f.name.value.trim();
+    if (!name) return toast('Enter a future goal name.');
+    const goal = { id: f.id.value || E.id(), name, costCents: f.cost.value === '' ? null : Math.round(Number(f.cost.value) * 100) };
+    const saved = mutate(s => {
+      const index = s.futureGoals.findIndex(g => g.id === goal.id);
+      if (index < 0) { if (s.futureGoals.length >= 1000) return false; s.futureGoals.push(goal); }
+      else s.futureGoals[index] = goal;
+      return true;
+    });
+    if (saved) { resetFutureGoalForm(); toast('Future goal saved'); }
+    else if (saved === false) toast('Future goals list is full. Remove an idea first.');
+  };
+  $('cancelFutureGoal').onclick = resetFutureGoalForm;
   function populateSettings() {
     const f = $('goalForm').elements;
     f.goalName.value = state.settings.goalName; f.goalAmount.value = (state.settings.goalCents / 100).toFixed(2);
@@ -327,7 +392,7 @@
     const modalities = [...new Set(state.types.map(t => t.modality))];
     $('bulkModality').replaceChildren(...modalities.map(m => new Option(m, m)));
     $('modalities').replaceChildren(...modalities.map(m => new Option(m, m)));
-    updateGroupOptions(); renderStudySettings();
+    updateGroupOptions(); renderStudySettings(); renderFutureGoals();
   }
   $('settingsButton').onclick = () => { state = readStored(); populateSettings(); open($('settingsDialog')); };
   $('goalForm').onsubmit = event => { event.preventDefault(); const f = event.currentTarget.elements; const name = f.goalName.value.trim(); if (!name) return toast('Enter a goal name.'); mutate(s => { s.settings.goalName = name; s.settings.goalCents = Math.round(Number(f.goalAmount.value) * 100); }); toast('Goal saved'); };

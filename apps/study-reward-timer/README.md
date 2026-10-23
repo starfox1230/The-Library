@@ -8,6 +8,7 @@ Phone-first, buildless, local-only timer. No account, analytics, server ledger, 
 
 - Every study starts with an **18-minute** personal target. MR studies pay **$2** only when active time is **at or below** the target. Every other modality defaults to **$0** but still records time and outcome.
 - Goal: **$900**, labeled **Steam Deck · 512GB OLED**; editable to the actual checkout total. This is a personal budget tracker, not a payment service.
+- Settings → Goal also saves **future goals** with a name and optional estimated cost. Add, edit, delete/Undo, or use an idea to prefill the active goal form. Save explicitly to activate it; saving ideas never changes the current goal or earnings. Future goals are included in JSON backups, and older backups automatically start with an empty list.
 - Start, Pause/Resume, Complete. No automatic completion or payment when the timer expires. Overruns continue in amber; completed overruns earn $0.
 - The active timer snapshots the selected study, target, reward, and start timestamp. Settings affect future cases only. One combined reading task such as abdomen + MRCP uses one timer/reward.
 - Uses persisted wall-clock anchors, not interval ticks. Screen lock, backgrounding, and reload do not stop a running timer. Explicit pauses exclude interruptions. The app cannot sound an alarm or guarantee background execution on iOS; it calculates the correct elapsed time on return.
