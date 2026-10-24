@@ -4,6 +4,7 @@
   const E = StudyTimer;
   const H = AfterglowHaptics;
   const hapticPlayer = H.createPlayer(navigator);
+  const themeRenderer = AfterglowTheme.createRenderer({root:document.documentElement,body:document.body,themeColor:document.querySelector('meta[name="theme-color"]')});
   const $ = id => document.getElementById(id);
   const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
   const minutes = ms => Number((ms / 60000).toFixed(2)).toString();
@@ -106,14 +107,15 @@
     const paused = a && a.runningSince === null && !a.holding;
     document.body.dataset.state = paused ? 'paused' : over ? 'over' : a ? 'running' : 'idle';
     document.body.dataset.active = !!a;
+    const look = themeRenderer.update({active:!!a,targetMs:target,elapsedMs:spent,paused:!!paused,holding:!!a?.holding,motion:state.settings.motion});
     $('studyName').textContent = a ? a.typeName : type.name;
     $('modality').textContent = type.modality;
     $('studyPicker').disabled = !!a;
     $('studyPicker').setAttribute('aria-label', a ? `Active study: ${a.typeName}. Finish or discard to change.` : 'Choose study type');
-    $('time').textContent = state.settings.countUp && a ? duration(spent) : `${over ? '+' : ''}${duration(a ? target - spent : target, !over)}`;
-    $('timerStatus').textContent = paused ? 'PAUSED' : over ? 'OVER TARGET' : a ? (state.settings.countUp ? 'ELAPSED' : 'REMAINING') : 'READY';
-    $('timerDetail').textContent = a ? `${duration(state.settings.countUp ? Math.abs(target - spent) : spent, state.settings.countUp && !over)} ${state.settings.countUp ? (over ? 'over target' : 'remaining') : 'elapsed'}` : `${minutes(target)} min target`;
-    $('dialProgress').style.strokeDashoffset = a ? Math.min(100, spent / target * 100) : 0;
+    $('time').textContent = over ? `+${duration(spent-target)}` : state.settings.countUp && a ? duration(spent) : duration(a ? target-spent : target, true);
+    $('timerStatus').textContent = paused ? 'PAUSED' : over ? 'OVERTIME' : a ? (look.warning ? 'FINAL 2 MIN' : state.settings.countUp ? 'ELAPSED' : 'REMAINING') : 'READY';
+    $('timerDetail').textContent = over ? `${duration(spent)} total elapsed` : a ? `${duration(state.settings.countUp ? target-spent : spent, state.settings.countUp)} ${state.settings.countUp ? 'remaining' : 'elapsed'}` : `${minutes(target)} min target`;
+    $('dialProgress').style.strokeDashoffset = a && !over ? Math.min(100, spent / target * 100) : 0;
     $('targetMeta').textContent = `${minutes(target)} min target`;
     $('rewardMeta').textContent = over ? '$0 · over target' : type.rewardCents ? `${money(type.rewardCents)} on target` : '$0 · tracking only';
     $('completeButton').hidden = !a || !!paused;

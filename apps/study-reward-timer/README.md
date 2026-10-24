@@ -9,7 +9,7 @@ Phone-first, buildless, local-only timer. No account, analytics, server ledger, 
 - Every study starts with an **18-minute** personal target. MR studies pay **$2** only when active time is **at or below** the target. Every other modality defaults to **$0** but still records time and outcome.
 - Goal: **$900**, labeled **Steam Deck · 512GB OLED**; editable to the actual checkout total. This is a personal budget tracker, not a payment service.
 - Settings → Goal also saves **future goals** with a name and optional estimated cost. Add, edit, delete/Undo, or use an idea to prefill the active goal form. Save explicitly to activate it; saving ideas never changes the current goal or earnings. Future goals are included in JSON backups, and older backups automatically start with an empty list.
-- Start appears only when idle; an active timer uses tap-anywhere Pause/Resume and Hold to complete, with no separate pause/resume button. Starting with touch or mouse requires a fresh press and release on Start, so a completed hold's release click cannot start another case. Keyboard and assistive activation remain available. No automatic completion or payment when the timer expires. Overruns continue in amber; completed overruns earn $0.
+- Start appears only when idle; an active timer uses tap-anywhere Pause/Resume and Hold to complete, with no separate pause/resume button. Starting with touch or mouse requires a fresh press and release on Start, so a completed hold's release click cannot start another case. Keyboard and assistive activation remain available. No automatic completion or payment when the timer expires. Overruns use a distinct violet theme and a plus-time display; completed overruns earn $0.
 - The active timer snapshots the selected study, target, reward, and start timestamp. Settings affect future cases only, except the explicit long-press duration restart described below. One combined reading task such as abdomen + MRCP uses one timer/reward.
 - Uses persisted wall-clock anchors, not interval ticks. Screen lock, backgrounding, and reload do not stop a running timer. Explicit pauses exclude interruptions. The app cannot sound an alarm or guarantee background execution on iOS; it calculates the correct elapsed time on return.
 - 90+ editable types grouped by modality and category. Favorites in the picker and settings, search, custom types, and bulk modality/category editing. All targets are user-configured personal goals, not validated clinical reading-time standards.
@@ -57,6 +57,7 @@ The success sequence combines immediate button compression, a ring highlight, a 
 node --test apps/study-reward-timer/engine.test.cjs
 node --test apps/study-reward-timer/haptics.test.cjs
 node --test apps/study-reward-timer/gestures.test.cjs
+node --test apps/study-reward-timer/theme.test.cjs
 node --check apps/study-reward-timer/app.js
 node --check apps/study-reward-timer/sw.js
 ```
@@ -77,3 +78,13 @@ Rebuild icons with `python apps/study-reward-timer/generate_icons.py` (Pillow). 
 Verification includes real browser checks of golden pause, hidden Complete, duration restart, early-release cancellation, full hold completion, editor point manipulation, independent action settings, clipboard transfer and reload persistence. Clock-injected tests exercise the exact deadline and late cases, repeat holds, interrupted gestures, orphan-hold recovery, data migration and native/fallback playback cancellation. Physical feel still needs an iPhone audition.
 
 Start regression tests simulate mouse compatibility clicks and touch clicks retargeted onto Start when Complete disappears, releases just before/at/after the hold threshold, cancellation, and an immediate intentional new tap. There is no time-based cooldown. The [Pointer Events click-target rules](https://www.w3.org/TR/pointerevents/#the-click-auxclick-and-contextmenu-events) describe click delivery separately from the original press target.
+
+## Countdown colors and overtime
+
+The main screen gradually moves from its cool night palette through plum and wine into ruby red as active time approaches the target. `theme.js` derives every color from elapsed/target time, using eased Oklab interpolation between coordinated palettes. Text, icons, the dial, Complete and its hold fill, the fund card, progress bars, and browser theme color change together; sheets keep their neutral night palette. The [CSS Color conversion/interpolation model](https://www.w3.org/TR/css-color-4/#color-conversion-code) informs the perceptual blend. The older `apps/call-timer-display-only/index.html` supplied the timing reference, but its hard background pulse is replaced with a low-amplitude lighting pulse.
+
+At two minutes remaining, FINAL 2 MIN appears and the background/dial gently breathe on a 2.4-second cycle. The last 30 seconds use a 1.5-second cycle. The digits never disappear or invert. Both the app motion switch and system Reduce Motion suppress pulsing, retaining the static color/status warning. Pausing always overrides the timing palette with gold. A completion hold freezes its current palette and stops pulsing without entering the gold paused state.
+
+At exactly zero, the timer is still on target and red. Once active elapsed time exceeds the target, the main screen switches to violet, shows OVERTIME and `+mm:ss`, and uses a complete segmented dial. Count-up mode also switches to plus-time in overtime, with total elapsed time beneath it. Overtime does not pulse. Completing/discarding returns to the normal idle palette; eligibility and rewards still use the original exact deadline rule.
+
+Theme tests cover continuous progression, varied target lengths, warning and overtime boundaries, pause and completion-hold precedence, motion-off behavior, and browser-chrome updates. Palette contrast is sampled at 1,001 countdown positions, plus pause/overtime, including the combined brightest halo/pulse: text and button label color pairs remain at least 4.5:1. Browser QA checks the real short-countdown rollover, gold pause/resume, dark settings sheets, and imported local preview cases at the middle and end of a normal study.
