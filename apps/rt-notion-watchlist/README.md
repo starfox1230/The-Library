@@ -18,7 +18,7 @@ Chrome does not allow a website or ZIP to silently install an unpacked extension
 - Offers **Open in Notion** after saving, or can automatically open each newly created entry when enabled in settings.
 - Checks the source URL before each save; an existing entry is opened without changing its status, ratings, or notes.
 - Warns about a matching older title with no source URL and matching/empty Type. Open it to check, or explicitly choose **Add as a separate entry**. Remakes are never silently merged.
-- Strips URL tracking, hashes, trailing slashes, and season/episode paths. TV seasons/episodes are saved as the parent show when a parent-show title link is available. Review/gallery pages don’t show the widget. Navigating between supported pages refreshes it.
+- Strips URL tracking, hashes, trailing slashes, and season/episode paths. TV seasons/episodes are saved as the parent show, with `Type = TV Show`. Reads the parent title from `TVSeason`/`TVEpisode` structured metadata, falling back to a named series link or the page heading. Does not depend on a regular anchor or mistake RT’s custom “Series Page” navigation for the show name. Review/gallery pages don’t show the widget. Navigating between supported pages refreshes it.
 - Serializes saves and coalesces concurrent requests for the same URL across tabs. Does not automatically retry a non-idempotent create request. After a lost response, retry checks Notion before creating again. Notion does not enforce a unique URL constraint: two different Chrome profiles/devices saving simultaneously can still create duplicates.
 
 ## Connection and privacy
@@ -34,6 +34,10 @@ The fixed destination is data source `8a9a4d6e-106e-4da1-bcc2-b9a10a7083d7`, dat
 Added the `Rotten Tomatoes` URL property and a **For Later · Quick Add** table view, filtered to For Later and sorted by Date Added to Watchlist descending. Existing entries and views are preserved. [Open Watchlist](https://www.notion.so/880c2a70f6344b5c8824f65fafd7f9f4?v=4031d7063539815db35a000cfc86069f).
 
 ## Development and validation
+
+### 1.0.1
+
+Fixed missing buttons on season pages such as VisionQuest’s Limited Series page (`/tv/visionquest/s01`). The previous season parser required a regular anchor containing the show title; Rotten Tomatoes now uses a custom `rt-link` labeled “Series Page”. The regression test uses the actual page’s TVSeason metadata and custom navigation, verifies `Name = VisionQuest`, `Type = TV Show`, and `Status = For Later`, and checks the heading fallback when metadata is missing or malformed.
 
 Run `npm test` (Node 20+). Run `python build.py` to regenerate the dependency-free ZIP and icons. Tests cover Notion payloads, schema drift, duplicate handling, timeout/error reporting, source validation, and worker authorization/concurrent saves. The browser smoke test checks the injected widget and setup screen against mocked Chrome/Notion APIs; it does not claim a live Notion insert.
 

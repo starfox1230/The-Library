@@ -25,6 +25,13 @@ test('validates sender/page agreement and normalizes titles', () => {
   assert.throws(() => core.validateMedia({...media, title: ' '}, media.url));
   assert.throws(() => core.validateMedia({...media, title: 'x'.repeat(501)}, media.url));
 });
+test('VisionQuest season automatically sets TV Show regardless of a supplied type', () => {
+  const source = 'https://www.rottentomatoes.com/tv/visionquest/s01';
+  const show = core.validateMedia({url: source, title: 'VisionQuest', type: 'Movie'}, source);
+  assert.equal(show.type, 'TV Show');
+  assert.equal(show.url, 'https://www.rottentomatoes.com/tv/visionquest');
+  assert.equal(core.createPayload(show).properties.Type.select.name, 'TV Show');
+});
 test('uses real Watchlist properties, local date, For Later and source link only', () => {
   const payload = core.createPayload(media, new Date(2026, 9, 23, 23, 30));
   assert.equal(payload.parent.data_source_id, core.DATA_SOURCE_ID);

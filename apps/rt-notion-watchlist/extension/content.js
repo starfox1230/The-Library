@@ -27,26 +27,48 @@
     const path = location.pathname.match(/^\/(m|tv)\/([a-zA-Z0-9_-]+)(?:\/.*)?$/);
     if (!path) return null;
     const suffix = location.pathname.split('/').filter(Boolean).slice(2);
-    if (suffix.length && (path[1] === 'm' || !/^s\d+$/i.test(suffix[0]))) return null;
+    if (suffix.length && (path[1] === 'm' || !/^s\d+$/i.test(suffix[0]) || suffix.length > 2 || (suffix[1] && !/^e\d+$/i.test(suffix[1])))) return null;
     const url = `https://www.rottentomatoes.com/${path[1]}/${path[2]}`;
+    const metadata = [];
+    for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
+      try {
+        const data = JSON.parse(script.textContent);
+        metadata.push(...(Array.isArray(data) ? data : [data, ...(data?.['@graph'] || [])]));
+      } catch { /* Ignore malformed unrelated metadata. */ }
+    }
+    const hasType = (item, type) => [item?.['@type']].flat().includes(type);
+    const showTitle = value => typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
     // TV seasons/episodes are saved as their parent show with the parent title.
     let title = '';
     if (path[1] === 'tv' && location.pathname.split('/').filter(Boolean).length > 2) {
-      title = [...document.querySelectorAll('a[href]')].find(a => {
-        try { return new URL(a.href).pathname.replace(/\/$/, '') === `/tv/${path[2]}` && a.textContent.trim(); } catch { return false; }
-      })?.textContent.trim() || '';
-      if (!title) return null;
+      for (const item of metadata) {
+        if (!['TVSeason', 'TVEpisode', 'TVSeries'].some(type => hasType(item, type))) continue;
+        const series = item.partOfSeries || item.partOfSeason?.partOfSeries;
+        title = showTitle(series?.name || (hasType(item, 'TVSeries') ? item.name : ''));
+        if (title) break;
+      }
+      // RT's current navigation uses <rt-link> with text "Series Page",
+      // not a regular anchor containing the title. Never use that as a title.
+      if (!title) {
+        const link = [...document.querySelectorAll('a[href], rt-link[href]')].find(link => {
+          try {
+            return new URL(link.getAttribute('href'), location.href).pathname.replace(/\/$/, '') === `/tv/${path[2]}` && showTitle(link.textContent) && !/^series page$/i.test(showTitle(link.textContent));
+          } catch { return false; }
+        });
+        title = showTitle(link?.textContent);
+      }
+      if (!title) {
+        // Fallback for missing/delayed JSON-LD: "Limited Series – VisionQuest"
+        // and "Severance: Season 1" both resolve to their parent show.
+        title = showTitle(document.querySelector('h1')?.textContent)
+          .replace(/^(?:season\s+\d+|limited series|mini\s?series)\s*[:–—-]\s*/i, '')
+          .replace(/\s*[:–—-]\s*(?:season\s+\d+|limited series|mini\s?series)$/i, '');
+      }
     } else {
       title = document.querySelector('h1')?.textContent.trim() || '';
       if (!title) {
-        for (const script of document.querySelectorAll('script[type="application/ld+json"]')) {
-          try {
-            const data = JSON.parse(script.textContent);
-            const items = Array.isArray(data) ? data : [data, ...(data['@graph'] || [])];
-            const item = items.find(item => ['Movie', 'TVSeries'].includes(item?.['@type']));
-            if (item?.name) { title = item.name; break; }
-          } catch { /* A malformed unrelated metadata block should not break the widget. */ }
-        }
+        const item = metadata.find(item => hasType(item, path[1] === 'tv' ? 'TVSeries' : 'Movie'));
+        title = showTitle(item?.name);
       }
     }
     return title ? {url, title: title.replace(/\s+/g, ' ').trim()} : null;

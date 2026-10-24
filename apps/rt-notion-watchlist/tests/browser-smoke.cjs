@@ -55,7 +55,14 @@ const assert = require('node:assert/strict');
     await options.locator('#auto-open').uncheck();
     await options.screenshot({path: path.join(output, 'settings.png'), fullPage: true});
 
+    const seasonFixture = await fs.readFile(process.env.VISIONQUEST_HTML || path.join(__dirname, 'fixtures/visionquest-season.html'), 'utf8');
     await context.route('https://www.rottentomatoes.com/**', route => {
+      if (route.request().url().includes('/tv/visionquest')) {
+        let body = seasonFixture;
+        if (route.request().url().includes('metadata=none')) body = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+        if (route.request().url().includes('metadata=malformed')) body = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '<script type="application/ld+json">{broken</script>');
+        return route.fulfill({contentType: 'text/html; charset=utf-8', body});
+      }
       const tv = route.request().url().includes('/tv/');
       return route.fulfill({contentType: 'text/html; charset=utf-8', body: `<!doctype html><html><head><meta charset="utf-8"><title>Rotten Tomatoes</title></head><body style="margin:0;background:#eee;font-family:system-ui"><header style="background:#fa320a;color:#fff;padding:25px;font-size:24px">ROTTEN TOMATOES · TEST FIXTURE</header><main style="padding:80px">${tv ? '<a href="/tv/severance">Severance</a>' : ''}<h1 id="media-hero-label"><sr-text>${tv ? 'Severance: Season 1' : 'The Wild Robot'}</sr-text></h1><p>Title detail page fixture</p></main></body></html>`});
     });
@@ -109,12 +116,29 @@ const assert = require('node:assert/strict');
     assert.equal(show.properties.Type.select.name, 'TV Show');
     assert.equal(show.properties.Name.title[0].text.content, 'Severance');
     assert.equal(show.properties['Rotten Tomatoes'].url, 'https://www.rottentomatoes.com/tv/severance');
+    // Regression: current RT seasons have rt-link "Series Page", no <a>
+    // containing the show name. Metadata and heading fallback must both work.
+    for (const suffix of ['', '?metadata=none', '?metadata=malformed']) {
+      await worker.evaluate(() => {globalThis.testCalls = [];});
+      await movie.goto(`https://www.rottentomatoes.com/tv/visionquest/s01${suffix}`);
+      await host.waitFor({state: 'visible'});
+      await saveClick();
+      await waitWorker(() => globalThis.testCalls.some(call => call.url.endsWith('/pages')));
+      const entry = await worker.evaluate(() => globalThis.testCalls.find(call => call.url.endsWith('/pages')).body);
+      assert.equal(entry.properties.Name.title[0].text.content, 'VisionQuest');
+      assert.equal(entry.properties.Type.select.name, 'TV Show');
+      assert.equal(entry.properties.Status.select.name, 'For Later');
+      assert.equal(entry.properties['Rotten Tomatoes'].url, 'https://www.rottentomatoes.com/tv/visionquest');
+    }
+    await movie.screenshot({path: path.join(output, 'visionquest-saved.png')});
+    await movie.goto('https://www.rottentomatoes.com/tv/severance/s01/reviews');
+    await host.waitFor({state: 'hidden'});
     await movie.goto('https://www.rottentomatoes.com/m/the_wild_robot/reviews');
     await host.waitFor({state: 'hidden'});
     await options.locator('#disconnect').click();
     await options.getByText('Disconnected.', {exact: false}).waitFor();
     assert.equal(await options.evaluate(async () => (await chrome.storage.local.get('token')).token), undefined);
-    console.log('PASS: real extension setup, create, existing URL, legacy match, separate create, error, mobile, TV season, review exclusion, disconnect');
+    console.log('PASS: real extension setup, create, existing URL, legacy match, separate create, error, mobile, TV season, VisionQuest metadata + absent/malformed metadata fallback, review exclusion, disconnect');
     console.log(`Screenshots: ${output}`);
   } finally { await context.close(); }
 })().catch(error => {console.error(error); process.exitCode = 1;});
