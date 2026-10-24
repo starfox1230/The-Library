@@ -92,6 +92,15 @@ used. The following substantive draft revisions came from that pass:
   alone reveal bodily protection.
 - Removed shortest-answer clusters and corrected length spreads with meaningful
   alternatives, then checked stored positions remain irregular 3/3/2/2 per bank.
+- A final blind pass after the first local browser run revised fourteen new items
+  across October 26–27, October 30, and November 1. The public-purchase stem had
+  implied the witness answer; its alternatives now all give plausible legal
+  procedures. Several restoration/prayer items had one reassuring or orthodox
+  option against conspicuously adverse alternatives; all now offer plausible
+  benefits, divine acts, textual combinations, or covenant mechanisms. Kid wall
+  treatments are plausible conquest policies and yoke timing choices are all life
+  stages. Rechecked these with their sources and complete sets, renewed hashes,
+  regenerated exports, and repeated the required checks and browser verification.
 
 Preserved judgment in the fishers/hunters context, Jeremiah's anguish after praise,
 the real purchase and preserved deed during siege, replacement rather than loss
