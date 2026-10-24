@@ -19,7 +19,7 @@
     let tap=null,pressTimer=null,completePointer=null,completeKey=null;
     const pointers=new Set();
     const clearTap=()=>{clearTimeout(pressTimer);pressTimer=null;tap=null;};
-    const cancelAll=()=>{clearTap();completePointer=null;completeKey=null;hold.cancel();};
+    const cancelAll=()=>{clearTap();pointers.clear();completePointer=null;completeKey=null;hold.cancel();};
     document.addEventListener('pointerdown',event=> {
       pointers.add(event.pointerId);
       if(pointers.size>1)cancelAll();

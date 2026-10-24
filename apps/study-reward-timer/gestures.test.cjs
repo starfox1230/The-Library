@@ -59,5 +59,9 @@ test('main taps exclude interactive controls; moving and long presses do not tog
     main.emit('pointerdown',event());doc.emit('pointermove',event({clientX:120}));doc.emit('pointerup',event());assert.equal(toggles,1);
     main.emit('pointerdown',event());timeout();time=800;doc.emit('pointerup',event());assert.equal(durations,1);assert.equal(toggles,1);
     dialog=false;main.emit('pointerdown',event());doc.emit('pointercancel',event());doc.emit('pointerup',event());assert.equal(toggles,1);assert.equal(cancelled,1);
+    // Switching apps can lose the old touch's pointerup entirely.
+    doc.emit('pointerdown',event({pointerId:10}));main.emit('pointerdown',event({pointerId:10}));win.emit('blur',{});
+    doc.emit('pointerdown',event({pointerId:11}));main.emit('pointerdown',event({pointerId:11}));
+    doc.emit('pointerup',event({pointerId:11}));assert.equal(toggles,2);
   } finally {for(const [key,value] of Object.entries(saved))global[key]=value;}
 });
