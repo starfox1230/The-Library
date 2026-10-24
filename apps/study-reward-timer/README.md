@@ -21,6 +21,8 @@ Phone-first, buildless, local-only timer. No account, analytics, server ledger, 
 
 On iPhone, open the live link in Safari → Share → Add to Home Screen. Includes a standalone manifest, opaque 180px Apple icon, 192/512px icons, maskable icon, safe-area layout, and a scoped static-asset service worker. Load once online and allow caching to complete before offline use. Browser and installed-home-screen storage may be separate; export/restore to transfer if needed.
 
+The app requests a fixed mobile viewport, disables pinch/double-tap zoom using touch-action and gesture handlers (including WebKit gestures), and uses at least 16px text in form controls to avoid focus zoom. One-finger scrolling remains native. Browser-enforced accessibility overrides and system-wide magnification are outside the page’s control.
+
 Haptics use the optional Web Vibration API and do not work in every browser, including iPhone Safari. Screen wake lock is best-effort. Sound defaults off and is synthesized locally after a user action. Motion respects both the app toggle and the system Reduce Motion preference. Celebrations do not block the next timer.
 
 ## Motion design references
