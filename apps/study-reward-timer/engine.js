@@ -39,7 +39,7 @@
   }
   function fresh() {
     const types = catalogue();
-    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: false, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, records: [], active: null };
+    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: true, holdDefaultVersion: 1, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, records: [], active: null };
   }
   function elapsed(active, now = Date.now()) {
     return active ? active.elapsedMs + (active.runningSince === null ? 0 : Math.max(0, now - active.runningSince)) : 0;
@@ -115,6 +115,9 @@
       const e = hapticEvents[key];
       return e && typeof e.enabled === 'boolean' && text(e.pattern,80) && number(e.strength,20,100) && ['auto','standard'].includes(e.engine);
     }) || (s.holdToComplete !== undefined && typeof s.holdToComplete !== 'boolean')) throw new Error('Invalid action haptic preferences in backup.');
+    if (s.holdDefaultVersion !== undefined && s.holdDefaultVersion !== 1) throw new Error('Invalid completion preferences in backup.');
+    // Apply the new hold default once; later explicit opt-outs survive reload and restore.
+    const holdToComplete = s.holdDefaultVersion === 1 ? (s.holdToComplete ?? true) : true;
     const customHaptics = data.customHaptics === undefined ? [] : data.customHaptics;
     if (!Array.isArray(customHaptics) || customHaptics.length > 100 || new Set(customHaptics.map(p => p?.id)).size !== customHaptics.length || !customHaptics.every(validCustomHaptic)) throw new Error('Invalid custom haptic curves in backup.');
     // Older saved data and backups predate the optional future-goals list.
@@ -125,7 +128,7 @@
       if (!a || !validateRecord({ ...a, completedAt: a.startedAt }) || !(a.runningSince === null || number(a.runningSince, a.startedAt, 8640000000000000)) || (a.holding !== undefined && (a.holding !== true || a.runningSince !== null))) throw new Error('Invalid active timer in backup.');
       if (data.records.some(r => r.id === a.id)) throw new Error('Active case is already completed.');
     }
-    return { ...clone(data), settings: { ...clone(s), hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete: s.holdToComplete ?? false }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
+    return { ...clone(data), settings: { ...clone(s), hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete, holdDefaultVersion: 1 }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
   }
   function validCustomHaptic(p) {
     return p && text(p.id,80) && p.id.startsWith('custom-') && text(p.name,60) && number(p.durationMs,200,3000) && typeof p.snap === 'boolean' && Array.isArray(p.points) && p.points.length >= 2 && p.points.length <= 32 && p.points[0]?.at === 0 && p.points.at(-1)?.at === p.durationMs && p.points.every((point,i) => point && number(point.at,0,p.durationMs) && number(point.intensity,0,1) && number(point.sharpness,0,1) && (i === 0 || point.at - p.points[i-1].at >= 10));

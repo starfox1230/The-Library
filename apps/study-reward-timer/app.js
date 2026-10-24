@@ -120,9 +120,7 @@
     $('completeButton').querySelector('span').textContent = state.settings.holdToComplete ? 'Hold to complete' : 'Complete';
     $('completeButton').setAttribute('aria-label', state.settings.holdToComplete ? 'Hold to complete for one second' : 'Complete study');
     $('discardButton').hidden = !a;
-    $('toggleButton').querySelector('span').textContent = !a ? 'Start' : paused ? 'Resume' : 'Pause';
-    $('toggleButton').setAttribute('aria-label', !a ? 'Start timer' : paused ? 'Resume timer' : 'Pause timer');
-    $('toggleButton').querySelector('use').setAttribute('href', a && !paused ? '#i-pause' : '#i-play');
+    $('toggleButton').hidden = !!a;
   }
   function render() {
     document.body.classList.toggle('reduce-motion', !state.settings.motion);
@@ -229,7 +227,7 @@
     });
     if (action) playAction(action);
   }
-  $('toggleButton').onclick = toggleTimer;
+  $('toggleButton').onclick = () => { if (!state.active) toggleTimer(); };
   function finishCase(expectedHoldId = null) {
     const before = E.total(state.records);
     const record = mutate(s => {
@@ -699,7 +697,7 @@
   // Keyboard shortcuts never intercept inputs or open sheets.
   document.addEventListener('keydown', event => {
     if (event.repeat || document.querySelector('dialog[open]') || event.target.closest('button,a,input,select,textarea')) return;
-    if (event.code === 'Space') { event.preventDefault(); $('toggleButton').click(); }
+    if (event.code === 'Space') { event.preventDefault(); toggleTimer(); }
   });
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => {});
   render();

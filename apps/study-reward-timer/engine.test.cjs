@@ -5,6 +5,7 @@ const E = require('./engine.js');
 test('default MR reward is $2; all other modalities default to $0', () => {
   const s = E.fresh();
   assert.equal(s.settings.goalCents, 90000);
+  assert.equal(s.settings.holdToComplete, true);
   assert.ok(s.types.length > 90);
   for (const t of s.types) {
     assert.equal(t.targetMs, 18 * 60000);
@@ -149,10 +150,10 @@ test('changing duration discards the session and updates only that study type de
   assert.throws(()=>E.restartDuration(s,0));
 });
 test('old backups migrate all action controls without changing their previous success choice',()=>{
-  const old=E.fresh();delete old.settings.hapticEvents;delete old.settings.holdToComplete;delete old.customHaptics;
+  const old=E.fresh();delete old.settings.hapticEvents;delete old.settings.holdToComplete;delete old.settings.holdDefaultVersion;delete old.customHaptics;
   old.settings.hapticPattern='coin-drop';old.settings.hapticStrength=40;old.settings.haptics=false;
   const s=E.validate(old);assert.equal(s.settings.hapticEvents.complete.pattern,'coin-drop');assert.equal(s.settings.hapticEvents.complete.strength,40);
-  assert.equal(s.settings.haptics,false);assert.equal(s.settings.holdToComplete,false);assert.deepEqual(s.customHaptics,[]);
+  assert.equal(s.settings.haptics,false);assert.equal(s.settings.holdToComplete,true);assert.deepEqual(s.customHaptics,[]);
 });
 test('action choices and custom curves round trip with the ledger and reject malformed data',()=>{
   const s=E.fresh();E.start(s,1000);E.finish(s,2000);
@@ -162,4 +163,18 @@ test('action choices and custom curves round trip with the ledger and reject mal
   for(const change of [s=>s.customHaptics[0].points[1].intensity=1.5,s=>s.customHaptics[0].points[1].at=200,s=>s.customHaptics.push(p),s=>s.settings.hapticEvents.start.strength=500,s=>s.settings.holdToComplete='yes',s=>s.active={...s.records[0],id:'new',runningSince:3000,holding:true}]) {
     const copy=E.clone(s);change(copy);assert.throws(()=>E.validate(copy));
   }
+});
+
+test('the hold default applies once to existing timers without changing their data',()=>{
+  const old=E.fresh();E.start(old,1000);E.finish(old,2000);E.start(old,3000);
+  old.settings.holdToComplete=false;delete old.settings.holdDefaultVersion;
+  const before=E.clone(old), migrated=E.validate(old);
+  assert.equal(migrated.settings.holdToComplete,true);assert.equal(migrated.settings.holdDefaultVersion,1);
+  assert.deepEqual(migrated.records,before.records);assert.deepEqual(migrated.active,before.active);
+  assert.deepEqual(migrated.types,before.types);assert.deepEqual(migrated.settings.hapticEvents,before.settings.hapticEvents);
+  assert.deepEqual(old,before);
+  migrated.settings.holdToComplete=false;
+  const restored=E.validate(JSON.parse(JSON.stringify(migrated)));
+  assert.equal(restored.settings.holdToComplete,false);assert.deepEqual(restored,migrated);
+  restored.settings.holdDefaultVersion=2;assert.throws(()=>E.validate(restored),/completion preferences/);
 });
