@@ -65,3 +65,64 @@ test('main taps exclude interactive controls; moving and long presses do not tog
     doc.emit('pointerup',event({pointerId:11}));assert.equal(toggles,2);
   } finally {for(const [key,value] of Object.entries(saved))global[key]=value;}
 });
+
+function withStartButton(run) {
+  const saved={document:global.document,window:global.window};
+  class Surface {
+    listeners={};
+    addEventListener(name,fn){(this.listeners[name]??=[]).push(fn);}
+    emit(name,event){for(const fn of this.listeners[name]||[])fn(event);}
+  }
+  const doc=new Surface(),win=new Surface(),button=new Surface();
+  const startTarget={},completeTarget={},otherTarget={};
+  button.contains=target=>target===startTarget;
+  button.hidden=true;button.disabled=false;
+  global.document=doc;global.window=win;
+  const x=setup();let starts=0;
+  const event=(extra={})=>({target:startTarget,pointerId:1,pointerType:'touch',detail:1,isPrimary:true,button:0,clientX:100,clientY:100,preventDefault(){this.prevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra});
+  G.bindStartButton({button,canStart:()=>!x.s.active,start:()=>{starts++;E.start(x.s,10000);button.hidden=true;}});
+  const tap=()=>{doc.emit('pointerdown',event());doc.emit('pointerup',event());button.emit('click',event());};
+  try {run({...x,doc,win,button,event,tap,startTarget,completeTarget,otherTarget,starts:()=>starts});}
+  finally {global.document=saved.document;global.window=saved.window;}
+}
+
+test('hold boundary releases cannot click through to the newly visible Start button',()=>{
+  for(const [releaseAt,timeoutFirst] of [[1999,false],[2000,false],[2000,true],[2001,true],[2300,true]]) {
+    for(const clickShape of [{pointerType:'touch',detail:1},{pointerType:'touch',detail:0},{pointerId:undefined,pointerType:undefined,detail:1}]) {
+      withStartButton(x=>{
+        x.doc.emit('pointerdown',x.event({target:x.completeTarget}));x.hold.start();
+        x.setTime(releaseAt);if(timeoutFirst)x.flush();
+        // Model the browser retargeting release/click onto the replacement button.
+        x.doc.emit('pointerup',x.event());x.hold.release();x.button.hidden=!!x.s.active;
+        const click=x.event(clickShape);x.button.emit('click',click);
+        assert.equal(x.starts(),0,`${releaseAt}/${timeoutFirst}`);assert.equal(click.prevented,true);
+        assert.equal(x.s.records.length,releaseAt>=2000?1:0);
+        if(releaseAt>=2000) {
+          assert.equal(x.s.active,null);
+          // A real new tap is accepted immediately; no arbitrary cooldown.
+          x.tap();assert.equal(x.starts(),1);assert.ok(x.s.active);assert.equal(x.s.records.length,1);
+        } else assert.ok(x.s.active);
+      });
+    }
+  }
+});
+
+test('delayed release clicks, cancelled presses, and presses elsewhere cannot start a timer',()=>{
+  withStartButton(x=>{
+    x.hold.start();x.setTime(2000);x.flush();x.button.hidden=false;
+    x.setTime(5000);x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.doc.emit('pointerdown',x.event({target:x.otherTarget}));x.doc.emit('pointerup',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.doc.emit('pointerdown',x.event());x.doc.emit('pointercancel',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.doc.emit('pointerdown',x.event());x.doc.emit('pointermove',x.event({clientX:130}));x.doc.emit('pointerup',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.doc.emit('pointerdown',x.event());x.doc.emit('pointerup',x.event({pointerId:2}));x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.tap();assert.equal(x.starts(),1);
+  });
+});
+
+test('Start retains keyboard and assistive activation while refusing duplicate starts',()=>{
+  withStartButton(x=>{
+    x.hold.start();x.setTime(2000);x.flush();x.button.hidden=false;
+    x.button.emit('click',x.event({detail:0,pointerType:'',pointerId:-1}));assert.equal(x.starts(),1);
+    x.button.emit('click',x.event({detail:0,pointerType:undefined,pointerId:undefined}));assert.equal(x.starts(),1);
+  });
+});

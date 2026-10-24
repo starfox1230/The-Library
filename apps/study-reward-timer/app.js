@@ -227,7 +227,7 @@
     });
     if (action) playAction(action);
   }
-  $('toggleButton').onclick = () => { if (!state.active) toggleTimer(); };
+  AfterglowGestures.bindStartButton({button:$('toggleButton'),canStart:()=>!state.active&&!document.querySelector('dialog[open]')&&!corrupt,start:toggleTimer});
   function finishCase(expectedHoldId = null) {
     const before = E.total(state.records);
     const record = mutate(s => {

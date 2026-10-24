@@ -15,6 +15,38 @@
       isActive:()=>active
     };
   }
+  function bindStartButton({button,canStart,start}) {
+    let press=null;
+    const reset=()=>{press=null;};
+    // Complete can disappear before pointerup. A retargeted compatibility click
+    // must not activate the Start button that has just appeared underneath it.
+    document.addEventListener('pointerdown',event=> {
+      reset();
+      if(event.isPrimary&&event.button===0&&canStart()&&!button.hidden&&!button.disabled&&button.contains(event.target)) {
+        press={id:event.pointerId,x:event.clientX,y:event.clientY,released:false};
+      }
+    },true);
+    document.addEventListener('pointermove',event=> {
+      if(press?.id===event.pointerId&&Math.hypot(event.clientX-press.x,event.clientY-press.y)>10)reset();
+    },true);
+    document.addEventListener('pointerup',event=> {
+      if(press?.id!==event.pointerId)return;
+      if(button.contains(event.target))press.released=true;else reset();
+    },true);
+    document.addEventListener('pointercancel',reset,true);
+    window.addEventListener('blur',reset);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)reset();});
+    button.addEventListener('click',event=> {
+      const deliberatePointer=press?.released&&(event.pointerId===undefined||event.pointerId===press.id);
+      // Native keyboard and assistive activations have no pointing-device type.
+      const nonPointer=event.detail===0&&!event.pointerType;
+      reset();
+      if(!canStart()||(!deliberatePointer&&!nonPointer)) {
+        event.preventDefault();event.stopImmediatePropagation();return;
+      }
+      start();
+    });
+  }
   function bind({face,completeButton,main,toggle,openDuration,canInteract,holdEnabled,hold}) {
     let tap=null,pressTimer=null,completePointer=null,completeKey=null;
     const pointers=new Set();
@@ -68,5 +100,5 @@
     document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelAll();});
     return {cancel:cancelAll};
   }
-  return {createHold,bind};
+  return {createHold,bindStartButton,bind};
 });
