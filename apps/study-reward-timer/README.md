@@ -25,6 +25,24 @@ The app requests a fixed mobile viewport, disables pinch/double-tap zoom using t
 
 Haptics use the optional Web Vibration API and do not work in every browser, including iPhone Safari. Screen wake lock is best-effort. Sound defaults off and is synthesized locally after a user action. Motion respects both the app toggle and the system Reduce Motion preference. Celebrations do not block the next timer.
 
+### Haptic auditioning
+
+Settings → Feel includes 22 named success patterns grouped into builds, crisp taps, tactile rhythms, soft waves, and bigger finishes. A dropdown and Previous/Next controls choose the saved completion pattern. **Test pattern** auditions it in place without sound, a ledger entry, or earnings; **Stop**, another pattern, closing settings, and backgrounding cancel pending playback. Custom continuous segments are bounded to 180ms, so an already-issued native segment may finish after Stop.
+
+The default **Crescendo + snap** progressively raises intensity/sharpness through a short buzz and ends with a distinct transient. It is an original interpretation of the requested rise-and-finish sensation, not a reproduction of Duolingo’s proprietary waveform. Other options include Power up, Charge & release, iPhone success, Coin drop, Ratchet lock, Velvet finish, and Rumble + pop.
+
+Playback defaults to Brrrowser’s documented `navigator.haptic()` bridge when present: system presets or custom `{intensity, sharpness, duration}` events, with duration in milliseconds. HD strength is adjustable for custom patterns. Fixed native system presets keep their native strength. Standard `navigator.vibrate()` is the fallback, with pulse timing approximating intensity envelopes; it cannot control true amplitude or sharpness. Playback options can force the standard API for comparison. API failures never block case completion. Older settings/backups migrate to the default pattern and retain all records/earnings. Pattern, strength, and playback preference are included in backups.
+
+Research and API references:
+
+- [Brrrowser’s developer API examples](https://github.com/Web3Kev/Brrrowser/blob/main/api.html): documented native preset names and custom transient/continuous payloads.
+- [Apple: Playing haptics](https://developer.apple.com/design/human-interface-guidelines/playing-haptics): purposeful, optional feedback and transient/continuous building blocks.
+- [Android: Haptics design principles](https://developer.android.com/develop/ui/views/haptics/haptics-principles): clear impulses, rising intensity toward a target, and coordinated timing.
+
+Physical feel must be auditioned on the phone; desktop mocks verify dispatch, ordering, cancellation, fallbacks, and data migration rather than the Taptic Engine sensation.
+
+For asset updates, keep the `?v=` release in HTML references and service-worker precache entries aligned with the static cache version. Installation bypasses the HTTP cache; online asset requests revalidate, avoiding mixed old/new code on previously installed copies.
+
 ## Motion design references
 
 - [Apple: Motion](https://developer.apple.com/design/human-interface-guidelines/motion): brief, purposeful feedback, cancellable sequences, reduced-motion alternatives.
@@ -37,6 +55,7 @@ The success sequence combines immediate button compression, a ring highlight, a 
 
 ```powershell
 node --test apps/study-reward-timer/engine.test.cjs
+node --test apps/study-reward-timer/haptics.test.cjs
 node --check apps/study-reward-timer/app.js
 node --check apps/study-reward-timer/sw.js
 ```

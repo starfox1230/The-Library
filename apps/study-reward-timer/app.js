@@ -2,6 +2,8 @@
 (() => {
   'use strict';
   const E = StudyTimer;
+  const H = AfterglowHaptics;
+  const hapticPlayer = H.createPlayer(navigator);
   const $ = id => document.getElementById(id);
   const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: cents % 100 ? 2 : 0 }).format(cents / 100);
   const minutes = ms => Number((ms / 60000).toFixed(2)).toString();
@@ -31,6 +33,7 @@
   let wakePending = false;
   let audio = null;
   let confirmAction = null;
+  let hapticTestTimer = null;
   function storageWarning(message) {
     $('storageAlert').textContent = message;
     $('storageAlert').hidden = !message;
@@ -146,6 +149,7 @@
     }
   }
   function clearCelebration() {
+    stopHapticTest();
     clearTimeout(celebrationTimeout);
     $('timerFace').classList.remove('celebrating');
     document.querySelector('.fund').classList.remove('receiving');
@@ -174,7 +178,7 @@
     $('timerFace').classList.add('celebrating');
     document.querySelector('.fund').classList.add('receiving');
     chime();
-    if (state.settings.haptics && navigator.vibrate) navigator.vibrate([16, 40, 24]);
+    if (state.settings.haptics) hapticPlayer.play(state.settings.hapticPattern, { engine: state.settings.hapticEngine, strength: state.settings.hapticStrength });
     if (state.settings.motion && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const face = $('timerFace').getBoundingClientRect();
       for (let i = 0; i < 26; i++) {
@@ -312,10 +316,86 @@
     toast('Case deleted · earnings updated', () => mutate(s => { if (!s.records.some(r => r.id === id)) s.records.push(record); }));
   };
   function setTab(name) {
+    if (name !== 'feel') stopHapticTest();
     document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === name));
     document.querySelectorAll('[data-panel]').forEach(p => { p.hidden = p.dataset.panel !== name; });
   }
-  document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { setTab(button.dataset.tab); if (button.dataset.tab === 'studies') renderStudySettings(); }; });
+  document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { setTab(button.dataset.tab); if (button.dataset.tab === 'studies') renderStudySettings(); if (button.dataset.tab === 'feel') renderHapticSettings(); }; });
+  function hapticMode() {
+    return state.settings.hapticEngine === 'standard' ? (typeof navigator.vibrate === 'function' ? 'standard' : 'none') : hapticPlayer.capability();
+  }
+  function stopHapticTest() {
+    clearTimeout(hapticTestTimer); hapticTestTimer = null;
+    hapticPlayer.stop();
+    $('hapticTimeline').classList.remove('playing');
+    $('stopHaptic').hidden = true;
+    $('testHaptic').textContent = 'Test pattern';
+  }
+  function renderHapticSettings() {
+    const pattern = H.get(state.settings.hapticPattern);
+    if (!$('hapticPattern').children.length) {
+      let group;
+      H.patterns.forEach(p => {
+        if (!group || group.label !== p.group) { group = node('optgroup'); group.label = p.group; $('hapticPattern').append(group); }
+        group.append(new Option(`${p.name} · ${(H.duration(p)/1000).toFixed(2)}s`, p.id));
+      });
+    }
+    $('hapticPattern').value = pattern.id;
+    $('hapticEngine').value = state.settings.hapticEngine;
+    // Imported values in the supported range still get a selectable strength.
+    if (![...$('hapticStrength').options].some(o => Number(o.value) === state.settings.hapticStrength)) $('hapticStrength').add(new Option(`${state.settings.hapticStrength}%`, state.settings.hapticStrength));
+    $('hapticStrength').value = String(state.settings.hapticStrength);
+    $('hapticDescription').textContent = pattern.description;
+    const mode = hapticMode();
+    $('hapticStrength').disabled = mode !== 'hd' || pattern.events.every(e => e.preset);
+    $('testHaptic').disabled = !state.settings.haptics || mode === 'none';
+    $('hapticStatus').textContent = !state.settings.haptics ? 'Turn on Haptics to test.' : mode === 'hd' ? 'HD haptics available · test on your phone to compare.' : mode === 'standard' ? 'Standard vibration · pulse timing approximates the HD feel.' : 'No haptic API here. Open in Brrrowser on your iPhone to feel these.';
+    const bars = $('hapticBars'); bars.replaceChildren();
+    const length = H.duration(pattern);
+    $('hapticTimeline').style.setProperty('--haptic-duration', `${length}ms`);
+    pattern.events.forEach(e => {
+      const bar = node('i', e.duration ? 'haptic-buzz' : 'haptic-tap');
+      bar.style.left = `${e.at/length*100}%`;
+      bar.style.width = `${Math.max(1,(e.duration || 20)/length*100)}%`;
+      bar.style.height = `${9+e.intensity*24}px`;
+      bar.style.opacity = String(.35+e.intensity*.65);
+      bars.append(bar);
+    });
+  }
+  function selectHaptic(id) {
+    stopHapticTest();
+    mutate(s => { s.settings.hapticPattern = id; });
+    renderHapticSettings();
+  }
+  $('hapticPattern').onchange = event => selectHaptic(event.target.value);
+  function stepHaptic(direction) {
+    const index = H.patterns.indexOf(H.get(state.settings.hapticPattern));
+    selectHaptic(H.patterns[(index + direction + H.patterns.length) % H.patterns.length].id);
+  }
+  $('previousHaptic').onclick = () => stepHaptic(-1);
+  $('nextHaptic').onclick = () => stepHaptic(1);
+  $('testHaptic').onclick = () => {
+    clearCelebration();
+    if (!state.settings.haptics) return;
+    const result = hapticPlayer.play(state.settings.hapticPattern, { engine: state.settings.hapticEngine, strength: state.settings.hapticStrength });
+    if (result.mode === 'none') { renderHapticSettings(); return; }
+    $('stopHaptic').hidden = false;
+    $('testHaptic').textContent = 'Test again';
+    $('hapticStatus').textContent = `Testing ${result.pattern.name} · ${result.mode === 'hd' ? 'HD haptics' : 'standard vibration'}`;
+    void $('hapticTimeline').offsetWidth;
+    $('hapticTimeline').classList.add('playing');
+    hapticTestTimer = setTimeout(() => { stopHapticTest(); renderHapticSettings(); }, result.duration + 80);
+  };
+  $('stopHaptic').onclick = () => { stopHapticTest(); renderHapticSettings(); };
+  ['Engine','Strength'].forEach(key => {
+    $('haptic'+key).onchange = event => {
+      stopHapticTest();
+      const value = key === 'Strength' ? Number(event.target.value) : event.target.value;
+      mutate(s => { s.settings['haptic'+key] = value; });
+      renderHapticSettings();
+    };
+  });
+  $('settingsDialog').addEventListener('close', () => { if (hapticTestTimer !== null) stopHapticTest(); });
   function updateGroupOptions() {
     const modality = $('bulkModality').value;
     $('bulkGroup').replaceChildren(new Option('All categories', '*'), ...[...new Set(state.types.filter(t => t.modality === modality).map(t => t.group))].map(g => new Option(g, g)));
@@ -392,7 +472,7 @@
     const modalities = [...new Set(state.types.map(t => t.modality))];
     $('bulkModality').replaceChildren(...modalities.map(m => new Option(m, m)));
     $('modalities').replaceChildren(...modalities.map(m => new Option(m, m)));
-    updateGroupOptions(); renderStudySettings(); renderFutureGoals();
+    updateGroupOptions(); renderStudySettings(); renderFutureGoals(); renderHapticSettings();
   }
   $('settingsButton').onclick = () => { state = readStored(); populateSettings(); open($('settingsDialog')); };
   $('goalForm').onsubmit = event => { event.preventDefault(); const f = event.currentTarget.elements; const name = f.goalName.value.trim(); if (!name) return toast('Enter a goal name.'); mutate(s => { s.settings.goalName = name; s.settings.goalCents = Math.round(Number(f.goalAmount.value) * 100); }); toast('Goal saved'); };
@@ -423,7 +503,7 @@
     const saved = mutate(s => { const index = s.types.findIndex(t => t.id === type.id); if (index < 0) s.types.push(type); else s.types[index] = type; return true; });
     if (saved) { $('typeDialog').close(); renderStudySettings(); renderPicker(); toast('Study saved'); }
   };
-  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; mutate(s => { s.settings[key] = checked; }); }; });
+  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; if (key === 'haptics') stopHapticTest(); mutate(s => { s.settings[key] = checked; }); if (key === 'haptics') renderHapticSettings(); }; });
   $('previewReward').onclick = () => { $('settingsDialog').close(); celebrate(selected().rewardCents || 200, true); };
   function backupText() {
     if (corrupt) { try { return localStorage.getItem(E.KEY) || JSON.stringify(state); } catch { /* Memory fallback. */ } }
@@ -464,7 +544,7 @@
     });
   };
   window.addEventListener('storage', event => { if (event.key === E.KEY || event.key === null) { state = readStored(); render(); if ($('pickerDialog').open) renderPicker(); if ($('settingsDialog').open) renderStudySettings(); } });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { state = readStored(); render(); } else updateWakeLock(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { state = readStored(); render(); } else { stopHapticTest(); updateWakeLock(); } });
   window.addEventListener('pageshow', () => { state = readStored(); render(); });
   setInterval(() => { if (document.visibilityState === 'visible') renderTimer(); }, 250);
   // Keyboard shortcuts never intercept inputs or open sheets.

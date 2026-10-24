@@ -99,3 +99,16 @@ test('future list validation rejects bad amounts, duplicate ids and malformed li
     assert.throws(() => E.validate(s), /future goals/);
   }
 });
+test('legacy haptic settings migrate without changing the ledger; choices survive restore', () => {
+  const old=E.fresh(); E.start(old,1000); E.finish(old,61000);
+  delete old.settings.hapticPattern; delete old.settings.hapticStrength; delete old.settings.hapticEngine;
+  const migrated=E.validate(old);
+  assert.equal(migrated.settings.hapticPattern,'rise-snap');
+  assert.equal(migrated.settings.hapticStrength,80);
+  assert.equal(E.total(migrated.records),200);
+  migrated.settings.hapticPattern='coin-drop'; migrated.settings.hapticStrength=40; migrated.settings.hapticEngine='standard';
+  assert.deepEqual(E.validate(JSON.parse(JSON.stringify(migrated))),migrated);
+  for(const invalid of [{hapticStrength:200},{hapticEngine:'unknown'},{hapticPattern:null}]) {
+    const copy=E.clone(migrated); Object.assign(copy.settings,invalid); assert.throws(()=>E.validate(copy),/haptic/);
+  }
+});
