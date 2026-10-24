@@ -8,8 +8,8 @@ function clock() {
   return { schedule(fn,at) { queue.set(++id,{fn,at}); return id; }, cancel(id) {queue.delete(id);}, flush() { [...queue].sort((a,b)=>a[1].at-b[1].at).forEach(([id,event])=>{if(queue.delete(id))event.fn();}); }, queue };
 }
 test('all presets have bounded timing, valid native parameters and vibration fallbacks', () => {
-  assert.equal(H.patterns.length,22);
-  assert.equal(new Set(H.patterns.map(p=>p.id)).size,22);
+  assert.equal(H.patterns.length,28);
+  assert.equal(new Set(H.patterns.map(p=>p.id)).size,28);
   for (const p of H.patterns) {
     assert.ok(H.duration(p)>0 && H.duration(p)<1500,p.id);
     const pattern=H.vibrationFor(p);
@@ -68,4 +68,36 @@ test('unsupported browsers and unknown stored pattern IDs are safe', () => {
   assert.equal(player.capability(),'none');
   assert.equal(player.play('unknown-old-id').mode,'none');
   assert.equal(H.get('unknown-old-id').id,H.DEFAULT);
+});
+
+const curve={id:'custom-test',name:'Test swell',durationMs:1000,snap:true,points:[{at:0,intensity:0,sharpness:.1},{at:500,intensity:.5,sharpness:.5},{at:1000,intensity:1,sharpness:1}]};
+test('custom curves interpolate true intensity and sharpness, including a distinct snap',()=>{
+  const p=H.get(curve.id,[curve]);
+  assert.equal(p.id,curve.id); assert.equal(p.events.length,21);
+  const sample=H.sampleCurve(curve,250); assert.equal(sample.intensity,.25); assert.ok(Math.abs(sample.sharpness-.3)<1e-10);
+  assert.equal(p.events.at(-1).duration,undefined); assert.equal(p.events.at(-1).intensity,1);
+  assert.equal(H.duration(p),1090);
+  assert.ok(H.vibrationFor(p).length>0);
+  const c=clock(),calls=[],player=H.createPlayer({haptic:v=>calls.push(v)},c.schedule,c.cancel);
+  player.play(p,{strength:60}); c.flush();
+  assert.equal(calls.length,21); assert.ok(calls[0][0].intensity<calls[19][0].intensity);
+  assert.equal(calls[0][0].duration,50);
+});
+test('every pattern can be fitted to hold progress and stopped after early release',()=>{
+  for(const pattern of [...H.patterns,H.curvePattern(curve)]) {
+    const p=H.fit(pattern,1000),c=clock(),calls=[];
+    const player=H.createPlayer({haptic:v=>calls.push(v)},c.schedule,c.cancel);
+    player.play(p); player.stop();c.flush();
+    assert.equal(calls.length,p.events[0]?.at===0?1:0,pattern.id);
+    assert.ok(p.events.every(e=>e.at<1000));
+  }
+});
+test('fitted native buzzes stay cancellable in segments of at most 100ms',()=>{
+  const c=clock(),calls=[],player=H.createPlayer({haptic:v=>calls.push(v)},c.schedule,c.cancel);
+  player.play(H.fit(H.get('aftershock'),1000));c.flush();
+  assert.ok(calls.every(v=>!v[0].duration||v[0].duration<=100));
+});
+test('silent curves retain length without sending unintended pulses',()=>{
+  const silent={...curve,snap:false,points:curve.points.map(p=>({...p,intensity:0}))};
+  const p=H.curvePattern(silent); assert.deepEqual(p.events,[]);assert.deepEqual(H.vibrationFor(p),[]);assert.equal(H.duration(p),1000);
 });

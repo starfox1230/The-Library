@@ -112,3 +112,54 @@ test('legacy haptic settings migrate without changing the ledger; choices surviv
     const copy=E.clone(migrated); Object.assign(copy.settings,invalid); assert.throws(()=>E.validate(copy),/haptic/);
   }
 });
+
+test('normal pause cannot complete, but holding freezes without being a normal pause',()=>{
+  const s=E.fresh();E.start(s,1000);E.pause(s,2000);
+  assert.equal(E.beginHold(s,3000),false);assert.equal(E.finish(s,4000),null);assert.equal(s.records.length,0);
+  E.resume(s,5000);assert.equal(E.beginHold(s,6000),true);assert.equal(s.active.holding,true);
+  E.pause(s,7000);E.resume(s,8000);assert.equal(s.active.runningSince,null);
+  assert.equal(E.elapsed(s.active,9000),2000);
+  const r=E.finish(s,9000);assert.equal(r.elapsedMs,2000);assert.equal(r.holding,undefined);
+});
+test('completion hold protects the exact deadline, but never rescues an already late case',()=>{
+  for(const [offset,reward] of [[-1,200],[0,200],[1,0]]) {
+    const s=E.fresh();E.start(s,1000);const contact=1000+s.active.targetMs+offset;
+    assert.equal(E.beginHold(s,contact),true);
+    const restored=E.validate(JSON.parse(JSON.stringify(s)));
+    const r=E.finish(restored,contact+1500);assert.equal(E.payout(r),reward);assert.equal(r.elapsedMs,r.targetMs+offset);
+    assert.equal(E.finish(restored,contact+2000),null);
+  }
+});
+test('releasing holds repeatedly excludes only hold intervals and resumes exactly',()=>{
+  const s=E.fresh();E.start(s,1000);E.beginHold(s,1500);E.cancelHold(s,1900);
+  assert.equal(E.elapsed(s.active,2000),600);E.beginHold(s,2100);E.cancelHold(s,2900);
+  assert.equal(E.finish(s,3000).elapsedMs,800);
+});
+test('reload or transfer recovery resumes an orphaned hold at its frozen time',()=>{
+  const s=E.fresh();E.start(s,1000);E.beginHold(s,2000);
+  const restored=E.validate(JSON.parse(JSON.stringify(s)));E.cancelHold(restored,500000);
+  assert.equal(E.elapsed(restored.active,501000),2000);assert.equal(restored.active.holding,undefined);
+});
+test('changing duration discards the session and updates only that study type default',()=>{
+  const s=E.fresh();E.start(s,1000);E.beginHold(s,2000);const oldId=s.active.id;
+  E.restartDuration(s,25*60000,3000);
+  assert.equal(s.records.length,0);assert.notEqual(s.active.id,oldId);assert.equal(E.elapsed(s.active,3000),0);
+  assert.equal(s.active.holding,undefined);assert.equal(s.types[0].targetMs,25*60000);assert.equal(s.types[1].targetMs,18*60000);
+  E.pause(s,4000);E.restartDuration(s,5*60000,5000);assert.equal(s.active.runningSince,5000);
+  assert.throws(()=>E.restartDuration(s,0));
+});
+test('old backups migrate all action controls without changing their previous success choice',()=>{
+  const old=E.fresh();delete old.settings.hapticEvents;delete old.settings.holdToComplete;delete old.customHaptics;
+  old.settings.hapticPattern='coin-drop';old.settings.hapticStrength=40;old.settings.haptics=false;
+  const s=E.validate(old);assert.equal(s.settings.hapticEvents.complete.pattern,'coin-drop');assert.equal(s.settings.hapticEvents.complete.strength,40);
+  assert.equal(s.settings.haptics,false);assert.equal(s.settings.holdToComplete,false);assert.deepEqual(s.customHaptics,[]);
+});
+test('action choices and custom curves round trip with the ledger and reject malformed data',()=>{
+  const s=E.fresh();E.start(s,1000);E.finish(s,2000);
+  const p={id:'custom-one',name:'My lift',durationMs:1000,snap:true,points:[{at:0,intensity:.1,sharpness:0},{at:1000,intensity:1,sharpness:1}]};
+  s.customHaptics=[p];s.settings.hapticEvents.hold.pattern=p.id;s.settings.hapticEvents.pause.enabled=false;s.settings.holdToComplete=true;
+  assert.deepEqual(E.validate(JSON.parse(JSON.stringify(s))),s);
+  for(const change of [s=>s.customHaptics[0].points[1].intensity=1.5,s=>s.customHaptics[0].points[1].at=200,s=>s.customHaptics.push(p),s=>s.settings.hapticEvents.start.strength=500,s=>s.settings.holdToComplete='yes',s=>s.active={...s.records[0],id:'new',runningSince:3000,holding:true}]) {
+    const copy=E.clone(s);change(copy);assert.throws(()=>E.validate(copy));
+  }
+});

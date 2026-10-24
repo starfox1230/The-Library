@@ -34,6 +34,8 @@
   let audio = null;
   let confirmAction = null;
   let hapticTestTimer = null;
+  let hapticEvent = 'complete';
+  let holdCaseId = null;
   function storageWarning(message) {
     $('storageAlert').textContent = message;
     $('storageAlert').hidden = !message;
@@ -71,7 +73,7 @@
     toastTimeout = setTimeout(() => { $('toast').hidden = true; undoAction = null; }, undo ? 10000 : 4500);
   }
   $('undoButton').onclick = () => { const action = undoAction; undoAction = null; $('toast').hidden = true; action?.(); };
-  function open(dialog) { if (!dialog.open) dialog.showModal(); }
+  function open(dialog) { gestures.cancel(); if (!dialog.open) dialog.showModal(); }
   document.querySelectorAll('[data-close]').forEach(button => { button.onclick = () => button.closest('dialog').close(); });
   document.querySelectorAll('dialog').forEach(dialog => {
     dialog.addEventListener('close', () => {
@@ -101,7 +103,7 @@
     const target = type.targetMs;
     const spent = E.elapsed(a);
     const over = !!a && spent > target;
-    const paused = a && a.runningSince === null;
+    const paused = a && a.runningSince === null && !a.holding;
     document.body.dataset.state = paused ? 'paused' : over ? 'over' : a ? 'running' : 'idle';
     document.body.dataset.active = !!a;
     $('studyName').textContent = a ? a.typeName : type.name;
@@ -114,7 +116,9 @@
     $('dialProgress').style.strokeDashoffset = a ? Math.min(100, spent / target * 100) : 0;
     $('targetMeta').textContent = `${minutes(target)} min target`;
     $('rewardMeta').textContent = over ? '$0 · over target' : type.rewardCents ? `${money(type.rewardCents)} on target` : '$0 · tracking only';
-    $('completeButton').hidden = !a;
+    $('completeButton').hidden = !a || !!paused;
+    $('completeButton').querySelector('span').textContent = state.settings.holdToComplete ? 'Hold to complete' : 'Complete';
+    $('completeButton').setAttribute('aria-label', state.settings.holdToComplete ? 'Hold to complete for one second' : 'Complete study');
     $('discardButton').hidden = !a;
     $('toggleButton').querySelector('span').textContent = !a ? 'Start' : paused ? 'Resume' : 'Pause';
     $('toggleButton').setAttribute('aria-label', !a ? 'Start timer' : paused ? 'Resume timer' : 'Pause timer');
@@ -140,11 +144,11 @@
     updateWakeLock();
   }
   async function updateWakeLock() {
-    const wanted = state.settings.keepAwake && state.active?.runningSince != null && document.visibilityState === 'visible';
+    const wanted = state.settings.keepAwake && (state.active?.runningSince != null || state.active?.holding) && document.visibilityState === 'visible';
     if (!wanted && wakeLock) { const old = wakeLock; wakeLock = null; await old.release().catch(() => {}); }
     else if (wanted && !wakeLock && !wakePending && navigator.wakeLock) {
       wakePending = true;
-      try { const lock = await navigator.wakeLock.request('screen'); if (!state.active || state.active.runningSince === null || !state.settings.keepAwake || document.visibilityState !== 'visible') await lock.release(); else { wakeLock = lock; lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; }); } } catch { /* Optional capability. */ }
+      try { const lock = await navigator.wakeLock.request('screen'); if (!state.active || (state.active.runningSince === null && !state.active.holding) || !state.settings.keepAwake || document.visibilityState !== 'visible') await lock.release(); else { wakeLock = lock; lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; }); } } catch { /* Optional capability. */ }
       finally { wakePending = false; }
     }
   }
@@ -178,7 +182,7 @@
     $('timerFace').classList.add('celebrating');
     document.querySelector('.fund').classList.add('receiving');
     chime();
-    if (state.settings.haptics) hapticPlayer.play(state.settings.hapticPattern, { engine: state.settings.hapticEngine, strength: state.settings.hapticStrength });
+    playAction('complete');
     if (state.settings.motion && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       const face = $('timerFace').getBoundingClientRect();
       for (let i = 0; i < 26; i++) {
@@ -202,22 +206,93 @@
       flight.style.animationDelay = '.45s';
       $('particles').append(flight);
     }
-    celebrationTimeout = setTimeout(clearCelebration, 1700);
+    celebrationTimeout = setTimeout(clearCelebration, Math.max(1700, state.settings.haptics && actionOption('complete').enabled ? H.duration(resolvedPattern('complete')) + 80 : 0));
   }
-  $('toggleButton').onclick = () => {
+  function actionOption(event = hapticEvent) { return state.settings.hapticEvents[event]; }
+  function resolvedPattern(event = hapticEvent) {
+    const pattern = H.get(actionOption(event).pattern, state.customHaptics);
+    return event === 'hold' ? H.fit(pattern, 1000) : pattern;
+  }
+  function playAction(event) {
+    const config = actionOption(event);
+    if (state.settings.haptics && config.enabled) return hapticPlayer.play(resolvedPattern(event), config);
+    return null;
+  }
+  function toggleTimer() {
+    if (state.active?.holding) return;
     clearCelebration();
-    mutate(s => { if (!s.active) E.start(s); else if (s.active.runningSince === null) E.resume(s); else E.pause(s); });
-  };
-  $('completeButton').onclick = () => {
+    const action = mutate(s => {
+      if (s.active?.holding) return null;
+      if (!s.active) { E.start(s); return 'start'; }
+      if (s.active.runningSince === null) { E.resume(s); return 'resume'; }
+      E.pause(s); return 'pause';
+    });
+    if (action) playAction(action);
+  }
+  $('toggleButton').onclick = toggleTimer;
+  function finishCase(expectedHoldId = null) {
     const before = E.total(state.records);
-    const record = mutate(s => E.finish(s));
+    const record = mutate(s => {
+      if (expectedHoldId && (s.active?.id !== expectedHoldId || !s.active.holding)) return null;
+      if (!expectedHoldId && s.active?.holding) return null;
+      return E.finish(s);
+    });
     if (!record) return;
     const earned = E.payout(record);
-    if (earned > 0) celebrate(earned);
-    else { clearCelebration(); toast(record.elapsedMs <= record.targetMs ? 'On target · saved · $0 reward configured' : 'Saved · over target · $0'); }
+    if (record.elapsedMs <= record.targetMs) celebrate(earned);
+    else { clearCelebration(); playAction('complete'); toast('Saved · over target · $0'); }
     $('liveStatus').textContent = `Case saved. ${money(earned)} earned. Total ${money(E.total(state.records))}.`;
-    if (before < state.settings.goalCents && E.total(state.records) >= state.settings.goalCents) toast('Steam Deck goal reached.');
-  };
+    if (before < state.settings.goalCents && E.total(state.records) >= state.settings.goalCents) toast('Goal reached.');
+  }
+  $('completeButton').onclick = () => { if (!state.settings.holdToComplete) finishCase(); };
+  const hold = AfterglowGestures.createHold({
+    begin() {
+      clearCelebration();
+      const started = mutate(s => { if (!E.beginHold(s)) return null; return s.active.id; });
+      if (!started) return false;
+      holdCaseId = started;
+      $('completeButton').classList.add('holding');
+      playAction('hold');
+      return true;
+    },
+    cancel() {
+      hapticPlayer.stop();
+      const id = holdCaseId; holdCaseId = null;
+      mutate(s => { if (s.active?.id === id) E.cancelHold(s); });
+    },
+    complete() { const id = holdCaseId; holdCaseId = null; hapticPlayer.stop(); finishCase(id); },
+    progress(value, active) {
+      $('completeButton').style.setProperty('--hold-progress', value);
+      $('completeButton').classList.toggle('holding', !!active);
+    }
+  });
+  const gestures = AfterglowGestures.bind({
+    face: $('timerFace'), completeButton: $('completeButton'), main: document.body,
+    toggle: () => { if (state.active) toggleTimer(); },
+    canInteract: () => !document.querySelector('dialog[open]') && !corrupt,
+    holdEnabled: () => state.settings.holdToComplete,
+    hold, openDuration
+  });
+  function recoverHold() {
+    if (state.active?.holding && !hold.isActive()) mutate(s => E.cancelHold(s));
+  }
+  recoverHold();
+  function openDuration() {
+    $('durationStudy').textContent = `${state.active?.typeName || selected().name} · new default`;
+    $('durationMinutes').value = minutes(state.active?.targetMs || selected().targetMs);
+    open($('durationDialog'));
+  }
+  function chooseDuration(ms) {
+    clearCelebration();
+    const started = mutate(s => E.restartDuration(s, ms));
+    if (started) { $('durationDialog').close(); playAction('start'); toast('Fresh timer started · default saved'); }
+  }
+  [5,10,15,18,20,25,30,45].forEach(value => {
+    const button = node('button', 'secondary-button', `${value} min`);
+    button.onclick = () => chooseDuration(value * 60000);
+    $('durationPresets').append(button);
+  });
+  $('durationForm').onsubmit = event => { event.preventDefault(); chooseDuration(Math.round(Number($('durationMinutes').value) * 60000)); };
   $('discardButton').onclick = () => confirm('Discard this timer?', 'This case won’t be saved or earn money.', () => mutate(s => { s.active = null; }));
   function star(type) {
     const button = node('button', 'star-button', type.favorite ? '★' : '☆');
@@ -322,7 +397,7 @@
   }
   document.querySelectorAll('[data-tab]').forEach(button => { button.onclick = () => { setTab(button.dataset.tab); if (button.dataset.tab === 'studies') renderStudySettings(); if (button.dataset.tab === 'feel') renderHapticSettings(); }; });
   function hapticMode() {
-    return state.settings.hapticEngine === 'standard' ? (typeof navigator.vibrate === 'function' ? 'standard' : 'none') : hapticPlayer.capability();
+    return actionOption().engine === 'standard' ? (typeof navigator.vibrate === 'function' ? 'standard' : 'none') : hapticPlayer.capability();
   }
   function stopHapticTest() {
     clearTimeout(hapticTestTimer); hapticTestTimer = null;
@@ -331,71 +406,106 @@
     $('stopHaptic').hidden = true;
     $('testHaptic').textContent = 'Test pattern';
   }
+  function allPatterns() { return [...H.patterns, ...state.customHaptics.map(H.curvePattern)]; }
   function renderHapticSettings() {
-    const pattern = H.get(state.settings.hapticPattern);
-    if (!$('hapticPattern').children.length) {
-      let group;
-      H.patterns.forEach(p => {
-        if (!group || group.label !== p.group) { group = node('optgroup'); group.label = p.group; $('hapticPattern').append(group); }
-        group.append(new Option(`${p.name} · ${(H.duration(p)/1000).toFixed(2)}s`, p.id));
-      });
-    }
+    const config = actionOption(), pattern = resolvedPattern();
+    $('hapticEvent').value = hapticEvent;
+    $('eventHapticLabel').textContent = {start:'Start feedback',pause:'Pause feedback',resume:'Resume feedback',hold:'Hold progress feedback',complete:'Completion feedback'}[hapticEvent];
+    $('eventHapticEnabled').checked = config.enabled;
+    $('hapticPattern').replaceChildren();
+    const groups = new Map();
+    allPatterns().forEach(p => {
+      if (!groups.has(p.group)) { const group=node('optgroup'); group.label=p.group; groups.set(p.group,group); $('hapticPattern').append(group); }
+      groups.get(p.group).append(new Option(`${p.name} · ${(H.duration(p)/1000).toFixed(2)}s`,p.id));
+    });
     $('hapticPattern').value = pattern.id;
-    $('hapticEngine').value = state.settings.hapticEngine;
-    // Imported values in the supported range still get a selectable strength.
-    if (![...$('hapticStrength').options].some(o => Number(o.value) === state.settings.hapticStrength)) $('hapticStrength').add(new Option(`${state.settings.hapticStrength}%`, state.settings.hapticStrength));
-    $('hapticStrength').value = String(state.settings.hapticStrength);
-    $('hapticDescription').textContent = pattern.description;
+    $('hapticEngine').value = config.engine;
+    if (![...$('hapticStrength').options].some(o => Number(o.value) === config.strength)) $('hapticStrength').add(new Option(`${config.strength}%`,config.strength));
+    $('hapticStrength').value = String(config.strength);
+    $('hapticDescription').textContent = pattern.description + (hapticEvent === 'hold' ? ' Fitted to the one-second fill.' : '');
     const mode = hapticMode();
-    $('hapticStrength').disabled = mode !== 'hd' || pattern.events.every(e => e.preset);
-    $('testHaptic').disabled = !state.settings.haptics || mode === 'none';
-    $('hapticStatus').textContent = !state.settings.haptics ? 'Turn on Haptics to test.' : mode === 'hd' ? 'HD haptics available · test on your phone to compare.' : mode === 'standard' ? 'Standard vibration · pulse timing approximates the HD feel.' : 'No haptic API here. Open in Brrrowser on your iPhone to feel these.';
+    $('hapticStrength').disabled = pattern.events.length > 0 && pattern.events.every(e => e.preset);
+    $('testHaptic').disabled = !state.settings.haptics;
+    $('hapticStatus').textContent = !state.settings.haptics ? 'Turn on Haptics to test.' : mode === 'hd' ? 'HD haptics available · test on your phone to compare.' : mode === 'standard' ? 'Standard vibration · pulse timing approximates the HD feel.' : 'Visual preview here · open in Brrrowser on your iPhone to feel it.';
+    const custom = pattern.id.startsWith('custom-');
+    $('editHaptic').textContent = custom ? 'Edit curve' : 'Remix pattern';
+    $('deleteHaptic').hidden = !custom;
     const bars = $('hapticBars'); bars.replaceChildren();
     const length = H.duration(pattern);
-    $('hapticTimeline').style.setProperty('--haptic-duration', `${length}ms`);
+    $('hapticTimeline').style.setProperty('--haptic-duration',`${length}ms`);
     pattern.events.forEach(e => {
-      const bar = node('i', e.duration ? 'haptic-buzz' : 'haptic-tap');
-      bar.style.left = `${e.at/length*100}%`;
-      bar.style.width = `${Math.max(1,(e.duration || 20)/length*100)}%`;
-      bar.style.height = `${9+e.intensity*24}px`;
-      bar.style.opacity = String(.35+e.intensity*.65);
-      bars.append(bar);
+      const bar=node('i',e.duration?'haptic-buzz':'haptic-tap');
+      bar.style.left=`${e.at/length*100}%`; bar.style.width=`${Math.max(1,(e.duration||20)/length*100)}%`;
+      bar.style.height=`${9+e.intensity*24}px`; bar.style.opacity=String(.35+e.intensity*.65);bars.append(bar);
     });
   }
-  function selectHaptic(id) {
+  function updateHaptic(change) {
     stopHapticTest();
-    mutate(s => { s.settings.hapticPattern = id; });
+    mutate(s => {
+      Object.assign(s.settings.hapticEvents[hapticEvent],change);
+      if (hapticEvent === 'complete') {
+        const c=s.settings.hapticEvents.complete;
+        Object.assign(s.settings,{hapticPattern:c.pattern,hapticStrength:c.strength,hapticEngine:c.engine});
+      }
+    });
     renderHapticSettings();
   }
-  $('hapticPattern').onchange = event => selectHaptic(event.target.value);
+  $('hapticEvent').onchange = event => { stopHapticTest(); hapticEvent=event.target.value; renderHapticSettings(); };
+  $('eventHapticEnabled').onchange = event => updateHaptic({enabled:event.target.checked});
+  $('hapticPattern').onchange = event => updateHaptic({pattern:event.target.value});
   function stepHaptic(direction) {
-    const index = H.patterns.indexOf(H.get(state.settings.hapticPattern));
-    selectHaptic(H.patterns[(index + direction + H.patterns.length) % H.patterns.length].id);
+    const patterns=allPatterns(), index=patterns.findIndex(p=>p.id===resolvedPattern().id);
+    updateHaptic({pattern:patterns[(index+direction+patterns.length)%patterns.length].id});
   }
   $('previousHaptic').onclick = () => stepHaptic(-1);
   $('nextHaptic').onclick = () => stepHaptic(1);
   $('testHaptic').onclick = () => {
-    clearCelebration();
-    if (!state.settings.haptics) return;
-    const result = hapticPlayer.play(state.settings.hapticPattern, { engine: state.settings.hapticEngine, strength: state.settings.hapticStrength });
-    if (result.mode === 'none') { renderHapticSettings(); return; }
-    $('stopHaptic').hidden = false;
-    $('testHaptic').textContent = 'Test again';
-    $('hapticStatus').textContent = `Testing ${result.pattern.name} · ${result.mode === 'hd' ? 'HD haptics' : 'standard vibration'}`;
-    void $('hapticTimeline').offsetWidth;
-    $('hapticTimeline').classList.add('playing');
-    hapticTestTimer = setTimeout(() => { stopHapticTest(); renderHapticSettings(); }, result.duration + 80);
+    clearCelebration(); if (!state.settings.haptics) return;
+    const pattern=resolvedPattern(), result=hapticPlayer.play(pattern,actionOption());
+    $('stopHaptic').hidden=false; $('testHaptic').textContent='Test again';
+    $('hapticStatus').textContent=result.mode==='none'?'Visual preview · haptics unavailable in this browser.':`Testing ${pattern.name} · ${result.mode==='hd'?'HD haptics':'standard vibration'}`;
+    void $('hapticTimeline').offsetWidth; $('hapticTimeline').classList.add('playing');
+    hapticTestTimer=setTimeout(()=>{stopHapticTest();renderHapticSettings();},H.duration(pattern)+80);
   };
-  $('stopHaptic').onclick = () => { stopHapticTest(); renderHapticSettings(); };
-  ['Engine','Strength'].forEach(key => {
-    $('haptic'+key).onchange = event => {
+  $('stopHaptic').onclick=()=>{stopHapticTest();renderHapticSettings();};
+  $('hapticEngine').onchange=event=>updateHaptic({engine:event.target.value});
+  $('hapticStrength').onchange=event=>updateHaptic({strength:Number(event.target.value)});
+  const curveEditor=AfterglowCurveEditor.create({H,E,
+    play(pattern) {
       stopHapticTest();
-      const value = key === 'Strength' ? Number(event.target.value) : event.target.value;
-      mutate(s => { s.settings['haptic'+key] = value; });
-      renderHapticSettings();
-    };
+      const fitted=hapticEvent==='hold'?H.fit(pattern,1000):pattern;
+      if(!state.settings.haptics)return {mode:'none',duration:H.duration(fitted),muted:true};
+      return hapticPlayer.play(fitted,actionOption());
+    },
+    stop:()=>hapticPlayer.stop(),
+    save(curve) {
+      const saved=mutate(s=>{
+        const index=s.customHaptics.findIndex(p=>p.id===curve.id);
+        if(index<0) { if(s.customHaptics.length>=100)return false; s.customHaptics.push(curve); }
+        else s.customHaptics[index]=curve;
+        s.settings.hapticEvents[hapticEvent].pattern=curve.id;
+        if(hapticEvent==='complete')s.settings.hapticPattern=curve.id;
+        return true;
+      });
+      if(saved){renderHapticSettings();toast('Curve saved for this action');}
+      else toast('Could not save. Remove an unused curve if your library is full.');
+      return saved;
+    }
   });
-  $('settingsDialog').addEventListener('close', () => { if (hapticTestTimer !== null) stopHapticTest(); });
+  $('createHaptic').onclick=()=>{stopHapticTest();curveEditor.open();};
+  $('editHaptic').onclick=()=>{stopHapticTest();curveEditor.open(H.get(actionOption().pattern,state.customHaptics));};
+  $('deleteHaptic').onclick=()=> {
+    const id=actionOption().pattern, name=H.get(id,state.customHaptics).name;
+    confirm(`Delete ${name}?`,'Actions using this curve will return to their default patterns.',()=> {
+      mutate(s=>{
+        s.customHaptics=s.customHaptics.filter(p=>p.id!==id);
+        const defaults=E.hapticDefaults();
+        Object.keys(defaults).forEach(key=>{if(s.settings.hapticEvents[key].pattern===id)s.settings.hapticEvents[key].pattern=defaults[key].pattern;});
+        s.settings.hapticPattern=s.settings.hapticEvents.complete.pattern;
+      });renderHapticSettings();toast('Curve deleted');
+    });
+  };
+  $('settingsDialog').addEventListener('close',()=>{if(hapticTestTimer!==null)stopHapticTest();});
   function updateGroupOptions() {
     const modality = $('bulkModality').value;
     $('bulkGroup').replaceChildren(new Option('All categories', '*'), ...[...new Set(state.types.filter(t => t.modality === modality).map(t => t.group))].map(g => new Option(g, g)));
@@ -468,7 +578,7 @@
   function populateSettings() {
     const f = $('goalForm').elements;
     f.goalName.value = state.settings.goalName; f.goalAmount.value = (state.settings.goalCents / 100).toFixed(2);
-    ['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].forEach(key => { $(key + 'Setting').checked = state.settings[key]; });
+    ['sound', 'haptics', 'motion', 'keepAwake', 'countUp', 'holdToComplete'].forEach(key => { $(key + 'Setting').checked = state.settings[key]; });
     const modalities = [...new Set(state.types.map(t => t.modality))];
     $('bulkModality').replaceChildren(...modalities.map(m => new Option(m, m)));
     $('modalities').replaceChildren(...modalities.map(m => new Option(m, m)));
@@ -503,7 +613,7 @@
     const saved = mutate(s => { const index = s.types.findIndex(t => t.id === type.id); if (index < 0) s.types.push(type); else s.types[index] = type; return true; });
     if (saved) { $('typeDialog').close(); renderStudySettings(); renderPicker(); toast('Study saved'); }
   };
-  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; if (key === 'haptics') stopHapticTest(); mutate(s => { s.settings[key] = checked; }); if (key === 'haptics') renderHapticSettings(); }; });
+  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp', 'holdToComplete'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; if (key === 'haptics') stopHapticTest(); mutate(s => { s.settings[key] = checked; }); if (key === 'haptics') renderHapticSettings(); }; });
   $('previewReward').onclick = () => { $('settingsDialog').close(); celebrate(selected().rewardCents || 200, true); };
   function backupText() {
     if (corrupt) { try { return localStorage.getItem(E.KEY) || JSON.stringify(state); } catch { /* Memory fallback. */ } }
@@ -531,21 +641,60 @@
     window.location.href = `mailto:?subject=${encodeURIComponent('Afterglow · study summary')}&body=${encodeURIComponent(lines.join('\n'))}`;
   };
   $('importButton').onclick = () => $('importFile').click();
-  $('importFile').onchange = async event => {
-    const file = event.target.files[0]; event.target.value = ''; if (!file) return;
-    if (file.size > 30 * 1024 * 1024) return toast('Backup is too large (30 MB maximum).');
+  function reviewBackup(text) {
     let imported;
-    try { imported = E.validate(JSON.parse(await file.text())); }
-    catch (error) { toast(error.message || 'This is not a valid backup.'); return; }
-    confirm('Replace local data?', `${imported.records.length} cases and ${money(E.total(imported.records))} earned. This replaces this device’s history, settings, and active timer. Export first if you need the current data.`, () => {
-      try { localStorage.setItem(E.KEY, JSON.stringify(imported)); }
-      catch { toast('Could not restore: device storage is unavailable or full. Current data was kept.'); return; }
-      corrupt = false; unsaved = false; state = imported; storageWarning(''); clearCelebration(); populateSettings(); render(); toast('Backup restored');
+    $('backupError').textContent='';
+    try {
+      if (text.length>30*1024*1024) throw new Error('Backup is too large (30 MB maximum).');
+      let parsed;
+      try { parsed=JSON.parse(text); } catch { throw new Error('Invalid JSON. Paste the entire backup, including the opening and closing braces.'); }
+      if (parsed?.version!==1) throw new Error('Unsupported backup version. Use an Afterglow version 1 JSON backup.');
+      imported=E.validate(parsed);
+    } catch(error) { $('backupError').textContent=error.message||'This is not a valid backup.';toast($('backupError').textContent);return; }
+    confirm('Replace local data?',`${imported.records.length} cases and ${money(E.total(imported.records))} earned. This replaces this device’s history, settings, custom curves, and active timer. Export first if you need the current data.`,()=> {
+      // A held button cannot survive a transfer. Resume from its exact frozen time.
+      E.cancelHold(imported);
+      try { localStorage.setItem(E.KEY,JSON.stringify(imported)); }
+      catch { toast('Could not restore: device storage is unavailable or full. Current data was kept.');return; }
+      gestures.cancel();corrupt=false;unsaved=false;state=imported;storageWarning('');clearCelebration();populateSettings();render();$('backupJson').value='';toast('Backup restored');
     });
+  }
+  $('importFile').onchange=async event=> {
+    const file=event.target.files[0];event.target.value='';if(!file)return;
+    if(file.size>30*1024*1024)return toast('Backup is too large (30 MB maximum).');
+    try { reviewBackup(await file.text()); } catch { toast('Could not read that file. Try pasting the JSON instead.'); }
   };
-  window.addEventListener('storage', event => { if (event.key === E.KEY || event.key === null) { state = readStored(); render(); if ($('pickerDialog').open) renderPicker(); if ($('settingsDialog').open) renderStudySettings(); } });
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { state = readStored(); render(); } else { stopHapticTest(); updateWakeLock(); } });
-  window.addEventListener('pageshow', () => { state = readStored(); render(); });
+  $('copyBackup').onclick=async()=> {
+    const text=backupText();
+    try {
+      if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(text);$('backupError').textContent='Full backup copied · paste it in the other browser.';toast('Backup copied');
+    } catch {
+      $('backupJson').value=text;$('backupJson').focus();$('backupJson').select();
+      try { if(document.execCommand('copy')) {toast('Backup copied');return;} } catch { /* Manual selection remains available. */ }
+      $('backupError').textContent='Clipboard access unavailable. The full backup is selected above; use Copy.';
+    }
+  };
+  $('pasteBackup').onclick=async()=> {
+    try {
+      if(!navigator.clipboard?.readText)throw new Error('Clipboard unavailable');
+      $('backupJson').value=await navigator.clipboard.readText();
+      reviewBackup($('backupJson').value);
+    } catch { $('backupError').textContent='Clipboard access unavailable. Paste your JSON in the field, then tap Review & restore.';$('backupJson').focus(); }
+  };
+  $('restoreJson').onclick=()=>reviewBackup($('backupJson').value);
+  window.addEventListener('storage',event=> {
+    if(event.key===E.KEY||event.key===null) {
+      gestures.cancel();state=readStored();render();
+      if($('pickerDialog').open)renderPicker();
+      if($('settingsDialog').open){renderStudySettings();renderHapticSettings();}
+    }
+  });
+  document.addEventListener('visibilitychange',()=> {
+    if(document.visibilityState==='visible'){state=readStored();recoverHold();render();}
+    else {gestures.cancel();stopHapticTest();updateWakeLock();}
+  });
+  window.addEventListener('pageshow',()=>{state=readStored();recoverHold();render();});
   setInterval(() => { if (document.visibilityState === 'visible') renderTimer(); }, 250);
   // Keyboard shortcuts never intercept inputs or open sheets.
   document.addEventListener('keydown', event => {

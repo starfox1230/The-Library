@@ -34,7 +34,52 @@
     preset('rumble-pop', 'Rumble + pop', 'Big finish', 'A low-textured rumble resolves into a sharp pop.', [buzz(0,180,.35,.05),buzz(180,180,.6,.1),buzz(360,180,.85,.2),tap(650,1,1)]),
     preset('orbit', 'Orbit & land', 'Big finish', 'Three distinct pulses circle into a firm landing.', [buzz(0,70,.35,.2),buzz(180,90,.55,.4),buzz(390,110,.75,.6),tap(660,1,.85)])
   ];
-  const get = id => patterns.find(p => p.id === id) || patterns[0];
+  patterns.push(
+    preset('hold-rise', 'Magnetic fill', 'Build & finish', 'A one-second rise that follows the completion fill.', ramp(20,50,.08,.95,.05)),
+    preset('zip-lock', 'Zip & lock', 'Tactile rhythms', 'A tightening zipper with one clean closing click.', [...Array.from({length:8},(_,i)=>tap(i*60,.15+i*.1,.7)),tap(570,1,1)]),
+    preset('water-drop', 'Water drop', 'Soft & smooth', 'A rounded drop settles into two tiny ripples.', [tap(0,.8,.08),tap(110,.3,.1),tap(230,.12,.2)]),
+    preset('silk-rise', 'Silk rise', 'Soft & smooth', 'A quiet, smooth swell with a soft landing.', [...ramp(8,70,.05,.65,.02),buzz(560,70,.4,.08),buzz(630,70,.15,.03)]),
+    preset('tiny-win', 'Tiny win', 'Crisp & short', 'A light pickup followed by a compact confident tap.', [tap(0,.2,.4),tap(90,.65,.75)]),
+    preset('aftershock', 'Aftershock', 'Big finish', 'One solid impact melts into a soft textured tail.', [tap(0,1,.9),buzz(80,100,.55,.15),buzz(180,100,.3,.1),buzz(280,100,.1,.05)])
+  );
+  function curvePattern(curve) {
+    const events = [];
+    for (let at = 0; at < curve.durationMs; at += 50) {
+      const point = sampleCurve(curve, at + Math.min(50,curve.durationMs-at)/2);
+      if (point.intensity > .005) events.push(buzz(at,Math.min(50,curve.durationMs-at),point.intensity,point.sharpness));
+    }
+    if (curve.snap) events.push(tap(curve.durationMs + 40,1,.95));
+    // Silent portions still retain their duration in the editor and playback.
+    return {id:curve.id,name:curve.name,group:'Your curves',description:'Custom intensity and sharpness curve.',events,durationMs:curve.durationMs+(curve.snap?90:0),curve};
+  }
+  function sampleCurve(curve, at) {
+    const points=curve.points;
+    const right=points.findIndex(p=>p.at>=at);
+    if(right<=0) return {...(right===0?points[0]:points.at(-1))};
+    const a=points[right-1], b=points[right], mix=(at-a.at)/(b.at-a.at);
+    return {at,intensity:a.intensity+(b.intensity-a.intensity)*mix,sharpness:a.sharpness+(b.sharpness-a.sharpness)*mix};
+  }
+  function toCurve(pattern, id) {
+    if(pattern.curve) return {...JSON.parse(JSON.stringify(pattern.curve)),id};
+    const durationMs=Math.min(3000,Math.max(200,duration(pattern)));
+    const times=[0,...pattern.events.flatMap(e=>[e.at,Math.min(durationMs,e.at+(e.duration||40))]),durationMs];
+    const unique=[...new Set(times)].sort((a,b)=>a-b).filter((at,i,all)=>i===0 || at-all[i-1]>=10);
+    if(unique.at(-1)!==durationMs) unique[unique.length-1]=durationMs;
+    const limited=unique.length<=32?unique:Array.from({length:32},(_,i)=>Math.round(durationMs*i/31));
+    return {id,name:pattern.name,durationMs,snap:false,points:limited.map(at=>{
+      const event=pattern.events.find(e=>at>=e.at&&at<e.at+(e.duration||40));
+      return {at,intensity:event?.intensity||0,sharpness:event?.sharpness??.2};
+    })};
+  }
+  const get = (id, custom = []) => {
+    if (id && typeof id === 'object' && Array.isArray(id.events)) return id;
+    const curve=custom.find(p=>p.id===id);
+    return curve?curvePattern(curve):patterns.find(p => p.id === id) || patterns[0];
+  };
+  function fit(pattern, milliseconds) {
+    const scale=milliseconds/duration(pattern);
+    return {...pattern,durationMs:milliseconds,vibration:null,events:pattern.events.map(e=>({...e,at:Math.round(e.at*scale),...(e.duration?{duration:Math.max(1,Math.round(e.duration*scale))}:{})}))};
+  }
   // Vibration API cannot set amplitude. Duty cycles approximate the envelope.
   function vibrationFor(pattern) {
     if (pattern.vibration) return [...pattern.vibration];
@@ -58,7 +103,7 @@
     if (segments.length % 2 === 0) segments.pop();
     return segments;
   }
-  const duration = pattern => Math.max(pattern.events.reduce((max,e) => Math.max(max,e.at+(e.duration || (e.preset === 'success' ? 260 : 50))),0), vibrationFor(pattern).reduce((a,b)=>a+b,0));
+  const duration = pattern => Math.max(pattern.durationMs || 0, pattern.events.reduce((max,e) => Math.max(max,e.at+(e.duration || (e.preset === 'success' ? 260 : 50))),0), vibrationFor(pattern).reduce((a,b)=>a+b,0));
   function createPlayer(nav, schedule = setTimeout, cancel = clearTimeout) {
     let timers = [], generation = 0;
     function stop() {
@@ -93,7 +138,11 @@
             else if (result && typeof result.catch === 'function') result.catch(fallback);
           } catch { fallback(); }
         };
-        pattern.events.forEach(event => {
+        const events=pattern.events.flatMap(event => {
+          if (!event.duration || event.duration <= 100) return [event];
+          return Array.from({length:Math.ceil(event.duration/100)},(_,i)=>({...event,at:event.at+i*100,duration:Math.min(100,event.duration-i*100)}));
+        });
+        events.forEach(event => {
           if (event.at === 0) send(event);
           else if (!fallbackStarted) timers.push(schedule(() => send(event), event.at));
         });
@@ -102,5 +151,5 @@
     }
     return { play, stop, capability };
   }
-  return { DEFAULT, patterns, get, vibrationFor, duration, createPlayer };
+  return { DEFAULT, patterns, get, vibrationFor, duration, createPlayer, curvePattern, sampleCurve, toCurve, fit };
 });
