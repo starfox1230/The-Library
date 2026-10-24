@@ -26,8 +26,6 @@
   let corrupt = false;
   let unsaved = false;
   let state = E.fresh();
-  let pickerFavorites = true;
-  let settingsFavorites = true;
   let undoAction = null;
   let toastTimeout, celebrationTimeout;
   let wakeLock = null;
@@ -303,31 +301,39 @@
   }
   function typeList(container, types, action) {
     container.replaceChildren();
-    if (!types.length) { container.append(node('p', 'empty', 'No studies here. Turn off Favorites or change your search.')); return; }
+    if (!types.length) { container.append(node('p', 'empty', 'No studies here. Change your search or study order.')); return; }
     let group = '';
     const fragment = document.createDocumentFragment();
     types.forEach(type => {
       const heading = `${type.modality} · ${type.group}`;
-      if (heading !== group) { fragment.append(node('h3', '', heading)); group = heading; }
+      if (state.settings.studySort === 'modality' && heading !== group) { fragment.append(node('h3', '', heading)); group = heading; }
       const row = node('div', `type-row${type.id === state.selectedTypeId ? ' selected' : ''}`);
       const button = node('button', 'type-select');
-      button.append(node('strong', '', type.name), node('small', '', `${minutes(type.targetMs)} min · ${money(type.rewardCents)}`));
+      button.append(node('strong', '', type.name), node('small', '', `${heading} · ${minutes(type.targetMs)} min · ${money(type.rewardCents)}`));
       button.onclick = () => action(type);
       row.append(button, star(type)); fragment.append(row);
     });
     container.append(fragment);
   }
-  function filteredTypes(search, favorites) {
-    return state.types.filter(t => (!favorites || t.favorite) && `${t.modality} ${t.group} ${t.name}`.toLowerCase().includes(search.toLowerCase().trim()));
+  function filteredTypes(search) {
+    const words = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    return E.sortTypes(state).filter(t => words.every(word => `${t.modality} ${t.group} ${t.name}`.toLowerCase().includes(word)));
   }
   function renderPicker() {
-    typeList($('pickerList'), filteredTypes($('pickerSearch').value, pickerFavorites), type => {
-      mutate(s => { if (!s.active) s.selectedTypeId = type.id; }); $('pickerDialog').close();
+    $('pickerSort').value = state.settings.studySort;
+    typeList($('pickerList'), filteredTypes($('pickerSearch').value), type => {
+      mutate(s => E.selectType(s, type.id)); $('pickerDialog').close();
     });
   }
   $('studyPicker').onclick = () => { state = readStored(); renderPicker(); open($('pickerDialog')); };
   $('pickerSearch').oninput = renderPicker;
-  $('pickerFavorites').onclick = () => { pickerFavorites = !pickerFavorites; $('pickerFavorites').setAttribute('aria-pressed', pickerFavorites); renderPicker(); };
+  function changeStudyOrder(event) {
+    const mode = event.target.value;
+    if (!E.STUDY_SORTS.includes(mode)) return;
+    mutate(s => { s.settings.studySort = mode; });
+    renderPicker(); renderStudySettings();
+  }
+  $('pickerSort').onchange = changeStudyOrder;
   function renderHistory() {
     const search = $('historySearch').value.toLowerCase().trim();
     const period = $('historyRange').value;
@@ -510,7 +516,10 @@
     const modality = $('bulkModality').value;
     $('bulkGroup').replaceChildren(new Option('All categories', '*'), ...[...new Set(state.types.filter(t => t.modality === modality).map(t => t.group))].map(g => new Option(g, g)));
   }
-  function renderStudySettings() { typeList($('settingsTypes'), filteredTypes($('settingsSearch').value, settingsFavorites), editType); }
+  function renderStudySettings() {
+    $('settingsSort').value = state.settings.studySort;
+    typeList($('settingsTypes'), filteredTypes($('settingsSearch').value), editType);
+  }
   function resetFutureGoalForm() {
     $('futureGoalForm').reset();
     $('futureGoalForm').elements.id.value = '';
@@ -587,7 +596,7 @@
   $('settingsButton').onclick = () => { state = readStored(); populateSettings(); open($('settingsDialog')); };
   $('goalForm').onsubmit = event => { event.preventDefault(); const f = event.currentTarget.elements; const name = f.goalName.value.trim(); if (!name) return toast('Enter a goal name.'); mutate(s => { s.settings.goalName = name; s.settings.goalCents = Math.round(Number(f.goalAmount.value) * 100); }); toast('Goal saved'); };
   $('settingsSearch').oninput = renderStudySettings;
-  $('settingsFavorites').onclick = () => { settingsFavorites = !settingsFavorites; $('settingsFavorites').setAttribute('aria-pressed', settingsFavorites); renderStudySettings(); };
+  $('settingsSort').onchange = changeStudyOrder;
   $('bulkModality').onchange = updateGroupOptions;
   $('bulkForm').onsubmit = event => {
     event.preventDefault(); const f = event.currentTarget.elements;

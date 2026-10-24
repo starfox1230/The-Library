@@ -1,6 +1,6 @@
 /* Only this app's static assets are cached. The ledger stays in localStorage. */
-const CACHE = 'afterglow-static-v8';
-const ASSETS = ['./', 'index.html', 'style.css?v=8', 'engine.js?v=8', 'interaction.js?v=8', 'haptics.js?v=8', 'gestures.js?v=8', 'haptic-editor.js?v=8', 'theme.js?v=8', 'theme.css?v=8', 'app.js?v=8', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'site.webmanifest'];
+const CACHE = 'afterglow-static-v9';
+const ASSETS = ['./', 'index.html', 'style.css?v=9', 'engine.js?v=9', 'interaction.js?v=9', 'haptics.js?v=9', 'gestures.js?v=9', 'haptic-editor.js?v=9', 'theme.js?v=9', 'theme.css?v=9', 'app.js?v=9', 'icon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png', 'icon-maskable.png', 'site.webmanifest'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS.map(asset => new Request(new URL(asset, self.registration.scope), {cache:'reload'})))).then(() => self.skipWaiting()));
 });

@@ -7,6 +7,7 @@
   'use strict';
   const KEY = 'theLibrary.studyRewardTimer.v1';
   const MAX_TIME = 7 * 24 * 60 * 60 * 1000;
+  const STUDY_SORTS = ['recent', 'favorites', 'alphabetical', 'modality', 'favorites-only'];
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const clone = value => JSON.parse(JSON.stringify(value));
   function hapticDefaults(settings = {}) {
@@ -39,7 +40,25 @@
   }
   function fresh() {
     const types = catalogue();
-    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: true, holdDefaultVersion: 1, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, records: [], active: null };
+    return { version: 1, settings: { goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', studySort: 'recent', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: true, holdDefaultVersion: 1, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, recentTypeIds: [types[0].id], records: [], active: null };
+  }
+  function selectType(state, typeId) {
+    if (state.active) return false;
+    if (!state.types.some(t => t.id === typeId)) throw new Error('Choose a study type.');
+    state.selectedTypeId = typeId;
+    state.recentTypeIds = [typeId, ...(state.recentTypeIds || []).filter(id => id !== typeId)];
+    return true;
+  }
+  function sortTypes(state, mode = state.settings.studySort) {
+    const rank = new Map((state.recentTypeIds || []).map((id, i) => [id, i]));
+    const recent = (a, b) => (rank.get(a.id) ?? state.types.length) - (rank.get(b.id) ?? state.types.length);
+    const alphabetic = (a, b) => a.name.localeCompare(b.name) || a.modality.localeCompare(b.modality) || a.group.localeCompare(b.group) || a.id.localeCompare(b.id);
+    return state.types.filter(t => mode !== 'favorites-only' || t.favorite).sort((a, b) => {
+      if (mode === 'modality') return a.modality.localeCompare(b.modality) || a.group.localeCompare(b.group) || alphabetic(a, b);
+      if (mode === 'alphabetical') return alphabetic(a, b);
+      if (mode === 'favorites' && a.favorite !== b.favorite) return Number(b.favorite) - Number(a.favorite);
+      return recent(a, b) || alphabetic(a, b);
+    });
   }
   function elapsed(active, now = Date.now()) {
     return active ? active.elapsedMs + (active.runningSince === null ? 0 : Math.max(0, now - active.runningSince)) : 0;
@@ -106,6 +125,14 @@
     if (!data.types.some(t => t.id === data.selectedTypeId)) throw new Error('Invalid selected study.');
     const s = data.settings;
     if (!s || !text(s.goalName) || !Number.isInteger(s.goalCents) || !number(s.goalCents, 100, 100000000) || !['sound', 'haptics', 'motion', 'keepAwake', 'countUp'].every(key => typeof s[key] === 'boolean')) throw new Error('Invalid goal or preferences in backup.');
+    const studySort = s.studySort === undefined ? 'recent' : s.studySort;
+    if (!STUDY_SORTS.includes(studySort)) throw new Error('Invalid study order in backup.');
+    // Seed older installs from the current selection and actual case history.
+    const typeIds = new Set(data.types.map(t => t.id));
+    const recentTypeIds = data.recentTypeIds === undefined
+      ? [...new Set([data.selectedTypeId, data.active?.typeId, ...[...data.records].sort((a, b) => b.startedAt - a.startedAt).map(r => r.typeId)].filter(id => typeIds.has(id)))]
+      : data.recentTypeIds;
+    if (!Array.isArray(recentTypeIds) || recentTypeIds.length > data.types.length || new Set(recentTypeIds).size !== recentTypeIds.length || !recentTypeIds.every(id => typeIds.has(id))) throw new Error('Invalid recently selected studies in backup.');
     const hapticPattern = s.hapticPattern === undefined ? 'rise-snap' : s.hapticPattern;
     const hapticStrength = s.hapticStrength === undefined ? 80 : s.hapticStrength;
     const hapticEngine = s.hapticEngine === undefined ? 'auto' : s.hapticEngine;
@@ -128,7 +155,10 @@
       if (!a || !validateRecord({ ...a, completedAt: a.startedAt }) || !(a.runningSince === null || number(a.runningSince, a.startedAt, 8640000000000000)) || (a.holding !== undefined && (a.holding !== true || a.runningSince !== null))) throw new Error('Invalid active timer in backup.');
       if (data.records.some(r => r.id === a.id)) throw new Error('Active case is already completed.');
     }
-    return { ...clone(data), settings: { ...clone(s), hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete, holdDefaultVersion: 1 }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
+    const types = clone(data.types);
+    // Older/custom catalogues may predate CAP. Keep existing edited targets intact.
+    if (!typeIds.has('ct-body-2') && types.length < 2000) types.push(catalogue().find(t => t.id === 'ct-body-2'));
+    return { ...clone(data), types, recentTypeIds: clone(recentTypeIds), settings: { ...clone(s), studySort, hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete, holdDefaultVersion: 1 }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
   }
   function validCustomHaptic(p) {
     return p && text(p.id,80) && p.id.startsWith('custom-') && text(p.name,60) && number(p.durationMs,200,3000) && typeof p.snap === 'boolean' && Array.isArray(p.points) && p.points.length >= 2 && p.points.length <= 32 && p.points[0]?.at === 0 && p.points.at(-1)?.at === p.durationMs && p.points.every((point,i) => point && number(point.at,0,p.durationMs) && number(point.intensity,0,1) && number(point.sharpness,0,1) && (i === 0 || point.at - p.points[i-1].at >= 10));
@@ -143,5 +173,5 @@
     const rows = records.map(r => [r.id, new Date(r.startedAt).toISOString(), new Date(r.completedAt).toISOString(), r.modality, r.group, r.typeName, (r.elapsedMs / 60000).toFixed(3), (r.targetMs / 60000).toFixed(3), (r.rewardCents / 100).toFixed(2), r.elapsedMs <= r.targetMs ? 'yes' : 'no', (payout(r) / 100).toFixed(2)]);
     return [['ID', 'Started (UTC)', 'Completed (UTC)', 'Modality', 'Group', 'Study', 'Active minutes', 'Target minutes', 'Available USD', 'Within target', 'Earned USD'], ...rows].map(row => row.map(cell).join(',')).join('\r\n');
   }
-  return { KEY, MAX_TIME, id, clone, catalogue, fresh, elapsed, payout, total, start, pause, resume, beginHold, cancelHold, restartDuration, finish, validate, validCustomHaptic, hapticDefaults, csv };
+  return { KEY, MAX_TIME, STUDY_SORTS, id, clone, catalogue, fresh, selectType, sortTypes, elapsed, payout, total, start, pause, resume, beginHold, cancelHold, restartDuration, finish, validate, validCustomHaptic, hapticDefaults, csv };
 });

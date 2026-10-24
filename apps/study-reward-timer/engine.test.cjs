@@ -2,6 +2,87 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('./engine.js');
 
+test('CT chest / abdomen / pelvis is visible by default with an 18 minute target', () => {
+  const s = E.fresh();
+  assert.equal(s.settings.studySort, 'recent');
+  const cap = E.sortTypes(s).find(t => t.id === 'ct-body-2');
+  assert.equal(cap.name, 'Chest / abdomen / pelvis');
+  assert.equal(cap.modality, 'CT');
+  assert.equal(cap.targetMs, 18 * 60000);
+  assert.equal(cap.rewardCents, 0);
+});
+
+test('selections reorder immediately, deduplicate and survive backup without starting a timer', () => {
+  const s = E.fresh();
+  E.selectType(s, 'ct-body-2');
+  E.selectType(s, 'mr-body-4');
+  E.selectType(s, 'ct-body-2');
+  const restored = E.validate(E.clone(s));
+  assert.deepEqual(restored.recentTypeIds, ['ct-body-2', 'mr-body-4', 'mr-body-0']);
+  assert.deepEqual(E.sortTypes(restored).slice(0, 3).map(t => t.id), restored.recentTypeIds);
+  assert.equal(restored.active, null);
+  assert.deepEqual(restored.records, []);
+  E.start(restored, 1000);
+  assert.equal(E.selectType(restored, 'mr-body-4'), false);
+  assert.equal(restored.selectedTypeId, 'ct-body-2');
+  assert.throws(() => E.selectType(s, 'missing'));
+});
+
+test('favorites first retains every study; other orders do not change catalogue or recency', () => {
+  const s = E.fresh();
+  E.selectType(s, 'ct-body-2');
+  const before = E.clone(s);
+  s.settings.studySort = 'favorites';
+  const ordered = E.sortTypes(s);
+  assert.equal(ordered.length, s.types.length);
+  const firstNonfavorite = ordered.findIndex(t => !t.favorite);
+  assert.ok(firstNonfavorite > 0);
+  assert.ok(ordered.slice(firstNonfavorite).every(t => !t.favorite));
+  assert.equal(ordered[firstNonfavorite].id, 'ct-body-2');
+  assert.ok(E.sortTypes(s, 'favorites-only').every(t => t.favorite));
+  const alphabetic = E.sortTypes(s, 'alphabetical');
+  assert.ok(alphabetic.every((t, i) => !i || alphabetic[i - 1].name.localeCompare(t.name) <= 0));
+  const grouped = E.sortTypes(s, 'modality');
+  const headings = grouped.map(t => `${t.modality} · ${t.group}`).filter((h, i, all) => !i || h !== all[i - 1]);
+  assert.equal(new Set(headings).size, headings.length);
+  assert.deepEqual(s.types, before.types);
+  assert.deepEqual(s.recentTypeIds, before.recentTypeIds);
+  assert.equal(E.validate(E.clone(s)).settings.studySort, 'favorites');
+});
+
+test('older backups migrate order and missing CT CAP without changing active or past cases', () => {
+  const s = E.fresh();
+  E.selectType(s, 'mr-body-4'); E.start(s, 1000); E.finish(s, 2000);
+  E.selectType(s, 'mr-body-1'); E.start(s, 3000);
+  delete s.settings.studySort; delete s.recentTypeIds;
+  s.types = s.types.filter(t => t.id !== 'ct-body-2');
+  const old = E.clone(s);
+  const restored = E.validate(s);
+  assert.equal(restored.settings.studySort, 'recent');
+  assert.deepEqual(restored.recentTypeIds, ['mr-body-1', 'mr-body-4']);
+  assert.equal(restored.types.find(t => t.id === 'ct-body-2').targetMs, 1080000);
+  assert.deepEqual(restored.active, old.active);
+  assert.deepEqual(restored.records, old.records);
+  assert.deepEqual(s, old);
+  restored.types.find(t => t.id === 'ct-body-2').targetMs = 1200000;
+  assert.equal(E.validate(restored).types.find(t => t.id === 'ct-body-2').targetMs, 1200000);
+  assert.deepEqual(E.validate(restored), restored);
+});
+
+test('invalid sort and recency backups are rejected without changing input', () => {
+  for (const change of [
+    s => { s.settings.studySort = 'unknown'; },
+    s => { s.recentTypeIds = null; },
+    s => { s.recentTypeIds = ['ct-body-2', 'ct-body-2']; },
+    s => { s.recentTypeIds = ['missing']; }
+  ]) {
+    const s = E.fresh(); change(s);
+    const before = E.clone(s);
+    assert.throws(() => E.validate(s), /study order|recently selected/);
+    assert.deepEqual(s, before);
+  }
+});
+
 test('default MR reward is $2; all other modalities default to $0', () => {
   const s = E.fresh();
   assert.equal(s.settings.goalCents, 90000);
