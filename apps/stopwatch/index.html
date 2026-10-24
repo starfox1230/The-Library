@@ -404,7 +404,7 @@
       <button class="text-btn" id="recordsBtn" type="button">Records</button>
     </header>
 
-    <main class="tap-zone" id="tapZone" aria-label="Tap to start or stop stopwatch">
+    <main class="tap-zone" id="tapZone" aria-label="Tap to start, pause, or resume stopwatch">
       <div class="timer-wrap">
         <div class="timer" id="display" aria-live="off">0.00</div>
         <div class="hint" id="hint">tap</div>
@@ -580,8 +580,18 @@
         display.textContent = format(elapsedMs);
         state = "stopped";
         app.classList.remove("running");
-        hint.textContent = "";
+        hint.textContent = "paused · tap to resume";
         postRun.classList.add("show");
+      }
+
+      function resume(){
+        if(state !== "stopped") return;
+        state = "running";
+        startedAt = performance.now() - elapsedMs;
+        app.classList.add("running");
+        hint.textContent = "";
+        postRun.classList.remove("show");
+        raf = requestAnimationFrame(tick);
       }
 
       function reset(){
@@ -641,7 +651,7 @@
         if(modalOpen() || e.target.closest("[data-control]")) return;
         if(state === "idle") start();
         else if(state === "running") stop();
-        else if(state === "stopped") { reset(); start(); }
+        else if(state === "stopped") resume();
       });
 
       tapZone.addEventListener("pointercancel", function(){
@@ -806,7 +816,7 @@
           e.preventDefault();
           if(state === "idle") start();
           else if(state === "running") stop();
-          else if(state === "stopped") { reset(); start(); }
+          else if(state === "stopped") resume();
         }
       });
 
