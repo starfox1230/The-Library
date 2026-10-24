@@ -1,5 +1,9 @@
 # Repository Instructions for Bots and Contributors
 
+## Custom Chrome extensions
+
+Keep Sterling's custom Chrome extensions together in `C:\Users\sterl\Documents\Chrome Extensions`, with one stable, already unpacked folder per extension. For every new or updated Chrome extension, read `apps/chrome-extensions/AGENTS.md`, register its source in `apps/chrome-extensions/registry.json`, and run the shared `sync-extensions.ps1` for its slug so the finished files are ready locally. New extension source goes in `apps/chrome-extensions/<slug>/extension/`. Do not require ZIP downloads or extraction. Keep existing installation paths working through their compatibility junctions so Chrome retains IDs and settings; never edit Chrome profile preferences to relocate an extension. Give the user the prepared folder and the one-time Load unpacked or update Reload steps.
+
 ## Anki card work
 
 For the plain-language study-route menu, start with `apps/anki-card-creation-codex-helper/RADIOLOGY_STUDY_START_HERE.md`.
