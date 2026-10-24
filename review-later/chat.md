@@ -44,10 +44,70 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-24 08:39 Central Daylight Time
-Cards: 11
+Updated: 2026-10-24 15:54 Central Daylight Time
+Cards: 14
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-10-01T13:11:39-05:00
+Last seen: 2026-10-24T15:51:26-05:00
+Card ID: 1787199507814
+Note ID: 1787199507813
+
+Question:
+00:12
+
+What is the most likely diagnosis in adult?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis in adult?
+
+Subependymoma
+
+Source: Notion Radiology entry.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-03-21T07:04:48-05:00
+Last seen: 2026-10-24T15:50:55-05:00
+Card ID: 1761230415313
+Note ID: 1761230415311
+
+Question:
+00:12
+
+Meconium plug is the old term for [...].
+
+Answer:
+00:12
+
+Meconium plug is the old term for functional immaturity of the colon.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-20T17:32:39-05:00
+Last seen: 2026-10-24T15:46:09-05:00
+Card ID: 1778865815605
+Note ID: 1778865815604
+
+Question:
+00:12
+
+After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after [...].
+
+Answer:
+00:12
+
+After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after 24 hours.
+
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:12:26-05:00
@@ -65,7 +125,7 @@ Answer:
 
 The classic presentation of a glomus tumor is small subungual finger lesion with severe focal pain, point tenderness, and cold sensitivity.
 
-## Card 2
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -89,7 +149,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:01:04-05:00
@@ -107,7 +167,7 @@ Answer:
 
 Fixed points of attachment such as the duodenojejunal junction, ileum near the ileocecal valve, ureteropelvic junction, and vascular pedicles are frequent sites of shear injury in blunt deceleration trauma.
 
-## Card 4
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -127,7 +187,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 5
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -153,7 +213,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-07-16T12:24:01-05:00
@@ -183,7 +243,7 @@ Intracavitary upper-lobe mass with an air crescent in a prior tuberculosis cavit
 
 Q28. Correct; difficulty: moderate. Vital Concept: Aspergillomas are mass-like balls found in the lung that are composed of the fungus Aspergillus fumigatus. Patients are typically asymptomatic when this diagnosis is made.
 
-## Card 7
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -209,7 +269,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 8
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-10-21T22:27:15-05:00
@@ -231,7 +291,7 @@ Diagnosis?
 
 tillaux Fracture
 
-## Card 9
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
@@ -249,7 +309,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 10
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
@@ -267,7 +327,7 @@ Answer:
 
 Shuttering masks the bright area outside the collimated field.
 
-## Card 11
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
