@@ -769,9 +769,14 @@
       temp.style.position = 'absolute';
       temp.style.left = '-9999px';
       document.body.appendChild(temp);
+      temp.focus({ preventScroll: true });
       temp.select();
-      document.execCommand('copy');
-      document.body.removeChild(temp);
+      temp.setSelectionRange(0, temp.value.length);
+      try {
+        return document.execCommand('copy');
+      } finally {
+        document.body.removeChild(temp);
+      }
     }
 
     async function copyTextToClipboard(text){
@@ -855,7 +860,20 @@
       overlay.style.padding = '24px';
       overlay.style.textAlign = 'center';
 
+      // A real tapped link lets iOS hand off to the app; a scripted redirect may stay in Chrome.
+      const continueLink = document.createElement('a');
+      continueLink.style.position = 'absolute';
+      continueLink.style.inset = '0';
+      continueLink.style.cursor = 'wait';
+      continueLink.style.outlineOffset = '-6px';
+      continueLink.setAttribute('aria-label', 'Copy today’s material and continue');
+      continueLink.setAttribute('aria-disabled', 'true');
+      continueLink.tabIndex = -1;
+      overlay.appendChild(continueLink);
+
       const card = document.createElement('div');
+      card.style.position = 'relative';
+      card.style.pointerEvents = 'none';
       card.style.maxWidth = '520px';
       card.style.width = '100%';
       card.style.background = '#1e1e1e';
@@ -886,7 +904,7 @@
       const hint = document.createElement('div');
       hint.style.fontSize = '0.9rem';
       hint.style.opacity = '0.85';
-      hint.textContent = 'Tap once anywhere to copy and continue.';
+      hint.textContent = 'Loading today’s material…';
 
       const cancelBtn = document.createElement('button');
       cancelBtn.type = 'button';
@@ -898,6 +916,7 @@
       cancelBtn.style.padding = '8px 16px';
       cancelBtn.style.fontSize = '0.9rem';
       cancelBtn.style.cursor = 'pointer';
+      cancelBtn.style.pointerEvents = 'auto';
 
       controls.appendChild(hint);
       controls.appendChild(cancelBtn);
@@ -910,8 +929,10 @@
 
       return {
         overlay,
+        continueLink,
         cancelBtn,
         setMessage: (t) => { msg.textContent = t; },
+        setHint: (t) => { hint.textContent = t; },
         remove: () => overlay.remove()
       };
     }
@@ -958,22 +979,67 @@
       const ok = await waitUntilReady(10000);
       if (!ok) {
         ui.setMessage('Could not load content in time. Tap to dismiss and try again.');
+        ui.setHint('');
         ui.overlay.addEventListener('click', () => ui.remove(), { once: true });
         return;
       }
 
-      // iOS requires a user gesture for clipboard write; use the overlay tap.
-      ui.overlay.addEventListener('click', async () => {
-        ui.setMessage('Copying…');
-        const text = await buildNfcPayloadText();
-        await copyTextToClipboard(text);
+      // Finish all reading/manual fetches before the user taps the actual app link.
+      const text = await buildNfcPayloadText();
+      if (!text.trim()) {
+        ui.setMessage('Could not load today’s text. Tap to dismiss and try again.');
+        ui.setHint('');
+        ui.overlay.addEventListener('click', () => ui.remove(), { once: true });
+        return;
+      }
+      ui.continueLink.href = gptUrl || '#';
+      ui.continueLink.removeAttribute('aria-disabled');
+      ui.continueLink.tabIndex = 0;
+      ui.continueLink.style.cursor = 'pointer';
+      ui.setHint('Tap once anywhere to copy and continue.');
 
-        if (gptUrl) {
-          window.location.href = gptUrl;
+      let copied = false;
+      let copying = false;
+      ui.continueLink.addEventListener('click', async (e) => {
+        if (copying) {
+          e.preventDefault();
           return;
         }
-        ui.remove();
-      }, { once: true });
+        // Copy synchronously inside the tap, then let the anchor's native navigation run.
+        if (!copied) {
+          try { copied = fallbackCopy(text); } catch {}
+        }
+        if (copied) {
+          showCopiedMessage();
+          if (gptUrl) {
+            ui.setMessage('Copied. Opening ChatGPT…');
+          } else {
+            e.preventDefault();
+            ui.remove();
+          }
+          return;
+        }
+
+        // If synchronous copy is unavailable, keep the text safe before allowing another tap.
+        e.preventDefault();
+        copying = true;
+        ui.setMessage('Copying…');
+        try {
+          await navigator.clipboard.writeText(text);
+          copied = true;
+          showCopiedMessage();
+          if (gptUrl) {
+            ui.setMessage('Copied. Tap once more to open ChatGPT.');
+            ui.setHint('Tap anywhere to open ChatGPT.');
+          } else {
+            ui.remove();
+          }
+        } catch {
+          ui.setMessage('Could not copy. Tap again to retry.');
+        } finally {
+          copying = false;
+        }
+      });
     }
 
     /* ===== State ===== */
