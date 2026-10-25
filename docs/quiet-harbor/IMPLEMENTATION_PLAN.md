@@ -1,6 +1,6 @@
-# Quiet Harbor — implementation specification
+# Quiet Harbor — implementation specification and build record
 
-Prepared October 25, 2026. **Working title; planning deliverable, not a built app.**
+Prepared October 25, 2026. **Working title.** This specification now accompanies the implemented app; the implementation record at the end notes any verification that still requires a physical iPhone.
 
 This document is the implementation contract for Sterling's phone-first hand-picking tracker in The Library. Read [IMPLEMENTER_PROMPT.md](IMPLEMENTER_PROMPT.md) for a ready-to-paste assignment. The decisions below are intentional defaults: implement them without asking Sterling to choose a framework, find artwork, label sprites, or design a city.
 
@@ -464,7 +464,7 @@ apps/temporary-apps/library/YYYY-MM-DD-quiet-harbor/
   assets/
     catalog.json
     sources.json
-    atlases/
+    sprites/
     licenses/
   icons/
   vendor/
@@ -473,7 +473,7 @@ apps/temporary-apps/library/YYYY-MM-DD-quiet-harbor/
   scripts/
     prepare-assets.mjs
     prepare-icons.mjs
-    generate-precache.mjs
+    generate-precache.py
   tests/
     time.test.mjs
     growth-world.test.mjs
@@ -567,4 +567,10 @@ Sterling can install the page, begin once, leave it closed, return to a visibly 
 
 The implementing agent owns asset acquisition, mapping, code, icons, QA, registration, commit, and push. Only inherently device-side steps—adding to the Home Screen and any unavailable real-device verification—may need Sterling. Report those limits plainly. Do not ask Sterling to hand-assemble a sprite pack, choose obscure architecture details, or repeatedly authorize ordinary implementation steps.
 
-**This specification itself does not create an app or a live deployment.** Its repository publication is separate from the future app release.
+## Implementation record — October 25, 2026
+
+The app is implemented in `apps/temporary-apps/library/2026-10-25-quiet-harbor/` and registered in the temporary-app library. It uses a local PixiJS build and selected CC0 Kenney sprites, reproducible source-hash verification, semantic sprite catalog, seeded world growth, IndexedDB, local backups, and an app-scoped offline cache. The sprite pipeline crops the selected source frames into individual PNGs rather than shipping full atlas sheets.
+
+Automated verification covers duration formatting, major world-growth boundaries, seeded layout behavior, pre-house construction, and backup validation; the repository index verifier and app syntax check are also required. A Chromium browser smoke test confirmed the phone-first page renders, one-tap start works, a 400 ms partial hold leaves the run intact, a 1.3 second hold creates one new run, the tsunami transition renders, and settings/history open. Physical iPhone Safari/Home Screen, true offline device use, assistive-technology input, all pointer cancellation cases, backup file import/export, multi-tab conflict behavior, and long-duration performance remain device/manual verification items; they are not claimed as tested here.
+
+This branch is source work, not a live Pages deployment. The repository's publication branch and merge/deployment status must be checked before giving out a live app URL.
