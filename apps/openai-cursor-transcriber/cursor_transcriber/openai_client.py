@@ -35,6 +35,13 @@ def friendly_openai_error(exc: Exception) -> str:
     if isinstance(exc, APIConnectionError):
         return "The app could not reach OpenAI. Check your internet connection."
     if isinstance(exc, BadRequestError):
+        body = exc.body
+        if isinstance(body, dict):
+            error = body.get("error")
+            if isinstance(error, dict):
+                message = error.get("message")
+                if isinstance(message, str) and message.strip():
+                    return f"OpenAI rejected the audio request: {message.strip()}"
         return "OpenAI rejected the audio request. Check the model name and audio file."
     if isinstance(exc, OpenAIError):
         return f"OpenAI returned an API error: {exc}"
