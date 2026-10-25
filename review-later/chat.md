@@ -44,10 +44,54 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-24 23:04 Central Daylight Time
-Cards: 20
+Updated: 2026-10-24 23:13 Central Daylight Time
+Cards: 22
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-16T06:42:15-05:00
+Last seen: 2026-10-24T23:10:13-05:00
+Card ID: 1792100344240
+Note ID: 1792100344240
+
+Question:
+00:12
+
+In ACR contrast reactions, hypotension plus [...]cardia suggests vasovagal reaction.
+
+Answer:
+00:12
+
+In ACR contrast reactions, hypotension plus bradycardia suggests vasovagal reaction.
+
+In ACR contrast reactions, hypotension plus bradycardia suggests vasovagal reaction.
+
+In ACR contrast reactions, hypotension plus tachycardia suggests vasovagal reaction.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-11T07:59:28-05:00
+Last seen: 2026-10-24T23:09:29-05:00
+Card ID: 1774547973508
+Note ID: 1774547973507
+
+Question:
+00:12
+
+What angiographic finding is considered diagnostic for popliteal entrapment syndrome?
+
+[...]
+
+Answer:
+00:12
+
+What angiographic finding is considered diagnostic for popliteal entrapment syndrome?
+
+Medial deviation of the popliteal artery
+
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-09-27T07:43:51-05:00
@@ -73,7 +117,7 @@ deep cerebral venous thrombosis (leading to venous congestion and infarction in 
 
 1/2
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-10-11T08:05:58-05:00
@@ -210,7 +254,7 @@ countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
 Answer:
 SHOW ALL
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-09-13T14:13:43-05:00
@@ -232,7 +276,7 @@ Diagnosis?
 
 dorsal dermal sinus
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T19:53:08-05:00
@@ -254,7 +298,7 @@ Diagnosis in patient with recent spine surgery?
 
 remote cerebellar hemorrhage
 
-## Card 5
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -278,7 +322,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
@@ -304,7 +348,7 @@ Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy scl
 
 Full source page:
 
-## Card 7
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -328,7 +372,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-03-21T07:04:48-05:00
@@ -346,7 +390,7 @@ Answer:
 
 Meconium plug is the old term for functional immaturity of the colon.
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-20T17:32:39-05:00
@@ -364,7 +408,7 @@ Answer:
 
 After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after 24 hours.
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:12:26-05:00
@@ -382,7 +426,7 @@ Answer:
 
 The classic presentation of a glomus tumor is small subungual finger lesion with severe focal pain, point tenderness, and cold sensitivity.
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -406,7 +450,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 12
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:01:04-05:00
@@ -424,7 +468,7 @@ Answer:
 
 Fixed points of attachment such as the duodenojejunal junction, ileum near the ileocecal valve, ureteropelvic junction, and vascular pedicles are frequent sites of shear injury in blunt deceleration trauma.
 
-## Card 13
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -444,7 +488,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 14
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -470,7 +514,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 15
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-07-16T12:24:01-05:00
@@ -500,7 +544,7 @@ Intracavitary upper-lobe mass with an air crescent in a prior tuberculosis cavit
 
 Q28. Correct; difficulty: moderate. Vital Concept: Aspergillomas are mass-like balls found in the lung that are composed of the fungus Aspergillus fumigatus. Patients are typically asymptomatic when this diagnosis is made.
 
-## Card 16
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -526,7 +570,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 17
+## Card 19
 
 Deck: .NEW::Visual
 Flagged: 2026-10-21T22:27:15-05:00
@@ -548,7 +592,7 @@ Diagnosis?
 
 tillaux Fracture
 
-## Card 18
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
@@ -566,7 +610,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 19
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
@@ -584,7 +628,7 @@ Answer:
 
 Shuttering masks the bright area outside the collimated field.
 
-## Card 20
+## Card 22
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
