@@ -281,6 +281,13 @@ class CursorTranscriberApp(QObject):
 
         logging.info("Recording stopped: %s", recording_result.path)
         self._save_debug_recording(recording_result.path)
+        if recording_result.capture_error:
+            logging.error("Recording rejected locally: %s", recording_result.capture_error)
+            self._recorder.cleanup(recording_result.path)
+            self._overlay.show_error(recording_result.capture_error)
+            self._overlay.schedule_hide(5000)
+            self._set_tray_error()
+            return
         if recording_result.path.stat().st_size <= 44:
             self._recorder.cleanup(recording_result.path)
             self._overlay.show_error("No microphone audio was captured.")
@@ -305,6 +312,10 @@ class CursorTranscriberApp(QObject):
         if self._recording_started_at is None or self._shutting_down:
             return
 
+        if not self._recorder.is_active():
+            self._stop_recording()
+            return
+
         elapsed = perf_counter() - self._recording_started_at
         seconds_remaining = max(0.0, self._config.max_recording_seconds - elapsed)
         self._overlay.show_recording(
@@ -325,7 +336,7 @@ class CursorTranscriberApp(QObject):
                 self._recorder.discard()
                 self._capture_started_at = None
                 self._overlay.show_error(
-                    "No microphone audio detected. Check your headset mute switch and Windows input device."
+                    "Audio capture did not start. Press F3 to retry."
                 )
                 self._overlay.schedule_hide(5000)
                 self._set_tray_error()

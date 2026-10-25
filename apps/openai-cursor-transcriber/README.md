@@ -8,6 +8,8 @@ A small Windows desktop app that stays local on your computer, listens for a glo
 - If Windows has muted the default microphone, the app asks before recording and offers an **Unmute microphone** button. If no audio arrives, it points you to check your headset mute switch and Windows input device.
 - Recording starts immediately, and the loading indicator stays up only until the microphone actually starts delivering audio. By default there is no extra artificial delay.
 - After that, the recording badge appears near your cursor with the 60-second countdown.
+- Windows recording prefers shared WASAPI raw mode, which avoids microphone effect chains that can stop delivering audio. It falls back to ordinary WASAPI or the PortAudio default if raw mode cannot open.
+- If capture stops or produces an empty or unusably short recording, the app reports a recording error locally instead of sending it to OpenAI. Logs include the capture backend and the amount of audio actually captured.
 - Press `F3` again to stop.
 - The app sends the recording to OpenAI using `gpt-transcribe`.
 - The full transcript is copied to your clipboard.

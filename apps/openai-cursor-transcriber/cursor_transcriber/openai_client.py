@@ -37,7 +37,7 @@ def friendly_openai_error(exc: Exception) -> str:
     if isinstance(exc, BadRequestError):
         body = exc.body
         if isinstance(body, dict):
-            error = body.get("error")
+            error = body.get("error", body)
             if isinstance(error, dict):
                 message = error.get("message")
                 if isinstance(message, str) and message.strip():
