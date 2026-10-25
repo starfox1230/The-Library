@@ -44,10 +44,195 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-24 16:02 Central Daylight Time
-Cards: 17
+Updated: 2026-10-24 23:04 Central Daylight Time
+Cards: 20
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-27T07:43:51-05:00
+Last seen: 2026-10-24T23:04:16-05:00
+Card ID: 1768330036762
+Note ID: 1768330036761
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Diagnosis?
+
+deep cerebral venous thrombosis (leading to venous congestion and infarction in deep brain structures)
+
+1/2
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-10-11T08:05:58-05:00
+Last seen: 2026-10-24T23:03:07-05:00
+Card ID: 1779054958848
+Note ID: 1779054958848
+
+Question:
+html { overflow: scroll; overflow-x: hidden; }
+.card {
+	font-family: Menlo, baskerville, adobe caslon pro, sans;
+	text-align: center;
+	color: #D7DEE9; /*dark #A6ABB9 light #D7DEE9*/
+	line-height: 1.6em;
+	background-color: #333B45;
+}
+#kard {
+	padding: 0px 0px;
+	background-color:;
+	max-width: 700px;
+	margin: 0 auto;
+	word-wrap: break-word;
+}
+.tags { color: #F87b57; opacity: 0; font-size: 10px; background-color: ; width: 100%; height: ; text-align: center; text-transform: uppercase; position: fixed; padding: 0px; top:0; left: 0; right 0;}
+.tags:active { opacity: 1; position: fixed; cursor: pointer;} .tags:hover { cursor: pointer;}
+tr {font-size: 12px; }
+b { color: IndianRed !important; }
+u { text-decoration: none; color: #5EB3B3;}
+a { color: LightGray !important; text-decoration: none; font-size: 10px; font-style: normal;  }
+::-webkit-scrollbar {
+    /*display: none;   remove scrollbar space */
+    background: #fff;   /* optional: just make scrollbar invisible */
+    width: 0px; }
+::-webkit-scrollbar-thumb { background: #bbb; }
+/* mobile is both iphone and ipad */
+.mobile .tags:hover { opacity: 1; position: relative;}
+/* OCCLUSION CSS START - don't edit this */
+#io-overlay {
+  position:absolute;
+  top:0;
+  width:100%;
+  z-index:3
+}
+#io-original {
+  position:relative;
+  top:0;
+  width:100%;
+  z-index:2
+}
+#io-wrapper {
+  position:relative;
+  width: 100%;
+}
+/* OCCLUSION CSS END */
+/* OTHER STYLES */
+#io-header{
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+#io-footer{
+  max-width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.8em;
+margin-bottom: 0.8em;
+  font-style: italic;
+ font-size: 14px;
+}
+#io-extra-wrapper{
+  /* the wrapper is needed to center the
+  left-aligned blocks below it */
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 0.5em;
+}
+#io-extra{
+  text-align:center;
+  display: inline-block;
+}
+.io-extra-entry{
+  margin-top: 0.8em;
+  font-size: 14px;
+  text-align:left;
+}
+.io-field-descr{
+  margin-bottom: 0.2em;
+  font-weight: bold;
+  font-size: 14px;
+}
+#io-revl-btn {
+  font-size: 12px;
+	margin-top: 15px;
+    background-color: #333B45; /*#4CAF50;  Green */
+    border: solid #A6ABB9 2px;
+    color: #A6ABB9;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+	font-family: Menlo, sans;
+border-radius: 0px;
+}
+#io-revl-btn:hover {
+background-color: ;/* #cccccc;  Green */
+    color: ;
+cursor: pointer;
+}
+function countdown( elementName, minutes, seconds )
+{
+    var element, endTime, hours, mins, msLeft, time;
+    function twoDigits( n )
+    {
+        return (n <= 9 ? "0" + n : n);
+    }
+    function updateTimer()
+    {
+        msLeft = endTime - (+new Date);
+        if ( msLeft < 1000 ) {
+            element.innerHTML = "<span style='color:#CC5B5B'>TIME</span>";
+        } else {
+            time = new Date( msLeft );
+            hours = time.getUTCHours();
+            mins = time.getUTCMinutes();
+            element.innerHTML = (hours ? hours + ':' + twoDigits( mins ) : mins) + ':' + twoDigits( time.getUTCSeconds() );
+            setTimeout( updateTimer, time.getUTCMilliseconds() + 500 );
+        }
+    }
+    element = document.getElementById( elementName );
+    endTime = (+new Date) + 1000 * (60*minutes + seconds) + 500;
+    updateTimer();
+}
+countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
+
+Answer:
+SHOW ALL
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-13T14:13:43-05:00
+Last seen: 2026-10-24T23:03:04-05:00
+Card ID: 1760542142702
+Note ID: 1760542142702
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+dorsal dermal sinus
+
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-02T19:53:08-05:00
@@ -69,7 +254,7 @@ Diagnosis in patient with recent spine surgery?
 
 remote cerebellar hemorrhage
 
-## Card 2
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -93,7 +278,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 3
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-07-11T10:04:05-05:00
@@ -119,7 +304,7 @@ Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy scl
 
 Full source page:
 
-## Card 4
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -143,7 +328,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 5
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-03-21T07:04:48-05:00
@@ -161,7 +346,7 @@ Answer:
 
 Meconium plug is the old term for functional immaturity of the colon.
 
-## Card 6
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-20T17:32:39-05:00
@@ -179,7 +364,7 @@ Answer:
 
 After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after 24 hours.
 
-## Card 7
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:12:26-05:00
@@ -197,7 +382,7 @@ Answer:
 
 The classic presentation of a glomus tumor is small subungual finger lesion with severe focal pain, point tenderness, and cold sensitivity.
 
-## Card 8
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -221,7 +406,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 9
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:01:04-05:00
@@ -239,7 +424,7 @@ Answer:
 
 Fixed points of attachment such as the duodenojejunal junction, ileum near the ileocecal valve, ureteropelvic junction, and vascular pedicles are frequent sites of shear injury in blunt deceleration trauma.
 
-## Card 10
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T13:09:26-05:00
@@ -259,7 +444,7 @@ A metastatic lesion in the hand or foot should raise strong suspicion for lung c
 
 Notion AIRP Lecture
 
-## Card 11
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -285,7 +470,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 12
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-07-16T12:24:01-05:00
@@ -315,7 +500,7 @@ Intracavitary upper-lobe mass with an air crescent in a prior tuberculosis cavit
 
 Q28. Correct; difficulty: moderate. Vital Concept: Aspergillomas are mass-like balls found in the lung that are composed of the fungus Aspergillus fumigatus. Patients are typically asymptomatic when this diagnosis is made.
 
-## Card 13
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-10-06T22:31:28-05:00
@@ -341,7 +526,7 @@ joint space narrowing, osteophytes, subchondral cysts, bony remodeling of the hu
 
 1/2
 
-## Card 14
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-10-21T22:27:15-05:00
@@ -363,7 +548,7 @@ Diagnosis?
 
 tillaux Fracture
 
-## Card 15
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-09-11T21:09:46-05:00
@@ -381,7 +566,7 @@ Answer:
 
 Brown Sequard syndrome classically causes ipsilateral motor deficit with contralateral sensory deficit after a rotation injury or penetrating trauma.
 
-## Card 16
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
@@ -399,7 +584,7 @@ Answer:
 
 Shuttering masks the bright area outside the collimated field.
 
-## Card 17
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-09-09T06:18:48-05:00
