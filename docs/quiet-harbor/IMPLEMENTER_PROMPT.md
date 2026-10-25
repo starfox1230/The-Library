@@ -1,0 +1,25 @@
+# Quiet Harbor — ready-to-paste implementation assignment
+
+Paste the assignment below into the coding agent that will build the app. The full requirements are in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+---
+
+Build the complete Quiet Harbor app in my GitHub repository `starfox1230/The-Library`.
+
+First read the repository's `AGENTS.md` and `docs/quiet-harbor/IMPLEMENTATION_PLAN.md`. The planning documents were published on branch `codex/quiet-harbor-plan`; if they are absent from your checkout, fetch that branch and read the document with `git show origin/codex/quiet-harbor-plan:docs/quiet-harbor/IMPLEMENTATION_PLAN.md`, or open [the specification on GitHub](https://github.com/starfox1230/The-Library/blob/codex/quiet-harbor-plan/docs/quiet-harbor/IMPLEMENTATION_PLAN.md). Preserve unrelated local work when selecting a checkout. Treat that specification as the implementation contract, including its growth schedule, timer examples, hold state machine, persistence rules, PWA behavior, verification matrix, and definition of done. “Quiet Harbor” is the working title; proceed with it unless I give a replacement name.
+
+The app helps me track time since I last picked my hands. Its main screen shows a live timer that always includes seconds and an isometric coastal world that grows automatically from a seed, through a person/garden/cottage, into a village and town. It grows while closed and requires no resource collection or construction work from me. I can explore by dragging, zooming, and tapping buildings. Holding “I picked — begin again” for one uninterrupted second fills the button and commits a restart. Then a large stylized tsunami washes away the old settlement, the water retreats, and a new randomized seeded world begins. Keep wording neutral and implement the specified reduced-motion and accidental-undo paths.
+
+Use the researched default: vanilla JavaScript modules, a pinned local PixiJS v8 release, and Kenney's related CC0 Isometric Tiles Landscape, Buildings, and City packs. Download and inspect assets yourself, make a labeled contact sheet and semantic asset catalog, preserve licenses, and verify alignment in a proof scene. Create the finished icon family yourself. Do not make me find, download, label, or draw assets. Do not substitute generic colored rectangles for the finished village or deliver only a timer prototype.
+
+This should be a static, phone-first web app in The Library, not a separate hosted project. No runtime AI service, account system, backend, paid asset subscription, notification permissions, or site-wide build overhaul is needed. Ship app-local runtime files that work with the repository's direct static Pages deployment. Use local IndexedDB, deterministic/versioned world generation, elapsed timestamp math, offline caching, and safe update behavior as specified.
+
+Create one stable app folder under `apps/temporary-apps/library/YYYY-MM-DD-quiet-harbor/`, using the actual creation date once. Register its exact path in `TEMP_APPS` in `apps/temporary-apps/index.html`, preserve the root library link, and run `python scripts/verify-temporary-apps-index.py`. Read any additional applicable AGENTS.md instructions before edits. Preserve unrelated changes in the checkout.
+
+Complete all implementation stages A–F in the specification. Use the listed gates to catch mistakes while continuing toward a complete app. Do not stop after scaffolding, asset research, or a working reset button. Test timing boundaries, deterministic growth, interrupted holds, failed saves, multi-tab resets, undo, offline reopening, updates, backup import, and long-running-world performance. Verify responsive/touch behavior with available browser tools. Distinguish emulated checks from actual iPhone checks; never claim to have tested a device you did not use.
+
+Specifically ensure that repeated button taps do not zoom the page, long holds do not select text or summon callouts, inputs do not focus-zoom, and the layout respects safe areas and dynamic viewport height. Provide the real Apple touch PNG, web manifest, standalone launch, and honest Safari Share → Add to Home Screen instructions. Keep normal editable/help text accessible and do not globally disable page scaling.
+
+Commit the completed scoped changes and push them to GitHub as required by my instructions. Check which branch the Pages workflow actually deploys before claiming the app is live. At the end give me the verified live URL if deployed, the source commit/repository link, concise installation/backup instructions, tests performed, and any material verification limits. If publication is awaiting merge or deployment, say so explicitly and give the branch/repository link. Do not invent a live URL.
+
+Make routine design and implementation decisions yourself using the specification. Ask only when a required fact cannot be recovered from the repository or when my input is genuinely necessary. The goal is a polished, usable app with as little manual work from me as possible.
