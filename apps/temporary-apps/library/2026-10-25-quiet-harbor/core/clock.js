@@ -21,5 +21,14 @@ export class ClockMonitor {
     this.lastElapsed = Math.max(this.lastElapsed, 0, run ? wall - run.startedAtMs : 0);
     return this.lastElapsed;
   }
+  resume(wall = Date.now(), mono = performance.now()) {
+    // Mobile browsers may pause performance.now() while the device sleeps.
+    // Treat the hidden interval as elapsed wall time instead of a clock jump.
+    const recoveredAnomaly = this.anomaly;
+    this.anomaly = false;
+    this.lastWall = wall;
+    this.lastMono = mono;
+    return recoveredAnomaly;
+  }
   acceptRebased() { this.anomaly = false; this.lastElapsed = 0; this.lastWall = Date.now(); this.lastMono = performance.now(); }
 }

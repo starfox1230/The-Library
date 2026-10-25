@@ -85,14 +85,27 @@ async function initialise() {
   checkpointAtLifecycle();
   registerServiceWorker();
   setupUpdates();
-  document.addEventListener("visibilitychange", checkpointAtLifecycle);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) checkpointAtLifecycle();
+    else resumeApp();
+  });
   window.addEventListener("pagehide", checkpointAtLifecycle);
-  window.addEventListener("pageshow", () => { tick(); refreshFromStorage(); });
-  window.addEventListener("focus", () => { tick(); refreshFromStorage(); });
+  window.addEventListener("pageshow", resumeApp);
+  window.addEventListener("focus", resumeApp);
   if ("BroadcastChannel" in window) {
     channel = new BroadcastChannel("quiet-harbor-state-v1");
     channel.onmessage = () => refreshFromStorage();
   }
+}
+
+function resumeApp() {
+  const recoveredAnomaly = clockMonitor?.resume();
+  if (recoveredAnomaly && anomalyElapsed !== null) {
+    anomalyElapsed = null;
+    els.status.hidden = true;
+  }
+  tick();
+  void refreshFromStorage();
 }
 
 async function initScene() {
