@@ -44,7 +44,47 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-26 06:33 Central Daylight Time
-Cards: 0
+Updated: 2026-10-26 06:44 Central Daylight Time
+Cards: 2
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-02T20:47:48-05:00
+Last seen: 2026-10-26T06:40:27-05:00
+Card ID: 1744131902938
+Note ID: 1744131902938
+
+Question:
+00:12
+
+What are common indications for TIPS placement? (List several)
+
+[...]
+
+Answer:
+00:08
+
+What are common indications for TIPS placement? (List several)
+
+Refractory ascites, variceal bleeding (acute & secondary prophylaxis), hepatic hydrothorax, Budd-Chiari syndrome, hepatorenal syndrome, hepatopulmonary syndrome, portal hypertensive gastropathy
+
+Explanation: These are conditions arising from portal hypertension that can be alleviated by shunting portal flow directly to the systemic circulation via TIPS.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-07-18T21:31:01-05:00
+Last seen: 2026-10-26T06:35:15-05:00
+Card ID: 1783449197062
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
