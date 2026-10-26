@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiet Harbor · scene review</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    body { padding:18px; color:#eff3e8; font:14px system-ui; }
+    h1 { font-size:22px; margin:0 0 8px; } p { color:#bfd8cb; }
+    .review-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:20px;max-width:1250px; }
+    article { background:#faf7ef;padding:12px;border-radius:20px;color:#193633; }
+    h2 { margin:0 0 10px;font-size:14px; } .review-scene { position:relative;height:220px;min-height:0; }
+    .controls { display:flex;gap:8px;margin-top:10px; } button { cursor:pointer; }
+    .phone { display:block;width:390px;height:844px;border:0;margin-top:24px; }
+  </style>
+</head>
+<body>
+  <h1>Quiet Harbor · scene review</h1>
+  <p>Preview scenes do not change saved progress. Drag to explore. <a href="#phone" style="color:#f4dcad">Phone layout ↓</a></p>
+  <div class="review-grid" id="scenes"></div>
+  <h2 id="phone" style="margin-top:32px">Phone layout · 390 × 844</h2>
+  <iframe class="phone" src="../index.html" title="Phone layout"></iframe>
+  <script src="../vendor/pixi-8.22.0.min.js"></script>
+  <script type="module">
+    import { IslandRenderer } from "../scene/renderer.js";
+    import { worldFor } from "../core/world-v1.js";
+    const stages = [["A seed",0],["10 minutes",600_000],["1 hour",3_600_000],["2 days",172_800_000],["100 days",8_640_000_000]];
+    for (const [label, age] of stages) {
+      const world = worldFor("quiet-harbor-visual-review",age);
+      const card = document.createElement("article");
+      const title = document.createElement("h2"); title.textContent = `${label} · ${world.growth.completedBuildings} buildings`;
+      const host = document.createElement("div"); host.className = "world-frame review-scene";
+      const buttons = document.createElement("div"); buttons.className = "controls";
+      card.append(title,host,buttons); document.getElementById("scenes").append(card);
+      const renderer = await new IslandRenderer(host).init();
+      await renderer.renderWorld(world);
+      if (age > 604_800_000) renderer.recenter();
+      for (const [text,action] of [["Recenter",()=>renderer.recenter()],["−",()=>renderer.setZoom(renderer.camera.zoom-.2)],["+",()=>renderer.setZoom(renderer.camera.zoom+.2)]]) {
+        const button = document.createElement("button"); button.textContent=text; button.addEventListener("click",action); buttons.append(button);
+      }
+    }
+  </script>
+</body>
+</html>

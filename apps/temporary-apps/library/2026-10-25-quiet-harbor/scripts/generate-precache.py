@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate an app-scoped pre-cache list from local runtime assets and imports."""
 import json
+import hashlib
 import re
 from pathlib import Path
 
@@ -27,7 +28,17 @@ def main():
     files.update(f"./{p.relative_to(ROOT).as_posix()}" for p in (ROOT / "icons").glob("*.png"))
     files.add("./icons/source.svg")
     ordered = sorted(files)
-    (ROOT / "precache-manifest.js").write_text("self.QUIET_HARBOR_ASSETS = " + json.dumps(ordered, indent=2) + ";\n", encoding="utf-8")
+    fingerprint = hashlib.sha256()
+    for name in ordered:
+        path = ROOT / name.removeprefix("./")
+        if path.is_file():
+            fingerprint.update(name.encode())
+            content = path.read_bytes()
+            if path.suffix in {".js", ".json", ".html", ".css", ".svg", ".webmanifest"}:
+                content = content.replace(b"\r\n", b"\n")
+            fingerprint.update(content)
+    revision = fingerprint.hexdigest()[:16]
+    (ROOT / "precache-manifest.js").write_text(f'self.QUIET_HARBOR_REVISION = "{revision}";\nself.QUIET_HARBOR_ASSETS = ' + json.dumps(ordered, indent=2) + ";\n", encoding="utf-8")
     print(f"Generated a scoped offline list for {len(ordered)} files.")
 
 

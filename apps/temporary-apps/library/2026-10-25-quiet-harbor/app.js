@@ -112,6 +112,7 @@ async function initScene() {
   try {
     renderer = new IslandRenderer(els.sceneMount);
     await renderer.init(state.meta?.camera);
+    renderer.setReducedMotion(reducedMotion());
     renderer.onCameraChange = (camera) => {
       if (!db || ephemeral) return;
       window.clearTimeout(cameraSaveHandle);
@@ -157,7 +158,10 @@ function attachEvents() {
   els.export.addEventListener("click", () => void exportData());
   els.importButton.addEventListener("click", () => els.importFile.click());
   els.importFile.addEventListener("change", () => void importData(els.importFile.files?.[0]));
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").addEventListener?.("change", () => document.body.classList.toggle("reduce-motion", reducedMotion()));
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").addEventListener?.("change", () => {
+    document.body.classList.toggle("reduce-motion", reducedMotion());
+    renderer?.setReducedMotion(reducedMotion());
+  });
 }
 
 function updateHoldFill(progress) {
@@ -251,6 +255,7 @@ async function undoAccidentalReset() {
 async function updateSetting(changes) {
   state.meta.settings = { ...state.meta.settings, ...changes };
   document.body.classList.toggle("reduce-motion", reducedMotion());
+  renderer?.setReducedMotion(reducedMotion());
   try { if (db && !ephemeral) await saveSettings(db, changes); }
   catch (error) { showStatus(error.message, "error"); }
 }
@@ -407,7 +412,7 @@ function wait(ms) { return new Promise((resolve) => window.setTimeout(resolve, m
 
 async function registerServiceWorker() {
   if (!("serviceWorker" in navigator) || !location.protocol.startsWith("http")) return;
-  try { await navigator.serviceWorker.register("./sw.js", { scope: "./" }); }
+  try { await navigator.serviceWorker.register("./sw.js", { scope: "./", updateViaCache: "none" }); }
   catch (error) { console.info("Offline app caching is unavailable in this browser.", error); }
 }
 

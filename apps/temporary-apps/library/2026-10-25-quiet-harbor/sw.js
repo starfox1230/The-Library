@@ -1,6 +1,6 @@
 importScripts("./precache-manifest.js");
 
-const CACHE = "quiet-harbor-assets-v2";
+const CACHE = `quiet-harbor-assets-${self.QUIET_HARBOR_REVISION}`;
 const OWNED_CACHE_PREFIX = "quiet-harbor-assets-";
 const APP_SCOPE = new URL(self.registration.scope);
 
