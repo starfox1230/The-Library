@@ -2,22 +2,30 @@ from __future__ import annotations
 
 import json
 import math
+import sys
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 from urllib.parse import unquote, urlparse
 from urllib.request import url2pathname
 
 from aqt import gui_hooks, mw
 from aqt.editor import Editor
 from aqt.qt import (
+    QBuffer,
     QColor,
     QColorDialog,
+    QDesktopServices,
     QDialog,
     QFrame,
     QGuiApplication,
     QHBoxLayout,
     QImage,
+    QIODevice,
+    QKeySequence,
     QLabel,
+    QMimeData,
     QPainter,
     QPainterPath,
     QPen,
@@ -25,15 +33,19 @@ from aqt.qt import (
     QPolygonF,
     QPushButton,
     QRectF,
+    QSaveFile,
+    QShortcut,
     QSizePolicy,
     QSlider,
+    QTimer,
+    QUrl,
     Qt,
     QVBoxLayout,
     QWidget,
 )
-from aqt.utils import showWarning
+from aqt.utils import showWarning, tooltip
 
-from .common import collection_media_dir
+from .common import collection_media_dir, user_files_dir
 from .settings import load_settings, save_settings
 
 
@@ -41,6 +53,9 @@ COMMAND_PREFIX = "pocket_knife_draw_on_image:"
 DEFAULT_COLOR = "#FFAA00"
 DEFAULT_TOOL = "arrow"
 DEFAULT_WIDTH = 8
+COPY_ATTEMPTS = 6
+COPY_VERIFY_DELAY_MS = 120
+COPY_RETRY_DELAY_MS = 250
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
 _dialog: "DrawOnImageDialog | None" = None
@@ -320,6 +335,9 @@ class DrawingCanvas(QWidget):
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         for stroke in self._strokes:
             self._draw_stroke(painter, stroke)
+        # Ctrl+C can arrive while the mouse is still down. Include what is visible.
+        if self._active is not None:
+            self._draw_stroke(painter, self._active)
         painter.end()
         return rendered
 
@@ -382,7 +400,17 @@ class DrawOnImageDialog(QDialog):
         self.canvas = DrawingCanvas(image, self)
         self._preferences = _load_annotation_preferences()
         self._applying_preferences = False
+        self._copying = False
+        self._copy_attempts = 0
+        self._recovery_path: Path | None = None
+        self._copy_timer = QTimer(self)
+        self._copy_timer.setSingleShot(True)
+        self._copy_timer.timeout.connect(self._copy_step)
+        self._verifying_copy = False
         self._build_ui()
+        self._copy_shortcut = QShortcut(QKeySequence.StandardKey.Copy, self)
+        self._copy_shortcut.setAutoRepeat(False)
+        self._copy_shortcut.activated.connect(self.copy_to_clipboard_and_close)
         self._apply_preferences()
         self._fill_available_screen()
 
@@ -401,7 +429,7 @@ class DrawOnImageDialog(QDialog):
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(8)
 
-        toolbar_frame = QFrame()
+        toolbar_frame = self._toolbar_frame = QFrame()
         toolbar = QHBoxLayout(toolbar_frame)
         toolbar.setContentsMargins(8, 6, 8, 6)
 
@@ -425,7 +453,8 @@ class DrawOnImageDialog(QDialog):
         redo_button = QPushButton("Redo")
         clear_button = QPushButton("Clear Drawing")
         reset_defaults_button = QPushButton("Reset Defaults")
-        ok_button = QPushButton("OK")
+        ok_button = QPushButton("Copy && Close")
+        ok_button.setToolTip("Save a recovery PNG, verify the clipboard image, then close (Ctrl+C).")
         cancel_button = QPushButton("Cancel")
 
         toolbar.addWidget(self.arrow_button)
@@ -446,6 +475,14 @@ class DrawOnImageDialog(QDialog):
         toolbar.addWidget(cancel_button)
         layout.addWidget(toolbar_frame)
         layout.addWidget(self.canvas, 1)
+        recovery_row = QHBoxLayout()
+        self._copy_status = QLabel("Ctrl+C or Copy & Close saves a recovery PNG and copies the image.")
+        self._copy_status.setWordWrap(True)
+        recovery_button = QPushButton("Recovery Copies")
+        recovery_button.clicked.connect(self._open_recovery_folder)
+        recovery_row.addWidget(self._copy_status, 1)
+        recovery_row.addWidget(recovery_button)
+        layout.addLayout(recovery_row)
 
         self.arrow_button.clicked.connect(lambda: self._set_tool("arrow"))
         self.draw_button.clicked.connect(lambda: self._set_tool("pen"))
@@ -549,15 +586,124 @@ class DrawOnImageDialog(QDialog):
         self._preferences.set_width_for(self.canvas.tool, int(value))
         _save_annotation_preferences(self._preferences)
 
-    def copy_to_clipboard(self) -> None:
-        clipboard = QGuiApplication.clipboard()
-        if clipboard is None:
-            raise RuntimeError("The system clipboard is not available.")
-        clipboard.setImage(self.canvas.rendered_image())
+    def _open_recovery_folder(self) -> None:
+        folder = user_files_dir() / "annotated_images"
+        folder.mkdir(parents=True, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+
+    def _save_recovery_image(self) -> None:
+        buffer = QBuffer()
+        if not buffer.open(QIODevice.OpenModeFlag.WriteOnly):
+            raise RuntimeError("Could not prepare the PNG image.")
+        if not self._copy_image.save(buffer, "PNG"):
+            raise RuntimeError("Could not encode the annotated image as PNG.")
+        self._copy_png = buffer.data()
+        buffer.close()
+        folder = user_files_dir() / "annotated_images"
+        folder.mkdir(parents=True, exist_ok=True)
+        filename = f"annotation-{datetime.now():%Y%m%d-%H%M%S}-{uuid4().hex}.png"
+        path = folder / filename
+        output = QSaveFile(str(path))
+        if not output.open(QIODevice.OpenModeFlag.WriteOnly):
+            raise RuntimeError(f"Could not save a recovery PNG: {output.errorString()}")
+        if output.write(self._copy_png) != len(self._copy_png):
+            output.cancelWriting()
+            raise RuntimeError("Could not write the complete recovery PNG.")
+        if not output.commit():
+            raise RuntimeError(f"Could not finish saving the recovery PNG: {output.errorString()}")
+        if not self._same_image(QImage(str(path))):
+            raise RuntimeError("The saved recovery PNG did not match the annotated image.")
+        self._recovery_path = path
+
+    def _same_image(self, image: QImage) -> bool:
+        return (
+            not image.isNull()
+            and image.convertToFormat(QImage.Format.Format_ARGB32) == self._copy_image
+        )
+
+    def accept(self) -> None:
+        # The button, Enter, and Ctrl+C must all use the same safe exit path.
+        self.copy_to_clipboard_and_close()
+
+    def reject(self) -> None:
+        if not self._copying:
+            super().reject()
+
+    def closeEvent(self, event) -> None:
+        if self._copying:
+            event.ignore()
+        else:
+            super().closeEvent(event)
 
     def copy_to_clipboard_and_close(self) -> None:
-        self.copy_to_clipboard()
-        self.accept()
+        if self._copying:
+            return
+        self._copying = True
+        self._copy_attempts = 0
+        self._verifying_copy = False
+        self._recovery_path = None
+        self._toolbar_frame.setEnabled(False)
+        self.canvas.setEnabled(False)
+        try:
+            self._copy_image = self.canvas.rendered_image().convertToFormat(QImage.Format.Format_ARGB32)
+            if self._copy_image.isNull():
+                raise RuntimeError("The annotated image is empty.")
+            self._save_recovery_image()
+        except Exception as exc:
+            self._copy_failed(str(exc))
+            return
+        self._copy_status.setText("Recovery PNG saved. Copying and checking the clipboard…")
+        self._copy_timer.start(0)
+
+    def _copy_step(self) -> None:
+        if not self._copying:
+            return
+        if not self._verifying_copy:
+            self._copy_attempts += 1
+        try:
+            clipboard = QGuiApplication.clipboard()
+            if clipboard is None:
+                raise RuntimeError("The system clipboard is not available.")
+            if self._verifying_copy:
+                # Check after yielding to Windows/Qt, while the dialog is still open.
+                if sys.platform == "win32" and not clipboard.ownsClipboard():
+                    raise RuntimeError("Windows did not confirm ownership of the clipboard image.")
+                if not self._same_image(clipboard.image()):
+                    raise RuntimeError("The clipboard did not retain the complete annotated image.")
+                mime = clipboard.mimeData()
+                if mime is None or bytes(mime.data("image/png")) != bytes(self._copy_png):
+                    raise RuntimeError("The clipboard did not retain the PNG copy.")
+                tooltip("Image copied. A recovery PNG was also saved.", parent=self.parentWidget())
+                self._copying = False
+                super().accept()
+                return
+            mime = QMimeData()
+            mime.setImageData(self._copy_image)
+            mime.setData("image/png", self._copy_png)
+            clipboard.setMimeData(mime)
+            self._verifying_copy = True
+            self._copy_timer.start(COPY_VERIFY_DELAY_MS)
+        except Exception as exc:
+            # A busy Windows clipboard may silently reject setMimeData().
+            self._copy_attempts = max(1, self._copy_attempts)
+            if self._copy_attempts >= COPY_ATTEMPTS:
+                self._copy_failed(str(exc))
+                return
+            self._verifying_copy = False
+            self._copy_status.setText("Clipboard busy or changed. Retrying; your drawing is saved…")
+            self._copy_timer.start(COPY_RETRY_DELAY_MS)
+
+    def _copy_failed(self, detail: str) -> None:
+        self._copy_timer.stop()
+        self._copying = False
+        self._toolbar_frame.setEnabled(True)
+        self.canvas.setEnabled(True)
+        self._copy_status.setText("Copy was not confirmed. Your drawing is still open; try Copy & Close again.")
+        recovery = (
+            f"A recovery PNG is saved at:\n{self._recovery_path}"
+            if self._recovery_path else "A recovery PNG could not be confirmed. Keep this window open and try again."
+        )
+        showWarning(f"The image was not confirmed on the clipboard. Your drawing is still open.\n\n{recovery}\n\n{detail}", parent=self)
 
     def keyPressEvent(self, event) -> None:
         key = event.key()
@@ -733,10 +879,7 @@ def _handle_draw_command(editor: Editor, cmd: str) -> bool:
     global _dialog
     try:
         _dialog = DrawOnImageDialog(image_path, getattr(editor, "parentWindow", None) or mw)
-        accepted = _dialog.exec()
-        if not accepted:
-            return True
-        _dialog.copy_to_clipboard()
+        _dialog.exec()
     except Exception as exc:
         showWarning(f"Could not draw on that image.\n\n{exc}")
     finally:
