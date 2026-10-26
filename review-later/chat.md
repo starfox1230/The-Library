@@ -44,10 +44,64 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-25 08:51 Central Daylight Time
+Updated: 2026-10-25 23:26 Central Daylight Time
 Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-07-18T21:31:01-05:00
+Last seen: 2026-10-25T23:17:44-05:00
+Card ID: 1783449197062
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-25T08:48:46-05:00
+Last seen: 2026-10-25T23:17:28-05:00
+Card ID: 1765507990272
+Note ID: 1765507990271
+
+Question:
+00:12
+
+In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of [...].
+
+Answer:
+00:12
+
+In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of Ebstein anomaly.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-10-25T23:16:39-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -69,25 +123,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-10-25T08:48:46-05:00
-Last seen: 2026-10-25T08:48:46-05:00
-Card ID: 1765507990272
-Note ID: 1765507990271
-
-Question:
-00:12
-
-In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of [...].
-
-Answer:
-00:12
-
-In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of Ebstein anomaly.
-
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:29:24-05:00
@@ -105,7 +141,7 @@ Answer:
 
 Duty factor is determined by dividing the pulse duration (that is, transmit time) by the pulse repetition period (that is, total time).
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-10-24T07:12:26-05:00
@@ -123,7 +159,7 @@ Answer:
 
 The classic presentation of a glomus tumor is small subungual finger lesion with severe focal pain, point tenderness, and cold sensitivity.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-05:00
@@ -147,25 +183,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 6
-
-Deck: .NEW::Audio
-Flagged: 2026-08-01T07:27:54-05:00
-Last seen: 2026-10-25T08:39:44-05:00
-Card ID: 1779082174695
-Note ID: 1779082174694
-
-Question:
-00:12
-
-The [...] is the collateral connection between the middle colic artery and the left colic artery.
-
-Answer:
-00:12
-
-The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
-
-## Card 7
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -189,7 +207,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -214,24 +232,6 @@ What’s the black structure in the left atrium?
 Coumadin ridge
 
 1/2
-
-## Card 9
-
-Deck: .NEW::Audio
-Flagged: 2026-07-18T21:31:01-05:00
-Last seen: 2026-10-25T08:27:21-05:00
-Card ID: 1783449197062
-Note ID: 1783449197059
-
-Question:
-00:12
-
-Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
-
-Answer:
-00:08
-
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
 ## Card 10
 
