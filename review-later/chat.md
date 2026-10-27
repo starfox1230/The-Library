@@ -44,38 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-26 06:44 Central Daylight Time
-Cards: 2
+Updated: 2026-10-27 06:59 Central Daylight Time
+Cards: 3
 
 ## Card 1
 
 Deck: .NEW::Audio
-Flagged: 2026-09-02T20:47:48-05:00
-Last seen: 2026-10-26T06:40:27-05:00
-Card ID: 1744131902938
-Note ID: 1744131902938
-
-Question:
-00:12
-
-What are common indications for TIPS placement? (List several)
-
-[...]
-
-Answer:
-00:08
-
-What are common indications for TIPS placement? (List several)
-
-Refractory ascites, variceal bleeding (acute & secondary prophylaxis), hepatic hydrothorax, Budd-Chiari syndrome, hepatorenal syndrome, hepatopulmonary syndrome, portal hypertensive gastropathy
-
-Explanation: These are conditions arising from portal hypertension that can be alleviated by shunting portal flow directly to the systemic circulation via TIPS.
-
-## Card 2
-
-Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
-Last seen: 2026-10-26T06:35:15-05:00
+Last seen: 2026-10-27T06:03:19-05:00
 Card ID: 1783449197062
 Note ID: 1783449197059
 
@@ -88,3 +64,39 @@ Answer:
 00:08
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-04-13T05:58:39-05:00
+Last seen: 2026-10-27T05:58:02-05:00
+Card ID: 1745603777434
+Note ID: 1745603777432
+
+Question:
+00:12
+
+The oval window receives the [...], while the round window sits at the [...] opening into the scala tympani.
+
+Answer:
+00:08
+
+The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-10-27T05:47:59-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
