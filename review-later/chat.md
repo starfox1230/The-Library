@@ -44,10 +44,56 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-27 06:59 Central Daylight Time
-Cards: 3
+Updated: 2026-10-27 13:13 Central Daylight Time
+Cards: 5
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-10-21T22:14:56-05:00
+Last seen: 2026-10-27T12:31:49-05:00
+Card ID: 1763305086221
+Note ID: 1763305086221
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+CLIPPERS
+
+Notion AIRP Lecture
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-21T17:50:02-05:00
+Last seen: 2026-10-27T07:13:26-05:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
@@ -65,7 +111,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -83,7 +129,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
