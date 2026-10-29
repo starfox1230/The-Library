@@ -44,92 +44,255 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-28 20:23 Central Daylight Time
-Cards: 5
+Updated: 2026-10-29 06:47 Central Daylight Time
+Cards: 15
 
 ## Card 1
 
-Deck: Saved Cards
-Flagged: 2026-10-28T12:57:00-05:00
-Last seen: 2026-10-28T13:34:01-05:00
-Card ID: 1789015833853
-Note ID: 1789015833852
-
-Question:
-00:12
-
-In classic pancreas divisum, most pancreatic drainage occurs through the [...].
-
-Answer:
-00:12
-
-In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
-
-## Card 2
-
 Deck: .NEW::Audio
-Flagged: 2026-07-10T12:45:53-05:00
-Last seen: 2026-10-28T13:14:20-05:00
-Card ID: 1779919013065
-Note ID: 1779919013065
+Flagged: 2026-10-29T06:46:15-05:00
+Last seen: 2026-10-29T06:46:15-05:00
+Card ID: 1761623870695
+Note ID: 1761623870694
 
 Question:
 00:12
 
-Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
-
-Answer:
-00:12
-
-Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
-
-## Card 3
-
-Deck: Saved Cards
-Flagged: 2026-09-26T15:53:48-05:00
-Last seen: 2026-10-28T12:55:57-05:00
-Card ID: 1785498425558
-Note ID: 1785498425557
-
-Question:
-00:12
-
-Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+Which tumors are most likely in the testis based on epidemiology?
 
 [...]
 
 Answer:
 00:12
 
-Which IMH-associated lesion appears as a focal contrast outpouching with a neck greater than 3 mm and no branch-vessel connection?
+Which tumors are most likely in the testis based on epidemiology?
 
-Ulcer-like projection
+Germ cell tumors (greater than 90 percent in men younger than about fifty to sixty years), with lymphoma an important consideration in older men.
 
-Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
+## Card 2
 
-## Card 4
-
-Deck: Saved Cards
-Flagged: 2026-10-01T13:17:37-05:00
-Last seen: 2026-10-28T12:51:32-05:00
-Card ID: 1790657855414
-Note ID: 1790657855413
+Deck: .NEW::Visual
+Flagged: 2026-09-21T13:22:25-05:00
+Last seen: 2026-10-29T06:45:07-05:00
+Card ID: 1776454600430
+Note ID: 1776454600430
 
 Question:
 00:12
 
-Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be [...].
+Location?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Location?
+
+pleural (ball under the carpet, so not juxtapleural)
+
+1/2
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:09:41-05:00
+Last seen: 2026-10-29T06:42:56-05:00
+Card ID: 1776961759623
+Note ID: 1776961759623
+
+Question:
+00:12
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+[...]
+
+Answer:
+00:08
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+SNR is inversely proportional to the square root of bandwidth
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T07:25:03-05:00
+Last seen: 2026-10-29T06:42:40-05:00
+Card ID: 1776200599136
+Note ID: 1776200599136
+
+Question:
+00:12
+
+What is C?
+
+[...]
 
 Answer:
 00:12
 
-Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
+What is C?
+
+Probst bundles
 
 ## Card 5
 
 Deck: .NEW::Visual
+Flagged: 2026-10-29T06:08:28-05:00
+Last seen: 2026-10-29T06:42:28-05:00
+Card ID: 1770039340753
+Note ID: 1770039340753
+
+Question:
+00:12
+
+Most likely diagnosis on this breast ultrasound?
+
+[...]
+
+Answer:
+00:08
+
+Most likely diagnosis on this breast ultrasound?
+
+IDC
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-06-27T14:57:59-05:00
+Last seen: 2026-10-29T06:41:47-05:00
+Card ID: 1782588006917
+Note ID: 1782588006916
+
+Question:
+00:12
+
+A very fast-growing bone lesion can produce a [...] periosteal reaction with hair-on-end bone formation.
+
+Answer:
+00:12
+
+A very fast-growing bone lesion can produce a sunburst periosteal reaction with hair-on-end bone formation.
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
+
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:08:50-05:00
+Last seen: 2026-10-29T06:40:05-05:00
+Card ID: 1771890403071
+Note ID: 1771890403069
+
+Question:
+00:12
+
+The [...] effect is when people change their behavior because they know they are being watched.
+
+Answer:
+00:12
+
+The Hawthorne effect is when people change their behavior because they know they are being watched.
+
+## Card 8
+
+Deck: .NEW::Visual
+Flagged: 2026-04-29T10:10:07-05:00
+Last seen: 2026-10-29T06:29:14-05:00
+Card ID: 1775838727902
+Note ID: 1775838727902
+
+Question:
+00:12
+
+Most likely diagnosis in female with hyperemesis and vaginal passage of vesicles?
+
+[...]
+
+1/3
+
+Answer:
+00:08
+
+Most likely diagnosis in female with hyperemesis and vaginal passage of vesicles?
+
+molar pregnancy (complete hydatidiform mole) with bilateral theca lutein cysts.
+
+1/3
+
+## Card 9
+
+Deck: .NEW::Audio
+Flagged: 2026-10-25T08:24:27-05:00
+Last seen: 2026-10-29T06:28:04-05:00
+Card ID: 1762544589813
+Note ID: 1762544589812
+
+Question:
+00:12
+
+The most significant purely lytic skeletal metastases arise from [...].
+
+Answer:
+00:12
+
+The most significant purely lytic skeletal metastases arise from renal cell carcinoma and thyroid carcinoma.
+
+Notion AIRP Lecture
+
+## Card 10
+
+Deck: Saved Cards
+Flagged: 2026-10-17T21:26:11-05:00
+Last seen: 2026-10-29T06:24:47-05:00
+Card ID: 1791483108340
+Note ID: 1791483108338
+
+Question:
+00:12
+
+A visually positive florbetapir PET indicates moderate to frequent [...].
+
+Answer:
+00:12
+
+A visually positive florbetapir PET indicates moderate to frequent amyloid neuritic plaques.
+
+Refined the selected phrase to FDA terminology. A positive scan alone does not diagnose Alzheimer disease. Amyvid label
+Original conversation
+
+Notion source
+
+## Card 11
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:21:48-05:00
+Last seen: 2026-10-29T06:21:48-05:00
+Card ID: 1780269476610
+Note ID: 1780269476609
+
+Question:
+00:12
+
+A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the [...].
+
+Answer:
+00:12
+
+A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the middle third of the capitellum.
+
+## Card 12
+
+Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
-Last seen: 2026-10-28T12:16:59-05:00
+Last seen: 2026-10-29T06:18:57-05:00
 Card ID: 1783397643264
 Note ID: 1783397643263
 
@@ -150,3 +313,65 @@ Myxofibrosarcoma -- Large predominantly T2-hyperintense enhancing soft-tissue ma
 Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma characteristically T2 hyperintense.
 
 Full source page:
+
+## Card 13
+
+Deck: .NEW::Audio
+Flagged: 2026-07-18T21:31:01-05:00
+Last seen: 2026-10-29T06:12:52-05:00
+Card ID: 1783449197062
+Note ID: 1783449197059
+
+Question:
+00:12
+
+Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+Answer:
+00:08
+
+Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
+
+## Card 14
+
+Deck: .NEW::Visual
+Flagged: 2026-10-29T06:11:53-05:00
+Last seen: 2026-10-29T06:11:53-05:00
+Card ID: 1793205606068
+Note ID: 1793205606067
+
+Question:
+00:12
+
+Sign and diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Sign and diagnosis?
+
+pneumoperitoneum with football sign (outlined falciform ligament)
+
+## Card 15
+
+Deck: Saved Cards
+Flagged: 2026-10-29T06:07:31-05:00
+Last seen: 2026-10-29T06:07:31-05:00
+Card ID: 1790657855452
+Note ID: 1790657855451
+
+Question:
+00:12
+
+What is the rapid differential for a hyperenhancing liver lesion in a noncirrhotic liver?
+
+[...]
+
+Answer:
+00:12
+
+What is the rapid differential for a hyperenhancing liver lesion in a noncirrhotic liver?
+
+Hypervascular metastases, adenoma or well-differentiated HCC, and FNH
