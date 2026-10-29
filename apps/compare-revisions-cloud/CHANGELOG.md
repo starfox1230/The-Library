@@ -1,5 +1,11 @@
 # Changes and rationale — October 4, 2026
 
+## Attending review scope and study planning
+
+- Revise the attending proposal around a simple review aid with attending-anchored case titles. Keep resident titles as resident memory cues, retain the resident → attending comparison order and obtain both titles from the same future analysis response. No attending title fields or mode are implemented yet.
+- Defer Discussed tracking, dashboards and saved feedback workflows. Keep proposed QI/research measurement in a separate short form.
+- Add a study-planning brief with a resident-reported case-specific feedback outcome, complementary attending review measures, balanced within-attending period order, concurrent-control limitations, carryover, timing and source-shift attribution, missing data, versioning and institutional determination. The protocol elements are proposals, not approved study procedures or deployed collection features. Runtime application code is unchanged.
+
 ## Short bulk shortcut and actionable status notices — October 28, 2026
 
 - Replace the framed wording popup and X with a plain-text action that expires two seconds after appearing. Hover no longer pauses/restarts it; keyboard focus retains the action until focus leaves. Preserve local wording choices, explicit bulk behavior and scroll position.

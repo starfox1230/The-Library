@@ -1,106 +1,72 @@
-# Attending feedback view — proposal
+# Attending review view — proposal
 
-Status: design proposal, not an implemented mode. The existing resident view
-remains the shipped experience. These recommendations address the requested
-overnight emergency-radiology feedback workflow without assuming UAB has
-approved a specific workflow, rubric or communication policy.
+Status: proposed, not implemented. This revision follows the user's preference
+for a simple review tool, with study measurement outside the website. It
+supersedes the earlier feedback-tracker-oriented proposal.
 
-## Primary task
+## Purpose
 
-Help an attending turn a batch of report revisions into a short, verified set
-of feedback points for a resident. The first screen should answer: which
-changes deserve discussion, what exactly changed, and which points have I
-already discussed? Keep the existing case layout and linked report evidence.
+Help an attending quickly revisit their revisions and identify useful points
+to discuss with a resident. Keep the first version focused on report review.
+Do not require a feedback checklist, Discussed status, longitudinal dashboard,
+resident assignment or saved teaching notes. Those remain optional future work.
 
-## One analysis, two views
+## Small interface change
 
-Use a Resident / Attending toggle within the existing authenticated app.
-Initially this changes presentation and review controls only. It does not
-identify the user's institutional role, grant permissions or change the UAB
-sign-in flow. Both views use the same accepted comparison, source quotations,
-clinical categories and uncertainty notices. Switching views should require
-no new analysis, added model calls or resubmission of reports.
+- Add a Resident / Attending view toggle behind the existing UAB sign-in. It
+  changes presentation, not permissions or institutional roles.
+- Resident mode retains resident-anchored titles to support recall of the
+  original interpretation. Attending mode uses attending-anchored titles to
+  support recall of the attending's revised interpretation.
+- Keep the resident → attending comparison order, linked evidence, uncertainty
+  notices and source-case numbers in both views. A different memory cue does
+  not change the direction of the comparison or its clinical grading.
+- Attending mode can default to Major-first ordering, with meaningful Minor
+  changes readily accessible and quote blocks initially hidden. Major is not
+  the only source of useful feedback; the rubric excludes Findings-only Major.
+- Measure study behavior with a separate short form. Reviewing reports should
+  not require completing research forms or tracking individual conversations.
 
-The resident view supports a complete review of personal report changes. The
-attending view supports selecting and communicating a few feedback points.
-Two independent grading prompts could disagree about the same change; avoid
-that inconsistency in the first version.
+## Two titles, one comparison
 
-## Proposed attending screen
+The current implemented `title` is explicitly based primarily on the resident's
+principal finding or normal result. Attending mode should not simply reuse it.
+A future implementation should request both resident and attending title fields
+in the same structured response, then display the appropriate one. Switching
+views should require no new analysis or independent grading prompt.
 
-| Element | Proposed behavior |
+| View | Illustrative title |
 | --- | --- |
-| Default case order | Major first, followed by Minor. Keep Minor changes accessible: the current rubric forbids Major for Findings-only changes. Category is a starting point for human review, not proof that a change needs a conversation. |
-| Initial detail | Compact resident finding → attending revision, with a brief reason when useful. Hide quote blocks by default; reveal exact evidence on demand. Text-change percentage can stay secondary or be omitted in this view. |
-| Select for feedback | A single per-case or per-revision action adds a point to a short discussion list. It does not contact the resident. |
-| Discussed | Mark a point as discussed, with Undo. Default communication status is **Not recorded**. The report pair cannot reveal whether a conversation already occurred. |
-| Correct or dismiss | Let the attending correct an inaccurate suggestion or dismiss an unhelpful one, rather than treating the AI label as settled. |
-| Positive feedback | An optional attending-written positive note. The tool cannot infer a perceptive image finding or diagnostic accuracy solely from two matching reports. |
-| Review problems | Analysis failures and skipped inputs remain visible and actionable, distinct from clinical teaching points. |
-| Feedback preview | A short editable list of selected points, each linked back to its source case. The attending verifies it before using or copying it. No automatic messages. |
+| Resident | Pelvic mass, uncertain origin |
+| Attending | Favored exophytic uterine fibroid |
 
-Do not label a worklist "changes not communicated" unless communication was
-explicitly recorded. "Selected for discussion" and "Discussion status not
-recorded" describe what the tool actually knows. Teaching feedback and any
-clinical communication follow-up should be separate statuses and workflows.
+Retain source uncertainty. Titles are memory cues, not verified image diagnoses.
+Avoid patient identifiers, revision lists and treating the attending report as
+independently proven truth. If information is insufficient, use a neutral title.
+Do not guess an attending title from an arbitrary revision summary; the full
+attending report is already available to the model.
 
-## Summarizing a shift
+## Evaluation outside the product
 
-Offer themes only from the submitted, explicitly grouped batch. For example,
-"Laterality changed in cases 4 and 11" is a traceable description. Each theme
-should show the supporting case numbers and the number of applicable cases.
-Do not infer fatigue, a perception error, a resident's intent, competence or a
-longitudinal weakness. Do not call one example a recurring pattern.
+Ask whether access increases useful case review and case-specific feedback
+residents actually receive. Tool use, reports opened, cases reviewed and feedback
+received are distinct measures; a click does not establish that a conversation
+occurred. Keep any data collection consistent in tool and control periods.
 
-Current report inputs do not reliably establish resident identity or shift
-boundaries. The first version should ask the user to supply a batch for the
-intended resident/shift, rather than guessing ownership or mixing residents.
-One batch can suggest topics to discuss; it cannot establish a performance trend
-over time. Preserve the unreviewed/incomplete case count alongside any summary.
+See [STUDY_PLAN.md](STUDY_PLAN.md) for proposed measurement, timing and allocation.
+No survey, analytics, enrollment or communication feature has been deployed.
 
-## Prompt strategy
+## Deferred features
 
-1. Keep the current comparison prompt as the shared evidence and classification
-   step. Retain the fixed resident → attending order and all evidence checks.
-2. Build the first attending view from those results and human selections.
-   Selection, discussion status and layout do not need an AI call.
-3. If an editable feedback draft later proves useful, make it a separate,
-   explicitly requested synthesis step using selected, reviewed revisions.
-   Supply case IDs, report-side summaries, exact evidence, categories, reasons,
-   uncertainty and attending edits; do not ask it to re-grade the reports.
+Optional case selection, a feedback draft or source-linked themes may be useful
+later if requested. Do not add them solely to make measurement easier. Report
+pairs do not establish prior communication, resident competence or an enduring
+performance trend. An attending can give feedback through the ordinary workflow
+without recording it in this review tool.
 
-The synthesis instructions should produce one or a few short discussion points,
-cite their case IDs, preserve uncertainty, and avoid inventing image findings,
-clinical outcomes, prior communication or the attending's reasoning. A draft
-can identify an interpretation change and invite discussion of the distinction;
-it cannot assert the imaging feature that caused the change without evidence.
+## Background
 
-Illustrative source-grounded point:
-
-> Case 12: Both reports describe diverticulitis. The revision adds focal
-> perforation. Review that added complication together.
-
-Any broader teaching advice or image-based explanation must be provided or
-confirmed by the attending. The tool does not have the images in this workflow.
-
-## Small first implementation
-
-Start with the view toggle, Major-first ordering with Minor accessible, local
-selection for discussion, explicit Discussed/Undo, editable notes and a compact
-selected-points preview. Retain selections when switching views. Keep the first
-version within the current review session; adding persistent histories,
-multi-user assignment or distribution is a separate feature decision.
-
-Evaluate whether attendings can select useful points quickly, whether the
-selected points are accurate and specific, and whether the workflow leads to
-actual feedback. A large automatically generated narrative is not the primary
-success measure. No usability or time-saving result is claimed for this proposal.
-
-## Supporting evidence
-
-A published resident/attending feedback-system study describes a streamlined
-web workflow combining report comparisons and case-specific feedback, and
-reports improved user satisfaction and attending participation. This supports
-reducing friction as a design direction; it does not establish the effectiveness
-of this proposed app or an LLM-generated summary. See [Choi et al., Journal of
-Digital Imaging, 2018](https://pubmed.ncbi.nlm.nih.gov/28840360/).
+A published web-based comparison/feedback system reported improved satisfaction
+and attending participation. This supports reducing friction as a design
+objective, without establishing this app's effectiveness. See [Choi et al.,
+Journal of Digital Imaging, 2018](https://pubmed.ncbi.nlm.nih.gov/28840360/).
