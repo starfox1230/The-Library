@@ -1,68 +1,64 @@
-# Attending review view — proposal
+# Resident and Attending modes
 
-Status: proposed, not implemented. This revision follows the user's preference
-for a simple review tool, with study measurement outside the website. It
-supersedes the earlier feedback-tracker-oriented proposal.
+Status: implemented in the replacement source, October 29, 2026. Cloud Run
+redeployment is pending. This replaces the earlier two-title proposal with
+Sterling's requested mode-specific prompt approach.
 
-## Purpose
+## Current behavior
 
-Help an attending quickly revisit their revisions and identify useful points
-to discuss with a resident. Keep the first version focused on report review.
-Do not require a feedback checklist, Discussed status, longitudinal dashboard,
-resident assignment or saved teaching notes. Those remain optional future work.
+A Resident / Attending segmented control appears directly above Report input,
+including while the input panel is collapsed. A fresh visit defaults to Resident.
+The choice survives form submission and Clear reports. It is a review preference,
+not an institutional role, identity check, or change in permissions.
 
-## Small interface change
+- Resident uses the existing prompt and resident-anchored memory-cue title.
+- Attending uses a separate default prompt with an attending-anchored title.
+- The two prompts differ only in the title instructions. All revision actions,
+  importance thresholds, section/evidence gates, report order, colors, filters,
+  sorting defaults and source grouping remain shared.
+- The selected prompt generates one title through the existing analysis call;
+  the app does not request two titles or run a second grading analysis.
 
-- Add a Resident / Attending view toggle behind the existing UAB sign-in. It
-  changes presentation, not permissions or institutional roles.
-- Resident mode retains resident-anchored titles to support recall of the
-  original interpretation. Attending mode uses attending-anchored titles to
-  support recall of the attending's revised interpretation.
-- Keep the resident → attending comparison order, linked evidence, uncertainty
-  notices and source-case numbers in both views. A different memory cue does
-  not change the direction of the comparison or its clinical grading.
-- Attending mode can default to Major-first ordering, with meaningful Minor
-  changes readily accessible and quote blocks initially hidden. Major is not
-  the only source of useful feedback; the rubric excludes Findings-only Major.
-- Measure study behavior with a separate short form. Reviewing reports should
-  not require completing research forms or tracking individual conversations.
-
-## Two titles, one comparison
-
-The current implemented `title` is explicitly based primarily on the resident's
-principal finding or normal result. Attending mode should not simply reuse it.
-A future implementation should request both resident and attending title fields
-in the same structured response, then display the appropriate one. Switching
-views should require no new analysis or independent grading prompt.
-
-| View | Illustrative title |
+| Mode | Illustrative title |
 | --- | --- |
 | Resident | Pelvic mass, uncertain origin |
-| Attending | Favored exophytic uterine fibroid |
+| Attending | Favored uterine fibroid |
 
-Retain source uncertainty. Titles are memory cues, not verified image diagnoses.
-Avoid patient identifiers, revision lists and treating the attending report as
-independently proven truth. If information is insufficient, use a neutral title.
-Do not guess an attending title from an arbitrary revision summary; the full
-attending report is already available to the model.
+Titles retain source uncertainty and are memory cues, not verified image
+findings. The attending remains the textual reference in both modes.
 
-## Evaluation outside the product
+## Prompts and switching
 
-Ask whether access increases useful case review and case-specific feedback
-residents actually receive. Tool use, reports opened, cases reviewed and feedback
-received are distinct measures; a click does not establish that a conversation
-occurred. Keep any data collection consistent in tool and control periods.
+The exact defaults are exported as [ANALYSIS_PROMPT.md](ANALYSIS_PROMPT.md)
+(resident, `deltarad-review-1.5`) and
+[ATTENDING_ANALYSIS_PROMPT.md](ATTENDING_ANALYSIS_PROMPT.md)
+(attending, `deltarad-review-attending-1.0`). The shared response schema is
+unchanged. The selected mode's full instructions remain visible and editable.
 
-See [STUDY_PLAN.md](STUDY_PLAN.md) for proposed measurement, timing and allocation.
-No survey, analytics, enrollment or communication feature has been deployed.
+Switching modes swaps prompt drafts on the current page. Restore default
+instructions resets the selected mode only. Form submission preserves the
+selected editor text; unused drafts are not sent to the server. Clear reports
+discards both drafts and restores the selected mode's default. A fresh visit
+starts with Resident and both defaults again.
 
-## Deferred features
+Changing mode sends no requests and does not retitle existing results. The
+helper makes that explicit when older results were analyzed in the other mode;
+a title tooltip identifies the mode of its accepted analysis. New analysis or
+an explicit retry uses the current mode and editor. In-flight batches retain
+their original prompt and mode, even across multiple server batches. A failed
+retry retains the previous title's mode until a new response is accepted.
 
-Optional case selection, a feedback draft or source-linked themes may be useful
-later if requested. Do not add them solely to make measurement easier. Report
-pairs do not establish prior communication, resident competence or an enduring
-performance trend. An attending can give feedback through the ordinary workflow
-without recording it in this review tool.
+The backend validates mode values before provider access; older API clients
+that omit the field retain Resident behavior. No credentials, environment
+variables, login rules, model deployment or dependencies change.
+
+## Deliberately deferred
+
+No Major-first default, automatic quote hiding, feedback tracker, Discussed
+checkbox, resident assignment, teaching-note storage, dashboard, or study data
+collection was added. The view stays the same apart from title anchoring and
+the selected-mode labels. QI/research measurement remains a separate proposed
+form; see [STUDY_PLAN.md](STUDY_PLAN.md).
 
 ## Background
 

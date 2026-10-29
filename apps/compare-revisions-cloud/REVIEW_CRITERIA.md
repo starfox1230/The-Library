@@ -1,9 +1,9 @@
 # How Compare Revisions classifies changes
 
-Prompt version: `deltarad-review-1.5`. This is the app's current custom rubric,
+Resident prompt: `deltarad-review-1.5`; Attending prompt: `deltarad-review-attending-1.0`. The two defaults differ only in title anchoring, not the criteria below. This is the app's current custom rubric,
 not a claim of an externally validated discrepancy scale. The wording update
-keeps the existing importance thresholds. Read the [exact default prompt](ANALYSIS_PROMPT.md)
-and [implementation](main.py) to audit it.
+keeps the existing importance thresholds. Read the [resident default](ANALYSIS_PROMPT.md),
+the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main.py) to audit it.
 
 ## Scope and unit of assessment
 

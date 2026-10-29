@@ -16,4 +16,10 @@ prompt = next(ast.literal_eval(node.value) for node in tree.body
               and any(isinstance(target, ast.Name) and target.id == 'DEFAULT_PROMPT'
                       for target in node.targets))
 (ROOT / 'ANALYSIS_PROMPT.md').write_text(prompt, encoding='utf-8')
-print('main.py assembled, syntax checked, and exact default prompt exported.')
+title_rules = {target.id: ast.literal_eval(node.value) for node in tree.body
+               if isinstance(node, ast.Assign) for target in node.targets
+               if isinstance(target, ast.Name) and target.id in ('RESIDENT_TITLE_RULE', 'ATTENDING_TITLE_RULE')}
+assert prompt.count(title_rules['RESIDENT_TITLE_RULE']) == 1
+attending = prompt.replace(title_rules['RESIDENT_TITLE_RULE'], title_rules['ATTENDING_TITLE_RULE'], 1)
+(ROOT / 'ATTENDING_ANALYSIS_PROMPT.md').write_text(attending, encoding='utf-8')
+print('main.py assembled, syntax checked, and both exact default prompts exported.')

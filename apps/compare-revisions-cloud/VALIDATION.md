@@ -2,6 +2,13 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 29, 2026: Resident / Attending title modes
+
+- **92 Python tests passed.** New checks prove the default prompts differ only in title instructions and both exported files match their embedded variants. Verify fresh Resident selection, Attending form submission/default/editor preservation, invalid-mode rejection before provider access, unchanged grouping and source labels, and exactly one mocked request per review entry using the selected or edited prompt.
+- **Eight browser suites passed:** mode, UI, grouping, batching, review controls, highlights, wording and paste. New mode checks exercise native radio keyboard navigation and visible focus, 320/375/1100-pixel layout, independent prompt drafts and Restore, actual HTML form submission, Attending persistence after submission, and a frozen in-flight Attending request while the selected mode changes. Synthetic responses verify attending-based titles, no implicit calls on switching, an explicit Resident retry after a deliberately failed retry, retained title provenance after failure, unchanged group membership/counts, clearing both private drafts while retaining mode, and Resident default on a fresh GET.
+- Dark and light toggle previews were inspected. These are prewritten synthetic titles with mocked provider responses, not a measurement of live model title accuracy. No patient text, paid provider calls, credential changes or Cloud Run deployment were used. Replace the deployed `main.py` and redeploy to activate the modes.
+
+
 ## October 29, 2026: nearby identical report groups
 
 - **84 Python tests passed.** New coverage verifies exact equality of both full reports; adjacent and nonconsecutive groups; gaps of 1/2/3 versus 4; six-member adjacent and spaced chains; original-number gaps after incomplete captures; context, signature, known attestation, punctuation, case and internal-whitespace differences; platform line-ending normalization; nonascending input; original-label preservation; and nonmutation of parsed records.

@@ -1,5 +1,14 @@
 # Changes and rationale — October 4, 2026
 
+## Resident / Attending title modes — October 29, 2026
+
+- Add an accessible native radio pill control above the collapsible report input. Fresh visits default to Resident; form submission and Clear preserve the selection. Keep both review views, criteria, grouping and comparison direction the same.
+- Derive a separate attending default by replacing only the title rule in the existing resident prompt. Export both exact defaults, preserve the strict response schema, and use one existing model call per review entry. No dual-title request or separate grading pass.
+- Maintain per-mode custom drafts while switching on the page; reset only the active draft on Restore, discard both on Clear, and submit only the active editor. Snapshot mode and instructions for in-flight batches; switching sends no requests. Explicit retries use the selected mode, and failed retries do not relabel a retained title.
+- Validate optional mode metadata on both API routes, default legacy callers to Resident, and retain original source identities. Add offline prompt/form/request tests and browser checks for keyboard focus, mobile layout, native submission, request count, streaming/retry provenance and Clear.
+- Feedback tracking and study measurement remain deferred. Existing Azure/authentication configuration is unchanged; deployment is still pending.
+
+
 ## Nearby identical full-report grouping — October 29, 2026
 
 - Group complete imported pairs only when both full resident and full attending strings match, using the existing line-ending and outer framing normalization. Keep all context and attestation text in the match; no clinical-only or one-sided matching.

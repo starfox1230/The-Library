@@ -401,6 +401,28 @@ present an incomplete inventory as no changes. An empty revisions list means
 you examined all eligible text and found no meaningful revisions.
 '''
 
+RESIDENT_TITLE_RULE = """title: a short memorable case cue, normally 3-8 words, based primarily on the
+resident's principal finding (or normal result). This is a stable title, NOT a
+list of revisions. For a resident appendicitis call, 'Appendicitis' remains a
+useful title even when the attending disagrees; the revision separately says
+what changed."""
+ATTENDING_TITLE_RULE = """title: a short memorable case cue, normally 3-8 words, based primarily on the
+attending's final interpretation (or normal result). This is a stable title,
+NOT a list of revisions. If the attending favors an exophytic uterine fibroid
+for a resident's indeterminate pelvic mass, use 'Favored uterine fibroid'.
+Preserve the attending's uncertainty; do not repeat a resident diagnosis that
+the attending removed or refuted. The revisions separately say what changed."""
+ATTENDING_PROMPT_VERSION = 'deltarad-review-attending-1.0'
+ATTENDING_PROMPT = DEFAULT_PROMPT.replace(RESIDENT_TITLE_RULE, ATTENDING_TITLE_RULE, 1)
+REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
+
+
+@app.context_processor
+def review_prompt_context():
+    # Also available to local synthetic renders; no credentials or requests.
+    return {'review_prompts': REVIEW_PROMPTS}
+
+
 _REVISION_STRINGS = ('resident_summary', 'attending_summary',
                      'resident_quote', 'attending_quote', 'reason',
                      'resident_section', 'attending_section',
@@ -545,6 +567,7 @@ def parse_cases(text):
 
 def _base_case(record, case_id):
     case = dict(record, id=case_id, case_label=format_case_numbers(record['source_numbers']),
+        review_mode=record.get('review_mode', 'resident'),
         exam_label='Exam unspecified', title='Report comparison', status='queued',
         status_message='Waiting to analyze', revisions=[], analysis_warnings=[],
         clinical_diff=[], clinical_headings={'resident': [], 'attending': []}, diff_note='',
@@ -694,7 +717,7 @@ def validate_analysis(payload, case):
 def summarize_case(case, instructions=None):
     if case['status'] != 'queued':
         return case
-    instructions = DEFAULT_PROMPT if instructions is None else instructions
+    instructions = REVIEW_PROMPTS.get(case.get('review_mode'), DEFAULT_PROMPT) if instructions is None else instructions
     if not isinstance(instructions, str) or not instructions.strip() or len(instructions) > MAX_PROMPT_CHARACTERS:
         return _analysis_error(case, 'Enter analysis instructions of 40,000 characters or fewer, or restore the default instructions.')
     source = {side: {'full_report': case[side + '_report'],
@@ -728,7 +751,12 @@ def summarize_case(case, instructions=None):
 @app.route('/main2', methods=['GET', 'POST'])
 @uab_login_required
 def index(*, context):
-    cases, error, reports_text, custom_prompt = [], '', '', DEFAULT_PROMPT
+    review_mode = request.form.get('review_mode', 'resident')
+    invalid_mode = review_mode not in REVIEW_PROMPTS
+    if invalid_mode:
+        review_mode = 'resident'
+    default_prompt = REVIEW_PROMPTS[review_mode]
+    cases, error, reports_text, custom_prompt = [], '', '', default_prompt
     combined_view = request.form.get('combined_view', '1') == '1'
     show_report_wording = request.form.get('show_report_wording', '1') != '0'
     theme = request.form.get('theme', 'system')
@@ -736,18 +764,22 @@ def index(*, context):
         theme = 'system'
     if request.method == 'POST':
         reports_text = request.form.get('reports_text', '')
-        custom_prompt = request.form.get('custom_prompt', DEFAULT_PROMPT)
-        if not custom_prompt.strip():
+        custom_prompt = request.form.get('custom_prompt', default_prompt)
+        if invalid_mode:
+            error = 'Choose Resident or Attending mode before analyzing.'
+        elif not custom_prompt.strip():
             error = 'Analysis instructions cannot be empty. Enter instructions or restore the defaults.'
         elif len(custom_prompt) > MAX_PROMPT_CHARACTERS:
             error = 'Analysis instructions must be 40,000 characters or fewer.'
         else:
             try:
                 cases = prepare_cases(reports_text)
+                for case in cases:
+                    case['review_mode'] = review_mode
             except ValueError as exc:
                 error = str(exc)
     return render_template_string(TEMPLATE, cases=cases, reports_text=reports_text,
-        custom_prompt=custom_prompt, default_prompt=DEFAULT_PROMPT,
+        custom_prompt=custom_prompt, default_prompt=default_prompt, review_mode=review_mode,
         combined_view=combined_view, show_report_wording=show_report_wording,
         theme=theme, error=error, csrf_token=csrf_token(),
         username=context['user'].get('name', ''), synthetic_preview=False)
@@ -759,6 +791,9 @@ def analyze(*, context):
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or not all(isinstance(data.get(k), str) for k in ('id', 'resident_report', 'attending_report', 'custom_prompt')):
         return jsonify(error='The case request is malformed. Reload and paste the report batch again.'), 400
+    review_mode = data.get('review_mode', 'resident')
+    if not isinstance(review_mode, str) or review_mode not in REVIEW_PROMPTS:
+        return jsonify(error='Choose Resident or Attending mode.'), 400
     if not re.fullmatch(r'g[1-9]\d{0,3}', data['id']):
         return jsonify(error='The case request is invalid.'), 400
     if not data['custom_prompt'].strip() or len(data['custom_prompt']) > MAX_PROMPT_CHARACTERS:
@@ -766,7 +801,7 @@ def analyze(*, context):
     capture_status = 'complete'
     if any(not data[k].strip() or _PLACEHOLDER.match(data[k]) for k in ('resident_report', 'attending_report')):
         capture_status = 'unavailable'
-    case = _base_case(dict(source_numbers=[], capture_status=capture_status,
+    case = _base_case(dict(source_numbers=[], capture_status=capture_status, review_mode=review_mode,
         resident_report=normalize_text(data['resident_report']),
         attending_report=normalize_text(data['attending_report'])), data['id'])
     return jsonify(summarize_case(case, data['custom_prompt']))
@@ -782,6 +817,9 @@ def analyze_batch(*, context):
             or not isinstance(data.get('custom_prompt'), str)):
         return jsonify(error='Submit between 1 and 100 report pairs with analysis instructions.'), 400
     instructions = data['custom_prompt']
+    review_mode = data.get('review_mode', 'resident')
+    if not isinstance(review_mode, str) or review_mode not in REVIEW_PROMPTS:
+        return jsonify(error='Choose Resident or Attending mode.'), 400
     if not instructions.strip() or len(instructions) > MAX_PROMPT_CHARACTERS:
         return jsonify(error='Enter analysis instructions of 40,000 characters or fewer, or restore the defaults.'), 400
     # Validate the entire envelope before starting any paid calls.
@@ -796,7 +834,7 @@ def analyze_batch(*, context):
         status = 'complete'
         if any(not record[k].strip() or _PLACEHOLDER.match(record[k]) for k in ('resident_report', 'attending_report')):
             status = 'unavailable'
-        cases.append(_base_case(dict(source_numbers=[], capture_status=status,
+        cases.append(_base_case(dict(source_numbers=[], capture_status=status, review_mode=review_mode,
             resident_report=normalize_text(record['resident_report']),
             attending_report=normalize_text(record['attending_report'])), record['id']))
 
@@ -906,6 +944,17 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app.dual-view main { max-width:1840px; }
 #cr-app .input-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:28px; }
 #cr-app label { display:block; font-weight:550; font-size:12px; }
+#cr-app .review-mode { border:0; padding:0; margin:0 0 18px; min-width:0; }
+#cr-app .mode-options { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:999px; background:var(--soft); }
+#cr-app .mode-option { position:relative; margin:0; font-size:13px; }
+#cr-app .mode-option input { position:absolute; inset:0; width:100%; height:100%; padding:0; margin:0; opacity:0; cursor:pointer; z-index:1; }
+#cr-app .mode-label { display:flex; align-items:center; justify-content:center; gap:8px; min-width:118px; padding:9px 16px; border-radius:999px; color:var(--muted); transition:background 160ms,color 160ms,box-shadow 160ms; }
+#cr-app .mode-label svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.65; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+#cr-app .mode-option input:checked + .mode-label { background:var(--panel); color:var(--ink); box-shadow:0 1px 4px color-mix(in srgb,var(--ink) 12%,transparent); }
+#cr-app .mode-option input:checked + .mode-label svg { color:var(--accent); }
+#cr-app .mode-option input:focus-visible + .mode-label { outline:3px solid var(--focus); outline-offset:2px; }
+#cr-app .mode-option input:hover + .mode-label { color:var(--ink); }
+#cr-app .mode-help { margin:7px 0 0; font-size:12px; color:var(--muted); }
 #cr-app textarea,#cr-app input,#cr-app select { width:100%; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:10px 12px; }
 #cr-app textarea { resize:vertical; min-height:132px; margin-top:8px; line-height:1.5; }
 #cr-app textarea::placeholder,#cr-app input::placeholder { color:var(--muted); opacity:1; }
@@ -1070,14 +1119,18 @@ html[data-theme="dark"] {color-scheme:dark;}
 @media(pointer:coarse) {
 #cr-app button,#cr-app .tab { min-height:44px; } }
 @media(prefers-reduced-motion:reduce) {
-#cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
+#cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .mode-label,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
 </style>
 </head>
 <body>
 <div id="cr-app" data-theme="{{ theme | default('system') }}" {% if combined_view %}class="dual-view"{% endif %}>
-<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle">Resident report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
+<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('resident') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
+<fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
+<label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
+<label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('resident') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
+</div><p class="mode-help" id="mode-help" role="status">Titles use the {{ review_mode | default('resident') }} report.</p></fieldset>
 <details class="input-card" id="input-disclosure" {% if not cases %}open{% endif %}><summary>Report input</summary>
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -1122,6 +1175,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
 <script id="default-prompt" type="application/json">{{ default_prompt | tojson }}</script>
+<script id="review-prompts" type="application/json">{{ review_prompts | tojson }}</script>
 <script>
 (() => {
 'use strict';
@@ -1137,7 +1191,23 @@ const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new 
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
 let generation=0, queueRunning=false, submittedPrompt=$('custom-prompt').value;
-const defaultPrompt=JSON.parse($('default-prompt').textContent);
+let reviewMode={{ review_mode | default('resident') | tojson }};
+for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
+const reviewPrompts=JSON.parse($('review-prompts').textContent);
+let defaultPrompt=reviewPrompts[reviewMode];
+const promptDrafts={...reviewPrompts,[reviewMode]:$('custom-prompt').value};
+function describeMode(){
+ $('mode-subtitle').textContent=(reviewMode==='attending'?'Attending':'Resident')+' report review';
+ $('mode-help').textContent=cases.some(c=>c.review_mode&&c.review_mode!==reviewMode)?(reviewMode==='attending'?'Attending':'Resident')+' titles for new analyses and retries. Existing results stay unchanged.':'Titles use the '+reviewMode+' report.';
+}
+for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.addEventListener('change',()=>{
+ if(!radio.checked||radio.value===reviewMode)return;
+ promptDrafts[reviewMode]=$('custom-prompt').value;reviewMode=radio.value;
+ defaultPrompt=reviewPrompts[reviewMode];$('custom-prompt').value=promptDrafts[reviewMode];
+ $('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Instructions switched to '+reviewMode+' mode.';
+ $('default-prompt').textContent=JSON.stringify(defaultPrompt);describeMode();
+});
+describeMode();
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
 let themeChoice=$('theme-value').value;
 function applyTheme(){
@@ -1436,7 +1506,7 @@ function caseRow(c,key) {
  head.id='case-'+key;head.setAttribute('aria-expanded',String(isOpen));head.setAttribute('aria-controls','body-'+key);
  const chevron=el('span','chevron');chevron.setAttribute('aria-hidden','true');head.append(chevron);
  const number=el('span','case-number');number.append(el('small','',members(c).length>1?'Cases':'Case'),document.createTextNode(caseLabel(c)));head.append(number);
- const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));name.append(el('span','case-title',prose(c.title) || 'Untitled case'));
+ const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));const title=el('span','case-title',prose(c.title) || 'Untitled case');title.title='Review mode: '+(c.review_mode==='attending'?'Attending':'Resident');name.append(title);
  const ordered=revisions(c).slice().sort((a,b)=>groupOrder.indexOf(a.importance)-groupOrder.indexOf(b.importance));
  const clinical=ordered.filter(r=>r.importance!=='wording'), previewItems=(clinical.length?clinical:ordered).slice(0,2);
  const preview=el('span','change-preview');
@@ -1472,6 +1542,7 @@ function toggleCase(key,expand=!opened.has(key)) {
  $('collapse').disabled=opened.size===0;
 }
 function render() {
+ describeMode();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))reportScroll.set(viewer.dataset.caseKey,viewer.scrollTop);
  $('review').hidden=cases.length===0;
  updateProgress();
@@ -1506,11 +1577,12 @@ function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
 async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
  if(syntheticPreview || queueRunning || runGeneration!==generation || c.status==='processing'||controllers.size>0)return;
+ const mode=reviewMode;
  const controller=new AbortController();controllers.add(controller);
  pinnedRevisions.delete(key);hoveredRevisions.delete(key);
  c.status='processing';c.status_message='Analyzing this report pair…';c.revisions=[];c.analysis_warnings=[];updateReview();
  try {
-  const response=await fetch('/analyze',{method:'POST',credentials:'same-origin',redirect:'follow',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name="csrf_token"]').value},body:JSON.stringify({id:c.id,resident_report:c.resident_report,attending_report:c.attending_report,custom_prompt:instructions}),signal:controller.signal});
+  const response=await fetch('/analyze',{method:'POST',credentials:'same-origin',redirect:'follow',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name="csrf_token"]').value},body:JSON.stringify({id:c.id,resident_report:c.resident_report,attending_report:c.attending_report,custom_prompt:instructions,review_mode:mode}),signal:controller.signal});
   if(response.redirected || !(response.headers.get('content-type')||'').includes('application/json'))throw new Error('session');
   if(!response.ok)throw new Error(response.status===401||response.status===403?'session':'request');
   const result=await response.json();
@@ -1518,6 +1590,7 @@ async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
   if(runGeneration!==generation)return;
   // Source identity and original reports belong to the capture, never to model output.
   for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+  c.review_mode=mode;
  } catch(error) {
   if(runGeneration!==generation || error.name==='AbortError')return;
   c.status='error';c.status_message=error.message==='session'?'Your sign-in may have expired. Refresh this page to sign in again.':'Analysis could not be completed. Your reports remain available; retry this case.';
@@ -1525,25 +1598,25 @@ async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
 }
 async function runQueue() {
  queueRunning=true;
- const runGeneration=generation,instructions=submittedPrompt,jobs=cases.filter(c=>c.status==='queued');
+ const runGeneration=generation,instructions=submittedPrompt,mode=reviewMode,jobs=cases.filter(c=>c.status==='queued');
  // One server batch at a time: 100 parallel cases, also bounded by JSON bytes.
  const encoder=new TextEncoder(), batches=[];let current=[];
  const record=c=>({id:c.id,resident_report:c.resident_report,attending_report:c.attending_report});
- const payload=group=>JSON.stringify({cases:group.map(record),custom_prompt:instructions});
+ const payload=group=>JSON.stringify({cases:group.map(record),custom_prompt:instructions,review_mode:mode});
  for(const c of jobs){const candidate=[...current,c];if(current.length&&(candidate.length>100||encoder.encode(payload(candidate)).length>4_500_000)){batches.push(current);current=[];}current.push(c);}
  if(current.length)batches.push(current);
  try {
-  for(const group of batches){if(runGeneration!==generation)break;await analyzeBatch(group,instructions,runGeneration);}
+  for(const group of batches){if(runGeneration!==generation)break;await analyzeBatch(group,instructions,runGeneration,mode);}
  }finally{if(runGeneration===generation){queueRunning=false;updateReview();}}
 }
-async function analyzeBatch(group,instructions,runGeneration) {
+async function analyzeBatch(group,instructions,runGeneration,mode) {
  const controller=new AbortController();controllers.add(controller);
  for(const c of group){const key=String(cases.indexOf(c));pinnedRevisions.delete(key);hoveredRevisions.delete(key);}
  const pending=new Map(group.map(c=>[c.id,c]));let reader, refreshQueued=false, done=false;
  const refresh=()=>{if(refreshQueued)return;refreshQueued=true;requestAnimationFrame(()=>{refreshQueued=false;if(runGeneration===generation)updateReview();});};
  for(const c of group){c.status='processing';c.status_message='Analyzing this report pair…';c.revisions=[];c.analysis_warnings=[];}updateReview();
  try {
-  const response=await fetch('/analyze-batch',{method:'POST',credentials:'same-origin',redirect:'follow',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name="csrf_token"]').value},body:JSON.stringify({cases:group.map(c=>({id:c.id,resident_report:c.resident_report,attending_report:c.attending_report})),custom_prompt:instructions}),signal:controller.signal});
+  const response=await fetch('/analyze-batch',{method:'POST',credentials:'same-origin',redirect:'follow',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name="csrf_token"]').value},body:JSON.stringify({cases:group.map(c=>({id:c.id,resident_report:c.resident_report,attending_report:c.attending_report})),custom_prompt:instructions,review_mode:mode}),signal:controller.signal});
   if(response.redirected)throw new Error('session');
   if(!response.ok)throw new Error(response.status===401||response.status===403?'session':'request');
   if(!(response.headers.get('content-type')||'').includes('application/x-ndjson'))throw new Error('session');
@@ -1559,6 +1632,7 @@ async function analyzeBatch(group,instructions,runGeneration) {
    const c=pending.get(event.id);
    // Never accept model/server replacement of source numbers or original reports.
    for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+   c.review_mode=mode;
    pending.delete(event.id);refresh();
   }
   while(runGeneration===generation){
@@ -1584,7 +1658,7 @@ window.addEventListener('scroll',()=>{
 $('reset-filters').addEventListener('click',()=>{selectedFilters.clear();$('search').value='';renderAndFocus('filter-all');});
 $('combined-view').addEventListener('change',()=>{combinedView=$('combined-view').checked;if(combinedView)for(const key of views.keys())views.set(key,'summary');$('cr-app').classList.toggle('dual-view',combinedView);$('combined-view-value').value=combinedView?'1':'0';render();$('announcement').textContent=combinedView?'Summary and text changes shown together.':'Single case view restored.';});
 $('custom-prompt').addEventListener('input',()=>{$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Edits apply to your next analysis or retry.';});
-$('restore-prompt').addEventListener('click',()=>{$('custom-prompt').value=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Default instructions restored. Existing results stay as they are.';});
+$('restore-prompt').addEventListener('click',()=>{$('custom-prompt').value=defaultPrompt;promptDrafts[reviewMode]=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Default instructions restored. Existing results stay as they are.';});
 $('paste-button').addEventListener('click',async()=>{
  const button=$('paste-button'), input=$('report-text');
  button.disabled=true;$('paste-status').textContent='';
@@ -1607,6 +1681,7 @@ $('clear-button').addEventListener('click',()=>{
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
+ for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();
  for(const timer of hoverTimers.values())clearTimeout(timer);hoverTimers.clear();pinnedRevisions.clear();hoveredRevisions.clear();passageIndices.clear();reportScroll.clear();
  $('report-text').value='';$('report-text').defaultValue='';$('paste-status').textContent='';$('custom-prompt').value=defaultPrompt;$('custom-prompt').defaultValue=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='';
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';

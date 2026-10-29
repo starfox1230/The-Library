@@ -146,5 +146,21 @@ if __name__ == '__main__':
             error='', csrf_token='synthetic-preview', username='', synthetic_preview=True)
     (output/'grouping-preview.html').write_text(grouped_html, encoding='utf-8')
     (output/'grouping-fixtures.json').write_text(json.dumps(grouped_results, ensure_ascii=False), encoding='utf-8')
+    # Mode-specific defaults and titles, rendered without a provider or sign-in.
+    mode_attending = dict(grouped_results[0], review_mode='attending', title='Moderate effusion')
+    mode_resident = dict(grouped_results[0], review_mode='resident', title='Small effusion')
+    mode_queue = [dict(grouped[0], review_mode='attending')]
+    with app.app.app_context():
+        for name, mode, values, synthetic in [('mode-empty', 'resident', [], True),
+                ('mode-queued', 'attending', mode_queue, False),
+                ('mode-attending', 'attending', [mode_attending], True)]:
+            mode_html = app.render_template_string(app.TEMPLATE, cases=values, reports_text='',
+                custom_prompt=app.REVIEW_PROMPTS[mode], default_prompt=app.REVIEW_PROMPTS[mode],
+                review_mode=mode, combined_view=True, error='', csrf_token='synthetic-preview',
+                username='', synthetic_preview=synthetic)
+            (output/(name+'.html')).write_text(mode_html, encoding='utf-8')
+    (output/'mode-fixtures.json').write_text(json.dumps(dict(attending=mode_attending,
+        resident=mode_resident, reports_text=pasted_case(68,gr,ga)+pasted_case(69,gr,ga)),
+        ensure_ascii=False), encoding='utf-8')
     print(f'Synthetic production-template preview: {output / "preview.html"}')
     print(f'Complex report: {len(cases[0]["resident_report"].split())} words, {len(cases[0]["revisions"])} distinct revisions.')
