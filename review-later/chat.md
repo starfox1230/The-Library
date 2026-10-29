@@ -44,8 +44,8 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-29 06:56 Central Daylight Time
-Cards: 19
+Updated: 2026-10-29 07:32 Central Daylight Time
+Cards: 14
 
 ## Card 1
 
@@ -64,6 +64,10 @@ Answer:
 00:12
 
 A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the middle third of the capitellum.
+
+The dark anterior humeral line crosses the green middle third of the capitellum. The middle-third rule is less reliable in children younger than about four years.
+
+Image by Kilborn, Moodley and Mears; annotations by Mikael Häggström. Unmodified. Image source · CC BY-SA 4.0 · Original article
 
 ## Card 2
 
@@ -165,32 +169,6 @@ Germ cell tumors (greater than 90 percent in men younger than about fifty to six
 
 ## Card 7
 
-Deck: .NEW::Visual
-Flagged: 2026-09-21T13:22:25-05:00
-Last seen: 2026-10-29T06:45:07-05:00
-Card ID: 1776454600430
-Note ID: 1776454600430
-
-Question:
-00:12
-
-Location?
-
-[...]
-
-1/2
-
-Answer:
-00:08
-
-Location?
-
-pleural (ball under the carpet, so not juxtapleural)
-
-1/2
-
-## Card 8
-
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
 Last seen: 2026-10-29T06:42:56-05:00
@@ -211,7 +189,7 @@ What is the relationship between signal to noise ratio and bandwidth?
 
 SNR is inversely proportional to the square root of bandwidth
 
-## Card 9
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T07:25:03-05:00
@@ -233,29 +211,7 @@ What is C?
 
 Probst bundles
 
-## Card 10
-
-Deck: .NEW::Visual
-Flagged: 2026-10-29T06:08:28-05:00
-Last seen: 2026-10-29T06:42:28-05:00
-Card ID: 1770039340753
-Note ID: 1770039340753
-
-Question:
-00:12
-
-Most likely diagnosis on this breast ultrasound?
-
-[...]
-
-Answer:
-00:08
-
-Most likely diagnosis on this breast ultrasound?
-
-IDC
-
-## Card 11
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-06-27T14:57:59-05:00
@@ -266,18 +222,21 @@ Note ID: 1782588006916
 Question:
 00:12
 
-A very fast-growing bone lesion can produce a [...] periosteal reaction with hair-on-end bone formation.
+A spiculated periosteal reaction with divergent, radiating spicules is called a [...] pattern.
 
 Answer:
 00:12
 
-A very fast-growing bone lesion can produce a sunburst periosteal reaction with hair-on-end bone formation.
+A spiculated periosteal reaction with divergent, radiating spicules is called a sunburst pattern.
+
+Hair-on-end spicules are parallel and perpendicular to the cortex; sunburst spicules diverge. Both are aggressive spiculated periosteal reactions.
+RadioGraphics terminology
 
 Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 12
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:08:50-05:00
@@ -295,33 +254,7 @@ Answer:
 
 The Hawthorne effect is when people change their behavior because they know they are being watched.
 
-## Card 13
-
-Deck: .NEW::Visual
-Flagged: 2026-04-29T10:10:07-05:00
-Last seen: 2026-10-29T06:29:14-05:00
-Card ID: 1775838727902
-Note ID: 1775838727902
-
-Question:
-00:12
-
-Most likely diagnosis in female with hyperemesis and vaginal passage of vesicles?
-
-[...]
-
-1/3
-
-Answer:
-00:08
-
-Most likely diagnosis in female with hyperemesis and vaginal passage of vesicles?
-
-molar pregnancy (complete hydatidiform mole) with bilateral theca lutein cysts.
-
-1/3
-
-## Card 14
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:24:27-05:00
@@ -332,16 +265,19 @@ Note ID: 1762544589812
 Question:
 00:12
 
-The most significant purely lytic skeletal metastases arise from [...].
+Classic causes of expansile, predominantly lytic skeletal metastases include [...].
 
 Answer:
 00:12
 
-The most significant purely lytic skeletal metastases arise from renal cell carcinoma and thyroid carcinoma.
+Classic causes of expansile, predominantly lytic skeletal metastases include renal cell carcinoma and thyroid carcinoma, especially follicular carcinoma.
 
 Notion AIRP Lecture
 
-## Card 15
+Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
+Bone metastases in thyroid cancer
+
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-10-17T21:26:11-05:00
@@ -364,51 +300,7 @@ Original conversation
 
 Notion source
 
-## Card 16
-
-Deck: .NEW::Visual
-Flagged: 2026-07-12T13:25:17-05:00
-Last seen: 2026-10-29T06:18:57-05:00
-Card ID: 1783397643264
-Note ID: 1783397643263
-
-Question:
-00:12
-
-Most likely diagnosis?
-
-[...]
-
-Answer:
-00:12
-
-Most likely diagnosis?
-
-Myxofibrosarcoma -- Large predominantly T2-hyperintense enhancing soft-tissue mass.
-
-Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma characteristically T2 hyperintense.
-
-Full source page:
-
-## Card 17
-
-Deck: .NEW::Audio
-Flagged: 2026-07-18T21:31:01-05:00
-Last seen: 2026-10-29T06:12:52-05:00
-Card ID: 1783449197062
-Note ID: 1783449197059
-
-Question:
-00:12
-
-Decreased putaminal uptake bilaterally is the classic sign on [what study type] of Parkinsonian syndromes such as Dementia with Lewy Bodies
-
-Answer:
-00:08
-
-Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
-
-## Card 18
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-10-29T06:11:53-05:00
@@ -430,7 +322,7 @@ Sign and diagnosis?
 
 pneumoperitoneum with football sign (outlined falciform ligament)
 
-## Card 19
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:07:31-05:00
@@ -450,4 +342,7 @@ Answer:
 
 What is the rapid differential for a hyperenhancing liver lesion in a noncirrhotic liver?
 
-Hypervascular metastases, adenoma or well-differentiated HCC, and FNH
+Flash-filling hemangioma, hypervascular metastases, adenoma or well-differentiated HCC, and FNH
+
+Flash-filling hemangiomas can enhance rapidly and uniformly in the arterial phase.
+Hepatic hemangioma imaging review
