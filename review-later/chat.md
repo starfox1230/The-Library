@@ -44,10 +44,104 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-29 06:47 Central Daylight Time
-Cards: 15
+Updated: 2026-10-29 06:56 Central Daylight Time
+Cards: 19
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:21:48-05:00
+Last seen: 2026-10-29T06:55:23-05:00
+Card ID: 1780269476610
+Note ID: 1780269476609
+
+Question:
+00:12
+
+A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the [...].
+
+Answer:
+00:12
+
+A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the middle third of the capitellum.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:51:25-05:00
+Last seen: 2026-10-29T06:51:25-05:00
+Card ID: 1776434006758
+Note ID: 1776434006758
+
+Question:
+00:12
+
+The [...] dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+
+Answer:
+00:08
+
+The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-10-29T06:50:28-05:00
+Last seen: 2026-10-29T06:50:28-05:00
+Card ID: 1786336094585
+Note ID: 1786336094584
+
+Question:
+00:12
+
+SVS grading system for blunt traumatic aortic injury (BTAI) grades I through IV are [...], respectively.
+
+Answer:
+00:12
+
+SVS grading system for blunt traumatic aortic injury (BTAI) grades I through IV are intimal tear, intramural hematoma, pseudoaneurysm, and rupture, respectively.
+
+The grades represent progressively more severe aortic wall injury.
+
+Source: Notion Radiology entry.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:49:17-05:00
+Last seen: 2026-10-29T06:49:17-05:00
+Card ID: 1767702967543
+Note ID: 1767702967541
+
+Question:
+00:12
+
+[what change to] kVp tends to increase photoelectric absorption, which improves image contrast.
+
+Answer:
+00:12
+
+Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-03-27T06:41:27-05:00
+Last seen: 2026-10-29T06:48:31-05:00
+Card ID: 1760473131343
+Note ID: 1760473131342
+
+Question:
+Diagnosis?
+
+ ↻
+
+Answer:
+Mylohyoid boutonniere (herniation of the sublingual duct)
+
+Images
+
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:46:15-05:00
@@ -69,7 +163,7 @@ Which tumors are most likely in the testis based on epidemiology?
 
 Germ cell tumors (greater than 90 percent in men younger than about fifty to sixty years), with lymphoma an important consideration in older men.
 
-## Card 2
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-09-21T13:22:25-05:00
@@ -95,7 +189,7 @@ pleural (ball under the carpet, so not juxtapleural)
 
 1/2
 
-## Card 3
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
@@ -117,7 +211,7 @@ What is the relationship between signal to noise ratio and bandwidth?
 
 SNR is inversely proportional to the square root of bandwidth
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T07:25:03-05:00
@@ -139,7 +233,7 @@ What is C?
 
 Probst bundles
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-10-29T06:08:28-05:00
@@ -161,7 +255,7 @@ Most likely diagnosis on this breast ultrasound?
 
 IDC
 
-## Card 6
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-06-27T14:57:59-05:00
@@ -183,7 +277,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 7
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:08:50-05:00
@@ -201,7 +295,7 @@ Answer:
 
 The Hawthorne effect is when people change their behavior because they know they are being watched.
 
-## Card 8
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-04-29T10:10:07-05:00
@@ -227,7 +321,7 @@ molar pregnancy (complete hydatidiform mole) with bilateral theca lutein cysts.
 
 1/3
 
-## Card 9
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:24:27-05:00
@@ -247,7 +341,7 @@ The most significant purely lytic skeletal metastases arise from renal cell carc
 
 Notion AIRP Lecture
 
-## Card 10
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-10-17T21:26:11-05:00
@@ -270,25 +364,7 @@ Original conversation
 
 Notion source
 
-## Card 11
-
-Deck: .NEW::Audio
-Flagged: 2026-10-29T06:21:48-05:00
-Last seen: 2026-10-29T06:21:48-05:00
-Card ID: 1780269476610
-Note ID: 1780269476609
-
-Question:
-00:12
-
-A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the [...].
-
-Answer:
-00:12
-
-A line drawn down the anterior surface of the humerus on lateral pediatric elbow radiograph should intersect the middle third of the capitellum.
-
-## Card 12
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
@@ -314,7 +390,7 @@ Core Radiology 2nd ed., MSK: 965. Myxoid elements make this high-grade sarcoma c
 
 Full source page:
 
-## Card 13
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-07-18T21:31:01-05:00
@@ -332,7 +408,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 14
+## Card 18
 
 Deck: .NEW::Visual
 Flagged: 2026-10-29T06:11:53-05:00
@@ -354,7 +430,7 @@ Sign and diagnosis?
 
 pneumoperitoneum with football sign (outlined falciform ligament)
 
-## Card 15
+## Card 19
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:07:31-05:00
