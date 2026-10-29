@@ -162,7 +162,7 @@ namespace ReportExporter
         }
 
         private static Profile KeyboardSettings()
-        { return new Profile { KeyboardWorkflow = true, KeyDelayMs = 0, CaseDelayMs = 0, PollMs = 1, TimeoutMs = 250, ComparisonWaitMs = 250 }; }
+        { return new Profile { TimingMode = "Custom", KeyboardWorkflow = true, KeyDelayMs = 0, CaseDelayMs = 0, PollMs = 1, TimeoutMs = 250, ComparisonWaitMs = 250 }; }
 
         private sealed class TestOffscreenPopup : System.Windows.Forms.ToolStripDropDown
         {
@@ -899,6 +899,57 @@ namespace ReportExporter
                     Throws<InvalidOperationException>(() => ReportText.Format(1, new ReportPair { AttendingEmptyUnconfirmed = true, Attending = "FINDINGS: stale", Resident = "FINDINGS: resident" }));
                     Throws<InvalidOperationException>(() => ReportText.FormatPending(1, new ReportPair { AttendingEmptyUnconfirmed = true, Attending = "FINDINGS: stale", Resident = "FINDINGS: resident" }));
                 });
+                Test("automatic timing starts fast, backs off only on copy retry, and resets per run", () => {
+                    var profile = new Profile(); InputTiming.Configure(profile);
+                    var timing = new InputTiming(profile);
+                    Assert(timing.KeyDelayMs == 10 && profile.CaseDelayMs == 100 && profile.PollMs == 5, "Automatic did not start fast");
+                    Assert(timing.CopyRetry() && timing.KeyDelayMs == 25, "First retry did not add settling");
+                    Assert(timing.CopyRetry() && timing.KeyDelayMs == 100 && !timing.CopyRetry(), "Adaptive settling is not bounded");
+                    Assert(new InputTiming(profile).KeyDelayMs == 10 && profile.KeyDelayMs == 10, "A slow run changed the next run's fast start");
+                });
+                Test("fixed and custom speed never adapt their pauses", () => {
+                    var profile = new Profile { TimingMode = "Conservative" }; InputTiming.Configure(profile);
+                    var fixedTiming = new InputTiming(profile);
+                    Assert(fixedTiming.KeyDelayMs == 100 && !fixedTiming.CopyRetry(), "Conservative changed dynamically");
+                    profile.TimingMode = "Custom"; profile.KeyDelayMs = 37; InputTiming.Configure(profile);
+                    Assert(new InputTiming(profile).KeyDelayMs == 37 && !new InputTiming(profile).CopyRetry(), "Custom timing was overwritten");
+                });
+                Test("automatic copy retry retains source safeguards and does not repeat row navigation", () => {
+                    var settings = KeyboardSettings(); settings.TimingMode = "Automatic"; settings.TimeoutMs = 1000;
+                    var desktop = new FakeKeyboardDesktop { FirstCopyIgnored = true };
+                    var runner = new ExportRunner(); var messages = new List<string>();
+                    runner.Run(new KeyboardSession(settings, desktop, messages.Add), 4, 5, path(), CancellationToken.None, messages.Add);
+                    Assert(runner.Completed == 2 && desktop.Row == 1 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Retry duplicated a source row");
+                    Assert(messages.Exists(s => s.Contains("Automatic speed")), "Adaptive copy settling was not recorded");
+                });
+                Test("old profiles acquire simple-launch defaults while keeping calibrated coordinates", () => {
+                    using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("{\"Version\":6,\"ClickX\":123,\"ClickY\":456,\"KeyDelayMs\":25}"))) {
+                        var profile = (Profile)new DataContractJsonSerializer(typeof(Profile)).ReadObject(stream);
+                        Assert(profile.TimingMode == "Automatic" && profile.OpenWebsite && !profile.OpenTextFile && profile.ClickX == 123 && profile.ClickY == 456, "Migration lost setup or added routine popups");
+                    }
+                });
+                Test("automatic output names are unique and do not replace a previous export", () => {
+                    var stamp = new DateTime(2026, 10, 29, 1, 2, 3);
+                    string one = ExportFiles.NewOutput(directory, stamp), two = ExportFiles.NewOutput(directory, stamp);
+                    File.WriteAllText(one, "synthetic saved output");
+                    Assert(one != two && Path.GetDirectoryName(one) == directory && File.ReadAllText(one) == "synthetic saved output", "Export path reused a name");
+                });
+                Test("recovery summary distinguishes saved navigation failures from unsaved captures", () => {
+                    var runner = new ExportRunner();
+                    Throws<TimeoutException>(() => runner.Run(new FakeSession { FailAdvance = true }, 8, 10, path(), CancellationToken.None, s => {}));
+                    Assert(runner.LastAttemptedCase == 8 && runner.LastSavedCase == 8 && RunSummary.ResumeAt(runner, 8, 10) == 9, "Saved case would be exported twice");
+                    runner = new ExportRunner();
+                    Throws<InvalidOperationException>(() => runner.Run(new FakeSession { MissingResident = true }, 8, 10, path(), CancellationToken.None, s => {}));
+                    Assert(runner.LastSavedCase == null && RunSummary.ResumeAt(runner, 8, 10) == 8, "Unsaved case would be skipped");
+                });
+                Test("final saved case with close failure does not suggest a nonexistent remaining range", () => {
+                    var runner = new ExportRunner();
+                    Throws<TimeoutException>(() => runner.Run(new FakeSession { FailClose = true }, 8, 8, path(), CancellationToken.None, s => {}));
+                    Assert(!RunSummary.ResumeAt(runner, 8, 8).HasValue, "Final saved case produced a duplicate resume");
+                    string summary = RunSummary.Build(runner, 8, 8, "Stopped", "Synthetic close failure", "synthetic-output.txt");
+                    Assert(summary.Contains("Last saved source entry: 8") && !summary.Contains("FINDINGS:") && summary.Contains("No remaining"), "Run summary lost context or copied report text");
+                });
+                Test("compact launcher hides setup, expands Options and keeps Go visible", LauncherChecks.Verify);
                 Console.WriteLine(passed + " tests passed. These tests do not operate on PowerScribe or your clipboard.");
                 return 0;
             }

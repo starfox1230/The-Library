@@ -7,8 +7,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.12.0.0")]
-[assembly: AssemblyFileVersion("0.12.0.0")]
+[assembly: AssemblyVersion("0.13.0.0")]
+[assembly: AssemblyFileVersion("0.13.0.0")]
 
 namespace ReportExporter
 {
@@ -17,14 +17,17 @@ namespace ReportExporter
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-progress"))
+            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-progress"))
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                using (Form form = args[0] == "--preview" ? (Form)new ExportForm() : new ProgressOverlay("Numpad *"))
+                using (Form form = args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
+                    if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
                     var progress = form as ProgressOverlay;
                     if (progress != null) progress.SetPhase("Waiting for fresh attending report text...", 2, 10);
+                    form.StartPosition = FormStartPosition.Manual; form.Location = new Point(-20000, -20000);
+                    form.ShowInTaskbar = false; form.Show(); Application.DoEvents();
                     CreateHandles(form);
                     form.PerformLayout();
                     using (var bitmap = new Bitmap(form.Width, form.Height))
@@ -72,10 +75,10 @@ namespace ReportExporter
         private readonly CheckBox clipboard = new CheckBox { Text = "Use clipboard instead of direct text reads", AutoSize = true };
         private readonly CheckBox website = new CheckBox { Text = "Open Compare Revisions website after export", AutoSize = true, Checked = true };
         private readonly CheckBox findingsOnly = new CheckBox { Text = "Findings and below only (previous export format)", AutoSize = true, Checked = false };
-        private readonly Label status = new Label { AutoSize = false, Width = 590, Height = 80, Text = "Click your first CASE ROW in the PowerScribe worklist, then Export selected cases. No accessibility capture needed." };
+        private readonly Label status = new Label { AutoSize = false, Width = 570, Height = 70, Text = "Select the first case row in PowerScribe.\nEnter the first and last case numbers below, then Go." };
         private readonly Label stopHint = new Label { AutoSize = true };
         private readonly Label captured = new Label { AutoSize = false, Width = 590, Height = 30 };
-        private readonly Button start = new Button { Text = "Export selected cases", AutoSize = true };
+        private readonly Button start = new Button { Name = "Go", Text = "Go", Width = 110, Height = 36, BackColor = Color.FromArgb(32, 89, 155), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
         private readonly Button stop = new Button { Text = "Stop", AutoSize = true, Enabled = false };
         private FlowLayoutPanel body;
         private string captureRole;
@@ -86,32 +89,57 @@ namespace ReportExporter
         private bool captureHotkey, stopHotkey;
         private ProgressOverlay overlay;
         private FlowLayoutPanel keyboardSettings, accessibilitySettings;
+        private FlowLayoutPanel optionsPanel, resultActions, customTiming;
+        private readonly Button optionsButton = new Button { Name = "Options", Text = "Options >", AutoSize = true, FlatStyle = FlatStyle.Flat };
+        private readonly ComboBox speed = new ComboBox { Name = "Speed", DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
+        private readonly TextBox outputFolder = new TextBox { Width = 390, ReadOnly = true };
+        private readonly CheckBox openText = new CheckBox { Text = "Also open the comparison file in Notepad", AutoSize = true };
+        private readonly TextBox details = new TextBox { Name = "RunDetails", Width = 570, Height = 180, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Visible = false };
+        private readonly Button detailsButton = new Button { Text = "Details", AutoSize = true };
+        private readonly Button openComparison = new Button { Text = "Open comparison file", AutoSize = true };
+        private readonly Button resume = new Button { Text = "Prepare remaining cases", AutoSize = true, Visible = false };
+        private readonly bool previewMode;
+        private bool optionsExpanded;
+        private string lastOutput;
+        private int? resumeCase;
         private string stopShortcut = "Numpad *";
 
         private static NumericUpDown Number(int min, int max, int value)
         { return new NumericUpDown { Minimum = min, Maximum = max, Value = value, Width = 90 }; }
 
-        public ExportForm()
+        public ExportForm() : this(false) { }
+        public ExportForm(bool preview)
         {
-            Text = "PowerScribe Report Exporter v0.12 — native Windows";
-            ClientSize = new Size(620, 760);
-            MinimumSize = new Size(640, 700);
+            previewMode = preview;
+            Text = "PowerScribe Report Exporter v0.13";
+            ClientSize = new Size(620, 280);
+            MinimumSize = new Size(640, 310);
             Font = new Font("Segoe UI", 10);
             body = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(15), FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
             Controls.Add(body);
-            var feedback = new Panel { Dock = DockStyle.Top, Height = 112, Padding = new Padding(15), BackColor = Color.FromArgb(230, 240, 250) };
+            var feedback = new Panel { Dock = DockStyle.Top, Height = 94, Padding = new Padding(15), BackColor = Color.FromArgb(230, 240, 250) };
             status.Dock = DockStyle.Fill;
             status.Font = new Font(Font, FontStyle.Bold);
             feedback.Controls.Add(status);
             Controls.Add(feedback);
-            body.Controls.Add(new Label { Text = "Full record + actual reports only (.for-comparison.txt) for pasting.", AutoSize = true });
-            body.Controls.Add(new Label { Text = "Click the first case ROW in the worklist before starting. Case numbers\nlabel the output; they do not jump to that row in PowerScribe.", AutoSize = true });
-            body.Controls.Add(Row("First label", first, "Last label", last));
-            body.Controls.Add(new Label { Text = "Exports whole reports by default; copies completed pairs for pasting.", AutoSize = true });
-            body.Controls.Add(findingsOnly);
-            body.Controls.Add(keyboard);
+            first.Name = "FirstCase"; last.Name = "LastCase";
+            body.Controls.Add(Row("First case", first, "Last case", last));
+            body.Controls.Add(new Label { Text = "Numbers label the export; PowerScribe starts from the row you selected.", AutoSize = true, MaximumSize = new Size(570, 0), ForeColor = Color.DimGray });
+            optionsButton.FlatAppearance.BorderSize = 0;
+            body.Controls.Add(optionsButton);
+            optionsPanel = new FlowLayoutPanel { Name = "OptionsPanel", AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
+            body.Controls.Add(optionsPanel);
+            speed.Items.AddRange(new object[] { "Automatic - fast first", "Fast (fixed)", "Conservative (fixed)", "Custom timing" });
+            speed.SelectedIndex = 0;
+            optionsPanel.Controls.Add(Row("Speed", speed, "", new Label { AutoSize = true }));
+            optionsPanel.Controls.Add(new Label { Text = "Automatic starts fast and adds input settling only when a copy needs retrying.\nWindow and clipboard waits finish as soon as their checks succeed.", AutoSize = true, MaximumSize = new Size(570, 0) });
+            customTiming = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
+            customTiming.Controls.Add(Row("Input pause (ms)", keyPause, "After Down (ms)", casePause));
+            customTiming.Controls.Add(Row("Readiness poll (ms)", poll, "", new Label { AutoSize = true }));
+            optionsPanel.Controls.Add(customTiming);
+            optionsPanel.Controls.Add(keyboard);
             keyboardSettings = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-            keyboardSettings.Controls.Add(new Label { Text = "Uses Alt+T, I; click report body; Ctrl+A/C; Tab; Ctrl+A/C;\nTab four times; Enter; Down. Report click defaults to your AHK's 800,600.", AutoSize = true });
+            keyboardSettings.Controls.Add(new Label { Text = "PowerScribe setup (only if needed)", AutoSize = true });
             var worklistButtons = new FlowLayoutPanel { AutoSize = true };
             var rememberWorklist = new Button { Text = "Remember worklist (F8)", AutoSize = true };
             rememberWorklist.Click += (sender, args) => {
@@ -135,19 +163,10 @@ namespace ReportExporter
                 status.Text = "Open Compare Report Revisions manually. Point inside the ATTENDING REPORT BODY, then press F8. This stores a click position, not a screenshot.";
             };
             keyboardSettings.Controls.Add(captureClick);
-            keyboardSettings.Controls.Add(Row("Input pause (ms)", keyPause, "After Down (ms)", casePause));
-            var speedButtons = new FlowLayoutPanel { AutoSize = true };
-            var fast = new Button { Text = "Fast: 10 / 100 ms", AutoSize = true };
-            var balanced = new Button { Text = "Previous: 25 / 100 ms", AutoSize = true };
-            var cautious = new Button { Text = "Conservative: 100 / 100 ms", AutoSize = true };
-            fast.Click += (sender, args) => { keyPause.Value = 10; casePause.Value = 100; poll.Value = 5; status.Text = "Fast preset: 10 ms input pauses, 5 ms readiness checks. Test a few cases; use Previous if keys are missed."; };
-            balanced.Click += (sender, args) => { keyPause.Value = 25; casePause.Value = 100; poll.Value = 10; status.Text = "Previous v0.5 timing selected; the faster native clipboard path still applies."; };
-            cautious.Click += (sender, args) => { keyPause.Value = 100; casePause.Value = 100; poll.Value = 10; status.Text = "Conservative timing selected, matching the old AHK's input pauses."; };
-            speedButtons.Controls.Add(fast); speedButtons.Controls.Add(balanced); speedButtons.Controls.Add(cautious); keyboardSettings.Controls.Add(speedButtons);
             keyboardSettings.Controls.Add(autoFocus);
             keyboardSettings.Controls.Add(Row("Missing comparison wait (s)", comparisonWait, "", new Label { Text = "Then save placeholder / continue", AutoSize = true }));
             keyboardSettings.Controls.Add(new Label { Text = "Fast reduces input waits; use Conservative if keys are missed.\nAfter Down remains 100 ms because the selected row cannot be verified.", AutoSize = true });
-            body.Controls.Add(keyboardSettings);
+            optionsPanel.Controls.Add(keyboardSettings);
             accessibilitySettings = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
             accessibilitySettings.Controls.Add(new Label { Text = "Optional accessibility mode requires four captures; it does not work\nwhen PowerScribe does not expose these controls. Point and press F8.", AutoSize = true });
             var captureButtons = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(590, 100) };
@@ -167,19 +186,36 @@ namespace ReportExporter
             accessibilitySettings.Controls.Add(captured);
             accessibilitySettings.Controls.Add(Row("Text settling (ms)", stable, "", new Label { AutoSize = true, Text = "Direct-read settling check" }));
             accessibilitySettings.Controls.Add(clipboard);
-            body.Controls.Add(accessibilitySettings);
-            body.Controls.Add(Row("Timeout (s)", timeout, "Poll (ms)", poll));
-            body.Controls.Add(website);
+            optionsPanel.Controls.Add(accessibilitySettings);
+            optionsPanel.Controls.Add(Row("Maximum wait (s)", timeout, "", new Label { AutoSize = true, Text = "Not a fixed delay" }));
+            optionsPanel.Controls.Add(findingsOnly);
+            optionsPanel.Controls.Add(website); optionsPanel.Controls.Add(openText);
+            outputFolder.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Report comparisons");
+            var chooseFolder = new Button { Text = "Save folder...", AutoSize = true };
+            chooseFolder.Click += (sender, args) => { using (var picker = new FolderBrowserDialog { Description = "Choose where reports are saved", SelectedPath = outputFolder.Text }) { if (picker.ShowDialog(this) == DialogResult.OK) outputFolder.Text = picker.SelectedPath; } };
+            var folderRow = new FlowLayoutPanel { AutoSize = true }; folderRow.Controls.Add(outputFolder); folderRow.Controls.Add(chooseFolder); optionsPanel.Controls.Add(folderRow);
             stopHint.Text = "Stop with " + stopShortcut + ". Close the old Review Reports script\nso it does not run during this export.";
-            body.Controls.Add(stopHint);
+            optionsPanel.Controls.Add(stopHint);
+            resultActions = new FlowLayoutPanel { Name = "ResultActions", AutoSize = true, MaximumSize = new Size(570, 0), Visible = false };
+            var openFolder = new Button { Text = "Open save folder", AutoSize = true };
+            openComparison.Click += (sender, args) => OpenComparisonFile();
+            openFolder.Click += (sender, args) => { try { Process.Start(Path.GetDirectoryName(lastOutput)); } catch (Exception error) { ShowError("Folder did not open", error.Message); } };
+            detailsButton.Click += (sender, args) => { details.Visible = !details.Visible; detailsButton.Text = details.Visible ? "Hide details" : "Details"; ResizeForContent(); };
+            resume.Click += (sender, args) => { if (resumeCase.HasValue) { first.Value = resumeCase.Value; status.Text = "Select case " + resumeCase.Value + " in PowerScribe, then Go. This button only sets the range here."; } };
+            resultActions.Controls.Add(openComparison); resultActions.Controls.Add(openFolder); resultActions.Controls.Add(detailsButton); resultActions.Controls.Add(resume);
+            body.Controls.Add(resultActions); body.Controls.Add(details);
             var actionRow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, Padding = new Padding(12, 4, 12, 4) };
             actionRow.Controls.Add(start); actionRow.Controls.Add(stop); Controls.Add(actionRow);
             start.Click += (sender, args) => StartExport();
             stop.Click += (sender, args) => CancelExport();
-            LoadProfile();
+            if (!previewMode) LoadProfile();
             RefreshCaptured();
             keyboard.CheckedChanged += (sender, args) => ApplyMode();
             ApplyMode();
+            speed.SelectedIndexChanged += (sender, args) => { customTiming.Visible = speed.SelectedIndex == 3; ResizeForContent(); };
+            customTiming.Visible = speed.SelectedIndex == 3;
+            optionsButton.Click += (sender, args) => SetOptionsVisible(!optionsExpanded);
+            AcceptButton = start;
             FormClosing += (sender, args) => {
                 if (running && cancellation != null && !cancellation.IsCancellationRequested)
                 { CancelExport(); args.Cancel = true; status.Text = "Stopping... close again to exit immediately if PowerScribe's accessibility provider is stuck."; }
@@ -192,9 +228,27 @@ namespace ReportExporter
             keyboardSettings.Visible = keyboard.Checked;
             accessibilitySettings.Visible = !keyboard.Checked;
             captureRole = null;
-            status.Text = keyboard.Checked ? "Click your first CASE ROW in the PowerScribe worklist, then Export selected cases. No accessibility capture needed." :
-                "Accessibility mode: all four controls must be captured. Use keyboard workflow if capture reports an unsupported control.";
+            status.Text = keyboard.Checked ? "Select the first case row in PowerScribe.\nEnter the first and last case numbers below, then Go." :
+                "Accessibility mode needs four saved captures in Options before Go.";
         }
+
+        public void SetOptionsVisible(bool visible)
+        {
+            optionsExpanded = visible; optionsPanel.Visible = visible; optionsButton.Text = visible ? "Options v" : "Options >";
+            ResizeForContent();
+        }
+        private void ResizeForContent()
+        {
+            int desired = optionsExpanded ? 720 : details.Visible ? 620 : resultActions.Visible ? 410 : 280;
+            ClientSize = new Size(ClientSize.Width, Math.Min(desired, Screen.FromControl(this).WorkingArea.Height - 80));
+        }
+        private void OpenComparisonFile()
+        {
+            if (lastOutput == null) return;
+            try { Process.Start("notepad.exe", "\"" + lastOutput + ".for-comparison.txt\""); }
+            catch (Exception error) { ShowError("Comparison file did not open", error.Message); }
+        }
+        protected override bool ShowWithoutActivation { get { return previewMode; } }
 
         private static Control Row(string left, Control a, string right, Control b)
         {
@@ -207,6 +261,7 @@ namespace ReportExporter
         protected override void OnHandleCreated(EventArgs args)
         {
             base.OnHandleCreated(args);
+            if (previewMode) { stopHotkey = true; return; }
             captureHotkey = Native.RegisterHotKey(Handle, 1, 0x4000, 0x77); // F8, no repeat
             stopHotkey = Native.RegisterHotKey(Handle, 2, 0x4000, 0x6A); // Numpad multiply
             if (!stopHotkey)
@@ -219,7 +274,7 @@ namespace ReportExporter
 
         protected override void OnHandleDestroyed(EventArgs args)
         {
-            Native.UnregisterHotKey(Handle, 1); Native.UnregisterHotKey(Handle, 2);
+            if (!previewMode) { Native.UnregisterHotKey(Handle, 1); Native.UnregisterHotKey(Handle, 2); }
             base.OnHandleDestroyed(args);
         }
 
@@ -306,6 +361,9 @@ namespace ReportExporter
                 clipboard.Checked = profile.ClipboardOnly;
                 findingsOnly.Checked = profile.FindingsOnly;
                 keyboard.Checked = profile.KeyboardWorkflow;
+                website.Checked = profile.OpenWebsite; openText.Checked = profile.OpenTextFile;
+                speed.SelectedIndex = profile.TimingMode == "Fast" ? 1 : profile.TimingMode == "Conservative" ? 2 : profile.TimingMode == "Custom" ? 3 : 0;
+                if (!String.IsNullOrWhiteSpace(profile.OutputDirectory)) outputFolder.Text = profile.OutputDirectory;
                 autoFocus.Checked = profile.AutoRestoreFocus;
                 clickX.Value = Math.Max(clickX.Minimum, Math.Min(clickX.Maximum, profile.ClickX));
                 clickY.Value = Math.Max(clickY.Minimum, Math.Min(clickY.Maximum, profile.ClickY));
@@ -362,25 +420,26 @@ namespace ReportExporter
             try
             {
                 if (!stopHotkey) throw new InvalidOperationException("Both stop shortcuts are in use. Close the programs using Numpad * / Ctrl+Shift+F12, then reopen this exporter.");
-                if (last.Value < first.Value) throw new InvalidOperationException("Last label must be at least the first label.");
+                if (last.Value < first.Value) throw new InvalidOperationException("Last case must be at least the first case number.");
                 profile.TimeoutMs = (int)timeout.Value * 1000; profile.PollMs = (int)poll.Value;
                 profile.ComparisonWaitMs = (int)comparisonWait.Value * 1000;
                 profile.StableMs = (int)stable.Value; profile.ClipboardOnly = clipboard.Checked;
                 profile.FindingsOnly = findingsOnly.Checked;
-                profile.Version = 6; profile.KeyboardWorkflow = keyboard.Checked; profile.AutoRestoreFocus = autoFocus.Checked;
+                profile.Version = 7; profile.KeyboardWorkflow = keyboard.Checked; profile.AutoRestoreFocus = autoFocus.Checked;
                 profile.ClickX = (int)clickX.Value; profile.ClickY = (int)clickY.Value;
                 profile.KeyDelayMs = (int)keyPause.Value; profile.CaseDelayMs = (int)casePause.Value;
+                profile.TimingMode = new string[] { "Automatic", "Fast", "Conservative", "Custom" }[Math.Max(0, speed.SelectedIndex)];
+                profile.OutputDirectory = outputFolder.Text; profile.OpenWebsite = website.Checked; profile.OpenTextFile = openText.Checked;
+                InputTiming.Configure(profile);
                 profile.Validate(); SaveProfile();
-                using (SaveFileDialog save = new SaveFileDialog { Filter = "Text document (*.txt)|*.txt", DefaultExt = "txt", AddExtension = true,
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    FileName = "Report comparison " + DateTime.Now.ToString("yyyy-MM-dd HHmmss") + ".txt" })
-                { if (save.ShowDialog(this) != DialogResult.OK) return; output = save.FileName; }
-                if (File.Exists(output) || File.Exists(output + ".for-comparison.txt") || File.Exists(output + ".timings.csv") || File.Exists(output + ".progress.log"))
-                    throw new IOException("Choose a new filename; existing exports and logs are never replaced.");
+                output = ExportFiles.NewOutput(profile.OutputDirectory, DateTime.Now);
             }
             catch (Exception error) { ShowError("Export has not started", error.Message); return; }
             int firstLabel = (int)first.Value, lastLabel = (int)last.Value;
             bool openWebsite = website.Checked;
+            bool openTextFile = openText.Checked;
+            lastOutput = output; resumeCase = null; resultActions.Visible = false; details.Visible = false;
+            SetOptionsVisible(false);
             captureRole = null; running = true; cancellation = new CancellationTokenSource();
             start.Enabled = false; stop.Enabled = true;
             foreach (Control control in body.Controls) if (control != status && control != start.Parent) control.Enabled = false;
@@ -396,6 +455,7 @@ namespace ReportExporter
                 string result = "";
                 bool success = false;
                 bool failed = false;
+                string outcome = "Stopped", nextStep = "", diagnostic = "";
                 AsyncProgressLog progressLog = null;
                 Action<string> reportProgress = text => {
                     if (progressLog != null)
@@ -407,27 +467,32 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.12...");
+                    reportProgress("Initializing native exporter v0.13...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);
                     runner.Run(session, firstLabel, lastLabel, output, cancellation.Token, reportProgress);
-                    success = true; result = "Done. " + runner.Completed + " report pairs, " + runner.Skipped + " unavailable-comparison placeholders, " + runner.Pending + " possible pending cases saved. " + runner.OutcomeSummary + " Notepad opens .for-comparison.txt with complete pairs only; the original file retains incomplete records.";
+                    success = true; outcome = "Done"; result = "Done. " + runner.Completed + " complete pairs ready to paste.";
+                    if (runner.Pending + runner.Skipped > 0) result += " " + (runner.Pending + runner.Skipped) + " entries need review; see Details.";
+                    diagnostic = "Only complete pairs go into the comparison file. Unconfirmed pending and unavailable entries remain in the original capture.\r\n" + runner.OutcomeSummary;
                     try
                     {
                         if (ExportDelivery.CopyCompleted(output, runner.Completed,
                             text => Clipboard.SetDataObject(text, true, 3, 100)))
-                            result += " Completed pairs copied. On the website, click Paste or press Ctrl+V, then Analyze reports.";
+                            result += " Copied. On the website: Paste, then Analyze reports.";
                     }
                     catch (Exception)
                     {
-                        result += " Automatic clipboard copy failed. Copy the comparison text from Notepad, then paste it on the website.";
+                        result += " Clipboard copy failed; use Open comparison file to copy the saved text.";
                     }
                 }
-                catch (OperationCanceledException) { result = "Stopped. " + runner.Completed + " report pairs, " + runner.Skipped + " placeholders and " + runner.Pending + " possible pending cases saved. " + runner.OutcomeSummary + " PowerScribe was left at the stopping point."; }
-                catch (Exception error) { failed = true; result = "Stopped after " + runner.Completed + " report pairs, " + runner.Skipped + " placeholders and " + runner.Pending + " possible pending cases. " + runner.OutcomeSummary + " " + error.Message; }
+                catch (OperationCanceledException) { result = "Stopped. " + runner.Completed + " complete pairs saved. See Details to continue from the stopping point."; diagnostic = "Cancelled by the user. Saved captures were kept."; }
+                catch (Exception error) { failed = true; nextStep = RunSummary.NextStep(error, runner, firstLabel, lastLabel); result = "Export stopped. " + runner.Completed + " complete pairs saved. " + nextStep; diagnostic = error.Message; }
                 finally
                 {
+                    diagnostic = RunSummary.Build(runner, firstLabel, lastLabel, outcome, nextStep + "\r\n" + diagnostic, output);
+                    try { File.WriteAllText(output + ".run-summary.txt", diagnostic); }
+                    catch (Exception) { result += " The run summary could not be saved; Details still has it."; }
                     if (progressLog != null)
                     {
                         try { progressLog.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + result); progressLog.Dispose(); if (progressLog.Failed) result += " Progress log could not be fully written."; }
@@ -440,18 +505,17 @@ namespace ReportExporter
                     foreach (Control control in body.Controls) control.Enabled = true;
                     start.Enabled = true; stop.Enabled = false;
                     status.Text = result;
-                    if (runner.Saved > 0)
-                    {
-                        // Never offer incomplete archival records as paste-ready input.
-                        try { Process.Start("notepad.exe", "\"" + output + ".for-comparison.txt\""); }
-                        catch (Exception error) { status.Text += " Open the text file manually: " + error.Message; }
-                    }
+                    details.Text = diagnostic; detailsButton.Text = "Details"; details.Visible = false; resultActions.Visible = true;
+                    openComparison.Enabled = runner.Completed > 0;
+                    resumeCase = success ? null : RunSummary.ResumeAt(runner, firstLabel, lastLabel); resume.Visible = resumeCase.HasValue;
+                    ResizeForContent();
+                    if (openTextFile && runner.Completed > 0) OpenComparisonFile();
                     if (success && openWebsite && runner.Completed > 0)
                     {
                         try { Process.Start("https://compare-revisions-646439009049.us-central1.run.app/"); }
                         catch (Exception error) { status.Text += " Website could not be opened: " + error.Message; }
                     }
-                    if (failed) ShowError("Export stopped", result + "\r\n\r\nStep-by-step progress: " + output + ".progress.log");
+                    if (failed) detailsButton.Font = new Font(detailsButton.Font, FontStyle.Bold);
                 });
             });
             worker.IsBackground = true;

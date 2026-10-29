@@ -14,7 +14,11 @@ namespace ReportExporter
     [DataContract]
     public sealed class Profile
     {
-        [DataMember] public int Version = 6;
+        [DataMember] public int Version = 7;
+        [DataMember] public string TimingMode = "Automatic";
+        [DataMember] public string OutputDirectory;
+        [DataMember] public bool OpenWebsite = true;
+        [DataMember] public bool OpenTextFile;
         [DataMember] public int ComparisonWaitMs = 3000;
         [DataMember] public bool KeyboardWorkflow = true;
         [DataMember] public bool AutoRestoreFocus = true;
@@ -42,9 +46,12 @@ namespace ReportExporter
             MainTitle = "PowerScribe 360 | Reporting"; ComparisonTitle = "Compare Report Revisions";
             TimeoutMs = 10000; PollMs = 10; StableMs = 50;
             FindingsOnly = false;
+            TimingMode = "Automatic"; OutputDirectory = null; OpenWebsite = true; OpenTextFile = false;
         }
         public void Validate()
         {
+            if (TimingMode != "Automatic" && TimingMode != "Fast" && TimingMode != "Conservative" && TimingMode != "Custom")
+                throw new InvalidOperationException("Choose Automatic, Fast, Conservative, or Custom speed in Options.");
             if (ComparisonWaitMs < 250 || ComparisonWaitMs > 60000 || TimeoutMs < 250 || TimeoutMs > 60000 || PollMs < 1 || PollMs > 100 || StableMs < 0 || StableMs > 2000)
                 throw new InvalidOperationException("Invalid wait settings in the saved profile.");
             if (KeyboardWorkflow)

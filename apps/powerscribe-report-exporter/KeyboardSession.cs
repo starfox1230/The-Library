@@ -127,6 +127,7 @@ namespace ReportExporter
         private readonly HashSet<IntPtr> existingPopups;
         private bool captureResolved;
         private readonly FocusRecovery focus;
+        private readonly InputTiming timing;
         private int copyRetries;
         private long clipboardReadMs, clipboardReadMaxMs, clipboardClearMs;
         private int clipboardLockMisses;
@@ -137,6 +138,7 @@ namespace ReportExporter
         public KeyboardSession(Profile settings, IKeyboardDesktop windows, Action<string> reportProgress)
         {
             settings.Validate(); profile = settings; desktop = windows;
+            timing = new InputTiming(profile);
             progress = reportProgress ?? (message => {});
             focus = new FocusRecovery(profile, desktop, progress);
             progress("Keyboard workflow: finding PowerScribe; no accessibility capture needed...");
@@ -212,7 +214,7 @@ namespace ReportExporter
             {
                 GuardMenuRecovery(token);
                 desktop.Key(0x1B);
-                InputSettle(main, Math.Max(20, profile.KeyDelayMs), token);
+                InputSettle(main, Math.Max(20, timing.KeyDelayMs), token);
             }
             try
             {
@@ -226,7 +228,7 @@ namespace ReportExporter
                 {
                     progress("A menu popup is still present; trying Alt cancellation once...");
                     desktop.Key(0x12);
-                    InputSettle(main, Math.Max(20, profile.KeyDelayMs), token);
+                    InputSettle(main, Math.Max(20, timing.KeyDelayMs), token);
                 }
                 try { WaitMenuClear(token, Math.Min(profile.TimeoutMs, 500)); }
                 catch (TimeoutException retryError)
@@ -268,7 +270,7 @@ namespace ReportExporter
                 Guard(main, token);
                 int recoveryCount = focus.Recoveries;
                 desktop.Chord(0x12, 0x54); // One chord instead of separate Alt/T events and two waits.
-                InputSettle(main, profile.KeyDelayMs, token);
+                InputSettle(main, timing.KeyDelayMs, token);
                 // A focus change can dismiss the menu. Reopen it before sending I.
                 if (focus.Recoveries != recoveryCount) continue;
                 ReadyWait.Until(() => {
@@ -308,14 +310,14 @@ namespace ReportExporter
             Guard(comparison, token);
             progress("Clicking the attending report body at " + profile.ClickX + ", " + profile.ClickY + "...");
             desktop.Click(comparison, profile.ClickX, profile.ClickY);
-            InputSettle(comparison, profile.KeyDelayMs, token);
+            InputSettle(comparison, timing.KeyDelayMs, token);
             var attendingClock = Stopwatch.StartNew();
             string attending = Copy("attending", token, true);
             long attendingMs = attendingClock.ElapsedMilliseconds;
             Guard(comparison, token);
             progress("Tab to the resident report body — same as the AHK...");
             desktop.Key(0x09);
-            InputSettle(comparison, profile.KeyDelayMs, token);
+            InputSettle(comparison, timing.KeyDelayMs, token);
             var residentClock = Stopwatch.StartNew();
             string resident = Copy("resident", token);
             captureResolved = true;
@@ -340,7 +342,7 @@ namespace ReportExporter
             Guard(comparison, token);
             progress("Select all and copy the " + role + " report body...");
             desktop.Chord(0x11, 0x41);
-            InputSettle(comparison, profile.KeyDelayMs, token);
+            InputSettle(comparison, timing.KeyDelayMs, token);
             desktop.Chord(0x11, 0x43);
             progress("Waiting for a fresh " + role + " report copy with Findings, Impression, or Conclusion...");
             string text = null;
@@ -387,6 +389,8 @@ namespace ReportExporter
                         // rather than adding a blind 100 ms sleep before retrying Ctrl+C.
                         Guard(comparison, token);
                         progress("Retrying Ctrl+C for the already selected " + role + " report (attempt " + (attempts + 1) + " of 3)...");
+                        if (timing.CopyRetry()) progress("Automatic speed: allowing " + timing.KeyDelayMs + " ms for input settling after a delayed copy.");
+                        InputSettle(comparison, timing.KeyDelayMs, token);
                         desktop.Chord(0x11, 0x43);
                         attempts++; copyRetries++;
                     }
@@ -420,7 +424,7 @@ namespace ReportExporter
             Guard(comparison, token);
             progress("From resident report: Tab four times, then Enter — same as the AHK...");
             for (int index = 0; index < 4; index++) { Guard(comparison, token); desktop.Key(0x09); }
-            InputSettle(comparison, profile.KeyDelayMs, token);
+            InputSettle(comparison, timing.KeyDelayMs, token);
             desktop.Key(0x0D);
             progress("Waiting for the comparison window to close...");
             Wait(() => {

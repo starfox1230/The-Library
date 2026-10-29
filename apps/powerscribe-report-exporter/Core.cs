@@ -169,6 +169,8 @@ namespace ReportExporter
         public int Completed { get; private set; }
         public int Skipped { get; private set; }
         public int Pending { get; private set; }
+        public int? LastAttemptedCase { get; private set; }
+        public int? LastSavedCase { get; private set; }
         private readonly List<string> pendingCases = new List<string>();
         private readonly List<string> unavailableCases = new List<string>();
         public int Saved { get { return Completed + Skipped + Pending; } }
@@ -180,6 +182,7 @@ namespace ReportExporter
         {
             if (first < 1 || last < first || last > 1000000) throw new ArgumentException("Invalid case range.");
             Completed = Skipped = Pending = 0; pendingCases.Clear(); unavailableCases.Clear();
+            LastAttemptedCase = LastSavedCase = null;
             // CreateNew prevents replacing an existing report export.
             using (FileStream file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             using (StreamWriter output = new StreamWriter(file, new UTF8Encoding(true)))
@@ -198,6 +201,7 @@ namespace ReportExporter
                 for (int number = first; number <= last; number++)
                 {
                     token.ThrowIfCancellationRequested();
+                    LastAttemptedCase = number;
                     outcomes.WriteLine(number + ",started"); outcomes.Flush();
                     string stage = "selection";
                     try
@@ -215,7 +219,7 @@ namespace ReportExporter
                             token.ThrowIfCancellationRequested();
                             long missingOpen = clock.ElapsedMilliseconds;
                             progress("Case " + number + ": comparison likely unavailable; saving a marked placeholder...");
-                            output.Write(ReportText.FormatUnavailable(number)); output.Flush(); file.Flush(true); Skipped++;
+                            output.Write(ReportText.FormatUnavailable(number)); output.Flush(); file.Flush(true); Skipped++; LastSavedCase = number;
                             unavailableCases.Add(number.ToString(CultureInfo.InvariantCulture));
                             outcomes.WriteLine(number + ",comparison_unavailable"); outcomes.Flush();
                             long placeholderSave = clock.ElapsedMilliseconds - missingOpen;
@@ -248,6 +252,7 @@ namespace ReportExporter
                                 if (!pending) { comparisonOutput.Write(formatted); comparisonOutput.Flush(); comparisonFile.Flush(true); } },
                             () => session.CloseComparison(token), () => {
                                 if (pending) { Pending++; pendingCases.Add(number.ToString(CultureInfo.InvariantCulture)); } else Completed++;
+                                LastSavedCase = number;
                                 outcomes.WriteLine(number + (pending ? ",pending_suspected" : ",complete")); outcomes.Flush();
                             }, out saveMs, out closeMs);
                         long close = clock.ElapsedMilliseconds - open - capture;
