@@ -183,9 +183,10 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.4'
+PROMPT_VERSION = 'deltarad-review-1.5'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
+IMPRESSION_EMPHASIS_SUMMARY = 'Added to Impression; finding unchanged'
 DEFAULT_PROMPT = r'''You compare a resident's radiology report with the attending's
 revision for resident learning. The attending report is the textual reference,
 not independently verified image truth. Return the forced tool arguments only.
@@ -233,7 +234,8 @@ changed: the same assertion is reinterpreted, explicitly negated, relocated when
 identity is established, or substantively modified. Positive to explicit
 negative is changed; make the attending's explicit negative apparent in its
 summary endpoint and explain the refutation in reason.
-emphasis: the same finding moves into the impression without a meaning change.
+emphasis: an already documented finding is added to the impression without a
+meaning change. It may remain in Findings; do not imply it was removed there.
 description: supporting detail, equivalent terminology, or useful wording
 refinement for an already described finding, with no new clinical assertion.
 If matching is uncertain, do not force two lesions to be one; use review
@@ -260,6 +262,30 @@ wording: pure emphasis, description, or equivalent phrasing, outside major/minor
 clinical counts. Both emphasis and description MUST have importance wording.
 review: evidence or context does not support a dependable clinical importance
 or assertion match. Briefly explain what is uncertain; do not force a grade.
+
+DECISION ORDER: apply this independently to each distinct revision
+1. Find the same assertion in BOTH reports across ALL eligible sections.
+   A finding already in resident Findings is not a newly missed finding merely
+   because the attending includes it in Impression. Identify the actual delta.
+2. Choose action from the definitions above. If assertion identity or clinical
+   meaning is uncertain, use review and name the uncertainty rather than guess.
+3. If action is emphasis or description, importance MUST be wording. A real
+   change in laterality, negation, certainty, recommendation or interpretation
+   is not merely wording just because few words changed.
+4. For a supported substantive clinical change, consider major ONLY if BOTH
+   requirements hold: substantial acute consequence/urgent decision impact in
+   this supplied context AND evidence for the actual delta in the eligible
+   Impression/Conclusion/combined section. Use the correct evidence side.
+   If the change is clear but falls below that threshold or lacks impression
+   eligibility, use minor. If importance cannot be assessed reliably, use
+   review. Neither a diagnosis keyword nor an Impression mention proves major.
+5. Apply this equally to added, removed and reinterpreted assertions. A new
+   complication can be major even when the underlying disease was reported;
+   an unchanged finding added to Impression is still wording. A removed call
+   is not proven false unless the attending explicitly contradicts it.
+6. Write the two short summary fields using the patterns below. Check that
+   the reader can identify the exact revision without opening reason. Then
+   verify exact quotations, section IDs, major evidence and duplicate items.
 
 CALIBRATION (context-specific examples, not universal disease rules)
 - Pneumothorax called in resident impression but explicitly rejected by attending:
@@ -301,36 +327,59 @@ CALIBRATION (context-specific examples, not universal disease rules)
 
 EVIDENCE AND WRITING: FIXED RESIDENT / ATTENDING ORDER
 resident_summary and attending_summary: two REQUIRED separate short phrases,
-each a single line stating only that report's supported assertion. Aim for
-3-15 words per side, retaining qualifiers needed for accurate meaning. Use
-parallel subject-first wording so the difference is apparent at a glance.
+each a single line. The resident side states the resident's finding; the
+attending side states the attending's revision to that finding. Aim for
+3-15 words per side, retaining qualifiers needed for accurate meaning.
+Use ordinary, direct language that makes the specific edit obvious. Do not
+make the reader infer an action from two descriptions of section locations.
 The app ALWAYS renders resident_summary, then an arrow, then attending_summary.
 Never return a combined summary, an arrow inside either field, source-label
-prefixes, or free-form introductions such as 'Added ...', 'Call removed: ...',
-'Moved into impression: ...' or 'Added detail: ...'. Action and reason carry
-that explanation separately. This fixed order applies to every importance
-and action, including additions, removals, wording changes and uncertain cases.
+prefixes or commentary that combines both sides. Use the small set of patterns
+below, selected by action; do not invent a new presentation for each finding.
+The literal 'Added to Impression; finding unchanged' is the standard phrase
+for emphasis. It is not a ban on action words in attending_summary. Keep the
+same resident-first order for every action and importance.
 Use respectful, specific language; never infer what the resident thought.
-Examples of endpoint pairs (only when supported by the supplied reports):
-- Reinterpretation: 'Pelvic mass, organ of origin uncertain' /
+PATTERNS: resident_summary / attending_summary (use only if source-supported)
+- changed: resident finding / revised attending finding. Examples:
+  'Pelvic mass, organ of origin uncertain' /
   'Uterine mass, favored exophytic degenerating fibroid'.
-- Laterality: 'Left renal cyst' / 'Right renal cyst'.
-- Added assertion with no resident counterpart: 'Not documented' /
+  'Left renal cyst' / 'Right renal cyst'.
+  'Right pneumothorax' / 'No pneumothorax'. Do not replace an explicit
+  contradiction with the vague phrase 'changed' or 'removed'.
+- added, no resident counterpart: 'Not documented' /
   'Nondisplaced left seventh rib fracture'.
-- Removed assertion with no attending counterpart: 'Small pleural effusion' /
+- added complication/attribute of an already reported finding: retain the
+  underlying finding on both sides and name the new attribute. Examples:
+  'Diverticulitis without perforation' / 'Diverticulitis with focal perforation'
+  when the resident explicitly denied perforation; otherwise
+  'Diverticulitis; perforation not documented' / 'Diverticulitis with focal
+  perforation'. Never turn an unaddressed attribute into an explicit negative.
+- removed, no attending counterpart: 'Small pleural effusion' /
   'Not retained in attending report'. Removal is not proof it resolved or was
   absent. An explicit attending negative instead uses action changed and that
   supported negative as attending_summary.
-- Impression promotion: 'Pleural effusions in Findings' /
-  'Same pleural effusions in Impression'.
-- Descriptive detail: 'Simple hepatic cyst' / 'Simple hepatic cyst, 1.2 cm'.
+- emphasis: name the existing finding on the resident side; attending_summary
+  is exactly 'Added to Impression; finding unchanged'. Example:
+  'Small right pneumothorax' / 'Added to Impression; finding unchanged'.
+  Do not write 'same pneumothorax in Impression' or 'moved to Impression'; the
+  former obscures the edit and the latter implies removal from Findings.
+  If the actual assertion changes too, use changed rather than emphasis, and
+  display the substantive revision. Do not add a duplicate emphasis item.
+- description: original finding/detail / revised finding with the added or
+  refined detail. Example: 'Simple hepatic cyst' / 'Simple hepatic cyst, 1.2 cm'.
+  If clarification is useful, keep it in reason rather than crowding the line.
 If no corresponding source quote exists on one side, use exactly 'Not
 documented' for resident_summary or 'Not retained in attending report' for
 attending_summary. Those markers refer to documentation, never disease absence.
 If quoting an existing underlying finding to contextualize a new attribute,
 say that the new attribute was not documented rather than inventing a negative.
 reason: at most two short sentences explaining this change's importance, not a
-generic teaching essay. Never claim the reference is image-proven truth.
+generic teaching essay. For major, identify the actual delta and its supported
+acute consequence/urgent decision impact; for review, identify what is
+uncertain. For emphasis, explain that the finding was already in resident
+Findings and only its Impression inclusion changed. Never claim the reference
+is image-proven truth. Do not merely repeat the category label as a reason.
 resident_quote/attending_quote: short EXACT VERBATIM contiguous excerpts from
 the respective supplied eligible section. Quote the assertion, not an invented
 absence. Leave quote and section ID empty when genuinely absent.
@@ -592,6 +641,8 @@ def validate_analysis(payload, case):
         for side, absent in (('resident', 'Not documented'),
                              ('attending', 'Not retained in attending report')):
             item[side + '_summary'] = item[side + '_summary'].strip() if item[side + '_quote'].strip() else absent
+        if item['action'] == 'emphasis':
+            item['attending_summary'] = IMPRESSION_EMPHASIS_SUMMARY
         # The model supplies endpoints, never a display sentence. All consumers
         # get the same order; source quotations remain independent and exact.
         item['summary'] = item['resident_summary'] + ' → ' + item['attending_summary']

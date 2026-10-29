@@ -222,7 +222,6 @@ class ReviewerTests(unittest.TestCase):
         for action, before, after in (
             ('changed', 'Right pneumothorax.', 'No pneumothorax.'),
             ('added', 'Diverticulitis without perforation.', 'Diverticulitis with perforation.'),
-            ('emphasis', 'Small effusion.', 'Small effusion.'),
             ('description', 'Simple cyst.', 'Simple cyst measures 1.2 cm.'),
         ):
             with self.subTest(action=action):
@@ -230,6 +229,26 @@ class ReviewerTests(unittest.TestCase):
                     resident_quote=before, resident_section='r0', attending_quote=after, attending_section='a0')
                 result = self.module.validate_analysis(self.payload(item), self.pair(report(before), report(after)))
                 self.assertEqual(result['revisions'][0]['summary'], before + ' → ' + after)
+
+    def test_emphasis_uses_one_direct_phrase_even_if_model_writes_it_differently(self):
+        pair = self.pair(report('Small right pneumothorax.'), report('Small right pneumothorax.', 'Small right pneumothorax.'))
+        item = self.revision(action='emphasis', importance='wording',
+            resident_summary='Small right pneumothorax', attending_summary='Same pneumothorax in Impression',
+            resident_quote='Small right pneumothorax.', resident_section='r0',
+            attending_quote='Small right pneumothorax.', attending_section='a1')
+        result = self.module.validate_analysis(self.payload(item), pair)
+        self.assertEqual(result['status'], 'complete')
+        revision = result['revisions'][0]
+        self.assertEqual(revision['summary'], 'Small right pneumothorax → Added to Impression; finding unchanged')
+        self.assertEqual(revision['importance'], 'wording')
+        self.assertEqual(revision['attending_quote'], 'Small right pneumothorax.')
+        self.assertIn(self.module.IMPRESSION_EMPHASIS_SUMMARY, self.module.DEFAULT_PROMPT)
+
+    def test_exported_prompt_is_exact_and_explains_decision_order(self):
+        exported = (APP_PATH.parent / 'ANALYSIS_PROMPT.md').read_text(encoding='utf-8')
+        self.assertEqual(exported, self.module.DEFAULT_PROMPT)
+        self.assertIn('DECISION ORDER', exported)
+        self.assertIn('Impression mention proves major', exported)
 
     def test_invalid_endpoint_never_silently_falls_back_to_free_form_summary(self):
         malformed = []

@@ -20,6 +20,7 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   sample[0].revisions[1].resident_summary='<img src=x onerror="window.injected=1">';
   sample[0].revisions[1].attending_summary='Revised interpretation';
   await page.setContent(withCases(sample));
+  assert.equal(await page.locator('#row-1 .preview-item').first().textContent(),'Small right pneumothorax → Added to Impression; finding unchanged','Impression inclusion states the edit explicitly');
   assert.equal(await page.locator('#filter-all').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#filter').count(),0,'filters are visible, not hidden in a dropdown');
   for(const colorScheme of ['dark','light']){

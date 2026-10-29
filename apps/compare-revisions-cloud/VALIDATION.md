@@ -4,6 +4,12 @@ Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## October 28, 2026 update
 
+### Explicit patterns and criteria audit
+
+- **72 Python tests passed.** Existing category/evidence regressions continue to pass. New checks verify server-standardized Emphasis wording and exact equality between the exported default prompt and the embedded prompt. Prompt 1.5 clarifies the decision order and writing patterns while preserving the existing importance thresholds and section gates.
+- **UI, review-controls and passage-highlight browser suites passed.** The case 13 preview now reads `Small right pneumothorax → Added to Impression; finding unchanged`. Source links, fixed endpoint colors, fully visible groups, filters, sorting and responsive layout remain covered. The criteria audit explicitly distinguishes model semantic judgments from mechanical quotation/section validation.
+- Updated examples remain prewritten synthetic fixtures. No live model-quality evaluation, paid API request or cloud deployment was performed.
+
 ### Systematic-summary follow-up
 
 - **70 Python tests passed.** The strict model schema requires separate resident/attending summary fields and excludes a free-form summary. Added regression coverage for fixed server-generated order, source-absence markers, preserving explicitly quoted negation and underlying disease context, all action types, and partial-result warnings when an endpoint is missing, blank, multiline or contains an embedded arrow.

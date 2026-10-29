@@ -1,5 +1,12 @@
 # Changes and rationale — October 4, 2026
 
+## Explicit writing patterns and auditable criteria — October 28, 2026
+
+- Prompt version 1.5 adds a step-by-step decision order: match assertions across sections, choose action, separate wording from clinical change, apply consequence and section requirements, then verify summaries and quotations. Existing Major/Minor thresholds and mechanical gates are preserved.
+- Define a small set of writing patterns for every action. Emphasis now reads `finding → Added to Impression; finding unchanged`, and the server standardizes that phrase instead of displaying varying section-location paraphrases. Do not imply that the finding left Findings or that unchanged Impression inclusion is a new miss.
+- Preserve direct clinical endpoints for reinterpretation, laterality, explicit negation, additions, removals and descriptive detail. Reasons explain the relevant consequence or uncertainty without requiring the user to infer the actual edit from them.
+- Add REVIEW_CRITERIA.md describing the current custom rubric, the deliberate prohibition on Findings-only Major items, model judgments versus mechanical checks, and custom-prompt behavior. Export the exact default to ANALYSIS_PROMPT.md during assembly without importing authentication or calling an API; test it for equality with the source constant.
+
 ## Systematic resident → attending summaries — October 28, 2026
 
 - Replace the model's free-form `summary` with required `resident_summary` and `attending_summary` fields. Prompt version 1.4 defines parallel, concise, source-specific endpoints for every action and importance, with examples covering complications, reinterpretation, negation, additions, removals, impression promotion and descriptive detail.

@@ -62,7 +62,7 @@ def fixtures(app):
         item('minor','changed','Simple left renal cyst','Simple right renal cyst',observations[3][1],observations[3][2],reason='Laterality changes a clinical assertion even though the cyst remains simple.'),
         item('minor','added','Not documented','Conditional 12-month nodule follow-up','','Consider follow-up CT in 12 months if high risk.',reason='A nonurgent recommendation is added; actionability alone does not make it major.'),
         item('wording','description','Small simple hepatic cyst','Simple hepatic cyst, 1.2 cm',observations[5][1],observations[5][2]),
-        item('wording','emphasis','Pleural effusions in Findings','Same pleural effusions in Impression',observations[6][1],observations[6][2],ats='a1',reason='The resident already documented the same effusions in Findings.'),
+        item('wording','emphasis','Small bilateral pleural effusions','Added to Impression; finding unchanged',observations[6][1],observations[6][2],ats='a1',reason='The resident already documented the same effusions in Findings; the attending also included them in Impression.'),
         item('wording','description','Stranding all around sigmoid colon','Circumferential perisigmoid stranding',observations[7][1],observations[7][2]),
         item('wording','description','Mild aortic calcification','Mild atherosclerotic aortic calcification',observations[8][1],observations[8][2]),
         item('wording','description','Multilevel disc degeneration','Disc degeneration greatest at L4-L5',observations[9][1],observations[9][2]),
@@ -77,7 +77,7 @@ def fixtures(app):
         cases.append(case)
     r=report('Small right pneumothorax.','No acute abnormality.',context='Chest radiograph')
     a=report('Small right pneumothorax.','Small right pneumothorax.',context='Chest radiograph')
-    add(13,r,a,dict(exam_label='CXR',title='Small right pneumothorax',warnings=[],revisions=[item('wording','emphasis','Small right pneumothorax in Findings','Same pneumothorax in Impression','Small right pneumothorax.','Small right pneumothorax.',ats='a1',reason='Already in resident Findings; no new diagnosis or clinical meaning.')] ))
+    add(13,r,a,dict(exam_label='CXR',title='Small right pneumothorax',warnings=[],revisions=[item('wording','emphasis','Small right pneumothorax','Added to Impression; finding unchanged','Small right pneumothorax.','Small right pneumothorax.',ats='a1',reason='The resident already documented the pneumothorax in Findings; the attending also included it in Impression.')] ))
     r=report('Right pneumothorax.','Right pneumothorax.',context='Chest radiograph')
     a=report('No pneumothorax.','No pneumothorax.',context='Chest radiograph')
     change=item('major','changed','Right pneumothorax','No pneumothorax','Right pneumothorax.','No pneumothorax.',rs='r1',ats='a1',reason='The important resident call is explicitly negated; this is a reversal, not a missed pneumothorax.')
