@@ -44,10 +44,91 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-29 07:32 Central Daylight Time
-Cards: 14
+Updated: 2026-10-29 15:43 Central Daylight Time
+Cards: 16
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T07:25:03-05:00
+Last seen: 2026-10-29T15:41:41-05:00
+Card ID: 1776200599136
+Note ID: 1776200599136
+
+Question:
+00:12
+
+What is C?
+
+[...]
+
+Answer:
+00:12
+
+What is C?
+
+Probst bundles
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T15:40:56-05:00
+Last seen: 2026-10-29T15:40:56-05:00
+Card ID: 1779484495695
+Note ID: 1779484495693
+
+Question:
+00:12
+
+In balloon angioplasty, the law of Laplace explains why [...] determine balloon wall tension.
+
+Answer:
+00:12
+
+In balloon angioplasty, the law of Laplace explains why pressure and diameter determine balloon wall tension.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-09-07T08:54:41-05:00
+Last seen: 2026-10-29T15:40:31-05:00
+Card ID: 1788754072562
+Note ID: 1788754072560
+
+Question:
+00:12
+
+A well counter is typically a [...] used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+Answer:
+00:12
+
+A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-25T08:24:27-05:00
+Last seen: 2026-10-29T15:37:39-05:00
+Card ID: 1762544589813
+Note ID: 1762544589812
+
+Question:
+00:12
+
+Classic causes of expansile, predominantly lytic skeletal metastases include [...].
+
+Answer:
+00:12
+
+Classic causes of expansile, predominantly lytic skeletal metastases include renal cell carcinoma and thyroid carcinoma, especially follicular carcinoma.
+
+Notion AIRP Lecture
+
+Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
+Bone metastases in thyroid cancer
+
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:21:48-05:00
@@ -69,7 +150,7 @@ The dark anterior humeral line crosses the green middle third of the capitellum.
 
 Image by Kilborn, Moodley and Mears; annotations by Mikael Häggström. Unmodified. Image source · CC BY-SA 4.0 · Original article
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -87,7 +168,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 3
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:50:28-05:00
@@ -109,7 +190,7 @@ The grades represent progressively more severe aortic wall injury.
 
 Source: Notion Radiology entry.
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:49:17-05:00
@@ -127,7 +208,7 @@ Answer:
 
 Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-03-27T06:41:27-05:00
@@ -145,7 +226,7 @@ Mylohyoid boutonniere (herniation of the sublingual duct)
 
 Images
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:46:15-05:00
@@ -167,7 +248,7 @@ Which tumors are most likely in the testis based on epidemiology?
 
 Germ cell tumors (greater than 90 percent in men younger than about fifty to sixty years), with lymphoma an important consideration in older men.
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
@@ -189,29 +270,7 @@ What is the relationship between signal to noise ratio and bandwidth?
 
 SNR is inversely proportional to the square root of bandwidth
 
-## Card 8
-
-Deck: .NEW::Visual
-Flagged: 2026-04-22T07:25:03-05:00
-Last seen: 2026-10-29T06:42:40-05:00
-Card ID: 1776200599136
-Note ID: 1776200599136
-
-Question:
-00:12
-
-What is C?
-
-[...]
-
-Answer:
-00:12
-
-What is C?
-
-Probst bundles
-
-## Card 9
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-06-27T14:57:59-05:00
@@ -236,7 +295,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 10
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:08:50-05:00
@@ -254,30 +313,7 @@ Answer:
 
 The Hawthorne effect is when people change their behavior because they know they are being watched.
 
-## Card 11
-
-Deck: .NEW::Audio
-Flagged: 2026-10-25T08:24:27-05:00
-Last seen: 2026-10-29T06:28:04-05:00
-Card ID: 1762544589813
-Note ID: 1762544589812
-
-Question:
-00:12
-
-Classic causes of expansile, predominantly lytic skeletal metastases include [...].
-
-Answer:
-00:12
-
-Classic causes of expansile, predominantly lytic skeletal metastases include renal cell carcinoma and thyroid carcinoma, especially follicular carcinoma.
-
-Notion AIRP Lecture
-
-Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
-Bone metastases in thyroid cancer
-
-## Card 12
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-10-17T21:26:11-05:00
@@ -300,7 +336,7 @@ Original conversation
 
 Notion source
 
-## Card 13
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-10-29T06:11:53-05:00
@@ -322,7 +358,7 @@ Sign and diagnosis?
 
 pneumoperitoneum with football sign (outlined falciform ligament)
 
-## Card 14
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:07:31-05:00
