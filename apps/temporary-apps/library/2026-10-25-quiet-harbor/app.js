@@ -5,6 +5,7 @@ import { GENERATOR_VERSION, worldFor } from "./core/world-v1.js";
 import { openDatabase, readState, saveInitial, saveSettings, saveCamera, commitReset, undoReset, checkpoint, replaceBackup, rebaseRunClock } from "./core/persistence.js";
 import { makeBackup, parseBackupFile } from "./core/backup.js";
 import { ClockMonitor } from "./core/clock.js";
+import { BUILDING_TYPES, FIRST_LANDMARKS, buildingDefinition, townCounts } from "./core/building-types.js";
 import { HoldController } from "./core/reset-controller.js";
 import { IslandRenderer } from "./scene/renderer.js";
 
@@ -31,6 +32,7 @@ let busy = false;
 let anomalyElapsed = null;
 let lastShownSecond = -1;
 let lastWorldKey = "";
+let lastLandmarkKey = "";
 let lastCheckpoint = 0;
 let cameraSaveHandle = 0;
 let undoHandle = 0;
@@ -120,8 +122,10 @@ async function initScene() {
     };
     renderer.onSelectBuilding = (building) => {
       const times = Math.max(0, Math.round(building.birthAtSeconds));
-      $("buildingTitle").textContent = building.kind === "civic" ? "A shared little place" : "A home by the shore";
-      $("buildingDetail").textContent = `${building.kind === "civic" ? "A place for neighbors" : "A cottage for a neighbor"} · appeared after ${formatDuration(times * 1000)}.`;
+      const definition = buildingDefinition(building);
+      $("buildingTitle").textContent = definition.name;
+      const timing = currentElapsed() / 1000 + .01 >= building.birthAtSeconds ? "Arrived after" : "Taking shape · ready after";
+      $("buildingDetail").textContent = `${definition.description} ${timing} ${formatDuration(times * 1000)}.`;
       if (!els.buildingDialog.open) els.buildingDialog.showModal();
     };
     sceneReady = true;
@@ -282,13 +286,16 @@ function render(forceScene = false) {
   els.stage.textContent = run ? growth.stage : "A seed finds the shore";
   const person = growth.personPresent ? " · a neighbor is here" : "";
   const buildings = growth.completedBuildings;
-  els.summary.textContent = run ? `${buildings ? `${buildings} ${buildings === 1 ? "home" : "homes"}` : (growth.gardenPresent ? "garden and first paths" : growth.personPresent ? "a seed and a neighbor" : "a seed by the shore")}${person}` : "A seed and a quiet shoreline.";
+  const counts = run ? townCounts(run.seed, buildings) : { homes: 0, places: 0 };
+  const town = `${counts.homes} ${counts.homes === 1 ? "home" : "homes"}${counts.places ? ` · ${counts.places} ${counts.places === 1 ? "place" : "places"}` : ""}`;
+  els.summary.textContent = run ? `${buildings ? town : (growth.gardenPresent ? "garden and first paths" : growth.personPresent ? "a seed and a neighbor" : "a seed by the shore")}${person}` : "A seed and a quiet shoreline.";
   const visualKey = run ? `${run.id}:${growth.stageId}:${growth.completedBuildings}:${Math.floor(elapsed / 30_000)}` : "empty";
   if (sceneReady && renderer && (forceScene || visualKey !== lastWorldKey)) {
     lastWorldKey = visualKey;
     renderer.renderWorld(worldFor(run?.seed || "quiet-harbor-first-seed", elapsed)).catch(() => {});
   }
   renderHistory();
+  if (els.settings.open) renderTownLife();
   updateUndoAvailability();
 }
 
@@ -363,7 +370,23 @@ function updateUndoAvailability() {
 function openSettings() {
   if (!els.settings.open) els.settings.showModal();
   renderHistory();
+  renderTownLife();
   $("installHelp").hidden = window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function renderTownLife() {
+  const elapsed = currentElapsed(), growth = growthAt(elapsed);
+  const unlocked = FIRST_LANDMARKS.filter(({ slot }) => growth.completedBuildings > slot);
+  const next = FIRST_LANDMARKS[unlocked.length];
+  $("landmarkProgress").textContent = next
+    ? `${unlocked.length} of ${FIRST_LANDMARKS.length} place designs have arrived. Next: ${BUILDING_TYPES[next.type].name} in ${formatDuration(Math.max(0, growth.bornAtSeconds(next.slot) * 1000 - elapsed))}.`
+    : "Every place design has arrived. New districts keep adding shops, gardens, and community landmarks.";
+  const key = `${activeRun()?.id || "empty"}:${growth.completedBuildings}`;
+  if (key !== lastLandmarkKey) {
+    const chips = unlocked.map(({ type }) => { const item = document.createElement("span"); item.className = "landmark-chip"; item.textContent = BUILDING_TYPES[type].name; return item; });
+    $("landmarkList").replaceChildren(...chips);
+    lastLandmarkKey = key;
+  }
 }
 
 async function exportData() {

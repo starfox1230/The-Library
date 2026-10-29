@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { IslandRenderer } from "../scene/renderer.js";
 import { worldFor } from "../core/world-v1.js";
+import { BUILDING_TYPES } from "../core/building-types.js";
 
 // A scene-graph double checks occlusion and camera ownership without a GPU.
 // Pixel appearance is reviewed separately in visual-review.html.
@@ -17,7 +18,7 @@ class Container {
   destroy() { this.destroyed = true; for (const child of this.children) child.destroy(); }
 }
 class Graphics extends Container {}
-for (const method of ["ellipse", "circle", "roundRect", "moveTo", "lineTo", "quadraticCurveTo", "poly", "fill", "stroke"]) Graphics.prototype[method] = function () { return this; };
+for (const method of ["ellipse", "circle", "roundRect", "moveTo", "lineTo", "quadraticCurveTo", "closePath", "poly", "fill", "stroke"]) Graphics.prototype[method] = function () { return this; };
 class Application {
   constructor() {
     this.stage = new Container(); this.screen = { width: 390, height: 300 };
@@ -85,4 +86,19 @@ test("starting a new island after exploring a distant district brings the seed b
   assert.equal(renderer.camera.y, 0);
   assert.ok(renderer.groundLayer.children.length > 0);
   assert.equal(renderer.selectableHomes.length, 0);
+});
+
+test("every landmark illustration renders as a selectable object with its own preserved ground anchor", async () => {
+  const renderer = await new IslandRenderer(host).init();
+  const base = worldFor("landmark-art", 86_400_000);
+  for (const type of Object.keys(BUILDING_TYPES)) {
+    const building = { ...base.buildings[0], type, x: 2, y: 1 };
+    await renderer.renderWorld({ ...base, seed: `landmark-${type}`, buildings: [building] });
+    const displayed = renderer.selectableHomes[0];
+    assert.equal(displayed.home.type, type);
+    assert.equal(displayed.display.x, 29);
+    assert.equal(displayed.display.y, 46.5);
+    assert.equal(displayed.display.parent, renderer.propLayer);
+    assert.equal(displayed.display.label, building.id);
+  }
 });

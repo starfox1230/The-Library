@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Quiet Harbor · town landmarks</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    body { padding:20px; color:#f6efdb; font:14px system-ui; }
+    h1 { margin:0 0 8px;font-size:24px; } header p { margin:0 0 16px;color:#c9ded2;line-height:1.5; }
+    a { color:#f2d4a2; } .gallery { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px; }
+    article { background:#faf7ef;padding:12px;border-radius:18px;color:#193633; }
+    h2 { margin:0;font-size:15px; } article p { margin:6px 0 0;color:#56716b;font-size:12px;line-height:1.45; }
+    .arrival { font-size:10px;color:#617a6b;margin:4px 0 10px; }
+    .art { height:190px;min-height:0;position:relative;border-radius:12px;background:radial-gradient(ellipse at 40% 30%,#78b7b1,#377c86);overflow:hidden; }
+  </style>
+</head>
+<body>
+  <header><h1>A town full of places</h1><p>13 place designs plus your cottages. These previews use the real island artwork and do not change saved progress.<br><a href="../index.html">Open Quiet Harbor</a> · <a href="./visual-review.html">See the growing town</a></p></header>
+  <main class="gallery" id="gallery"></main>
+  <script src="../vendor/pixi-8.22.0.min.js"></script>
+  <script type="module">
+    import { IslandRenderer } from "../scene/renderer.js";
+    import { BUILDING_TYPES, FIRST_LANDMARKS } from "../core/building-types.js";
+    import { growthAt } from "../core/growth-v1.js";
+    import { formatDuration } from "../core/time.js";
+    const order = ["school","museum","fire-station","library","town-hall","clinic","observatory","greenhouse","theater","market","cafe","bakery","park","cottage"];
+    const slots = new Map(FIRST_LANDMARKS.map(({type,slot})=>[type,slot]));
+    // Only visible cards own a WebGL context. The main app still has just one.
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        const item = entry.target.preview; item.visible = entry.isIntersecting;
+        if (!item.visible && item.renderer) { item.renderer.destroy(); item.renderer=null; }
+        if (item.visible && !item.renderer && !item.loading) void (async () => {
+          item.loading=true;
+          const renderer = await new IslandRenderer(item.host).init({centerX:-1,centerY:-1,zoom:1.5});
+          if (item.visible) {
+            renderer.setReducedMotion(true);
+            renderer.propLayer.addChild(renderer.makeHome({id:item.type,type:item.type,kind:item.type==="cottage"?"home":"civic",variant:1,x:0,y:0}));
+            renderer.placeWorld(); item.renderer=renderer;
+          } else renderer.destroy();
+          item.loading=false;
+        })();
+      }
+    });
+    for (const type of order) {
+      const definition=BUILDING_TYPES[type], card=document.createElement("article");
+      const title=document.createElement("h2");title.textContent=definition.name;
+      const arrival=document.createElement("div");arrival.className="arrival";
+      arrival.textContent=`First arrives after ${formatDuration(growthAt(0).bornAtSeconds(slots.get(type)??0)*1000)}`;
+      const host=document.createElement("div");host.className="art";host.setAttribute("role","img");host.setAttribute("aria-label",definition.description);
+      const copy=document.createElement("p");copy.textContent=definition.description;
+      card.append(title,arrival,host,copy);card.preview={type,host,renderer:null,loading:false,visible:false};
+      document.getElementById("gallery").append(card);observer.observe(card);
+    }
+  </script>
+</body>
+</html>

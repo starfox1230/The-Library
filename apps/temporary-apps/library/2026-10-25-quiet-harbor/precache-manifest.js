@@ -1,4 +1,4 @@
-self.QUIET_HARBOR_REVISION = "5915bd8a7f9611d2";
+self.QUIET_HARBOR_REVISION = "3d0f0036c66fd7d3";
 self.QUIET_HARBOR_ASSETS = [
   "./",
   "./app.js",
@@ -36,6 +36,7 @@ self.QUIET_HARBOR_ASSETS = [
   "./assets/sprites/landscapeTiles_067.png",
   "./assets/sprites/landscapeTiles_075.png",
   "./core/backup.js",
+  "./core/building-types.js",
   "./core/clock.js",
   "./core/growth-v1.js",
   "./core/persistence.js",
@@ -51,6 +52,7 @@ self.QUIET_HARBOR_ASSETS = [
   "./icons/source.svg",
   "./index.html",
   "./manifest.webmanifest",
+  "./scene/landmarks.js",
   "./scene/renderer.js",
   "./styles.css",
   "./vendor/pixi-8.22.0.min.js"

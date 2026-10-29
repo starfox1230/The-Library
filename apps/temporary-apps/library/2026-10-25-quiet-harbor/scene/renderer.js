@@ -1,3 +1,5 @@
+import { drawLandmark } from "./landmarks.js";
+
 const TILE_X = 58;
 const TILE_Y = 31;
 
@@ -207,7 +209,7 @@ export class IslandRenderer {
       sprite.scale.set(1, inProgress ? .72 + .28 * construction : 1);
       if (inProgress) this.construction.push({ display: sprite, home });
       objects.push(sprite);
-      if (home.kind === "home" && hash(home.id) % 3 === 0 && !inProgress) objects.push(this.makeGarden(home));
+      if ((home.type === "cottage" || !home.type && home.kind === "home") && hash(home.id) % 3 === 0 && !inProgress) objects.push(this.makeGarden(home));
     }
     for (const item of objects) this.propLayer.addChild(item);
     this.drawStartingGarden(world);
@@ -298,6 +300,12 @@ export class IslandRenderer {
   }
 
   makeHome(home) {
+    if (home.type && home.type !== "cottage") {
+      const landmark = drawLandmark(home.type, home.variant);
+      [landmark.x, landmark.y] = project(home.x, home.y);
+      landmark.zIndex = depth(home.x, home.y); landmark.label = home.id;
+      return landmark;
+    }
     const house = new PIXI.Graphics();
     const [roof, roofDark, wall, wallDark] = PALETTES[home.variant % PALETTES.length];
     const civic = home.kind === "civic";

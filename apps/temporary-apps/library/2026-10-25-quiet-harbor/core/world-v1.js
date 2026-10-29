@@ -1,5 +1,6 @@
 import { randomFor, hash32 } from "./random-v1.js";
 import { growthAt } from "./growth-v1.js";
+import { buildingTypeFor } from "./building-types.js";
 
 export const GENERATOR_VERSION = 1;
 const CORE_HOUSE_SLOTS = 112;
@@ -58,7 +59,7 @@ export function worldFor(seed, elapsedMs) {
     const previousBirth = i ? growth.bornAtSeconds(i - 1) : 900;
     const gap = i ? Math.max(0, birthAtSeconds - previousBirth) : 900;
     const buildSeconds = Math.min(120, Math.max(10, 0.25 * gap));
-    return { ...lot, birthAtSeconds, startsAtSeconds: birthAtSeconds - buildSeconds, buildSeconds };
+    return { ...lot, type: buildingTypeFor(seed, i), birthAtSeconds, startsAtSeconds: birthAtSeconds - buildSeconds, buildSeconds };
   });
   const present = growth.personPresent;
   const home = buildings.slice(-1)[0];

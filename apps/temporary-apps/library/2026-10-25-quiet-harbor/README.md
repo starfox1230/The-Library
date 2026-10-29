@@ -6,6 +6,30 @@ Open `index.html` from this app on the deployed Library site. On iPhone, use Saf
 
 Progress uses this browser's IndexedDB, with a request for persistent storage when the browser supports it. Export a backup if you want a copy elsewhere. The exported timer trusts the device clock.
 
+## A town full of places
+
+Thirteen public-place designs join the cottages automatically. Schools have a bell tower and flag; museums have columns and a pediment; fire stations have garage doors and a small engine. The remaining designs are a bakery, café, market, fountain garden, library, clinic, town hall, glasshouse, observatory, and theater. Tap any building to see its name, description, and arrival time. History & settings → Town life lists the designs that have arrived and the next arrival.
+
+| First arrival | Place |
+| --- | --- |
+| 6 hours | Bakery |
+| 9 hours 36 minutes | Café |
+| 15 hours | Market |
+| 1 day | School |
+| 2 days | Fire station |
+| 2 days 20 hours | Fountain garden |
+| 4 days | Library |
+| 6 days | Clinic |
+| 9 days 8 hours | Museum |
+| 14 days | Town hall |
+| 19 days 14 hours 24 minutes | Glasshouse |
+| 25 days 4 hours 48 minutes | Observatory |
+| 28 days | Theater |
+
+Later 16-lot districts contain twelve cottages, a shop, two different community places, and a park. Shop and community designs rotate reproducibly by run seed and district, so later growth has variety. Existing lot coordinates, IDs, total building counts, construction times, saved progress, and backup format are preserved. Runs already beyond an arrival time gain their landmarks when the new version loads; no reset is needed.
+
+This is an expanding illustration, not a management simulation: schools and fire stations do not require staffing, resources, or maintenance. New designs can be added to the vector catalog without external services or additional asset downloads. The renderer draws only the part of the town near the camera; scene detail and visible object count remain the practical phone-performance constraints.
+
 ## Sources and credits
 
 The current island, cottages, clock towers, gardens, and neighbors are original vector illustrations drawn by the renderer. Ground, paths, and objects use separate layers, and objects sort by their ground position. Existing run seeds and growth schedules are unchanged. The earlier Kenney art remains bundled with its licenses.
@@ -23,5 +47,7 @@ Run `npm test` for pure timer, growth, seed layout and backup validation checks.
 Run `python scripts/generate-precache.py` after changing runtime files. Its content fingerprint gives every release a separate offline cache, so an update cannot keep serving a previous version's renderer. The update button activates the waiting worker and reloads the app; saved runs stay in IndexedDB.
 
 Serve this folder and open `tests/visual-review.html` to compare the seed, ten-minute garden, one-hour neighborhood, two-day village, and hundred-day district. These deterministic scene fixtures do not modify saved progress. The page also embeds the real app at a 390 × 844 phone size.
+
+Open `tests/landmark-review.html` for a labeled gallery of all fourteen building/place designs, their descriptions, and first arrival times. Only visible cards create drawing contexts, and hidden cards release them.
 
 The Home Screen shell uses `viewport-fit=cover`, `black-translucent` status-bar styling, safe-area padding, and a shared solid background/theme color. These let the page extend behind the system status area without a gradient seam. iOS controls its status icons and home indicator; web content does not hide those. Verify the installed presentation on a physical iPhone, since a desktop browser cannot reproduce that system chrome.
