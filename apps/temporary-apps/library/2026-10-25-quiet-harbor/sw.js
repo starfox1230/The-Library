@@ -5,7 +5,9 @@ const OWNED_CACHE_PREFIX = "quiet-harbor-assets-";
 const APP_SCOPE = new URL(self.registration.scope);
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(self.QUIET_HARBOR_ASSETS)));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(
+    self.QUIET_HARBOR_ASSETS.map((path) => new Request(new URL(path, APP_SCOPE), { cache: "reload" })),
+  )));
 });
 
 self.addEventListener("activate", (event) => {
@@ -26,6 +28,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const cached = await cache.match(request, { ignoreSearch: true });
+    // Ship the app document and its modules as one revision. Fetching newer
+    // markup beside older cached scripts can break a Home Screen app on update.
+    const shell = url.pathname === APP_SCOPE.pathname || url.pathname === new URL("index.html", APP_SCOPE).pathname;
+    if (request.mode === "navigate" && shell && cached) return cached;
     if (request.mode === "navigate") {
       try {
         const fresh = await fetch(request);

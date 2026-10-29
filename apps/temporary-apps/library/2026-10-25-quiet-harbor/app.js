@@ -1,4 +1,5 @@
 import { formatDuration, longDurationLabel, elapsedForRun } from "./core/time.js";
+import { displayDuration } from "./core/timer-display.js";
 import { seedHex } from "./core/random-v1.js";
 import { GROWTH_VERSION, growthAt } from "./core/growth-v1.js";
 import { GENERATOR_VERSION, worldFor } from "./core/world-v1.js";
@@ -11,9 +12,9 @@ import { IslandRenderer } from "./scene/renderer.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
-  timer: $("timer"), best: $("bestDuration"), stage: $("worldStage"), summary: $("worldSummary"),
+  timer: $("timer"), best: $("bestDuration"),
   label: $("holdLabel"), action: $("holdAction"), fill: $("holdFill"), help: $("holdHelp"),
-  encouragement: $("encouragement"), storage: $("storageNotice"), status: $("statusMessage"), undo: $("undoReset"),
+  storage: $("storageNotice"), status: $("statusMessage"), undo: $("undoReset"),
   sceneMount: $("sceneMount"), fallback: $("sceneFallback"), frame: $("worldFrame"),
   settings: $("settingsDialog"), resetDialog: $("resetDialog"), buildingDialog: $("buildingDialog"),
   history: $("historyList"), historyIntro: $("historyIntro"), motion: $("motionSelect"), calm: $("calmRestart"),
@@ -31,6 +32,8 @@ let sceneReady = false;
 let busy = false;
 let anomalyElapsed = null;
 let lastShownSecond = -1;
+let timerShape = "";
+const timerValues = new Map();
 let lastWorldKey = "";
 let lastLandmarkKey = "";
 let lastCheckpoint = 0;
@@ -149,8 +152,6 @@ function attachEvents() {
   $("recenter").addEventListener("click", () => renderer?.recenter());
   $("zoomOut").addEventListener("click", () => renderer?.setZoom((renderer.camera?.zoom || .77) - .14));
   $("zoomIn").addEventListener("click", () => renderer?.setZoom((renderer.camera?.zoom || .77) + .14));
-  $("exploreHint").addEventListener("click", () => { showStatus("Drag to wander · use + and − to change your view. The village keeps growing."); els.frame.focus?.(); });
-  $("privacyShortcut").addEventListener("click", openSettings);
   $("assistReset").addEventListener("click", () => els.resetDialog.showModal());
   $("cancelReset").addEventListener("click", (event) => { event.preventDefault(); els.resetDialog.close(); });
   $("confirmReset").addEventListener("click", (event) => { event.preventDefault(); els.resetDialog.close(); void recordEpisode(); });
@@ -182,8 +183,7 @@ async function startRun() {
     state.meta = { key: "state", schemaVersion: 1, revision: (state.meta?.revision || 0) + 1, activeRunId: run.id, firstOpenedAtMs: state.meta?.firstOpenedAtMs || run.startedAtMs, settings: state.meta?.settings || { motion: "system", calmRestart: false }, camera: null, resetReceipt: null };
     state.runs.push(run);
     if (ephemeral) showStatus("Your temporary run has begun. Keep this page open to keep this session.");
-    else showStatus("Your seed has a place to begin.");
-    els.encouragement.textContent = "Your next seed is already growing.";
+    else showStatus("Timer started.");
     hold.setEnabled(true); render(true); announceChange();
   } catch (error) {
     await refreshFromStorage();
@@ -214,13 +214,12 @@ async function recordEpisode() {
     await refreshFromStorage(); showStatus(`Couldn't save that restart. Your current run is safe. ${error.message}`, "error"); return;
   }
   anomalyElapsed = null; lastWorldKey = ""; lastShownSecond = -1;
-  showStatus("A new beginning. Your past run is saved in History.");
+  showStatus("Restarted. Previous run saved in History.");
   els.undo.hidden = false;
   window.clearTimeout(undoHandle); undoHandle = window.setTimeout(() => { els.undo.hidden = true; }, Math.max(0, committedAt + 10_000 - Date.now()));
   render(true); announceChange();
   await playWave(reducedMotion());
   busy = false; els.action.disabled = false; hold.setEnabled(Boolean(activeRun()));
-  els.encouragement.textContent = "Your next seed is already growing.";
   render(true);
 }
 
@@ -271,24 +270,17 @@ function render(forceScene = false) {
   els.label.textContent = run ? "I picked — begin again" : "Begin growing";
   els.help.textContent = run ? "press and hold for one second" : "one tap begins your first little world";
   els.action.setAttribute("aria-describedby", "holdHelp");
-  els.encouragement.textContent = run ? "Give your hands a break. Let a little world grow." : "Your island is ready when you are.";
   const elapsed = run ? currentElapsed(run) : 0;
-  const text = formatDuration(elapsed);
   if (Math.floor(elapsed / 1000) !== lastShownSecond || forceScene) {
-    els.timer.textContent = text;
+    renderTimer(elapsed);
     els.timer.setAttribute("aria-label", longDurationLabel(elapsed));
     lastShownSecond = Math.floor(elapsed / 1000);
   }
   const historical = state.runs.filter((item) => item.endedAtMs !== null);
-  const best = Math.max(0, ...historical.map((item) => elapsedForRun(item)), run ? elapsed : 0);
-  els.best.textContent = best ? `Best time · ${formatDuration(best)}` : "Every beginning counts";
+  const best = Math.max(0, ...historical.map((item) => elapsedForRun(item)));
+  els.best.hidden = best === 0;
+  els.best.textContent = best ? (elapsed >= best ? "Longest run" : `Longest · ${formatDuration(best)}`) : "";
   const growth = growthAt(elapsed);
-  els.stage.textContent = run ? growth.stage : "A seed finds the shore";
-  const person = growth.personPresent ? " · a neighbor is here" : "";
-  const buildings = growth.completedBuildings;
-  const counts = run ? townCounts(run.seed, buildings) : { homes: 0, places: 0 };
-  const town = `${counts.homes} ${counts.homes === 1 ? "home" : "homes"}${counts.places ? ` · ${counts.places} ${counts.places === 1 ? "place" : "places"}` : ""}`;
-  els.summary.textContent = run ? `${buildings ? town : (growth.gardenPresent ? "garden and first paths" : growth.personPresent ? "a seed and a neighbor" : "a seed by the shore")}${person}` : "A seed and a quiet shoreline.";
   const visualKey = run ? `${run.id}:${growth.stageId}:${growth.completedBuildings}:${Math.floor(elapsed / 30_000)}` : "empty";
   if (sceneReady && renderer && (forceScene || visualKey !== lastWorldKey)) {
     lastWorldKey = visualKey;
@@ -297,6 +289,34 @@ function render(forceScene = false) {
   renderHistory();
   if (els.settings.open) renderTownLife();
   updateUndoAvailability();
+}
+
+function renderTimer(elapsed) {
+  const groups = displayDuration(elapsed);
+  const shape = [...groups.calendar, ...groups.clock].map(({ unit }) => unit).join(",");
+  if (shape !== timerShape) {
+    timerValues.clear();
+    const rows = [];
+    for (const kind of ["calendar", "clock"]) {
+      if (!groups[kind].length) continue;
+      const row = document.createElement("div"); row.className = `timer-${kind}`;
+      row.dataset.units = String(groups[kind].length); row.setAttribute("aria-hidden", "true");
+      for (const { unit } of groups[kind]) {
+        if (kind === "clock" && row.children.length) { const separator = document.createElement("span"); separator.className = "timer-separator"; separator.textContent = ":"; row.append(separator); }
+        const group = document.createElement("span"); group.className = "timer-unit";
+        const value = document.createElement("span"); value.className = "timer-value"; value.dataset.unit = unit;
+        const label = document.createElement("span"); label.className = "timer-unit-label";
+        group.append(value, label); row.append(group); timerValues.set(unit, { value, label, kind });
+      }
+      rows.push(row);
+    }
+    els.timer.replaceChildren(...rows); timerShape = shape;
+  }
+  for (const { unit, value } of [...groups.calendar, ...groups.clock]) {
+    const nodes = timerValues.get(unit);
+    if (nodes.value.textContent !== value) nodes.value.textContent = value;
+    nodes.label.textContent = nodes.kind === "clock" ? { hours: "hrs", minutes: "min", seconds: "sec" }[unit] : Number(value) === 1 ? unit.slice(0, -1) : unit;
+  }
 }
 
 function tick() {
@@ -376,11 +396,13 @@ function openSettings() {
 
 function renderTownLife() {
   const elapsed = currentElapsed(), growth = growthAt(elapsed);
+  const counts = townCounts(activeRun()?.seed || "", growth.completedBuildings);
+  const summary = growth.completedBuildings ? `${counts.homes} ${counts.homes === 1 ? "home" : "homes"} · ${counts.places} ${counts.places === 1 ? "place" : "places"}. ` : "";
   const unlocked = FIRST_LANDMARKS.filter(({ slot }) => growth.completedBuildings > slot);
   const next = FIRST_LANDMARKS[unlocked.length];
   $("landmarkProgress").textContent = next
-    ? `${unlocked.length} of ${FIRST_LANDMARKS.length} place designs have arrived. Next: ${BUILDING_TYPES[next.type].name} in ${formatDuration(Math.max(0, growth.bornAtSeconds(next.slot) * 1000 - elapsed))}.`
-    : "Every place design has arrived. New districts keep adding shops, gardens, and community landmarks.";
+    ? `${summary}${unlocked.length} of ${FIRST_LANDMARKS.length} place designs have arrived. Next: ${BUILDING_TYPES[next.type].name} in ${formatDuration(Math.max(0, growth.bornAtSeconds(next.slot) * 1000 - elapsed))}.`
+    : `${summary}Every place design has arrived. New districts keep adding shops, gardens, and community landmarks.`;
   const key = `${activeRun()?.id || "empty"}:${growth.completedBuildings}`;
   if (key !== lastLandmarkKey) {
     const chips = unlocked.map(({ type }) => { const item = document.createElement("span"); item.className = "landmark-chip"; item.textContent = BUILDING_TYPES[type].name; return item; });

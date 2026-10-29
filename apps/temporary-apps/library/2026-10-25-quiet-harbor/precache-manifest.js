@@ -1,4 +1,4 @@
-self.QUIET_HARBOR_REVISION = "3d0f0036c66fd7d3";
+self.QUIET_HARBOR_REVISION = "b73a634af263559f";
 self.QUIET_HARBOR_ASSETS = [
   "./",
   "./app.js",
@@ -43,6 +43,7 @@ self.QUIET_HARBOR_ASSETS = [
   "./core/random-v1.js",
   "./core/reset-controller.js",
   "./core/time.js",
+  "./core/timer-display.js",
   "./core/world-v1.js",
   "./icons/apple-touch-icon.png",
   "./icons/favicon-32.png",

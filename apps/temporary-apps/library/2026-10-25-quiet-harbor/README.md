@@ -6,6 +6,8 @@ Open `index.html` from this app on the deployed Library site. On iPhone, use Saf
 
 Progress uses this browser's IndexedDB, with a request for persistent storage when the browser supports it. Export a backup if you want a copy elsewhere. The exported timer trusts the device clock.
 
+The main screen keeps the timer, island, and restart action. The counter separates calendar units from hours, minutes, and seconds; labels sit underneath the clock digits. Best time is shown only when there is a previous run to compare. Town stages, growth badges, encouragement, decorative captions, the explore link, and the footer are omitted. Town totals and the next landmark remain in History & settings → Town life.
+
 ## A town full of places
 
 Thirteen public-place designs join the cottages automatically. Schools have a bell tower and flag; museums have columns and a pediment; fire stations have garage doors and a small engine. The remaining designs are a bakery, café, market, fountain garden, library, clinic, town hall, glasshouse, observatory, and theater. Tap any building to see its name, description, and arrival time. History & settings → Town life lists the designs that have arrived and the next arrival.
@@ -45,6 +47,8 @@ Use any static HTTP server from this folder. Open `index.html`; no install/build
 Run `npm test` for pure timer, growth, seed layout and backup validation checks. Run `npm run check` for module syntax. `python scripts/prepare-assets.py` verifies the pinned free Kenney archives and crops only the selected sprites; `python scripts/make-contact-sheets.py` creates labeled visual reviews. `python scripts/prepare-icons.py` regenerates the PNG icon family. `python scripts/generate-precache.py` regenerates the app-local offline asset list.
 
 Run `python scripts/generate-precache.py` after changing runtime files. Its content fingerprint gives every release a separate offline cache, so an update cannot keep serving a previous version's renderer. The update button activates the waiting worker and reloads the app; saved runs stay in IndexedDB.
+
+The app's main document comes from the same cache revision as its modules until the update is installed. Hidden empty compatibility targets also let older cached clients install this interface update safely; they are not visible app content.
 
 Serve this folder and open `tests/visual-review.html` to compare the seed, ten-minute garden, one-hour neighborhood, two-day village, and hundred-day district. These deterministic scene fixtures do not modify saved progress. The page also embeds the real app at a 390 × 844 phone size.
 
