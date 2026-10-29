@@ -44,14 +44,14 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-28 13:00 Central Daylight Time
-Cards: 4
+Updated: 2026-10-28 20:23 Central Daylight Time
+Cards: 5
 
 ## Card 1
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
-Last seen: 2026-10-28T12:57:00-05:00
+Last seen: 2026-10-28T13:34:01-05:00
 Card ID: 1789015833853
 Note ID: 1789015833852
 
@@ -66,6 +66,24 @@ Answer:
 In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
 
 ## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T12:45:53-05:00
+Last seen: 2026-10-28T13:14:20-05:00
+Card ID: 1779919013065
+Note ID: 1779919013065
+
+Question:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the [...].
+
+Answer:
+00:12
+
+Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
+
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -89,7 +107,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 3
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:17:37-05:00
@@ -107,7 +125,7 @@ Answer:
 
 Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-07-12T13:25:17-05:00
