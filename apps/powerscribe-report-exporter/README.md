@@ -1,4 +1,12 @@
-# PowerScribe Report Exporter v0.15
+# PowerScribe Report Exporter v0.16
+
+## v0.16: compact typing-first launcher
+
+The default client area is now **420 x 300** instead of 700 x 438. First case and Last case are small plain text fields on one row, with no up/down buttons. Type the numbers and press Go or Enter. Both must be whole numbers from 1 to 1,000,000 and Last case must be at least First case. Invalid input is rejected before settings, output creation, or capture begins; values are never silently clamped or truncated.
+
+Speed appears only inside Options. The footer contains Go and Stop. Opening Options, Copied text, or Details expands the window's width; its height follows the visible content, up to the screen limit. Closing those sections returns to the compact width. Results and longer status messages get the space they need, and Go/Stop stay pinned at the bottom. The night appearance, copied-text recovery, saved preferences and report capture workflow are retained.
+
+Validation: executable compiled and **115 tests passed**, including typed-range validation for both fields, malformed/overflow/reversed values, compact sizing, width expansion/restoration, unclipped fields and Go, and existing complete-pair/clipboard/navigation safeguards. Main, Options and Copied text previews were inspected. All checks use synthetic reports and test-owned controls rather than PowerScribe or the real clipboard; a short workstation trial remains necessary for end-to-end capture.
 
 ## v0.15: night appearance
 
@@ -40,7 +48,7 @@ Stopped runs keep saved captures and show a brief result with an actionable next
 
 Validation: executable compiled and **111 tests passed**, including the existing 103 capture/navigation checks plus adaptive timing, migration, unique filenames, stopped-run recovery, and a native launcher layout check. Launcher previews were inspected with Options collapsed and expanded. Tests use synthetic reports and test-owned controls; they do not operate on PowerScribe or the real clipboard. The UAB workstation still needs a short trial to verify the actual range, report contents, and case order.
 
-The following release notes describe earlier changes; the current use instructions below reflect v0.15.
+The following release notes describe earlier changes; the current use instructions below reflect v0.16.
 
 ## v0.12: retain worklist focus before activation
 
@@ -119,7 +127,7 @@ The first version's accessibility approach did not work on Sterling's workstatio
 
 ## Use it — no PowerShell required
 
-1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.15**.
+1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.16**.
 2. Close any open Compare Report Revisions dialog and **click the first case row in PowerScribe's worklist**. Leave focus on that row. Keep the comparison-window size that works with the AHK.
 3. Enter **First case** and **Last case**, then **Go**. These labels determine the count; they do not select numbered rows. Start with one case, then a small batch. Options is unnecessary for a normally configured workstation.
 4. A small progress window shows the current action, elapsed time, saved count, and available stop shortcut (**Numpad \*** or **Ctrl+Shift+F12**). Use its Stop button to cancel.

@@ -2,13 +2,14 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.15.0.0")]
-[assembly: AssemblyFileVersion("0.15.0.0")]
+[assembly: AssemblyVersion("0.16.0.0")]
+[assembly: AssemblyFileVersion("0.16.0.0")]
 
 namespace ReportExporter
 {
@@ -66,8 +67,8 @@ namespace ReportExporter
     {
         private Profile profile = new Profile();
         private readonly string settingsDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PowerScribeReportExporter");
-        private readonly NumericUpDown first = Number(1, 1000000, 1);
-        private readonly NumericUpDown last = Number(1, 1000000, 1);
+        private readonly TextBox first = new TextBox { Text = "1", Width = 76, Font = new Font("Segoe UI", 11), AccessibleName = "First case" };
+        private readonly TextBox last = new TextBox { Text = "1", Width = 76, Font = new Font("Segoe UI", 11), AccessibleName = "Last case" };
         private readonly NumericUpDown timeout = Number(1, 60, 10);
         private readonly NumericUpDown comparisonWait = Number(1, 60, 3);
         private readonly NumericUpDown poll = Number(1, 100, 5);
@@ -84,9 +85,10 @@ namespace ReportExporter
         private readonly Label status = new Label { AutoSize = false, Width = 570, Height = 70, Text = "Select the first case row in PowerScribe.\nEnter the first and last case numbers below, then Go." };
         private readonly Label stopHint = new Label { AutoSize = true };
         private readonly Label captured = new Label { AutoSize = false, Width = 590, Height = 30 };
-        private readonly Button start = new NightButton { Name = "Go", Text = "Go", Width = 136, Height = 42, Primary = true };
-        private readonly Button stop = new NightButton { Text = "Stop", Width = 92, Height = 42, AutoSize = false, Enabled = false };
+        private readonly Button start = new NightButton { Name = "Go", Text = "Go", Width = 108, Height = 36, Primary = true, Margin = new Padding(3, 1, 7, 1) };
+        private readonly Button stop = new NightButton { Text = "Stop", Width = 76, Height = 36, Margin = new Padding(3, 1, 7, 1), AutoSize = false, Enabled = false };
         private FlowLayoutPanel body;
+        private Panel feedback;
         private string captureRole;
         // Session-only native handles: never serialize them to controls.json.
         private IntPtr lockedWorklistMain, lockedWorklistChild;
@@ -96,11 +98,11 @@ namespace ReportExporter
         private ProgressOverlay overlay;
         private FlowLayoutPanel keyboardSettings, accessibilitySettings;
         private FlowLayoutPanel optionsPanel, resultActions, customTiming;
-        private readonly Button optionsButton = new NightButton { Name = "Options", Text = "Options", Width = 620, Height = 44, AutoSize = false, Disclosure = true };
+        private readonly Button optionsButton = new NightButton { Name = "Options", Text = "Options", Width = 380, Height = 36, AutoSize = false, Disclosure = true };
         private readonly ComboBox speed = new NightComboBox { Name = "Speed", DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
         private readonly TextBox outputFolder = new TextBox { Width = 390, ReadOnly = true };
         private readonly CheckBox openText = new CheckBox { Name = "OpenNotepad", Text = "Open the saved comparison file in Notepad", AutoSize = true, Checked = true };
-        private readonly Button copiedToggle = new NightButton { Name = "CopiedTextToggle", Text = "Copied text", Width = 620, Height = 44, AutoSize = false, Disclosure = true, Visible = false };
+        private readonly Button copiedToggle = new NightButton { Name = "CopiedTextToggle", Text = "Copied text", Width = 380, Height = 36, AutoSize = false, Disclosure = true, Visible = false };
         private readonly FlowLayoutPanel copiedPanel = new FlowLayoutPanel { Name = "CopiedTextPanel", AutoSize = true, Padding = new Padding(12), Width = 620, MinimumSize = new Size(620, 0), MaximumSize = new Size(620, 0), FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
         private readonly TextBox copiedText = new TextBox { Name = "CopiedText", Width = 590, Height = 240, Font = new Font("Consolas", 10), Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, MaxLength = Int32.MaxValue };
         private readonly Label copiedSource = new Label { Name = "CopiedSource", AutoSize = true, MaximumSize = new Size(570, 0) };
@@ -126,25 +128,23 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.15";
-            ClientSize = new Size(700, 438);
-            MinimumSize = new Size(720, 470);
+            Text = "PowerScribe Report Exporter v0.16";
+            ClientSize = new Size(420, 300);
+            MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
             DoubleBuffered = true;
-            body = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(24, 8, 24, 16), FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
+            body = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(20, 4, 20, 8), FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
             Controls.Add(body);
-            var feedback = new Panel { Dock = DockStyle.Top, Height = 78, Padding = new Padding(24, 8, 24, 8), BackColor = NightTheme.Canvas };
+            feedback = new Panel { Dock = DockStyle.Top, Height = 52, Padding = new Padding(20, 4, 20, 4), BackColor = NightTheme.Canvas };
             status.Dock = DockStyle.Fill;
             status.Font = new Font("Segoe UI", 10);
             feedback.Controls.Add(status);
             Controls.Add(feedback);
             first.Name = "FirstCase"; last.Name = "LastCase";
-            var range = new TableLayoutPanel { Width = 620, Height = 86, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
-            range.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); range.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
-            range.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            range.Controls.Add(RangeField("First case", first), 0, 0); range.Controls.Add(RangeField("Last case", last), 1, 0);
+            var range = Row("First case", first, "Last case", last);
+            range.Name = "CaseRange"; range.Margin = new Padding(0, 0, 0, 8);
             body.Controls.Add(range);
-            body.Controls.Add(new Label { Text = "Case numbers label the export; PowerScribe starts from your selected row.", AutoSize = true, MaximumSize = new Size(620, 0), Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray, Margin = new Padding(0, 0, 0, 16) });
+            body.Controls.Add(new Label { Text = "Case numbers label the export.", AutoSize = true, MaximumSize = new Size(380, 0), Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray, Margin = new Padding(0, 0, 0, 8) });
             optionsButton.FlatAppearance.BorderSize = 0;
             body.Controls.Add(optionsButton);
             optionsPanel = new FlowLayoutPanel { Name = "OptionsPanel", AutoSize = true, Padding = new Padding(12), Width = 620, MinimumSize = new Size(620, 0), MaximumSize = new Size(620, 0), FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
@@ -235,22 +235,15 @@ namespace ReportExporter
             openComparison.Click += (sender, args) => OpenComparisonFile();
             openFolder.Click += (sender, args) => { try { Process.Start(Path.GetDirectoryName(lastOutput)); } catch (Exception error) { ShowError("Folder did not open", error.Message); } };
             detailsButton.Click += (sender, args) => { details.Visible = !details.Visible; detailsButton.Text = details.Visible ? "Hide details" : "Details"; ResizeForContent(); };
-            resume.Click += (sender, args) => { if (resumeCase.HasValue) { first.Value = resumeCase.Value; status.Text = "Select case " + resumeCase.Value + " in PowerScribe, then Go. This button only sets the range here."; } };
+            resume.Click += (sender, args) => { if (resumeCase.HasValue) { first.Text = resumeCase.Value.ToString(CultureInfo.InvariantCulture); status.Text = "Select case " + resumeCase.Value + " in PowerScribe, then Go. This button only sets the range here."; } };
             resultActions.Controls.Add(openComparison); resultActions.Controls.Add(openFolder); resultActions.Controls.Add(detailsButton); resultActions.Controls.Add(resume);
             body.Controls.Add(resultActions); body.Controls.Add(details);
-            var footer = new Panel { Dock = DockStyle.Bottom, Height = 76, Padding = new Padding(24, 14, 24, 14), BackColor = NightTheme.Surface };
-            var actionRow = new FlowLayoutPanel { Dock = DockStyle.Right, Width = 250, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = NightTheme.Surface };
-            actionRow.Dock = DockStyle.Fill; actionRow.Margin = new Padding(0);
-            actionRow.Controls.Add(start); actionRow.Controls.Add(stop);
-            var ready = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray };
-            var footerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = NightTheme.Surface, Margin = new Padding(0) };
-            footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250));
-            footerLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            footerLayout.Controls.Add(ready, 0, 0); footerLayout.Controls.Add(actionRow, 1, 0);
-            footer.Controls.Add(footerLayout); Controls.Add(footer);
-            var header = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = NightTheme.Canvas, Padding = new Padding(24, 18, 24, 0) };
-            var brand = new Label { Text = "COMPARE REVISIONS", Dock = DockStyle.Top, Height = 23, Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Color.DimGray };
-            var title = new Label { Text = "Report exporter", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 23, FontStyle.Bold) };
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = 58, Padding = new Padding(20, 8, 20, 8), BackColor = NightTheme.Surface };
+            var actionRow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = NightTheme.Surface, Margin = new Padding(0) };
+            actionRow.Controls.Add(start); actionRow.Controls.Add(stop); footer.Controls.Add(actionRow); Controls.Add(footer);
+            var header = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = NightTheme.Canvas, Padding = new Padding(20, 6, 20, 0) };
+            var brand = new Label { Text = "COMPARE REVISIONS", Dock = DockStyle.Top, Height = 16, Font = new Font("Segoe UI", 8, FontStyle.Bold), ForeColor = Color.DimGray };
+            var title = new Label { Text = "Report exporter", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 18, FontStyle.Bold) };
             header.Controls.Add(title); header.Controls.Add(brand); Controls.Add(header);
             start.Click += (sender, args) => StartExport();
             stop.Click += (sender, args) => CancelExport();
@@ -258,11 +251,11 @@ namespace ReportExporter
             RefreshCaptured();
             keyboard.CheckedChanged += (sender, args) => ApplyMode();
             ApplyMode();
-            speed.SelectedIndexChanged += (sender, args) => { customTiming.Visible = speed.SelectedIndex == 3; ready.Text = "Speed: " + speed.Text; ResizeForContent(); };
-            ready.Text = "Speed: " + speed.Text;
+            speed.SelectedIndexChanged += (sender, args) => { customTiming.Visible = speed.SelectedIndex == 3; ResizeForContent(); };
             customTiming.Visible = speed.SelectedIndex == 3;
             optionsButton.Click += (sender, args) => SetOptionsVisible(!optionsExpanded);
             AcceptButton = start;
+            status.TextChanged += (sender, args) => ResizeForContent();
             NightTheme.Apply(this);
             copiedSource.ForeColor = NightTheme.Muted;
             optionsPanel.BackColor = copiedPanel.BackColor = NightTheme.Surface;
@@ -303,8 +296,33 @@ namespace ReportExporter
         }
         private void ResizeForContent()
         {
-            int desired = optionsExpanded ? 820 : copiedExpanded ? 820 : details.Visible ? 760 : resultActions.Visible ? 560 : 438;
-            ClientSize = new Size(ClientSize.Width, Math.Min(desired, Screen.FromControl(this).WorkingArea.Height - 80));
+            bool expanded = optionsExpanded || copiedExpanded || details.Visible;
+            int width = expanded ? 700 : 420;
+            int contentWidth = expanded ? 620 : 380;
+            optionsButton.Width = copiedToggle.Width = contentWidth;
+            resultActions.MaximumSize = new Size(contentWidth, 0);
+            resultActions.MinimumSize = new Size(contentWidth, 0);
+            resultActions.Width = contentWidth;
+            int textHeight = TextRenderer.MeasureText(status.Text, status.Font, new Size(width - 40, Int32.MaxValue), TextFormatFlags.WordBreak).Height;
+            feedback.Height = Math.Max(52, Math.Min(148, textHeight + 12));
+            // Grow only as much as the visible sections need, up to the screen limit.
+            body.PerformLayout();
+            int desired = Math.Max(300, 118 + feedback.Height + body.GetPreferredSize(new Size(width, 0)).Height);
+            ClientSize = new Size(width, Math.Min(desired, Screen.FromControl(this).WorkingArea.Height - 80));
+        }
+        internal void ReadCaseRange(out int firstLabel, out int lastLabel)
+        {
+            firstLabel = ReadCaseNumber(first, "First case");
+            lastLabel = ReadCaseNumber(last, "Last case");
+            if (lastLabel < firstLabel)
+            { last.Focus(); last.SelectAll(); throw new InvalidOperationException("Last case must be at least the first case number."); }
+        }
+        private static int ReadCaseNumber(TextBox input, string label)
+        {
+            int value;
+            if (!Int32.TryParse(input.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out value) || value < 1 || value > 1000000)
+            { input.Focus(); input.SelectAll(); throw new InvalidOperationException(label + " must be a whole number from 1 to 1000000."); }
+            return value;
         }
         private void OpenComparisonFile()
         {
@@ -314,13 +332,6 @@ namespace ReportExporter
         }
         protected override bool ShowWithoutActivation { get { return previewMode; } }
 
-        private static Control RangeField(string label, NumericUpDown number)
-        {
-            var card = new NightPanel { Dock = DockStyle.Fill, Padding = new Padding(14, 9, 14, 10), Margin = new Padding(0, 0, 12, 0) };
-            var heading = new Label { Text = label, Dock = DockStyle.Top, Height = 23, Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray };
-            number.Font = new Font("Segoe UI", 15); number.Dock = DockStyle.Bottom; number.TextAlign = HorizontalAlignment.Left;
-            card.Controls.Add(number); card.Controls.Add(heading); return card;
-        }
         private static Control Row(string left, Control a, string right, Control b)
         {
             var row = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(590, 100), WrapContents = false };
@@ -489,10 +500,11 @@ namespace ReportExporter
         private void StartExport()
         {
             string output;
+            int firstLabel, lastLabel;
             try
             {
                 if (!stopHotkey) throw new InvalidOperationException("Both stop shortcuts are in use. Close the programs using Numpad * / Ctrl+Shift+F12, then reopen this exporter.");
-                if (last.Value < first.Value) throw new InvalidOperationException("Last case must be at least the first case number.");
+                ReadCaseRange(out firstLabel, out lastLabel);
                 profile.TimeoutMs = (int)timeout.Value * 1000; profile.PollMs = (int)poll.Value;
                 profile.ComparisonWaitMs = (int)comparisonWait.Value * 1000;
                 profile.StableMs = (int)stable.Value; profile.ClipboardOnly = clipboard.Checked;
@@ -507,7 +519,6 @@ namespace ReportExporter
                 output = ExportFiles.NewOutput(profile.OutputDirectory, DateTime.Now);
             }
             catch (Exception error) { ShowError("Export has not started", error.Message); return; }
-            int firstLabel = (int)first.Value, lastLabel = (int)last.Value;
             bool openWebsite = website.Checked;
             bool openTextFile = openText.Checked;
             lastOutput = output; resumeCase = null; resultActions.Visible = false; details.Visible = false;
@@ -540,7 +551,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.15...");
+                    reportProgress("Initializing native exporter v0.16...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);

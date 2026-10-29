@@ -19,6 +19,36 @@ namespace ReportExporter
             for (Control parent = control.Parent; parent != null; parent = parent.Parent)
                 Require(parent.RectangleToScreen(parent.ClientRectangle).Contains(bounds), control.Name + " is clipped by " + parent.GetType().Name);
         }
+        public static void VerifyTypedRange()
+        {
+            using (var form = new ExportForm(true))
+            {
+                var first = (TextBox)Find(form, "FirstCase");
+                var last = (TextBox)Find(form, "LastCase");
+                int lo, hi;
+                first.Text = " 68 "; last.Text = "69"; form.ReadCaseRange(out lo, out hi);
+                Require(lo == 68 && hi == 69, "Typed range changed source numbers");
+                first.Text = last.Text = "1000000"; form.ReadCaseRange(out lo, out hi);
+                Require(lo == 1000000 && hi == 1000000, "Maximum source label or single-case range rejected");
+                foreach (string invalid in new string[] { "", " ", "0", "-1", "+1", "1.5", "1,000", "1e3", "case 2", "1000001", "9999999999999999999" })
+                {
+                    first.Text = invalid; last.Text = "1000000";
+                    bool rejected = false;
+                    try { form.ReadCaseRange(out lo, out hi); }
+                    catch (InvalidOperationException error) { rejected = error.Message.Contains("First case"); }
+                    Require(rejected, "Invalid first-case text was accepted or had no field-specific error");
+                    first.Text = "1"; last.Text = invalid; rejected = false;
+                    try { form.ReadCaseRange(out lo, out hi); }
+                    catch (InvalidOperationException error) { rejected = error.Message.Contains("Last case"); }
+                    Require(rejected, "Invalid last-case text was accepted or had no field-specific error");
+                }
+                first.Text = "69"; last.Text = "68";
+                bool reversed = false;
+                try { form.ReadCaseRange(out lo, out hi); }
+                catch (InvalidOperationException error) { reversed = error.Message.Contains("at least"); }
+                Require(reversed, "Reversed range was accepted");
+            }
+        }
         public static void VerifyCopiedText()
         {
             using (var form = new ExportForm(true))
@@ -66,16 +96,17 @@ namespace ReportExporter
                 var go = Find(form, "Go");
                 var speed = (ComboBox)Find(form, "Speed");
                 Require(!options.Visible && go.Visible && Find(form, "FirstCase").Visible && Find(form, "LastCase").Visible, "Simple launcher controls are not visible or Options is expanded");
-                Require(form.AcceptButton == go && form.ClientSize.Height < 550, "Go is not the default action or collapsed launcher is too tall");
+                Require(form.AcceptButton == go && form.ClientSize.Height < 360 && form.ClientSize.Width < 500, "Go is not the default action or collapsed launcher is too large");
                 Require(speed.SelectedIndex == 0, "Automatic is not the default speed");
                 RequireUnclipped(Find(form, "FirstCase"), form); RequireUnclipped(Find(form, "LastCase"), form); RequireUnclipped(go, form);
                 form.SetOptionsVisible(true); Application.DoEvents();
                 Require(options.Visible && form.ClientSize.Height > 500 && go.Visible, "Options did not expand or Go disappeared");
+                Require(form.ClientSize.Width >= 680, "Expanded Options did not gain width");
                 RequireUnclipped(go, form);
                 speed.SelectedIndex = 3; Application.DoEvents();
                 Require(options.PreferredSize.Height > 300, "Custom timing did not lay out");
                 form.SetOptionsVisible(false); Application.DoEvents();
-                Require(!options.Visible && form.ClientSize.Height < 550, "Options did not collapse");
+                Require(!options.Visible && form.ClientSize.Height < 360 && form.ClientSize.Width < 500, "Options did not return to the compact size");
                 var origin = form.PointToClient(go.PointToScreen(Point.Empty));
                 Require(origin.X >= 0 && origin.Y >= 0 && origin.Y + go.Height <= form.ClientSize.Height, "Go is clipped outside the launcher");
                 form.Close();
