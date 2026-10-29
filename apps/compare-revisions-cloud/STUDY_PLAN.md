@@ -1,179 +1,207 @@
-# Attending review aid — QI/research planning brief
+# Attending report-review aid: four-week feasibility/QI pilot
 
-Status: proposed elements for discussion, not an approved protocol or an
-implemented study. No enrollment, analytics, survey collection or additional
-report storage is activated. The roster, sample, timing, analysis and
-institutional determination remain to be settled.
+Updated October 29, 2026 after Sterling specified one attending per week for
+four weeks. Assumption: four different attendings, each contributing one weekly
+work block. If an attending repeats, the number of independent providers is
+smaller. These are recommended design choices, not an approved protocol. No
+recruitment, allocation, data collection, analytics or report storage is enabled
+by this document. Exact shifts, eligibility and institutional review are open.
 
-## A narrow primary question
+## Aim and claims
 
-Does access to the attending report-review aid increase the proportion of
-eligible attending–resident index-shift pairs in which the resident receives
-at least one case-specific feedback interaction about those reports within a
-prespecified period?
+Determine whether the attending workflow can be delivered and measured with
+acceptable effort, and obtain a preliminary description of resident-received
+case-specific feedback. The intervention is the whole report-review workflow:
+extractor, Attending mode, full-context AI comparison, clinical diff and human
+review. This pilot cannot isolate the AI component's contribution.
 
-Suggested definition: discussion or a message that identifies an actual case
-revision and explains a point about interpretation/reporting. General praise
-alone does not qualify; positive feedback can qualify if equally specific.
-Agree on the definition before collecting data and use it in both conditions.
+**Primary pilot objectives:** workflow completion without investigator help,
+end-to-end time, uptake, form completion and implementation barriers.
 
-This measures reported feedback received. It does not directly observe all
-conversations or establish improved diagnostic accuracy, learning or patient
-outcomes. Those are separate questions requiring suitable measures.
+**Exploratory educational outcome:** resident-reported receipt of case-specific
+educational feedback about the assigned source shift, during that shift or
+within 48 hours of its end. Examples include a discussion or approved message
+identifying an actual revision and explaining an interpretation/reporting point.
+Generic praise or a bare notification without a learning point does not qualify.
+Positive case-specific feedback can qualify. Pilot-test these definitions.
+Reading a final report or AI output alone does not count as attending-delivered
+feedback; a human attending-resident interaction must actually occur.
 
-## Keep measurement outside the website
+Forty-eight hours is a proposed practical window, not a literature standard.
+Choose and fix the window before the first collection; 24 hours is an alternative
+only if roster testing establishes feasibility before enrollment. Feedback during
+the source shift counts, so routine timely feedback is not omitted from baseline.
+Ordinary urgent clinical communication continues in every period.
 
-Use a short, separate institution-approved form with the same schedule and
-wording in tool and usual-workflow periods. Prefill the index shift, attending
-code and resident code so multiple attendings and repeated shifts are not mixed.
+## Four weekly blocks: usual workflow, then tool
 
-### Primary outcome
+Use each attending's own usual-workflow period as a descriptive baseline. If
+there are five eligible source shifts in a block, a concrete split is:
 
-Recommended starting outcome: resident-reported receipt of at least one
-case-specific feedback interaction from the named/coded attending about the
-specified source shift within 24 hours after that shift ends.
+| Period within each attending's week | Assignment |
+| --- | --- |
+| First two eligible source shifts | Usual workflow |
+| Next three eligible source shifts | Tool-supported review |
 
-Twenty-four hours is a proposed operational choice, not an established standard.
-Confirm roster feasibility first. If 48 hours works better, choose it before
-the comparison starts and use it consistently. Attribute feedback to the source
-shift and its assigned review condition, not just the conversation's calendar day.
+Repeat across the four blocks. This would give eight usual-workflow and twelve
+tool-assigned source shifts if every attending contributes five eligible shifts.
+Those numbers are an illustration from the assumed roster, not a sample-size
+calculation. Multiple residents can create more attending-resident observations,
+but not more independent attendings. Fix an alternative split in advance for
+blocks of another length rather than choosing a favorable transition afterward.
 
-Define eligibility from a prespecified roster of attending–resident source-shift
-pairs and agreed feedback opportunities. Do not define it by whether someone
-used the tool or returned a form. Prespecify terminal shifts, absence and
-unavailable reports rather than excluding inconvenient observations afterward.
+Train each attending briefly at the transition to the tool period. Keep review
+opportunities, survey wording and reminders comparable in both periods. If a
+protected review interval is offered, offer it in both. Otherwise the evaluated
+intervention includes that additional time/reminder package. Participation is
+assigned use, not a claim that website access is technically restricted; record
+actual use and any use of the tool during usual-workflow periods.
 
-### Short resident form
+This refines our earlier half-block crossover idea: use baseline first rather
+than expecting an off period after tool exposure to be an untouched control.
+A lasting teaching/learning effect is a recognized problem for crossover designs;
+[CONSORT cluster-crossover guidance](https://www.bmj.com/content/388/bmj-2024-080472)
+explicitly discusses persistent educational effects. Even baseline-first periods
+have fixed-order, workload, fatigue, novelty and measurement effects. They do
+not establish a causal treatment effect. Overlapping feedback windows and
+cross-period discussion are additional possible contamination.
 
-Complete after the outcome window, with source shift and attending prefilled:
+Do not add concurrent nonparticipating attendings as a primary control group
+unless they can be prospectively measured with comparable eligibility and
+follow-up. Otherwise use them only as descriptive service context. For a larger
+subsequent comparative study, favor a concurrent randomized immediate-versus-
+delayed-start design at attending level, with baseline measurement and enough
+clusters, rather than repeatedly withdrawing an educational intervention.
 
-1. Did this attending give you case-specific feedback about reports from this
-   shift during the specified window? **Yes / No / Unsure.**
-2. If Yes, how many distinct cases were discussed? **1 / 2 / 3 / 4+.**
-3. If Yes, how useful was it? For example: **No useful learning point /
-   Somewhat useful / Clearly useful / Very useful.**
+## Fit the review into the service
 
-These are draft behaviorally anchored items, not a validated questionnaire.
-Pilot-test clarity and burden. The primary outcome is receipt, not satisfaction.
+Test a brief review at the start of the next consecutive shift using the previous
+completed shift's finalized reports, followed by feedback early in resident
+overlap or through the usual approved channel. Treat this as a workflow proposal;
+it has not been shown to be the best timing for this service.
 
-### Short attending form
+For the terminal source shift, prearrange an end-of-block review or another
+brief opportunity within the same outcome window. Record no-overlap and report-
+availability barriers. Avoid a design in which the last tool shift silently has
+no review opportunity.
 
-For the same source shift, ask:
+Every batch and feedback form stays attached to its **source shift**, attending
+and resident, not merely the calendar date on which the app was opened. Prior
+usual-workflow source shifts retain that assignment after the tool period starts;
+record crossover use. Do not selectively extend feedback windows. Define who
+and which finalized reports belong to a source shift before collecting data.
 
-1. Did you deliberately review your revisions? **Yes / No.**
-2. Which method? **Usual workflow / Tool / Both / Neither.**
-3. Did you provide case-specific feedback? **Yes / No**; if Yes, use the same
-   distinct-case count categories as the resident form.
-4. Approximate review time: **Under 2 / 2–5 / 6–10 / Over 10 minutes.**
+Keep the resident-facing tool's availability constant during the pilot and record
+relevant use; introducing it only during tool periods would change the intervention.
 
-Resident reporting is the proposed main feedback outcome; attending reporting
-is complementary. Both are self-reports, not objective gold standards. Their
-disagreement is informative and should not automatically favor either account.
-A general post-project satisfaction survey can be secondary.
+## Measures and separate forms
 
-### Measurement guardrails
+The observation is an eligible **attending-resident-source-shift pair**, defined
+from the roster, not from who used the tool or answered a survey. Include failed
+runs and nonuse in the assigned-period record. Record planned absence, terminal
+shifts and unavailable reports prospectively.
 
-- Logins, analysis completion, reports opened and cases selected measure tool
-  use, not feedback delivered or received.
-- App-specific telemetry is an intervention process measure. Ordinary review
-  without an app log is not zero review.
-- Missing forms mean missing data, not No feedback. Track response rates by
-  condition; prespecify follow-up and missing-data/sensitivity handling.
-- Keep report text, patient identifiers and case descriptions out of a general
-  feedback questionnaire. Coded provider data still need appropriate handling;
-  study codes are not automatically anonymous.
+| Measure | Collection |
+| --- | --- |
+| Workflow completed without help | Attending: extraction, analysis and review completed? Yes/No; reasons if No |
+| Feedback received | Resident: case-specific educational feedback from this attending about this source shift during the shift or by the 48-hour deadline? Yes/No/Unsure |
+| Cases discussed | Resident: 0 / 1 / 2 / 3 / 4+ distinct clinical cases |
+| Timing | Resident: during source shift / after it / both, when feedback occurred |
+| Review and burden | Attending: deliberately reviewed revisions? Method: usual/tool/both/neither; approximate total minutes including extraction, loading and review |
+| Implementation quality | Attending: technical failure, assistance needed, or clearly misleading/unhelpful summaries encountered? Brief categorical reason |
+| Data completeness | Eligible pairs, due forms, completed forms and Unsure responses by period |
 
-## Refine the half-block idea
+Prefill source shift and provider codes. Collect the resident form just after the
+fixed outcome window and the attending form after the review opportunity. Aim
+for roughly 20-30 seconds each; test the real burden. A short end-of-week interview
+can ask what prevented use and what would make the process worth continuing.
+Perceived usefulness is secondary and is not evidence that feedback occurred.
 
-One attending per week using the tool for half of a block, with their other
-shifts and concurrent attendings as controls, is a reasonable feasibility
-starting point. Control observations alone do not make it randomized.
+Coded providers are not automatically anonymous. Use an institution-approved
+form/location and keep the linkage securely. Keep patient identifiers, report
+text and case narratives out of general surveys. Keep individual resident
+responses confidential from the attending being rated; present aggregate results.
+The website itself does not need a feedback tracker or research form.
 
-If feasible, randomize/counterbalance period order in advance across attendings.
-Some use usual workflow first; others have tool access first. Predetermine the
-split for an odd number of shifts. Always assigning the tool to the second
-half would mix tool access with fatigue, weekday mix and position in the block.
+App use, opened reports and attending-reported feedback are process/complementary
+measures, not proof of resident receipt. Resident reports also have recall and
+response limitations; disagreements should be retained rather than automatically
+resolved in favor of either participant. Missing forms are missing, not No.
 
-Illustration only, for six eligible review opportunities per attending:
+Count a linked chest/abdomen-pelvis review episode once when reporting distinct
+clinical cases discussed; do not multiply it by the number of duplicate report
+rows. Automatic text groups are a heuristic, not verified patient identity.
+Source rows, review groups, clinical cases, feedback interactions and provider-
+shift observations are different denominators.
 
-| Sequence | First three opportunities | Last three opportunities |
-| --- | --- | --- |
-| A | Usual workflow | Tool available |
-| B | Tool available | Usual workflow |
+## Quality, stability and progression
 
-This is not an actual roster or sample-size estimate. Map every review
-opportunity to its source reports. With next-evening review, avoid assigning
-a previous night's reports to the wrong half-block simply because the date changed.
+Before collecting comparative pilot data, check the extractor, timing and form
+wording with synthetic examples and an institution-approved workflow trial.
+Record prior tool exposure. Do not mistake an already trained champion for a
+naive baseline participant.
 
-- Within-attending comparisons help address stable personal feedback habits.
-  Concurrent attendings give calendar/workload context, but are not automatically
-  comparable controls.
-- Tool exposure can change later habits or resident expectations. A short
-  washout cannot be assumed to erase this. Record crossover use and acknowledge
-  carryover/contamination; an off period is not a naive baseline.
-- Give both conditions comparable review opportunities and form/reminder
-  schedules if estimating the tool's incremental benefit. If protected review
-  time/reminders are added only with the tool, evaluate that combined package.
-- Use assigned availability as the primary comparison. Restricting analysis
-  to actual users introduces self-selection; treat such analyses as secondary.
+Have a clinician audit a small consecutive sample of outputs for faithful
+summaries and distracting/misleading items, especially incorrect high-importance
+labels. A second independent reviewer and adjudication can strengthen a later
+report-level evaluation. This is report fidelity, not image-based diagnostic
+accuracy. Attending assessment of their own output is not an independent gold
+standard. Report observed problems; feedback rates do not validate AI accuracy.
 
-Current crossover reporting guidance emphasizes period effects, carryover and
-correlated observations. See the [CONSORT cluster crossover extension, BMJ
-2025](https://www.bmj.com/content/388/bmj-2024-080472.full).
+Agree on practical progression targets before collection. Suggested starting
+points, **not validated standards**, are at least 80% completion of tool-assigned
+workflows without help, at least 80% resident form completion, and a median total
+workflow time no longer than 10 minutes. Use the actual roster, burdens and
+clinical review to accept or revise these proposed targets before enrollment.
+Persistent misleading summaries require revision/review before wider evaluation.
 
-## Timing: pilot the workflow before deciding
+Freeze the deployed app, extractor, model/deployment, both prompts, grouping
+rule, forms and outcome definition during this short pilot. Record exact
+versions and necessary fixes. If substantial changes are needed, describe
+separate improvement cycles rather than pooling everything as one intervention.
 
-A practical first test is a brief review at the beginning of the next consecutive
-shift, using the previous completed shift's finalized reports, followed by
-feedback early in overlap with the relevant resident. This is a recommendation
-to test, not evidence that this timing is best at the intended service.
+## Analysis and publication
 
-Terminal shifts need a prespecified alternative, such as a short end-of-block
-review and feedback through the usual approved channel within the same outcome
-window. Record missing overlap, unavailable reports and other logistical barriers.
-Do not selectively extend the window or move cases between allocation periods.
+Report each attending's usual/tool period results, pooled descriptive results,
+workflow times, assistance/failure rates, feedback reports, survey completion
+and barriers. Keep counts of eligible observations and missing/Unsure responses
+visible by period. Prespecify missing-data and sensitivity handling with the
+methodology adviser; do not turn nonresponse into no feedback.
 
-Before the comparative phase, test a few actual workflows: total extraction,
-analysis and review time; finalized-report availability; ability to reach the
-correct resident; and form burden. Pick end-of-shift versus next-shift timing
-from that feasibility work and the actual roster.
+Four attending blocks do not support a confident effectiveness claim merely
+because many reports were processed. Avoid treating reports or repeated resident
+surveys as independent participants, a naive report-level chi-square test, or
+p-value hunting. A statistician can advise appropriate uncertainty summaries
+with so few providers. A later powered design needs the actual participant pool,
+source-shift opportunities, baseline rate, meaningful target improvement and
+correlation assumptions, not just a large report count. Pilot effect estimates
+are imprecise and should not by themselves set the later target effect.
 
-## Sample, analysis and versioning
+A suitable first manuscript is a **feasibility and preliminary-impact study**.
+Use [SQUIRE 2.0](https://pmc.ncbi.nlm.nih.gov/articles/PMC4625997/) to document the
+problem, context, intervention, measures, changes, burden and limitations when
+reporting QI work. Randomized pilot guidance similarly emphasizes feasibility
+objectives rather than formal effectiveness testing:
+[CONSORT pilot/feasibility extension](https://www.bmj.com/content/355/bmj.i5239).
 
-One attending–resident index-shift pair is a candidate observational unit.
-Observations repeat within attendings and residents; calendar period also
-matters. Hundreds of reports are not hundreds of independent participants.
-Use a biostatistician to prespecify analysis and small-cluster inference from
-actual participant counts, eligible opportunities, baseline feedback rate and
-the minimum meaningful effect.
+Report-comparison feedback systems already have precedent, including
+[Choi et al.](https://pubmed.ncbi.nlm.nih.gov/28840360/). The useful contribution
+here is testing an attending-focused AI-assisted workflow in routine overnight
+practice and measuring feedback residents actually receive, with honest limits.
+Do not promise improved diagnostic accuracy, learning retention or patient
+outcomes from these measures.
 
-A month with only a few attending blocks should be treated as a feasibility
-pilot unless the planned sample supports a stronger effectiveness claim.
-Report feedback rates, response rates, within-attending differences and
-uncertainty. Do not promise statistical significance or calculate a sample
-size without these inputs.
+## Institutional determination and immediate decisions
 
-Stabilize the workflow, instructions, forms and outcome definition before the
-comparative phase. Record app, model/deployment, prompt and form versions.
-Document needed fixes and their timing; prospectively handle analytic effects.
-A later iterative QI rollout may use planned improvement cycles, but those
-cycles should be visible rather than treated as an unchanged intervention.
+Obtain the appropriate UAB QI/HRPP determination before prospective collection.
+Publication intent alone does not decide whether a project is research; see
+[OHRP QI FAQ](https://www.hhs.gov/ohrp/regulations-and-policy/guidance/faq/quality-improvement-activities/index.html).
+UAB lists a QI Self Determination Tool for certain projects, with limits on
+eligibility: [UAB IRB forms](https://www.uab.edu/research/home/irb-forms). This
+brief does not classify the project or establish approval/consent requirements.
 
-## QI, research and publication
-
-Publication intent alone does not determine whether an activity is research.
-OHRP distinguishes intent to publish from the purpose/design of the activity.
-UAB offers a QI Self Determination Tool for certain projects and states that
-not all QI projects can use it. Obtain the appropriate determination for this
-specific educational/provider-feedback design before prospective comparative
-collection. This brief does not classify it or assume an exemption.
-
-Sources: [OHRP QI FAQ](https://www.hhs.gov/ohrp/regulations-and-policy/guidance/faq/quality-improvement-activities/index.html)
-and [UAB Office of Research forms](https://www.uab.edu/research/home/irb-forms).
-
-## Open decisions
-
-Roster and sample; source-shift/review mapping; feasible review window; 24 versus
-48 hours; feedback definition; form wording; allocation; contamination handling;
-missing-data plan; sample size/analysis; institutional determination/data handling.
-These are proposed choices, not settled decisions or deployed features.
+Confirm: four distinct attendings; shifts per block; participating residents;
+source-shift attribution; exact usual/tool split; review and terminal-shift
+opportunities; fixed feedback window; short forms; confidentiality; progression
+criteria; and the actual stable deployed software versions. No study is launched
+by this plan.
