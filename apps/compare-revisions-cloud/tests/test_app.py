@@ -146,14 +146,84 @@ class ReviewerTests(unittest.TestCase):
         self.assertIn("Attending context sentinel", case["attending_report"])
         self.assertNotIn("context sentinel", str(case["clinical_diff"]))
 
-    def test_identical_normal_pairs_remain_separate_noncontiguous_cases(self):
+    def test_identical_nearby_noncontiguous_pairs_group_with_original_numbers(self):
         cases = self.module.prepare_cases(pasted_case(25) + pasted_case(26, report("Different lungs."), report("Different lungs.")) + pasted_case(27))
-        self.assertEqual([c["source_numbers"] for c in cases], [[25], [26], [27]])
-        self.assertEqual(len({c['id'] for c in cases}), 3)
+        self.assertEqual([c["source_numbers"] for c in cases], [[25, 27], [26]])
+        self.assertEqual(cases[0]['case_label'], '25, 27')
+        self.assertEqual(len({c['id'] for c in cases}), 2)
 
-    def test_identical_contiguous_pairs_remain_separate_and_keep_next_number(self):
+    def test_identical_contiguous_pairs_group_and_keep_next_number(self):
         cases = self.module.prepare_cases(pasted_case(25) + pasted_case(26) + pasted_case(27) + pasted_case(28, report("Different."), report("Different.")))
-        self.assertEqual([c["source_numbers"] for c in cases], [[25], [26], [27], [28]])
+        self.assertEqual([c["source_numbers"] for c in cases], [[25, 26, 27], [28]])
+        self.assertEqual([c['case_label'] for c in cases], ['25–27', '28'])
+
+    def test_exact_gap_boundary_uses_source_numbers_not_remaining_record_positions(self):
+        for gap in (1, 2, 3, 4, 100):
+            with self.subTest(gap=gap):
+                cases = self.module.prepare_cases(pasted_case(68) + pasted_case(68 + gap))
+                expected = [[68, 68 + gap]] if gap <= 3 else [[68], [68 + gap]]
+                self.assertEqual([c['source_numbers'] for c in cases], expected)
+
+    def test_six_adjacent_and_spaced_matching_members_chain_from_previous_match(self):
+        for numbers in (list(range(68, 74)), [68, 71, 74, 77, 80, 83]):
+            with self.subTest(numbers=numbers):
+                cases = self.module.prepare_cases(''.join(pasted_case(n) for n in numbers))
+                self.assertEqual([c['source_numbers'] for c in cases], [numbers])
+                self.assertEqual(cases[0]['resident_report'], report())
+                self.assertEqual(cases[0]['attending_report'], report())
+
+    def test_gap_of_four_starts_a_new_group_that_later_matches_can_join(self):
+        cases = self.module.prepare_cases(''.join(pasted_case(n) for n in [68, 69, 73, 74]))
+        self.assertEqual([c['source_numbers'] for c in cases], [[68, 69], [73, 74]])
+
+    def test_both_sides_must_match_and_need_not_match_each_other(self):
+        resident, attending = report('Small effusion.'), report('Moderate effusion.')
+        cases = self.module.prepare_cases(pasted_case(68, resident, attending) + pasted_case(69, resident, attending)
+            + pasted_case(70, report('Large effusion.'), attending) + pasted_case(71, resident, report('No effusion.')))
+        self.assertEqual([c['source_numbers'] for c in cases], [[68, 69], [70], [71]])
+
+    def test_context_attestation_case_punctuation_and_whitespace_differences_prevent_grouping(self):
+        original = report() + '\nSigned by: Synthetic attending'
+        alternatives = [original.replace('Synthetic test only.', 'Other indication.'),
+            original.replace('EXAM:', 'EXAM: Other context\nCOMPARISON: Prior study\nORIGINAL EXAM:'),
+            original.replace('Synthetic attending', 'Other attending'),
+            original.replace('Clear lungs.', 'Clear  lungs.'), original.replace('Clear lungs.', 'CLEAR LUNGS.'),
+            original.replace('Clear lungs.', 'Clear lungs!')]
+        for side in ('resident', 'attending'):
+            for changed in alternatives:
+                with self.subTest(side=side, changed=changed):
+                    second = (changed, original) if side == 'resident' else (original, changed)
+                    cases = self.module.prepare_cases(pasted_case(68, original, original) + pasted_case(69, *second))
+                    self.assertEqual([c['source_numbers'] for c in cases], [[68], [69]])
+
+    def test_known_attestation_removal_for_clinical_scope_does_not_affect_group_identity(self):
+        attestation = 'As the attending physician, I have personally reviewed the images, interpreted and/or supervised the study or procedure, and agree with the wording of the above report.'
+        cases = self.module.prepare_cases(pasted_case(68) + pasted_case(69, report(), report() + '\n' + attestation))
+        self.assertEqual([c['source_numbers'] for c in cases], [[68], [69]])
+        self.assertNotIn(attestation, self.module.parse_sections(cases[1]['attending_report'])['clinical_text'])
+
+    def test_platform_line_endings_and_outer_import_whitespace_do_not_prevent_grouping(self):
+        cases = self.module.prepare_cases(pasted_case(68, report().replace('\n', '\r\n'), report().replace('\n', '\r'))
+            + pasted_case(69, ' \n' + report() + '\n ', '\n' + report() + '\n'))
+        self.assertEqual([c['source_numbers'] for c in cases], [[68, 69]])
+
+    def test_nonascending_input_is_preserved_without_grouping(self):
+        for numbers in ([69, 68], [68, 70, 69, 71]):
+            with self.subTest(numbers=numbers):
+                cases = self.module.prepare_cases(''.join(pasted_case(n) for n in numbers))
+                self.assertEqual([c['source_numbers'] for c in cases], [[n] for n in numbers])
+
+    def test_incomplete_members_stay_separate_without_losing_source_gaps(self):
+        cases = self.module.prepare_cases(pasted_case(68) + pasted_case(69, report(), '')
+            + pasted_case(70, report(), '') + pasted_case(71) + pasted_case(75))
+        self.assertEqual([c['source_numbers'] for c in cases], [[68, 71], [69], [70], [75]])
+        self.assertTrue(all(c['status'] != 'queued' for c in cases[1:3]))
+
+    def test_grouping_does_not_mutate_original_parsed_records(self):
+        records = self.module.parse_cases(pasted_case(68) + pasted_case(69))
+        original = copy.deepcopy(records)
+        self.module.group_nearby_identical_pairs(records)
+        self.assertEqual(records, original)
 
     def test_duplicate_identity_includes_full_context_and_both_reports(self):
         cases = self.module.prepare_cases(pasted_case(1) + pasted_case(2, report(context="Different indication"), report()) + pasted_case(3, report(), report(context="Different indication")))

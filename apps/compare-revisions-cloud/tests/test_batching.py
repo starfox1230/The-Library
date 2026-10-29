@@ -3,7 +3,7 @@ import json
 import threading
 import unittest
 from unittest.mock import patch
-from test_app import import_offline_app, report
+from test_app import import_offline_app, report, pasted_case
 
 
 class BatchTests(unittest.TestCase):
@@ -28,6 +28,35 @@ class BatchTests(unittest.TestCase):
 
     def post(self, payload, **kwargs):
         return self.client.post('/analyze-batch',json=payload,headers=self.headers,**kwargs)
+
+    def test_grouped_import_schedules_one_model_call_per_group_not_per_source(self):
+        from types import SimpleNamespace
+        from unittest.mock import MagicMock
+        source = ''.join(pasted_case(n) for n in range(68, 74))
+        source += pasted_case(74, report('Different findings.'), report('Different findings.'))
+        # Exercise the actual import route, not a manually assembled group list.
+        response = self.client.post('/', data={'csrf_token':'synthetic-csrf', 'reports_text':source,
+                                                'custom_prompt':'Synthetic replacement prompt.'})
+        import re
+        self.assertEqual(response.status_code, 200)
+        cases = json.loads(re.search(r'<script id="review-data" type="application/json">(.*?)</script>', response.text, re.S).group(1))
+        self.assertEqual([c['source_numbers'] for c in cases], [list(range(68, 74)), [74]])
+        client = MagicMock()
+        client.responses.create.return_value = SimpleNamespace(status='completed', output=[SimpleNamespace(
+            type='function_call', name='summarize_radiology_report', arguments=json.dumps(
+                {'exam_label':'Synthetic exam', 'title':'Synthetic comparison', 'warnings':[], 'revisions':[]}))])
+        payload = dict(custom_prompt='Synthetic replacement prompt.', cases=[
+            {k:c[k] for k in ('id','resident_report','attending_report')} for c in cases])
+        with patch.object(self.module, 'get_azure_client', return_value=client):
+            events = list(map(json.loads, self.post(payload).data.splitlines()))
+        self.assertEqual(client.responses.create.call_count, 2)
+        self.assertEqual(events[-1], {'type':'done', 'total':2})
+        self.assertEqual({e['id'] for e in events if e['type']=='case'}, {c['id'] for c in cases})
+        self.assertTrue(all(e['result']['status']=='complete' for e in events if e['type']=='case'))
+        # Source labels stay in app metadata, outside the model's clinical input.
+        for call in client.responses.create.call_args_list:
+            self.assertEqual(call.kwargs['input'][0]['content'], payload['custom_prompt'])
+            self.assertEqual(set(json.loads(call.kwargs['input'][1]['content'])), {'resident','attending'})
 
     def test_one_hundred_model_calls_start_together_and_keep_identity(self):
         barrier = threading.Barrier(100, timeout=8)

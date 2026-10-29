@@ -125,5 +125,26 @@ if __name__ == '__main__':
         repeated_revision('Small effusion.','Moderate effusion.','r1','a1'),
     ]),repeated)
     (output/'link-fixture.json').write_text(json.dumps([repeated],ensure_ascii=False),encoding='utf-8')
+    # Import real synthetic source rows to exercise the new grouping pipeline.
+    gr, ga = report('Small effusion.', context='Synthetic chest study'), report('Moderate effusion.', context='Synthetic chest study')
+    knee, wrist = report(context='Synthetic knee study'), report(context='Synthetic wrist study')
+    grouped = app.prepare_cases(pasted_case(68, gr, ga) + pasted_case(69, gr, ga)
+        + pasted_case(70, knee, knee) + pasted_case(71, wrist, wrist)
+        + pasted_case(74, wrist, wrist) + pasted_case(78, wrist, wrist))
+    grouped_results = []
+    for i, case in enumerate(grouped):
+        revisions = [dict(importance='minor', action='changed', resident_summary='Small effusion',
+            attending_summary='Moderate effusion', reason='Synthetic report change.',
+            resident_quote='Small effusion.', attending_quote='Moderate effusion.',
+            resident_section='r0', attending_section='a0', major_evidence_side='none',
+            major_evidence_section='', major_evidence_quote='')] if i == 0 else []
+        grouped_results.append(app.validate_analysis(dict(exam_label='Synthetic exam',
+            title='Synthetic effusion' if i == 0 else 'No acute finding', warnings=[], revisions=revisions), case))
+    with app.app.app_context():
+        grouped_html = app.render_template_string(app.TEMPLATE, cases=grouped_results, reports_text='',
+            custom_prompt=app.DEFAULT_PROMPT, default_prompt=app.DEFAULT_PROMPT, combined_view=True,
+            error='', csrf_token='synthetic-preview', username='', synthetic_preview=True)
+    (output/'grouping-preview.html').write_text(grouped_html, encoding='utf-8')
+    (output/'grouping-fixtures.json').write_text(json.dumps(grouped_results, ensure_ascii=False), encoding='utf-8')
     print(f'Synthetic production-template preview: {output / "preview.html"}')
     print(f'Complex report: {len(cases[0]["resident_report"].split())} words, {len(cases[0]["revisions"])} distinct revisions.')

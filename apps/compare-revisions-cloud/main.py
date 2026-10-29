@@ -590,11 +590,34 @@ def _base_case(record, case_id):
     return case
 
 
+def group_nearby_identical_pairs(records):
+    """Group exact full pairs in an ascending export without renumbering rows.
+
+    Equality uses the original imported strings, not clinical/attestation-cleaned
+    text. Each member maps to the same full pair, so source_numbers preserves
+    that mapping without repeating large report strings in the browser payload.
+    """
+    ascending = all(a['source_numbers'][0] < b['source_numbers'][0]
+                    for a, b in zip(records, records[1:]))
+    groups, latest = [], {}
+    for record in records:
+        current = dict(record, source_numbers=list(record['source_numbers']))
+        if not ascending or record['capture_status'] != 'complete':
+            groups.append(current)
+            continue
+        key = (record['resident_report'], record['attending_report'])
+        previous = latest.get(key)
+        if previous is not None and 1 <= current['source_numbers'][0] - previous['source_numbers'][-1] <= 3:
+            previous['source_numbers'].extend(current['source_numbers'])
+        else:
+            groups.append(current)
+            latest[key] = current
+    return groups
+
+
 def prepare_cases(text):
-    # Identical text cannot establish linked-study identity. The extractor has
-    # no study identifiers: preserve every source case, even template duplicates.
     return [_base_case(record, f'g{index + 1}')
-            for index, record in enumerate(parse_cases(text))]
+            for index, record in enumerate(group_nearby_identical_pairs(parse_cases(text)))]
 
 
 def _analysis_error(case, message):
@@ -1396,7 +1419,7 @@ function bodyPanel(c,key) {
   tab.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();const all=[...tabs.children];const index=all.indexOf(tab);const next=event.key==='Home'?0:event.key==='End'?all.length-1:(index+(event.key==='ArrowRight'?1:all.length-1))%all.length;all[next].click();});
   tabs.append(tab);
  } body.append(tabs);
- if(members(c).length>1)body.append(el('p','member-note','Source cases '+members(c).join(', ')+' · identical full report pairs · one review entry'));
+ if(members(c).length>1){const note=el('p','member-note','Source cases '+members(c).join(', ')+' · identical full report pairs · one analysis');note.title='Both full resident and full attending reports match. Each matching member is within 3 original case numbers of the previous match. Text matching does not confirm linked-study identity.';body.append(note);}
  let content;
  if(active==='paired'){
   content=el('div','paired-review');

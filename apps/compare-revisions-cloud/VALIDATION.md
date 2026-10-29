@@ -2,6 +2,13 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 29, 2026: nearby identical report groups
+
+- **84 Python tests passed.** New coverage verifies exact equality of both full reports; adjacent and nonconsecutive groups; gaps of 1/2/3 versus 4; six-member adjacent and spaced chains; original-number gaps after incomplete captures; context, signature, known attestation, punctuation, case and internal-whitespace differences; platform line-ending normalization; nonascending input; original-label preservation; and nonmutation of parsed records.
+- An actual import-route test produces a six-source group plus a separate source, submits the prepared representatives through the real batch route with a mocked Azure client, and verifies exactly two provider requests, unchanged instructions, original request IDs and no source-number metadata in the model input.
+- **Grouping, UI and batching browser suites passed.** The new grouping suite uses Python-imported fixtures and the production template: six sources become four review entries and four request records; range/nonconsecutive labels survive streamed results and retries that deliberately return conflicting identity fields; every member is searchable; source/review totals and revision counts stay distinct; full reports, sorting, filtering and 320/375/1280-pixel layouts work. A partial result is retried once as the representative pair. The grouped dark preview was visually inspected after theme transitions.
+- Existing 100-worker concurrency, 100/100/5 processing, source-evidence linking, clinical-only scope and UI regressions continue to pass. Prompt and criteria are unchanged. No real reports, live provider calls, new credentials, extractor update or Cloud Run deployment were involved. Replace the deployed `main.py` and redeploy to activate this feature on the live website.
+
 ## October 28, 2026 update
 
 ### Short bulk shortcut and actionable processing notices

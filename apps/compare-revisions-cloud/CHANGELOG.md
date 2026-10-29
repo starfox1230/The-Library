@@ -1,5 +1,13 @@
 # Changes and rationale — October 4, 2026
 
+## Nearby identical full-report grouping — October 29, 2026
+
+- Group complete imported pairs only when both full resident and full attending strings match, using the existing line-ending and outer framing normalization. Keep all context and attestation text in the match; no clinical-only or one-sided matching.
+- Join a group when the next matching source label is 1–3 after the previous matching member. Chain arbitrarily many nearby matches, start a new group after a gap of four, and leave nonascending input and incomplete pairs separate. Preserve first-appearance group order and every original source number.
+- Schedule one representative model request per review entry. Reuse existing range/nonconsecutive headers, source/review totals, member search and retry identity protection. Count each revision once per group and explain the grouping rule in the expanded member note. Prompt and clinical criteria are unchanged.
+- Add synthetic parser, import-to-mocked-provider and browser regressions. No extractor release, paid request, credential change or live deployment is included.
+
+
 ## Attending review scope and study planning
 
 - Revise the attending proposal around a simple review aid with attending-anchored case titles. Keep resident titles as resident memory cues, retain the resident → attending comparison order and obtain both titles from the same future analysis response. No attending title fields or mode are implemented yet.

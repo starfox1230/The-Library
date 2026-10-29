@@ -1,17 +1,18 @@
-# Nearby identical report pairs: implementation direction
+# Nearby identical report pairs: grouping contract
 
-October 29, 2026. Records Sterling's requested workflow and the recommended
-next website change. This is a plan; automatic grouping is not implemented or
-deployed by this documentation change.
+October 29, 2026. Implemented in the replacement website source with synthetic
+regressions. Live Cloud Run deployment has not been performed or verified.
 
 ## What the current code does
 
-- Extractor v0.15 captures whole resident and attending reports by default.
+- Extractor v0.16 captures whole resident and attending reports by default.
   Its optional legacy **Findings and below only** setting must be off to retain
   indication, technique, comparison and other captured context. Every source
   row remains in the saved export under its original case number.
-- Website `prepare_cases` currently creates a separate review entry for every
-  parsed source row, even if both complete reports are identical.
+- Website `prepare_cases` groups nearby identical complete pairs before
+  creating review entries and scheduling model requests. Every original source
+  number maps to the shared full report pair; the payload does not repeat large
+  identical strings for each member.
 - `summarize_case` supplies both full reports plus parsed eligible sections to
   the model. The model request does not include the app's case-number metadata.
 - The prompt and clinical diff restrict assessed edits to recognized Findings,
@@ -25,7 +26,7 @@ deployed by this documentation change.
 These statements describe the checked-in source. Correspondence with the live
 Cloud Run deployment has not been independently verified.
 
-## Proposed grouping contract
+## Grouping contract
 
 1. Group on website import, before scheduling model requests. Keep the
    extractor's original per-row archive and comparison input intact.
@@ -57,24 +58,25 @@ Cloud Run deployment has not been independently verified.
 8. Label the result descriptively as an **identical full-report group**, not
    confirmed shared patient identity or a proven list of linked exam types.
    Fully identical nearby normal templates can still be separate examinations.
-   A way to separate an incorrectly grouped entry should be available without
-   losing the source labels or existing result; exact UI placement is open.
+   A per-group separation control is a possible later enhancement, not part
+   of this implementation. Original per-row extractor files remain available.
 9. Retain separate totals for source rows and review entries. Revision counts
    belong to the grouped review entry and must not silently multiply by the
    number of source rows. QI/research denominators need explicit units.
 
 ## Implementation and acceptance
 
-- Add deterministic grouping between `parse_cases` and `_base_case` inside
-  `prepare_cases`; retain original member records in the derived group.
-- Reuse the existing `source_numbers`, `format_case_numbers`, grouped header
-  and member-note support, updating the note to explain the proximity rule.
-- Replace the current tests requiring all identical pairs to remain separate.
+- Deterministic grouping runs between `parse_cases` and `_base_case` inside
+  `prepare_cases`. Original member numbers reference the exact shared full pair
+  rather than serializing redundant copies of the reports.
+- Uses existing `source_numbers`, `format_case_numbers`, grouped headers and
+  member-note support; the note explains the proximity rule.
+- Replaced the previous tests requiring all identical pairs to remain separate.
   Cover adjacent matches, gaps of 2/3/4, six-member and spaced chains,
   different indications/comparisons/attestations on either side, one-sided
   matches, nonascending input, incomplete rows, and unchanged source labels.
-- Verify a group schedules one mocked model request, two groups schedule two,
-  grouped source search works, and counts, retries and sorting preserve members.
+- Checks verify one mocked model request per group, grouped source search,
+  and preservation of members through counts, retries and sorting.
 - Existing full-report context and clinical-only diff/prompt/evidence tests
   must still pass. Explicitly check trailing signatures and attestations.
 - Use synthetic reports and mocked providers for development. The current
