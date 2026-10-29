@@ -183,7 +183,7 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.3'
+PROMPT_VERSION = 'deltarad-review-1.4'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
 DEFAULT_PROMPT = r'''You compare a resident's radiology report with the attending's
@@ -227,11 +227,12 @@ synonym. Useful descriptive/wording lessons may be included concisely.
 
 ACTION (independent of importance)
 added: a new assertion absent from the resident's eligible text.
-removed: an assertion disappears without explicit refutation. Say 'Call removed'
-or 'Attending removed ...'; deletion alone does NOT prove a false positive.
+removed: an assertion disappears without explicit refutation. Deletion alone
+does NOT prove a false positive; never paraphrase disappearance as negation.
 changed: the same assertion is reinterpreted, explicitly negated, relocated when
 identity is established, or substantively modified. Positive to explicit
-negative is changed, with 'explicitly negated' prominent in summary.
+negative is changed; make the attending's explicit negative apparent in its
+summary endpoint and explain the refutation in reason.
 emphasis: the same finding moves into the impression without a meaning change.
 description: supporting detail, equivalent terminology, or useful wording
 refinement for an already described finding, with no new clinical assertion.
@@ -262,7 +263,8 @@ or assertion match. Briefly explain what is uncertain; do not force a grade.
 
 CALIBRATION (context-specific examples, not universal disease rules)
 - Pneumothorax called in resident impression but explicitly rejected by attending:
-  potentially major, changed, 'Pneumothorax call explicitly negated', not a miss.
+  potentially major, changed, resident_summary 'Pneumothorax' and
+  attending_summary 'No pneumothorax', not a miss.
 - Pneumothorax already in resident Findings, newly placed in impression unchanged:
   emphasis / wording, not major or minor omission.
 - Moderate C4-5 stenosis -> moderate-to-marked with mild cord deformity: do not
@@ -278,8 +280,13 @@ CALIBRATION (context-specific examples, not universal disease rules)
   changed certainty/recommendation, not missed gallbladder abnormality; assess
   context and use review when importance cannot be supported.
 - Cholecystitis or diverticulitis already described, new perforation in attending
-  impression: new major complication if acutely consequential. Say 'Added
-  perforation; diverticulitis already described', not 'missed diverticulitis'.
+  impression: new major complication if acutely consequential. Preserve the
+  already reported underlying disease in the two endpoints; never say 'missed
+  diverticulitis'. If the resident explicitly said no perforation, use
+  'Diverticulitis without perforation' / 'Diverticulitis with focal perforation'.
+  If perforation simply was not addressed, use 'Diverticulitis; perforation not
+  documented' / 'Diverticulitis with focal perforation', with matching disease
+  evidence from both sides. Do not invent an explicit negative.
 - Perforated diverticulitis AND a multiloculated perisigmoid collection already
   described -> 'abscess', with no material new assertion: description / wording.
   Do not generalize every collection-to-abscess change as mere wording.
@@ -292,12 +299,36 @@ CALIBRATION (context-specific examples, not universal disease rules)
 - Changed renal cyst laterality is a clinical change, not merely style.
 - Routine 12-month nodule follow-up isn't automatically major just because actionable.
 
-EVIDENCE AND WRITING
-summary: compact, direct one-line before/after meaning. Make direction apparent.
-Use 'Added ...', 'Call removed: ...', 'X → Y', 'Moved into impression: ...',
-or 'Added detail: ...'. Keep language respectful, specific, and not accusatory.
-Use the actual Unicode right-arrow character → in before/after transitions,
-never an ASCII hyphen-plus-greater-than or equals-plus-greater-than substitute.
+EVIDENCE AND WRITING: FIXED RESIDENT / ATTENDING ORDER
+resident_summary and attending_summary: two REQUIRED separate short phrases,
+each a single line stating only that report's supported assertion. Aim for
+3-15 words per side, retaining qualifiers needed for accurate meaning. Use
+parallel subject-first wording so the difference is apparent at a glance.
+The app ALWAYS renders resident_summary, then an arrow, then attending_summary.
+Never return a combined summary, an arrow inside either field, source-label
+prefixes, or free-form introductions such as 'Added ...', 'Call removed: ...',
+'Moved into impression: ...' or 'Added detail: ...'. Action and reason carry
+that explanation separately. This fixed order applies to every importance
+and action, including additions, removals, wording changes and uncertain cases.
+Use respectful, specific language; never infer what the resident thought.
+Examples of endpoint pairs (only when supported by the supplied reports):
+- Reinterpretation: 'Pelvic mass, organ of origin uncertain' /
+  'Uterine mass, favored exophytic degenerating fibroid'.
+- Laterality: 'Left renal cyst' / 'Right renal cyst'.
+- Added assertion with no resident counterpart: 'Not documented' /
+  'Nondisplaced left seventh rib fracture'.
+- Removed assertion with no attending counterpart: 'Small pleural effusion' /
+  'Not retained in attending report'. Removal is not proof it resolved or was
+  absent. An explicit attending negative instead uses action changed and that
+  supported negative as attending_summary.
+- Impression promotion: 'Pleural effusions in Findings' /
+  'Same pleural effusions in Impression'.
+- Descriptive detail: 'Simple hepatic cyst' / 'Simple hepatic cyst, 1.2 cm'.
+If no corresponding source quote exists on one side, use exactly 'Not
+documented' for resident_summary or 'Not retained in attending report' for
+attending_summary. Those markers refer to documentation, never disease absence.
+If quoting an existing underlying finding to contextualize a new attribute,
+say that the new attribute was not documented rather than inventing a negative.
 reason: at most two short sentences explaining this change's importance, not a
 generic teaching essay. Never claim the reference is image-proven truth.
 resident_quote/attending_quote: short EXACT VERBATIM contiguous excerpts from
@@ -321,7 +352,8 @@ present an incomplete inventory as no changes. An empty revisions list means
 you examined all eligible text and found no meaningful revisions.
 '''
 
-_REVISION_STRINGS = ('summary', 'resident_quote', 'attending_quote', 'reason',
+_REVISION_STRINGS = ('resident_summary', 'attending_summary',
+                     'resident_quote', 'attending_quote', 'reason',
                      'resident_section', 'attending_section',
                      'major_evidence_section', 'major_evidence_quote')
 _revision_properties = {key: {'type': 'string'} for key in _REVISION_STRINGS}
@@ -538,7 +570,10 @@ def validate_analysis(payload, case):
             or item.get('importance') not in ('major', 'minor', 'wording', 'review')
             or item.get('action') not in ('added', 'removed', 'changed', 'emphasis', 'description')
             or item.get('major_evidence_side') not in ('resident', 'attending', 'none')
-            or not item.get('summary', '').strip() or not item.get('reason', '').strip()):
+            or not item.get('reason', '').strip()
+            or any(not item.get(side + '_summary', '').strip()
+                   or re.search(r'[\r\n→⇒]|-+>|=+>', item[side + '_summary'])
+                   for side in ('resident', 'attending'))):
             warnings.append('A revision had an invalid format and could not be displayed. The inventory may be incomplete.')
             continue
         item = dict(item)
@@ -554,6 +589,12 @@ def validate_analysis(payload, case):
         if not evidence_ok:
             warnings.append('A revision could not be matched to its source quotation and was withheld. Review the diff or retry; the inventory may be incomplete.')
             continue
+        for side, absent in (('resident', 'Not documented'),
+                             ('attending', 'Not retained in attending report')):
+            item[side + '_summary'] = item[side + '_summary'].strip() if item[side + '_quote'].strip() else absent
+        # The model supplies endpoints, never a display sentence. All consumers
+        # get the same order; source quotations remain independent and exact.
+        item['summary'] = item['resident_summary'] + ' → ' + item['attending_summary']
         if item['action'] in ('emphasis', 'description') and item['importance'] != 'wording':
             item['importance'] = 'wording'
             warnings.append('An emphasis/descriptive item was kept outside the clinical change counts.')
@@ -856,8 +897,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .text-change { color:var(--muted); font-size:11px; font-weight:400; font-variant-numeric:tabular-nums; }
 #cr-app .change-preview { color:var(--muted); font-size:12px; margin-top:5px; display:block; line-height:1.5; }
 #cr-app .preview-item { display:block; }
-#cr-app .preview-item.major { color:var(--major); }
-#cr-app .preview-item.minor { color:var(--minor); }
+#cr-app .summary-direction { font-size:12px; margin:0 0 8px; }
 #cr-app .resident-summary { color:var(--ink); }
 #cr-app .attending-summary { color:var(--minor); }
 #cr-app .more { color:var(--accent); display:inline-block; margin-top:2px; }
@@ -994,6 +1034,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <label>Sort by<select id="order"><option value="oldest">Oldest first</option><option value="newest">Newest first</option><option value="major">Major first</option><option value="change-high">Text change: highest first</option><option value="change-low">Text change: lowest first</option></select></label>
 </div>
 <div class="list-bar"><span id="results" role="status"></span><button type="button" class="plain" id="collapse">Collapse all</button></div>
+<p class="summary-direction"><span class="resident-summary">Resident</span><span class="attending-summary"> → Attending</span></p>
 <div class="case-list" id="case-list"></div>
 <footer><span>Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
@@ -1040,13 +1081,12 @@ const analyzed = c => c.status==='complete';
 const caseLabel = c => c.case_label || members(c).join(', ');
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
-function appendSummary(node,value) {
- const text=prose(value)||'Revision needs review', split=text.indexOf('→');
- if(split<0){node.textContent=text;return;}
- // Only an explicit directional summary establishes the before/after split.
- // Keep additions and nondirectional summaries intact rather than guessing.
- node.append(el('span','resident-summary',text.slice(0,split).trimEnd()),
-  el('span','attending-summary',' '+text.slice(split)));
+function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
+function appendSummary(node,item) {
+ // The server validates these endpoints. Color always denotes report side,
+ // independently of the revision's wording, action or importance.
+ node.append(el('span','resident-summary',item.resident_summary),
+  el('span','attending-summary',' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
  if(groupOrder.includes(filter)&&counts(c)[filter]>0)return true;
@@ -1083,15 +1123,15 @@ function evidenceCell(label,quote) { const cell=el('div'); cell.append(el('div',
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
- const heading=el('h4'), text=prose(item.summary)||'Revision needs review';
+ const heading=el('h4'), text=summaryText(item);
  if(combinedView){
   const target=button('','revision-link',event=>{event.stopPropagation();pinRevision(key,index);});target.id='revision-'+key+'-'+index;target.setAttribute('aria-pressed',String(pinnedRevisions.get(key)===index));target.setAttribute('aria-label','Locate report wording: '+text);
-  appendSummary(target,text);
+  appendSummary(target,item);
   target.addEventListener('focus',()=>previewRevision(key,index));target.addEventListener('blur',()=>leaveRevision(key,index));heading.append(target);
   node.addEventListener('mouseenter',()=>{clearTimeout(hoverTimers.get(key));hoverTimers.set(key,setTimeout(()=>previewRevision(key,index),160));});
   node.addEventListener('mouseleave',()=>leaveRevision(key,index));
   node.addEventListener('click',event=>{if(!event.target.closest('button')&&!window.getSelection()?.toString())pinRevision(key,index);});
- }else appendSummary(heading,text);
+ }else appendSummary(heading,item);
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
  if(item.reason)node.append(el('p','reason',prose(item.reason)));
  const evidence=el('div','evidence'); evidence.hidden=!show;
@@ -1228,7 +1268,7 @@ function caseRow(c,key) {
  const ordered=revisions(c).slice().sort((a,b)=>groupOrder.indexOf(a.importance)-groupOrder.indexOf(b.importance));
  const clinical=ordered.filter(r=>r.importance!=='wording'), previewItems=(clinical.length?clinical:ordered).slice(0,2);
  const preview=el('span','change-preview');
- for(const revision of previewItems){const item=el('span','preview-item '+revision.importance);appendSummary(item,revision.summary);preview.append(item);}
+ for(const revision of previewItems){const item=el('span','preview-item '+revision.importance);appendSummary(item,revision);preview.append(item);}
  if(ordered.length>previewItems.length)preview.append(el('span','more','+'+(ordered.length-previewItems.length)+' more'));
  if(!ordered.length && c.status_message)preview.append(el('span','preview-item',c.status_message));
  if(preview.childNodes.length)name.append(preview);head.append(name);
@@ -1265,7 +1305,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(r=>r.summary)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}

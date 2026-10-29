@@ -1,6 +1,6 @@
 # Compare Revisions: cloud review redesign
 
-Updated October 28, 2026. Complete replacement source for the existing Google Cloud service. Based on the latest attached `main.py` (which matched the previous local source), not a readback of the live deployment. The October 28 update changes summaries, expanded groups, text-change markers and filtering without changing the model prompt or adding model requests.
+Updated October 28, 2026. Complete replacement source for the existing Google Cloud service. Based on the latest attached `main.py` (which matched the previous local source), not a readback of the live deployment. The October 28 updates change summaries, expanded groups, text-change markers and filtering. The systematic-summary follow-up updates the prompt and required response fields without adding model requests.
 
 ## What to copy into Google Cloud
 
@@ -26,7 +26,11 @@ Each row shows the source case number, exam label, a short case title, up to two
 
 The counts at the top are now visible filter buttons. **Major**, **Minor** and **Wording/detail** count revisions across the entire batch. **Needs review** counts cases with review items, partial results, missing section headings or analysis errors, including failed analyses that produced no revisions. **All cases**, **Not analyzed** and **No revisions** count cases. Counts grow as analyses complete and remain unchanged by search/filter choices.
 
-Directional summaries such as `resident wording → attending wording` show the resident side in the normal reading color (white in night mode, dark in day mode) and the arrow plus attending side in amber. This applies both below the case title and in expanded revision headings. Summaries without an explicit arrow keep their existing category color in previews; no before/after direction is guessed. Evidence quotes remain exact.
+Every revision uses the same **Resident → Attending** summary order. The resident side uses the normal reading color (white in night mode, dark in day mode); the arrow and attending side are amber. A short legend above the cases explains the order. Category badges identify importance independently of these colors. This applies to every action and category in both collapsed previews and expanded headings.
+
+The model must return separate, concise `resident_summary` and `attending_summary` fields, without arrows or introductory phrases. Each side states only that report's supported interpretation; parallel wording makes the actual difference easy to scan. Added detail, explicit negation, impression promotion and removal use this same structure. A new complication retains the already reported underlying finding as context instead of implying the entire diagnosis was missed. For example: `Diverticulitis without perforation → Diverticulitis with focal perforation`.
+
+When a side has no quoted corresponding assertion, the server uses **Not documented** on the resident side or **Not retained in attending report** on the attending side. These indicate documentation status, not an inferred negative or a clinical resolution. Explicit negatives require quotation evidence. The server validates the two fields and generates the combined summary and arrow; it never extracts the two sides from free-form prose. Missing/malformed fields cause a visible incomplete-inventory warning rather than silently falling back to inconsistent summaries. Exact evidence-quotation checks remain in place; they do not independently verify the clinical meaning of a generated paraphrase.
 
 Every revision in every group is visible when a case is expanded, including all Minor and Wording/detail items. There is no additional “Show remaining” step. The collapsed header still shows up to two previews plus the remaining count.
 

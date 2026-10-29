@@ -14,8 +14,11 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.route('**/*',r=>{requests++;return r.abort();});
   // Match the user's example without storing or using any real report.
   const sample=structuredClone(fixtures);
-  sample[0].revisions[0].summary='Pelvic mass with uncertain origin -> Uterine origin favored';
-  sample[0].revisions[1].summary='<img src=x onerror="window.injected=1"> => revised interpretation';
+  sample[0].revisions[0].resident_summary='Pelvic mass with uncertain origin';
+  sample[0].revisions[0].attending_summary='Uterine origin favored';
+  sample[0].revisions[0].summary='Legacy text must never control the displayed endpoints';
+  sample[0].revisions[1].resident_summary='<img src=x onerror="window.injected=1">';
+  sample[0].revisions[1].attending_summary='Revised interpretation';
   await page.setContent(withCases(sample));
   assert.equal(await page.locator('#filter-all').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#filter').count(),0,'filters are visible, not hidden in a dropdown');
@@ -33,6 +36,12 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.locator('#case-0').click();
   assert.equal(await page.locator('#row-0 .group-minor .revision').count(),4);
   assert.equal(await page.locator('#row-0 .group-wording .revision').count(),5);
+  for(const item of sample[0].revisions){
+   const index=sample[0].revisions.indexOf(item),heading=page.locator('#revision-0-'+index);
+   assert.equal(await heading.textContent(),item.resident_summary+' → '+item.attending_summary,'every action and importance uses fixed endpoints');
+   assert.equal(await heading.locator('.resident-summary').count(),1);
+   assert.equal(await heading.locator('.attending-summary').count(),1);
+  }
   assert.equal(await page.getByRole('button',{name:/Show remaining|Show fewer/}).count(),0);
   assert.equal(await page.locator('#revision-0-0 .resident-summary').textContent(),'Pelvic mass with uncertain origin');
   assert.equal(await page.locator('#revision-0-0').textContent(),'Pelvic mass with uncertain origin → Uterine origin favored');

@@ -16,7 +16,8 @@ function setScenario(n,name,large=false){
 }
 function result(id){
  const value={...fixture,id,source_numbers:[999],status:'complete',title:'<img src=x onerror="window.injected=1">',revisions:fixture.revisions.map(r=>({...r}))};
- value.revisions[0].summary='Partial obstruction -> closed-loop obstruction';
+ value.revisions[0].resident_summary='Partial obstruction';
+ value.revisions[0].attending_summary='Closed-loop obstruction';
  value.revisions[0].reason='Description => refined interpretation';
  value.revisions[0].resident_quote='Exact source -> wording';
  if(id==='g37'){value.status='error';value.revisions=[];value.status_message='Synthetic temporary Azure rate limit. Retry this case.';}
@@ -58,7 +59,7 @@ const server=http.createServer(async(req,res)=>{
  assert.match(await page.locator('#progress-count').innerText(),/1 of 100 report pairs · 1%/);
  assert.equal(await page.locator('#revision-totals .major').innerText(),'2 major','totals grow with completed results');
  await page.locator('#case-0').click();
- assert.equal(await page.locator('#row-0 h4').first().textContent(),'Partial obstruction → closed-loop obstruction');
+ assert.equal(await page.locator('#row-0 h4').first().textContent(),'Partial obstruction → Closed-loop obstruction');
  assert.equal(await page.locator('#row-0 .reason').first().textContent(),'Description → refined interpretation');
  assert.equal(await page.locator('#row-0 blockquote').first().textContent(),'Exact source -> wording');
  assert.equal(await page.locator('.case-number').first().innerText(),'CASE\n1');

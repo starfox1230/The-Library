@@ -1,5 +1,12 @@
 # Changes and rationale — October 4, 2026
 
+## Systematic resident → attending summaries — October 28, 2026
+
+- Replace the model's free-form `summary` with required `resident_summary` and `attending_summary` fields. Prompt version 1.4 defines parallel, concise, source-specific endpoints for every action and importance, with examples covering complications, reinterpretation, negation, additions, removals, impression promotion and descriptive detail.
+- Validate nonempty, single-line endpoints without embedded arrows. Preserve existing evidence checks, withhold malformed items with an incomplete-inventory warning, and derive the combined `summary` on the server in a fixed order. An absent source quote forces a documentation-status marker instead of an invented clinical negative.
+- Render every accepted item from its two endpoints, always resident in the reading color and arrow plus attending in amber. Remove category-dependent summary text colors and all arrow-detection heuristics. Add a single Resident → Attending legend; preserve category badges, expanded groups, filters, percentage sorting and source links.
+- Rewrite the synthetic examples to demonstrate the contract, including diverticulitis without perforation → diverticulitis with focal perforation. Update browser checks and add contract/absence/invalid-output regressions. No additional model calls or dependencies. Source-quotation checks do not independently verify a generated paraphrase's clinical correctness.
+
 ## Clear before/after summaries and direct filters — October 28, 2026
 
 - Use the latest supplied Python file as the baseline; it matched the local source. Keep its prompt, authentication, source evidence, request limits and batching behavior.

@@ -109,8 +109,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .text-change { color:var(--muted); font-size:11px; font-weight:400; font-variant-numeric:tabular-nums; }
 #cr-app .change-preview { color:var(--muted); font-size:12px; margin-top:5px; display:block; line-height:1.5; }
 #cr-app .preview-item { display:block; }
-#cr-app .preview-item.major { color:var(--major); }
-#cr-app .preview-item.minor { color:var(--minor); }
+#cr-app .summary-direction { font-size:12px; margin:0 0 8px; }
 #cr-app .resident-summary { color:var(--ink); }
 #cr-app .attending-summary { color:var(--minor); }
 #cr-app .more { color:var(--accent); display:inline-block; margin-top:2px; }
@@ -247,6 +246,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <label>Sort by<select id="order"><option value="oldest">Oldest first</option><option value="newest">Newest first</option><option value="major">Major first</option><option value="change-high">Text change: highest first</option><option value="change-low">Text change: lowest first</option></select></label>
 </div>
 <div class="list-bar"><span id="results" role="status"></span><button type="button" class="plain" id="collapse">Collapse all</button></div>
+<p class="summary-direction"><span class="resident-summary">Resident</span><span class="attending-summary"> → Attending</span></p>
 <div class="case-list" id="case-list"></div>
 <footer><span>Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
@@ -293,13 +293,12 @@ const analyzed = c => c.status==='complete';
 const caseLabel = c => c.case_label || members(c).join(', ');
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
-function appendSummary(node,value) {
- const text=prose(value)||'Revision needs review', split=text.indexOf('→');
- if(split<0){node.textContent=text;return;}
- // Only an explicit directional summary establishes the before/after split.
- // Keep additions and nondirectional summaries intact rather than guessing.
- node.append(el('span','resident-summary',text.slice(0,split).trimEnd()),
-  el('span','attending-summary',' '+text.slice(split)));
+function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
+function appendSummary(node,item) {
+ // The server validates these endpoints. Color always denotes report side,
+ // independently of the revision's wording, action or importance.
+ node.append(el('span','resident-summary',item.resident_summary),
+  el('span','attending-summary',' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
  if(groupOrder.includes(filter)&&counts(c)[filter]>0)return true;
@@ -336,15 +335,15 @@ function evidenceCell(label,quote) { const cell=el('div'); cell.append(el('div',
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
- const heading=el('h4'), text=prose(item.summary)||'Revision needs review';
+ const heading=el('h4'), text=summaryText(item);
  if(combinedView){
   const target=button('','revision-link',event=>{event.stopPropagation();pinRevision(key,index);});target.id='revision-'+key+'-'+index;target.setAttribute('aria-pressed',String(pinnedRevisions.get(key)===index));target.setAttribute('aria-label','Locate report wording: '+text);
-  appendSummary(target,text);
+  appendSummary(target,item);
   target.addEventListener('focus',()=>previewRevision(key,index));target.addEventListener('blur',()=>leaveRevision(key,index));heading.append(target);
   node.addEventListener('mouseenter',()=>{clearTimeout(hoverTimers.get(key));hoverTimers.set(key,setTimeout(()=>previewRevision(key,index),160));});
   node.addEventListener('mouseleave',()=>leaveRevision(key,index));
   node.addEventListener('click',event=>{if(!event.target.closest('button')&&!window.getSelection()?.toString())pinRevision(key,index);});
- }else appendSummary(heading,text);
+ }else appendSummary(heading,item);
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
  if(item.reason)node.append(el('p','reason',prose(item.reason)));
  const evidence=el('div','evidence'); evidence.hidden=!show;
@@ -481,7 +480,7 @@ function caseRow(c,key) {
  const ordered=revisions(c).slice().sort((a,b)=>groupOrder.indexOf(a.importance)-groupOrder.indexOf(b.importance));
  const clinical=ordered.filter(r=>r.importance!=='wording'), previewItems=(clinical.length?clinical:ordered).slice(0,2);
  const preview=el('span','change-preview');
- for(const revision of previewItems){const item=el('span','preview-item '+revision.importance);appendSummary(item,revision.summary);preview.append(item);}
+ for(const revision of previewItems){const item=el('span','preview-item '+revision.importance);appendSummary(item,revision);preview.append(item);}
  if(ordered.length>previewItems.length)preview.append(el('span','more','+'+(ordered.length-previewItems.length)+' more'));
  if(!ordered.length && c.status_message)preview.append(el('span','preview-item',c.status_message));
  if(preview.childNodes.length)name.append(preview);head.append(name);
@@ -518,7 +517,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(r=>r.summary)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}

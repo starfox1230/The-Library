@@ -98,7 +98,8 @@ class ReviewerTests(unittest.TestCase):
 
     def revision(self, **changes):
         item = {
-            "importance": "minor", "action": "added", "summary": "Enteric tube added",
+            "importance": "minor", "action": "added", "resident_summary": "Not documented",
+            "attending_summary": "Enteric tube in stomach",
             "resident_quote": "", "attending_quote": "Enteric tube terminates in the stomach.",
             "reason": "Device statement added.", "resident_section": "", "attending_section": "a0",
             "major_evidence_side": "none", "major_evidence_section": "", "major_evidence_quote": "",
@@ -192,6 +193,60 @@ class ReviewerTests(unittest.TestCase):
         self.assertEqual(len(result["revisions"]), 1)
         self.assertEqual(result["revisions"][0]["attending_quote"], "Enteric tube terminates in the stomach.")
 
+    def test_summary_schema_requires_two_endpoints_not_free_form_summary(self):
+        schema = self.module.RADIOLOGY_SUMMARY_TOOL[0]['parameters']['properties']['revisions']['items']
+        for field in ('resident_summary', 'attending_summary'):
+            self.assertIn(field, schema['required'])
+        self.assertNotIn('summary', schema['properties'])
+        self.assertIn('FIXED RESIDENT / ATTENDING ORDER', self.module.DEFAULT_PROMPT)
+
+    def test_added_summary_uses_documentation_marker_and_server_generated_arrow(self):
+        item = self.revision(resident_summary='No tube present', attending_summary='  Enteric tube in stomach  ')
+        result = self.module.validate_analysis(self.payload(item), self.device_pair())
+        revision = result['revisions'][0]
+        self.assertEqual(revision['resident_summary'], 'Not documented')
+        self.assertEqual(revision['attending_summary'], 'Enteric tube in stomach')
+        self.assertEqual(revision['summary'], 'Not documented → Enteric tube in stomach')
+        self.assertEqual(revision['resident_quote'], '')
+        self.assertEqual({link['side'] for link in revision['source_links']}, {'attending'})
+
+    def test_removal_without_attending_evidence_does_not_become_explicit_negative(self):
+        pair = self.pair(report('Small effusion.'), report('Clear lungs.'))
+        item = self.revision(action='removed', resident_summary='Small effusion', attending_summary='No effusion',
+            resident_quote='Small effusion.', resident_section='r0', attending_quote='', attending_section='')
+        result = self.module.validate_analysis(self.payload(item), pair)
+        self.assertEqual(result['status'], 'complete')
+        self.assertEqual(result['revisions'][0]['summary'], 'Small effusion → Not retained in attending report')
+
+    def test_explicit_negative_and_existing_context_keep_their_supported_endpoints(self):
+        for action, before, after in (
+            ('changed', 'Right pneumothorax.', 'No pneumothorax.'),
+            ('added', 'Diverticulitis without perforation.', 'Diverticulitis with perforation.'),
+            ('emphasis', 'Small effusion.', 'Small effusion.'),
+            ('description', 'Simple cyst.', 'Simple cyst measures 1.2 cm.'),
+        ):
+            with self.subTest(action=action):
+                item = self.revision(action=action, resident_summary=before, attending_summary=after,
+                    resident_quote=before, resident_section='r0', attending_quote=after, attending_section='a0')
+                result = self.module.validate_analysis(self.payload(item), self.pair(report(before), report(after)))
+                self.assertEqual(result['revisions'][0]['summary'], before + ' → ' + after)
+
+    def test_invalid_endpoint_never_silently_falls_back_to_free_form_summary(self):
+        malformed = []
+        for value in ('', '  ', 'Before → after', 'Before -> after', 'Before => after', 'First\nsecond'):
+            for field in ('resident_summary', 'attending_summary'):
+                malformed.append(self.revision(**{field: value}))
+        legacy = self.revision()
+        legacy.pop('resident_summary')
+        legacy['summary'] = 'Added tube'
+        malformed.append(legacy)
+        for item in malformed:
+            with self.subTest(item=item):
+                result = self.module.validate_analysis(self.payload(self.revision(), item), self.device_pair())
+                self.assertEqual(result['status'], 'partial')
+                self.assertEqual(len(result['revisions']), 1)
+                self.assertTrue(result['analysis_warnings'])
+
     def test_fabricated_quote_marks_partial_never_no_change(self):
         result = self.module.validate_analysis(self.payload(self.revision(attending_quote="Invented hemorrhage.")), self.device_pair())
         self.assertEqual(result["status"], "partial")
@@ -221,7 +276,7 @@ class ReviewerTests(unittest.TestCase):
     def test_resident_impression_supports_major_removal(self):
         resident = report("Pneumothorax.", "Pneumothorax.")
         attending = report("No pneumothorax.", "No pneumothorax.")
-        item = self.revision(importance="major", action="removed", summary="Pneumothorax call removed", resident_quote="Pneumothorax.", resident_section="r1", attending_quote="No pneumothorax.", attending_section="a1", major_evidence_side="resident", major_evidence_section="r1", major_evidence_quote="Pneumothorax.")
+        item = self.revision(importance="major", action="removed", resident_summary="Pneumothorax", attending_summary="No pneumothorax", resident_quote="Pneumothorax.", resident_section="r1", attending_quote="No pneumothorax.", attending_section="a1", major_evidence_side="resident", major_evidence_section="r1", major_evidence_quote="Pneumothorax.")
         result = self.module.validate_analysis(self.payload(item), self.pair(resident, attending))
         self.assertEqual(result["revisions"][0]["importance"], "major")
 

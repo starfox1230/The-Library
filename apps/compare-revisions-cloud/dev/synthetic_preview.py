@@ -48,24 +48,24 @@ def fixtures(app):
     attending = report(af + '\n\n' + normal, ai, context='CT chest, abdomen and pelvis with IV contrast')
     first = app.prepare_cases(pasted_case(12, resident, attending))[0]
 
-    def item(importance, action, summary, rq, aq, rs='r0', ats='a0', reason='The same finding is described with additional detail.'):
-        return dict(importance=importance, action=action, summary=summary, resident_quote=rq, attending_quote=aq,
+    def item(importance, action, before, after, rq, aq, rs='r0', ats='a0', reason='The same finding is described with additional detail.'):
+        return dict(importance=importance, action=action, resident_summary=before, attending_summary=after, resident_quote=rq, attending_quote=aq,
             resident_section=rs if rq else '', attending_section=ats if aq else '', reason=reason,
             major_evidence_side='attending' if importance=='major' else 'none',
             major_evidence_section='a1' if importance=='major' else '',
             major_evidence_quote=aq if importance=='major' else '')
     revisions = [
-        item('major','added','Added perforation; diverticulitis already described','',observations[0][2],reason='The new complication changes the acute interpretation; the underlying diverticulitis was already reported.'),
-        item('major','changed','Enteric tube: stomach → right mainstem bronchus',observations[1][1],observations[1][2],reason='The revised position is accompanied by an immediate repositioning recommendation.'),
-        item('minor','added','Added nondisplaced left seventh rib fracture','','Nondisplaced left seventh rib fracture.',reason='An uncomplicated fracture is newly reported.'),
-        item('minor','added','Added unchanged ballistic fragments','','Unchanged ballistic fragments in the left upper chest wall.',reason='A stable incidental finding is newly documented.'),
-        item('minor','changed','Renal cyst laterality: left → right',observations[3][1],observations[3][2],reason='Laterality changes a clinical assertion even though the cyst remains simple.'),
-        item('minor','added','Added conditional 12-month nodule follow-up','','Consider follow-up CT in 12 months if high risk.',reason='A nonurgent recommendation is added; actionability alone does not make it major.'),
-        item('wording','description','Added hepatic cyst measurement',observations[5][1],observations[5][2]),
-        item('wording','emphasis','Pleural effusions moved into impression',observations[6][1],observations[6][2],ats='a1',reason='The resident already documented the same effusions in Findings.'),
-        item('wording','description','Perisigmoid stranding described more concisely',observations[7][1],observations[7][2]),
-        item('wording','description','Aortic calcification characterized as atherosclerotic',observations[8][1],observations[8][2]),
-        item('wording','description','Added level of greatest disc degeneration',observations[9][1],observations[9][2]),
+        item('major','added','Diverticulitis without perforation','Diverticulitis with focal perforation',observations[0][1],observations[0][2],reason='The new complication changes the acute interpretation; the underlying diverticulitis was already reported.'),
+        item('major','changed','Enteric tube in stomach','Enteric tube in right mainstem bronchus',observations[1][1],observations[1][2],reason='The revised position is accompanied by an immediate repositioning recommendation.'),
+        item('minor','added','Not documented','Nondisplaced left seventh rib fracture','','Nondisplaced left seventh rib fracture.',reason='An uncomplicated fracture is newly reported.'),
+        item('minor','added','Not documented','Unchanged left chest wall ballistic fragments','','Unchanged ballistic fragments in the left upper chest wall.',reason='A stable incidental finding is newly documented.'),
+        item('minor','changed','Simple left renal cyst','Simple right renal cyst',observations[3][1],observations[3][2],reason='Laterality changes a clinical assertion even though the cyst remains simple.'),
+        item('minor','added','Not documented','Conditional 12-month nodule follow-up','','Consider follow-up CT in 12 months if high risk.',reason='A nonurgent recommendation is added; actionability alone does not make it major.'),
+        item('wording','description','Small simple hepatic cyst','Simple hepatic cyst, 1.2 cm',observations[5][1],observations[5][2]),
+        item('wording','emphasis','Pleural effusions in Findings','Same pleural effusions in Impression',observations[6][1],observations[6][2],ats='a1',reason='The resident already documented the same effusions in Findings.'),
+        item('wording','description','Stranding all around sigmoid colon','Circumferential perisigmoid stranding',observations[7][1],observations[7][2]),
+        item('wording','description','Mild aortic calcification','Mild atherosclerotic aortic calcification',observations[8][1],observations[8][2]),
+        item('wording','description','Multilevel disc degeneration','Disc degeneration greatest at L4-L5',observations[9][1],observations[9][2]),
     ]
     first = app.validate_analysis(dict(exam_label='CT CAP',title='Diverticulitis with pleural effusions',revisions=revisions,warnings=[]), first)
     assert first['status']=='complete', first['analysis_warnings']
@@ -77,15 +77,15 @@ def fixtures(app):
         cases.append(case)
     r=report('Small right pneumothorax.','No acute abnormality.',context='Chest radiograph')
     a=report('Small right pneumothorax.','Small right pneumothorax.',context='Chest radiograph')
-    add(13,r,a,dict(exam_label='CXR',title='Small right pneumothorax',warnings=[],revisions=[item('wording','emphasis','Pneumothorax moved into impression','Small right pneumothorax.','Small right pneumothorax.',ats='a1',reason='Already in resident Findings; no new diagnosis or clinical meaning.')] ))
+    add(13,r,a,dict(exam_label='CXR',title='Small right pneumothorax',warnings=[],revisions=[item('wording','emphasis','Small right pneumothorax in Findings','Same pneumothorax in Impression','Small right pneumothorax.','Small right pneumothorax.',ats='a1',reason='Already in resident Findings; no new diagnosis or clinical meaning.')] ))
     r=report('Right pneumothorax.','Right pneumothorax.',context='Chest radiograph')
     a=report('No pneumothorax.','No pneumothorax.',context='Chest radiograph')
-    change=item('major','changed','Pneumothorax call explicitly negated','Right pneumothorax.','No pneumothorax.',rs='r1',ats='a1',reason='The important resident call is explicitly negated; this is a reversal, not a missed pneumothorax.')
+    change=item('major','changed','Right pneumothorax','No pneumothorax','Right pneumothorax.','No pneumothorax.',rs='r1',ats='a1',reason='The important resident call is explicitly negated; this is a reversal, not a missed pneumothorax.')
     change.update(major_evidence_side='resident',major_evidence_section='r1',major_evidence_quote='Right pneumothorax.')
     add(14,r,a,dict(exam_label='CXR',title='Pneumothorax call',warnings=[],revisions=[change]))
     r=report('Perforated diverticulitis with a multiloculated perisigmoid collection.','Perforated diverticulitis with a multiloculated perisigmoid collection.',context='CT abdomen and pelvis')
     a=report('Perforated diverticulitis with a multiloculated perisigmoid abscess.','Perforated diverticulitis with a multiloculated perisigmoid abscess.',context='CT abdomen and pelvis')
-    add(15,r,a,dict(exam_label='CT AP',title='Perforated diverticulitis with collection',warnings=[],revisions=[item('wording','description','Collection → abscess; already described complication','a multiloculated perisigmoid collection','a multiloculated perisigmoid abscess')]))
+    add(15,r,a,dict(exam_label='CT AP',title='Perforated diverticulitis with collection',warnings=[],revisions=[item('wording','description','Multiloculated perisigmoid collection','Multiloculated perisigmoid abscess','a multiloculated perisigmoid collection','a multiloculated perisigmoid abscess')]))
     # A single normal study for the layout fixture. Duplicate-identity regression
     # cases live in test_app.py; matching templates cannot prove linked studies.
     normal=app.prepare_cases(pasted_case(16,report(context='XR elbow and forearm'),report(context='XR elbow and forearm')))[0]
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     repeated_a=report('🧪 marker. Moderate effusion. Stable comparison. Moderate effusion.', 'Moderate effusion.')
     repeated=app.prepare_cases(pasted_case(1,repeated_r,repeated_a))[0]
     def repeated_revision(rq,aq,rs='r0',ats='a0'):
-        return dict(importance='minor',action='changed',summary='Effusion description revised',reason='Synthetic test.',
+        return dict(importance='minor',action='changed',resident_summary='Small effusion',attending_summary='Moderate effusion',reason='Synthetic test.',
             resident_quote=rq,attending_quote=aq,resident_section=rs,attending_section=ats,
             major_evidence_side='none',major_evidence_section='',major_evidence_quote='')
     repeated=app.validate_analysis(dict(exam_label='CXR',title='Repeated synthetic effusion wording',warnings=[],revisions=[

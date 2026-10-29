@@ -23,14 +23,16 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  const initialTotals=await page.locator('#revision-totals').innerText();
  for(const group of ['major','wording']){
   const previews=page.locator('.preview-item.'+group);assert(await previews.count()>0);
-  assert.equal(await previews.first().evaluate(n=>getComputedStyle(n).color),await page.locator('#revision-totals .'+group).evaluate(n=>getComputedStyle(n).color),'preview color matches '+group+' badge');
+  assert.equal(await previews.first().locator('.resident-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'resident preview uses reading color regardless of '+group);
+  assert.equal(await previews.first().locator('.attending-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-minor').evaluate(n=>getComputedStyle(n).color),'attending preview always uses amber');
  }
  const minorPage=await browser.newPage({viewport:{width:1280,height:1000}});
  const minorFixture={...fixtures[0],revisions:fixtures[0].revisions.filter(r=>r.importance==='minor')};
  await minorPage.setContent(html.replace(/(<script id="review-data" type="application\/json">)[\s\S]*?(<\/script>)/,(_m,a,b)=>a+JSON.stringify([minorFixture])+b));
  for(const colorScheme of ['light','dark']){
   await minorPage.emulateMedia({colorScheme});
-  assert.equal(await minorPage.locator('.preview-item.minor').first().evaluate(n=>getComputedStyle(n).color),await minorPage.locator('#revision-totals .minor').evaluate(n=>getComputedStyle(n).color),'minor previews match badges in '+colorScheme);
+  assert.equal(await minorPage.locator('.preview-item.minor .resident-summary').first().evaluate(n=>getComputedStyle(n).color),await minorPage.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'resident uses reading color in '+colorScheme);
+  assert.equal(await minorPage.locator('.preview-item.minor .attending-summary').first().evaluate(n=>getComputedStyle(n).color),await minorPage.locator('#filter-minor').evaluate(n=>getComputedStyle(n).color),'attending uses amber in '+colorScheme);
  }
  await minorPage.close();
  assert.match(await page.locator('#progress-count').innerText(),/7 of 7 report pairs · 100%/);
@@ -133,7 +135,7 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  await page.emulateMedia({colorScheme:'dark'});
  await page.setViewportSize({width:1280,height:1000});
  await page.waitForTimeout(350);
- for(const group of ['major','wording'])assert.equal(await page.locator('.preview-item.'+group).first().evaluate(n=>getComputedStyle(n).color),await page.locator('#revision-totals .'+group).evaluate(n=>getComputedStyle(n).color),'dark preview color matches '+group);
+ for(const group of ['major','wording'])assert.equal(await page.locator('.preview-item.'+group+' .resident-summary').first().evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'dark resident text uses reading color for '+group);
  await page.screenshot({path:path.join(dir,'dark-collapsed.png'),fullPage:true});
  assert.equal(external,0,'synthetic preview must have no external requests');
  await page.locator('#input-disclosure > summary').click();

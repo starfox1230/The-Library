@@ -4,6 +4,14 @@ Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## October 28, 2026 update
 
+### Systematic-summary follow-up
+
+- **70 Python tests passed.** The strict model schema requires separate resident/attending summary fields and excludes a free-form summary. Added regression coverage for fixed server-generated order, source-absence markers, preserving explicitly quoted negation and underlying disease context, all action types, and partial-result warnings when an endpoint is missing, blank, multiline or contains an embedded arrow.
+- **UI, review-controls, highlights, batching and paste browser suites passed.** Every displayed revision uses two endpoint spans in the same order, including the previous nondirectional additions and wording examples. Color remains report-side-specific in both themes and views; legacy free-form summary prose cannot control the display. Existing responsive, search/filter, percentage-sort, source-link, concurrency and clipboard checks continue to pass.
+- The illustrative fixture now explicitly shows **Diverticulitis without perforation → Diverticulitis with focal perforation**, supported by synthetic quotes on both sides. Preview uses prewritten results, so these checks establish the response/display contract, not live model adherence or clinical paraphrase accuracy. No paid API calls or patient reports were used. Cloud deployment is still pending.
+
+### Initial controls update
+
 - **65 Python tests passed.** Includes deterministic text-change calculation, context exclusion, 0/100% bounds, approximate coarse results, unavailable values and preservation after AI failure; existing parsing, identity/CSRF, full-source fidelity, evidence and 100-worker streaming regressions also pass.
 - **Five Edge/Playwright browser suites passed:** UI, review controls, passage highlights, batching and paste. New checks cover resident/attending colors in both themes and summary views; all four Minor/five Wording items visible without extra controls; safe arrow prose; category union plus search; keyboard activation/focus; stable counts; attention/status filters; both percentage sort directions with missing values last; and 320–1440-pixel controls. Existing batch checks verify 100-case streaming, 205-case grouping, byte limits, retries, interruption handling and clear.
 - Desktop and mobile screenshots were inspected locally. All preview data and requests are synthetic; no patient reports, live Azure calls or live UAB sign-in were used. The update is prepared for replacement of `main.py` in the existing Google Cloud deployment; live deployment is not verified.
