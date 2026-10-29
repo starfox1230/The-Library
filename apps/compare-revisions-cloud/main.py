@@ -707,6 +707,7 @@ def summarize_case(case, instructions=None):
 def index(*, context):
     cases, error, reports_text, custom_prompt = [], '', '', DEFAULT_PROMPT
     combined_view = request.form.get('combined_view', '1') == '1'
+    show_report_wording = request.form.get('show_report_wording', '1') != '0'
     theme = request.form.get('theme', 'system')
     if theme not in ('system', 'light', 'dark'):
         theme = 'system'
@@ -724,7 +725,8 @@ def index(*, context):
                 error = str(exc)
     return render_template_string(TEMPLATE, cases=cases, reports_text=reports_text,
         custom_prompt=custom_prompt, default_prompt=DEFAULT_PROMPT,
-        combined_view=combined_view, theme=theme, error=error, csrf_token=csrf_token(),
+        combined_view=combined_view, show_report_wording=show_report_wording,
+        theme=theme, error=error, csrf_token=csrf_token(),
         username=context['user'].get('name', ''), synthetic_preview=False)
 
 
@@ -901,14 +903,14 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app h2 { font-size:22px; font-weight:650; letter-spacing:-.4px; margin:0; }
 #cr-app .totals { color:var(--muted); font-size:12px; }
 #cr-app .filter-panel { margin:0 0 18px; }
-#cr-app .filter-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:8px; }
+#cr-app .filter-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+#cr-app .filter-row > button { flex:none; }
 #cr-app .filter-options { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-#cr-app .filter-options + .filter-options { margin-top:8px; }
+#cr-app .filter-row + .filter-options { margin-top:8px; }
 #cr-app .filter-options .filter-chip { min-height:42px; padding:8px 12px; border:1px solid var(--line); border-radius:7px; font-size:12px; font-weight:550; }
 #cr-app .filter-chip[aria-pressed=true] { outline:2px solid var(--accent); outline-offset:1px; }
 #cr-app .filter-chip[aria-pressed=true]::before { content:'✓ '; }
 #cr-app .filter-chip:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
-#cr-app .filter-hint { color:var(--muted); font-size:11px; margin:9px 0 0; }
 #cr-app .review-preferences { display:flex; align-items:center; justify-content:flex-end; gap:18px; flex-wrap:wrap; }
 #cr-app .view-switch { display:flex; align-items:center; gap:9px; font-size:12px; color:var(--ink); min-height:36px; cursor:pointer; }
 #cr-app .view-switch input { appearance:none; width:34px; height:20px; flex:none; padding:0; margin:0; border:0; border-radius:999px; background:var(--line); position:relative; cursor:inherit; transition:background-color 180ms ease; }
@@ -1053,6 +1055,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
+<input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
 <input type="hidden" id="theme-value" name="theme" value="{{ theme | default('system') }}">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
@@ -1069,11 +1072,9 @@ html[data-theme="dark"] {color-scheme:dark;}
 </details>
 <section id="review" aria-labelledby="review-heading" hidden>
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
-<div class="filter-panel" aria-describedby="filter-help">
-<div class="filter-heading"><span class="totals">Filter cases</span><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
-<div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div>
+<div class="filter-panel">
+<div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
 <div class="filter-options" id="status-filters" role="group" aria-label="Filter by analysis status"></div>
-<p class="filter-hint" id="filter-help">Select one or more to include either. Major, minor and wording totals count revisions; other totals count cases. All counts cover the whole batch.</p>
 </div>
 <div class="analysis-progress" id="analysis-progress" hidden>
 <div class="progress-labels"><strong id="progress-label"></strong><span id="progress-count" role="status"></span></div>
@@ -1098,7 +1099,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 'use strict';
 const $ = id => document.getElementById(id);
 let cases = JSON.parse($('review-data').textContent || '[]');
-const opened = new Set(), views = new Map(), evidenceVisible = new Map();
+const opened = new Set(), views = new Map();
 const selectedFilters=new Set(), controllers=new Set();
 const diffModes=new Map(), spacingVisible=new Map();
 const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new Map(), reportScroll=new Map(), hoverTimers=new Map();
@@ -1118,6 +1119,7 @@ applyTheme();
 $('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').getAttribute('aria-checked')==='true'?'light':'dark';applyTheme();});
 themeMedia.addEventListener('change',()=>{if(themeChoice==='system')applyTheme();});
 let combinedView=$('combined-view').checked;
+let showReportWording=$('report-wording-value').value==='1';
 const labels = {major:'Major',minor:'Minor',wording:'Wording & detail',review:'Needs review'};
 const groupOrder = ['major','review','minor','wording'];
 const el = (tag, cls, text) => { const node=document.createElement(tag); if(cls)node.className=cls; if(text!==undefined && text!==null)node.textContent=String(text); return node; };
@@ -1195,10 +1197,11 @@ function summaryPanel(c,key) {
  if(!syntheticPreview && ['error','partial'].includes(c.status)) {
   const retry=button('Retry analysis','',()=>{const editor=$('custom-prompt');if(!editor.value.trim()){editor.setCustomValidity('Enter instructions or restore the defaults.');}else editor.setCustomValidity('');if(!editor.checkValidity()){$('input-disclosure').open=true;editor.closest('details').open=true;editor.reportValidity();return;}analyzeCase(c,key,generation,editor.value);});retry.disabled=queueRunning||controllers.size>0;panel.append(retry);
  }
- const items=revisions(c), show=evidenceVisible.get(key)!==false;
+ const items=revisions(c), show=showReportWording;
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
-  const toggle=button(show?'Hide report wording':'Show report wording','plain',()=>{evidenceVisible.set(key,!show);renderAndFocus('evidence-'+key);});
+  const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>{showReportWording=!showReportWording;$('report-wording-value').value=showReportWording?'1':'0';renderAndFocus('evidence-'+key);});
+  toggle.title='Applies to all cases';
   toggle.id='evidence-'+key; toggle.setAttribute('aria-expanded',String(show)); tools.append(toggle); panel.append(tools);
   for(const group of groupOrder) {
    const matches=items.filter(r=>r.importance===group); if(!matches.length)continue;
@@ -1324,7 +1327,7 @@ function caseRow(c,key) {
  if(!ordered.length && c.status_message)preview.append(el('span','preview-item',c.status_message));
  if(preview.childNodes.length)name.append(preview);head.append(name);
  const metrics=el('span','case-metrics'), percent=textChange(c);
- const marker=el('span','text-change',percent===null?'Text change —':(c.text_change_approximate?'≈':'')+percent.toFixed(1)+'% text changed');
+ const marker=el('span','text-change',percent===null?'Text change —':(c.text_change_approximate?'≈':'')+percent.toFixed(1)+'% changed');
  marker.title=percent===null?'Text change is unavailable without a complete pair of recognized clinical sections.':'Character changes in Findings and Impression: (removed + added) ÷ total characters in both versions. Measures text volume, not clinical importance.'+(c.text_change_approximate?' Approximate: a large rewritten region uses a coarse diff.':'');
  metrics.append(marker);
  const badges=el('span','badges'), tally=counts(c);
@@ -1478,7 +1481,7 @@ $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleC
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
  for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
- cases=[];analysisIds.clear();opened.clear();views.clear();evidenceVisible.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
+ cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  for(const timer of hoverTimers.values())clearTimeout(timer);hoverTimers.clear();pinnedRevisions.clear();hoveredRevisions.clear();passageIndices.clear();reportScroll.clear();
  $('report-text').value='';$('report-text').defaultValue='';$('paste-status').textContent='';$('custom-prompt').value=defaultPrompt;$('custom-prompt').defaultValue=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='';
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';

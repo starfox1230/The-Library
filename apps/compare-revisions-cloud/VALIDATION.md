@@ -4,6 +4,12 @@ Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## October 28, 2026 update
 
+### Compact labels and global report wording
+
+- **73 Python tests passed.** The new display preference defaults to shown, accepts an explicit hide/show value through report form submissions, and falls back to shown for an invalid value. Template and prompt export synchronization still pass.
+- **UI, review-controls, passage-highlight, batching and inline-preview browser suites passed.** Verified removed visible filter copy, exact `% changed` label, synchronized hide/show controls and evidence across cases, later-opened and streamed cases, view/filter/order changes, Clear reports, preview state restoration, retained pinned source links and responsive layout. Desktop output was visually inspected.
+- Model prompts, grading criteria, percentage calculation and request behavior are unchanged. Checks used synthetic reports and mocked responses. Existing Google Cloud deployment still requires replacement of `main.py` and redeployment.
+
 ### Explicit patterns and criteria audit
 
 - **72 Python tests passed.** Existing category/evidence regressions continue to pass. New checks verify server-standardized Emphasis wording and exact equality between the exported default prompt and the embedded prompt. Prompt 1.5 clarifies the decision order and writing patterns while preserving the existing importance thresholds and section gates.

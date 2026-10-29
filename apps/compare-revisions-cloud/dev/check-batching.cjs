@@ -62,6 +62,8 @@ const server=http.createServer(async(req,res)=>{
  assert.equal(await page.locator('#row-0 h4').first().textContent(),'Partial obstruction → Closed-loop obstruction');
  assert.equal(await page.locator('#row-0 .reason').first().textContent(),'Description → refined interpretation');
  assert.equal(await page.locator('#row-0 blockquote').first().textContent(),'Exact source -> wording');
+ await page.locator('#evidence-0').click();
+ await page.locator('#case-1').click();
  assert.equal(await page.locator('.case-number').first().innerText(),'CASE\n1');
  assert.equal(await page.locator('.case-title img').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);
  await page.locator('#combined-view').check();assert.equal(batchRequests.length,1);
@@ -72,6 +74,10 @@ const server=http.createServer(async(req,res)=>{
  await page.waitForFunction(()=>document.getElementById('progress-track').getAttribute('aria-valuenow')==='100');
  assert.match(await page.locator('#progress-count').innerText(),/100 of 100 report pairs · 100%/);
  assert.match(await page.locator('#progress-note').innerText(),/1 analysis needs attention/);
+ assert.equal(await page.locator('#row-1 .evidence:not([hidden])').count(),0,'streamed results inherit global hidden wording');
+ assert.equal(await page.locator('#evidence-1').textContent(),'Show report wording');
+ await page.locator('#evidence-1').click();
+ assert.equal(await page.locator('#case-list .evidence[hidden]').count(),0,'a streamed case can restore wording globally');
  assert.equal(await page.locator('.case').count(),100);
  await page.locator('#case-36').click();await page.locator('#row-36').getByRole('button',{name:'Retry analysis'}).click();
  await page.waitForFunction(()=>document.querySelector('#row-36 .badge.major')!==null);

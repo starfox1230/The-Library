@@ -8,11 +8,14 @@ const fs=require('fs'),assert=require('assert/strict');
  try {
   const page=await browser.newPage({viewport:{width:1024,height:1000}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.evaluate(()=>{window.saved=[];window.openai={widgetState:{privateContent:{filters:['minor'],order:'change-high',combinedView:true}},setWidgetState:async state=>window.saved.push(state)};});
+  await page.evaluate(()=>{window.saved=[];window.openai={widgetState:{privateContent:{filters:['minor'],order:'change-high',combinedView:true,showReportWording:false}},setWidgetState:async state=>window.saved.push(state)};});
   await page.setContent(html);
   assert.equal(await page.locator('.case').count(),1);
   assert.equal(await page.locator('#filter-minor').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#order').inputValue(),'change-high');
+  assert.equal(await page.locator('.evidence:not([hidden])').count(),0);
+  await page.locator('#evidence-0').click();
+  assert.equal(await page.evaluate(()=>window.saved.at(-1).privateContent.showReportWording),true);
   await page.locator('#filter-all').click();
   assert.equal(await page.locator('.case').count(),8);
   await page.locator('#filter-major').click();

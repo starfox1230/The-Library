@@ -20,6 +20,8 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   sample[0].revisions[1].resident_summary='<img src=x onerror="window.injected=1">';
   sample[0].revisions[1].attending_summary='Revised interpretation';
   await page.setContent(withCases(sample));
+  assert.equal(await page.getByText('Filter cases',{exact:true}).count(),0);
+  assert.equal(await page.locator('#filter-help').count(),0);
   assert.equal(await page.locator('#row-1 .preview-item').first().textContent(),'Small right pneumothorax → Added to Impression; finding unchanged','Impression inclusion states the edit explicitly');
   assert.equal(await page.locator('#filter-all').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#filter').count(),0,'filters are visible, not hidden in a dropdown');
@@ -35,6 +37,25 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   }
   assert.equal(await page.locator('.change-preview img').count(),0);
   await page.locator('#case-0').click();
+  await page.locator('#case-1').click();
+  await page.locator('#evidence-0').click();
+  for(const key of [0,1]){
+   assert.equal(await page.locator('#evidence-'+key).textContent(),'Show report wording');
+   assert.equal(await page.locator('#evidence-'+key).getAttribute('aria-expanded'),'false');
+   assert.equal(await page.locator('#row-'+key+' .evidence:not([hidden])').count(),0);
+  }
+  assert.equal(await page.locator('#report-wording-value').inputValue(),'0');
+  await page.locator('#case-2').click();
+  assert.equal(await page.locator('#row-2 .evidence:not([hidden])').count(),0,'newly opened cases inherit the global preference');
+  await page.locator('#combined-view').uncheck();
+  await page.locator('#order').selectOption('change-high');
+  await page.locator('#filter-major').click();await page.locator('#filter-all').click();
+  assert.equal(await page.locator('#case-list .evidence:not([hidden])').count(),0,'preference survives view, sorting and filtering');
+  await page.locator('#evidence-1').click();
+  assert.equal(await page.locator('#case-list .evidence[hidden]').count(),0,'showing from a different case updates every open case');
+  assert.equal(await page.locator('#report-wording-value').inputValue(),'1');
+  await page.locator('#case-1').click();await page.locator('#case-2').click();
+  await page.locator('#combined-view').check();await page.locator('#order').selectOption('oldest');
   assert.equal(await page.locator('#row-0 .group-minor .revision').count(),4);
   assert.equal(await page.locator('#row-0 .group-wording .revision').count(),5);
   for(const item of sample[0].revisions){
@@ -80,7 +101,7 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
    assert.deepEqual(valid,expected);
    assert.deepEqual(keys,[...valid,...unavailable],'unavailable percentages sort last in either direction');
   }
-  assert.match(await page.locator('#row-4 .text-change').textContent(),/^0\.0%/);
+  assert.equal(await page.locator('#row-4 .text-change').textContent(),'0.0% changed');
   assert.equal(await page.locator('#row-5 .text-change').textContent(),'Text change —');
   await page.locator('#order').selectOption('oldest');
   for(const width of [320,375,740,1024,1280]){
@@ -94,6 +115,9 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:path.join(out,'review-controls-dark.png')});
   await page.setViewportSize({width:375,height:1000});await page.evaluate(()=>scrollTo(0,0));
   await page.screenshot({path:path.join(out,'review-controls-mobile.png')});
+  await page.locator('#evidence-0').click();
+  await page.locator('#clear-button').evaluate(n=>n.click());
+  assert.equal(await page.locator('#report-wording-value').inputValue(),'0','Clear reports preserves the display preference');
   assert.equal(requests,0);assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(out,'review-controls-results.json'),JSON.stringify({passed:true,checks:['resident/attending colors in both themes and views','all minor/wording visible','safe prose','multi-select union + search','keyboard and focus','stable totals','status filters','both percentage directions + missing values','320–1440px layout','no model requests']},null,2));
   console.log('Review controls browser checks passed.');

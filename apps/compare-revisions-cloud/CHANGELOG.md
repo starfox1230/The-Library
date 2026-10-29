@@ -1,5 +1,12 @@
 # Changes and rationale — October 4, 2026
 
+## Less review text and global wording visibility — October 28, 2026
+
+- Remove the visible Filter cases heading and the full selection/count instruction line. Retain accessible labels for the category/status groups and the contextual Reset filters button.
+- Shorten the numeric case-header marker to `9.4% changed`; calculation, tooltip and sort behavior are unchanged.
+- Replace per-case evidence visibility with a single report-wording preference. Toggling any case updates all mounted cases and applies to later-opened cases and incoming streamed results. Preserve the choice through view/filter/order changes, Clear reports and form submissions; a fresh visit starts visible. Carry the preference in the synthetic conversation preview state too.
+- Verify global updates from different cases, hidden/show states and button labels, new/streamed cases, form handoff and responsive filter controls. No changes to analysis prompts, clinical criteria or model requests.
+
 ## Explicit writing patterns and auditable criteria — October 28, 2026
 
 - Prompt version 1.5 adds a step-by-step decision order: match assertions across sections, choose action, separate wording from clinical change, apply consequence and section requirements, then verify summaries and quotations. Existing Major/Minor thresholds and mechanical gates are preserved.

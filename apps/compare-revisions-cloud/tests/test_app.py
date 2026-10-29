@@ -488,6 +488,14 @@ class ReviewerTests(unittest.TestCase):
         self.assertNotIn('id="combined-view" checked', response.text)
         self.assertIn('name="combined_view" value="0"', response.text)
 
+    def test_report_wording_preference_defaults_visible_and_survives_submission(self):
+        client = self.client_with_csrf()
+        self.assertIn('name="show_report_wording" value="1"', client.get('/').text)
+        for submitted, expected in (('0', '0'), ('1', '1'), ('invalid', '1')):
+            response = client.post('/', data={'csrf_token':'synthetic-csrf',
+                'reports_text':pasted_case(1), 'show_report_wording':submitted})
+            self.assertIn('name="show_report_wording" value="'+expected+'"', response.text)
+
     def test_edited_prompt_is_preserved_and_view_preference_survives_post(self):
         from html import unescape
         prompt = '  Compare using my replacement rubric.\n<fictional instructions>  '
