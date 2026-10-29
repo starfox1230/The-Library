@@ -1,5 +1,11 @@
 # Changes and rationale — October 4, 2026
 
+## Short bulk shortcut and actionable status notices — October 28, 2026
+
+- Replace the framed wording popup and X with a plain-text action that expires two seconds after appearing. Hover no longer pauses/restarts it; keyboard focus retains the action until focus leaves. Preserve local wording choices, explicit bulk behavior and scroll position.
+- Turn attempted-analysis issues and unsubmitted-input counts into exact-subset shortcuts: clear unrelated search, filter, open and focus the first affected case. Show the appropriate next step and deduplicate identical notices. Preserve notices when an entire batch was skipped. Keep these operational groups distinct from clinical uncertainty.
+- Add a design proposal for an attending feedback worklist using the same comparison/evidence and optional later synthesis, rather than a second independent grading prompt. No attending mode, communication tracking or automated messaging is implemented.
+
 ## Local wording toggle with optional bulk action — October 28, 2026
 
 - Restore per-case Show/Hide report wording. Show a temporary, explicitly labeled action to apply that same state to all cases; do not change other cases without that click. Only the explicit bulk action updates the default for unopened/streamed cases and future submissions.

@@ -23,7 +23,9 @@ const content=html.replace(/(<script id="review-data" type="application\/json">)
    assert(Math.abs(await top()-before)<2,'local toggle preserves viewport position at '+width);
    assert(await page.locator('#row-0 .evidence:not([hidden])').count()>0,'other open cases stay unchanged');
    assert.equal(await page.locator('#row-2 .evidence:not([hidden])').count(),0);
-   assert.equal(await page.locator('#wording-all-2').textContent(),'Hide wording in all cases');
+   assert.equal(await page.locator('#wording-all-2').textContent(),'Hide in all cases');
+   assert.equal(await page.locator('.wording-dismiss').count(),0);
+   await page.locator('#wording-all-2').focus();
    assert(await page.evaluate(()=>window.wordingControl===document.getElementById('evidence-2')&&window.otherRow===document.getElementById('row-0')),'keep case DOM and focus targets mounted');
    if(paired)assert.equal(await page.locator('#revision-2-0').getAttribute('aria-pressed'),'true');
    const bounds=await page.locator('.wording-offer').boundingBox();assert(bounds.x>=0&&bounds.x+bounds.width<=width,'offer fits at '+width);
@@ -49,12 +51,15 @@ const content=html.replace(/(<script id="review-data" type="application\/json">)
   const before=await page.locator('#evidence-5').evaluate(n=>n.getBoundingClientRect().top);
   await page.locator('#evidence-5').click();await page.locator('#wording-all-5').click();
   assert(Math.abs(await page.locator('#evidence-5').evaluate(n=>n.getBoundingClientRect().top)-before)<2,'near-end bulk collapse retains the current case');
-  // Idle offers expire; keyboard focus keeps the action available until dismissed.
+  // A fixed two-second deadline applies even while hovered; keyboard focus is retained.
   await page.clock.install();
-  await page.locator('#evidence-5').click();await page.mouse.move(0,0);await page.clock.fastForward(8100);
+  await page.locator('#evidence-5').click();await page.locator('#wording-all-5').hover();await page.clock.fastForward(2100);
   assert.equal(await page.locator('.wording-offer').count(),0);
-  await page.locator('#evidence-5').click();await page.locator('#wording-all-5').focus();await page.clock.fastForward(8100);
+  await page.locator('#evidence-5').click();await page.locator('#wording-all-5').focus();await page.clock.fastForward(2100);
   assert.equal(await page.locator('.wording-offer').count(),1);
+  await page.locator('#evidence-5').focus();await page.clock.runFor(1);
+  assert.equal(await page.locator('.wording-offer').count(),0,'an expired focused action disappears as soon as focus leaves');
+  await page.locator('#evidence-5').click();await page.locator('#wording-all-5').focus();
   await page.keyboard.press('Escape');assert.equal(await page.locator('.wording-offer').count(),0);
   assert.equal(await page.evaluate(()=>document.activeElement.id),'evidence-5');
   await page.evaluate(()=>{const n=document.getElementById('evidence-5');n.click();n.click();});

@@ -922,7 +922,8 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .progress-labels strong { color:var(--ink); font-weight:550; }
 #cr-app .progress-track { height:5px; border-radius:999px; background:var(--line); overflow:hidden; }
 #cr-app .progress-fill { height:100%; width:0; background:var(--accent); border-radius:inherit; transition:width 420ms cubic-bezier(.22,1,.36,1); }
-#cr-app .progress-note { color:var(--muted); font-size:12px; margin:7px 0 0; }
+#cr-app .progress-note { display:flex; flex-wrap:wrap; gap:4px 18px; color:var(--muted); font-size:12px; margin:7px 0 0; }
+#cr-app .progress-note .plain { font-size:12px; text-align:left; text-decoration:underline; text-underline-offset:3px; padding:2px 0; }
 #cr-app .controls { display:grid; grid-template-columns:minmax(200px,1fr) 225px; gap:12px; align-items:end; margin-bottom:17px; }
 #cr-app .controls label { color:var(--muted); }
 #cr-app .controls input,#cr-app .controls select { margin-top:5px; min-height:42px; font-size:14px; }
@@ -981,9 +982,8 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .member-note { margin:0 0 14px; color:var(--muted); font-size:12px; }
 #cr-app .summary-tools { display:flex; justify-content:space-between; gap:15px; align-items:center; margin-bottom:14px; font-size:12px; }
 #cr-app .wording-tools { position:relative; flex:none; }
-#cr-app .wording-offer { position:absolute; top:100%; right:0; z-index:5; display:flex; align-items:center; gap:8px; width:max-content; max-width:min(250px,calc(100vw - 56px)); padding:7px; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 12%,transparent); }
-#cr-app .wording-offer button { font-size:12px; }
-#cr-app .wording-offer .wording-dismiss { padding:6px; min-width:30px; }
+#cr-app .wording-offer { position:absolute; top:100%; right:0; z-index:5; width:max-content; max-width:min(250px,calc(100vw - 56px)); }
+#cr-app .wording-offer .wording-apply-all { font-size:12px; padding:0; }
 #cr-app .group { margin-top:24px; }
 #cr-app .group:first-of-type { margin-top:8px; }
 #cr-app .group h3 { margin:0 0 12px; font-size:12px; font-weight:650; display:flex; align-items:center; gap:8px; }
@@ -1083,7 +1083,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="analysis-progress" id="analysis-progress" hidden>
 <div class="progress-labels"><strong id="progress-label"></strong><span id="progress-count" role="status"></span></div>
 <div class="progress-track" id="progress-track" role="progressbar" aria-label="Finished report pair analyses" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
-<p class="progress-note" id="progress-note" hidden></p>
+<div class="progress-note" id="progress-note" hidden></div>
 </div>
 <div class="controls">
 <label class="search-label">Find a case<input id="search" type="search" placeholder="Case number, exam, or finding" autocomplete="off"></label>
@@ -1150,6 +1150,8 @@ function appendSummary(node,item) {
   el('span','attending-summary',' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
+ if(filter==='analysis-issues')return analysisIds.has(c.id)&&!['queued','processing','complete'].includes(c.status);
+ if(filter==='not-submitted')return !analysisIds.has(c.id);
  if(groupOrder.includes(filter)&&counts(c)[filter]>0)return true;
  if(filter==='review')return ['partial','needs_sections','error'].includes(c.status);
  if(filter==='pending')return ['pending','unavailable','needs_sections','error','queued','processing'].includes(c.status);
@@ -1171,14 +1173,24 @@ function updateProgress() {
  const finished=tracked.filter(c=>!['queued','processing'].includes(c.status)), done=finished.length;
  const percent=total?Math.round(done*100/total):0, issues=finished.filter(c=>c.status!=='complete').length;
  const skipped=cases.length-total;
- $('analysis-progress').hidden=!total;
- $('progress-label').textContent=done<total?'Analyzing reports':'Analysis finished';
- $('progress-count').textContent=done+' of '+total+' report pairs · '+percent+'%';
+ $('analysis-progress').hidden=!total&&!skipped;
+ $('progress-label').textContent=!total?'No report pairs submitted':done<total?'Analyzing reports':'Analysis finished';
+ $('progress-count').textContent=total?done+' of '+total+' report pairs · '+percent+'%':'0 of '+cases.length+' report pairs submitted';
+ $('progress-track').hidden=!total;
  $('progress-fill').style.width=percent+'%';
  $('progress-track').setAttribute('aria-valuenow',String(percent));
  $('progress-track').setAttribute('aria-valuetext',done+' of '+total+' report pair analyses finished'+(issues?'; '+issues+' need attention':''));
- const notes=[];if(issues)notes.push(issues+' '+(issues===1?'analysis needs':'analyses need')+' attention');if(skipped)notes.push(skipped+' '+(skipped===1?'report pair was':'report pairs were')+' not submitted for analysis');
- $('progress-note').textContent=notes.join(' · ');$('progress-note').hidden=!notes.length;
+ const notes=[];
+ if(issues){const link=button(issues+' '+(issues===1?'analysis needs':'analyses need')+' attention','plain',()=>showProgressCases('analysis-issues'));link.id='progress-issues';link.title='Show the affected cases and retry or inspect their analysis';notes.push(link);}
+ if(skipped){const link=button(skipped+' '+(skipped===1?'report pair was':'report pairs were')+' not submitted for analysis','plain',()=>showProgressCases('not-submitted'));link.id='progress-skipped';link.title='Show the skipped cases and what to correct in the input';notes.push(link);}
+ $('progress-note').replaceChildren(...notes);$('progress-note').hidden=!notes.length;
+}
+function showProgressCases(filter) {
+ selectedFilters.clear();selectedFilters.add(filter);$('search').value='';dismissWordingOffer();
+ const index=cases.findIndex(c=>matchesFilter(c,filter));
+ if(index>=0){const key=String(index);opened.add(key);views.set(key,'summary');}
+ render();
+ if(index>=0){const head=$('case-'+index);head?.focus({preventScroll:true});head?.scrollIntoView({block:'start',behavior:'instant'});}
 }
 function evidenceCell(label,quote) { const cell=el('div'); cell.append(el('div','source-label',label)); cell.append(quote?el('blockquote','',quote):el('p','absent','No corresponding quoted wording.')); return cell; }
 const wordingShown=key=>wordingOverrides.get(key)??showReportWording;
@@ -1192,16 +1204,16 @@ function scheduleWordingOfferDismissal() {
  clearTimeout(wordingOfferTimer);
  wordingOfferTimer=setTimeout(()=>{
   const offer=document.querySelector('#cr-app .wording-offer');
-  if(offer?.contains(document.activeElement)||offer?.matches(':hover'))return;
+  if(offer?.contains(document.activeElement))return;
   dismissWordingOffer();
- },8000);
+ },Math.max(0,(wordingOffer?.expires||0)-performance.now()));
 }
 function mountWordingOffer(key) {
  if(wordingOffer?.key!==key)return;
  const holder=$('wording-tools-'+key);if(!holder)return;
  holder.querySelector('.wording-offer')?.remove();
  const show=wordingOffer.show, offer=el('div','wording-offer');offer.setAttribute('role','group');offer.setAttribute('aria-label','Optional change for all cases');
- const apply=button(show?'Show wording in all cases':'Hide wording in all cases','wording-apply-all',()=>{
+ const apply=button(show?'Show in all cases':'Hide in all cases','plain wording-apply-all',()=>{
   preserveWordingPosition(key,()=>{
    showReportWording=show;wordingOverrides.clear();$('report-wording-value').value=show?'1':'0';
    dismissWordingOffer();syncWording();
@@ -1210,10 +1222,8 @@ function mountWordingOffer(key) {
   $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' in all cases.';
  });
  apply.id='wording-all-'+key;
- const dismiss=button('×','plain wording-dismiss',()=>dismissWordingOffer(true));dismiss.setAttribute('aria-label','Dismiss change for all cases');
- offer.append(apply,dismiss);
- offer.addEventListener('mouseenter',()=>clearTimeout(wordingOfferTimer));
- offer.addEventListener('mouseleave',scheduleWordingOfferDismissal);
+ apply.setAttribute('aria-label',(show?'Show':'Hide')+' report wording in all cases');
+ offer.append(apply);
  offer.addEventListener('focusin',()=>clearTimeout(wordingOfferTimer));
  offer.addEventListener('focusout',scheduleWordingOfferDismissal);
  offer.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();dismissWordingOffer(true);}});
@@ -1246,7 +1256,7 @@ function toggleWording(key) {
  const show=!wordingShown(key);
  preserveWordingPosition(key,()=>{
   dismissWordingOffer();wordingOverrides.set(key,show);syncWording();
-  wordingOffer={key,show};mountWordingOffer(key);scheduleWordingOfferDismissal();
+  wordingOffer={key,show,expires:performance.now()+2000};mountWordingOffer(key);scheduleWordingOfferDismissal();
  });
  $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
 }
@@ -1268,9 +1278,16 @@ function makeRevision(item,show,key,index) {
  evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); node.append(evidence); return node;
 }
 function summaryPanel(c,key) {
- const panel=el('div');
- if(c.status_message && c.status!=='complete')panel.append(el('p','notice',c.status_message));
- for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))panel.append(el('p','notice',warning));
+ const panel=el('div'), notices=new Set();
+ if(c.status_message && c.status!=='complete')notices.add(c.status_message);
+ for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))notices.add(warning);
+ for(const notice of notices)panel.append(el('p','notice',notice));
+ if(!['complete','queued','processing'].includes(c.status)){
+  const next=c.status==='needs_sections'?'Check Findings/Impression headings in both reports, then submit the corrected pair again.':
+   ['pending','unavailable'].includes(c.status)?'Recapture the completed resident and attending reports, then submit the pair again.':
+   !analysisIds.has(c.id)?'Correct the input issue described above, then submit the pair again.':'Retry this analysis, or review the full reports.';
+  panel.append(el('p','notice case-next-step','Next: '+next));
+ }
  if(!syntheticPreview && ['error','partial'].includes(c.status)) {
   const retry=button('Retry analysis','',()=>{const editor=$('custom-prompt');if(!editor.value.trim()){editor.setCustomValidity('Enter instructions or restore the defaults.');}else editor.setCustomValidity('');if(!editor.checkValidity()){$('input-disclosure').open=true;editor.closest('details').open=true;editor.reportValidity();return;}analyzeCase(c,key,generation,editor.value);});retry.disabled=queueRunning||controllers.size>0;panel.append(retry);
  }
@@ -1456,7 +1473,7 @@ function render() {
  $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
- $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||(key==='pending'?'Not analyzed':'No revisions')).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
+ $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
  if(combinedView)for(const key of opened)showRevisionLinks(key,false);

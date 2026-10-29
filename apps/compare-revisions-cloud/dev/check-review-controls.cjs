@@ -25,6 +25,18 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   assert.equal(await page.locator('#row-1 .preview-item').first().textContent(),'Small right pneumothorax → Added to Impression; finding unchanged','Impression inclusion states the edit explicitly');
   assert.equal(await page.locator('#filter-all').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#filter').count(),0,'filters are visible, not hidden in a dropdown');
+  await page.locator('#search').fill('no matching search');
+  await page.locator('#progress-issues').click();
+  assert.equal(await page.locator('.case').count(),1,'analysis attention links to its exact affected subset');
+  assert.equal(await page.locator('#case-7').getAttribute('aria-expanded'),'true');
+  assert.match(await page.locator('#row-7 .case-next-step').textContent(),/Retry/);
+  assert.equal(await page.locator('#search').inputValue(),'','status navigation clears an unrelated search');
+  await page.locator('#progress-skipped').click();
+  assert.equal(await page.locator('.case').count(),1);
+  assert.equal(await page.locator('#case-5').getAttribute('aria-expanded'),'true');
+  assert.match(await page.locator('#row-5 .case-next-step').textContent(),/Recapture/);
+  await page.locator('#reset-filters').click();
+  await page.locator('#collapse').click();
   for(const colorScheme of ['dark','light']){
    await page.emulateMedia({colorScheme});
    const resident=page.locator('#row-0 .change-preview .resident-summary').first();
@@ -116,6 +128,15 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.locator('#evidence-0').click();
   await page.locator('#clear-button').evaluate(n=>n.click());
   assert.equal(await page.locator('#report-wording-value').inputValue(),'1','a local toggle never changes the default for new batches');
+  await page.setContent(withCases([sample[5]]));
+  assert(await page.locator('#analysis-progress').isVisible(),'skipped-only batches retain their actionable notice');
+  await page.locator('#progress-skipped').click();
+  assert.equal(await page.locator('.case').count(),1);
+  assert.match(await page.locator('.case-next-step').textContent(),/Recapture/);
+  const uncertain={...sample[0],status:'complete',analysis_warnings:[],revisions:[{...sample[0].revisions[0],importance:'review'}]};
+  await page.setContent(withCases([uncertain]));
+  assert.equal(await page.locator('#progress-issues').count(),0,'clinical uncertainty is not an analysis failure');
+  assert.equal(await page.locator('#filter-review').textContent(),'Needs review (1)');
   assert.equal(requests,0);assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(out,'review-controls-results.json'),JSON.stringify({passed:true,checks:['resident/attending colors in both themes and views','all minor/wording visible','safe prose','multi-select union + search','keyboard and focus','stable totals','status filters','both percentage directions + missing values','320–1440px layout','no model requests']},null,2));
   console.log('Review controls browser checks passed.');

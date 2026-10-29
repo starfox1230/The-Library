@@ -4,6 +4,12 @@ Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## October 28, 2026 update
 
+### Short bulk shortcut and actionable processing notices
+
+- **73 Python tests and six browser suites passed:** wording, review controls, UI, batching, highlights and inline preview. Verified the two-second deadline expires even under the pointer, keyboard focus retains access until leaving, the X control is absent, and position-preserving local/bulk behavior remains intact.
+- Status navigation checks verify exact attempted-error and skipped-input subsets, clearing an unrelated search, opening the first affected case and displaying its next step. Skipped-only batches remain actionable. A completed case with a clinical review item does not become an analysis failure. Source links, streaming, sorting, filtering and responsive layout continue to pass.
+- Updated mobile shortcut output was visually inspected. Tests use synthetic data and mocked requests. The attending workflow document is a proposal only; no attending mode, feedback delivery, communication tracking, new model prompt or cloud deployment was added.
+
 ### Local wording choices with explicit bulk action
 
 - **73 Python tests passed.** Prompt/embedded-template synchronization and the explicitly chosen all-cases default through form submissions remain covered; clinical logic and model instructions are unchanged.
