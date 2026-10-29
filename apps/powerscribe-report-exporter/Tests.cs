@@ -925,7 +925,7 @@ namespace ReportExporter
                 Test("old profiles acquire simple-launch defaults while keeping calibrated coordinates", () => {
                     using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("{\"Version\":6,\"ClickX\":123,\"ClickY\":456,\"KeyDelayMs\":25}"))) {
                         var profile = (Profile)new DataContractJsonSerializer(typeof(Profile)).ReadObject(stream);
-                        Assert(profile.TimingMode == "Automatic" && profile.OpenWebsite && !profile.OpenTextFile && profile.ClickX == 123 && profile.ClickY == 456, "Migration lost setup or added routine popups");
+                        Assert(profile.TimingMode == "Automatic" && profile.OpenWebsite && profile.OpenTextFile && profile.ClickX == 123 && profile.ClickY == 456, "Migration lost setup or defaults");
                     }
                 });
                 Test("automatic output names are unique and do not replace a previous export", () => {
@@ -950,6 +950,22 @@ namespace ReportExporter
                     Assert(summary.Contains("Last saved source entry: 8") && !summary.Contains("FINDINGS:") && summary.Contains("No remaining"), "Run summary lost context or copied report text");
                 });
                 Test("compact launcher hides setup, expands Options and keeps Go visible", LauncherChecks.Verify);
+                Test("manual recovery reads complete pairs after a stopped run, never the archival file", () => {
+                    var runner = new ExportRunner(); string output = path();
+                    Throws<TimeoutException>(() => runner.Run(new FakeSession { FailAdvance = true }, 5, 7, output, CancellationToken.None, s => {}));
+                    File.AppendAllText(output, "ARCHIVAL INCOMPLETE RECORD");
+                    string text = ExportDelivery.ReadCompleted(output, runner.Completed);
+                    Assert(text == File.ReadAllText(output + ".for-comparison.txt") && text.Contains("Case 5") && !text.Contains("ARCHIVAL"), "Stopped-run recovery loaded incomplete archival content");
+                });
+                Test("Notepad defaults on for new setups and retains an existing off preference", () => {
+                    Assert(new Profile().OpenTextFile, "New setup does not open Notepad by default");
+                    using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("{\"Version\":7,\"OpenTextFile\":false}"))) {
+                        var profile = (Profile)new DataContractJsonSerializer(typeof(Profile)).ReadObject(stream);
+                        Assert(!profile.OpenTextFile, "Saved Notepad-off preference was lost");
+                        profile.Validate();
+                    }
+                });
+                Test("copied text recovers an overwritten clipboard, survives failures, and retains full Unicode text", LauncherChecks.VerifyCopiedText);
                 Console.WriteLine(passed + " tests passed. These tests do not operate on PowerScribe or your clipboard.");
                 return 0;
             }

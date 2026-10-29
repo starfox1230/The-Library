@@ -1,4 +1,22 @@
-# PowerScribe Report Exporter v0.13
+# PowerScribe Report Exporter v0.14
+
+## v0.14: copied text and optional Notepad
+
+After a run with complete pairs, **Copied text** appears as a collapsed section beside the normal Options workflow. Expand it to see the complete comparison input and use **Copy again** whenever another app replaces the clipboard. The read-only viewer preserves full text and Unicode and supports manual selection/copy. A clipboard failure leaves the text available for retry. It reads only `.for-comparison.txt`, never pending/unavailable archival records. Saved complete pairs from a stopped run are available here for deliberate copying; stopped runs still do not automatically copy or open the website.
+
+The section shows the export time, requested case labels, complete-pair count, and filename so a retained export can be identified. A later run with no usable complete-pair text leaves the previous export available with its original label. A new usable export replaces it and collapses the section. This in-app view lasts while the exporter is open. Files remain in the save folder after the exporter closes.
+
+**Open the saved comparison file in Notepad** is optional under Options and defaults on for new setups or older profiles lacking that field. Existing saved on/off preferences are preserved, including v0.13's off setting. This checkbox controls opening the file, not saving it: each run still writes a backup regardless of Notepad or clipboard state. Use **Open comparison file** at any time after a run with complete pairs.
+
+Validation: executable compiled and **114 tests passed**. New coverage checks stopped-run comparison-only recovery, Notepad defaults and preserved preferences, and the native disclosure/recopy workflow with an overwritten or unavailable injected clipboard and more than 70,000 characters of Unicode text. The expanded copied-text preview was inspected. Tests use synthetic reports and test-owned controls, not PowerScribe or the real clipboard. A short UAB workstation trial remains necessary.
+
+### Window layout and sharing with other workstations
+
+The keyboard workflow uses a saved **window-relative pixel offset** for its first click into the attending report, followed by a fixed Tab sequence. `Native.Click` reads the comparison window's current rectangle before adding X/Y, so moving that intact window across the desktop does not require a new screen position. The main PowerScribe window's screen position is not hard-coded either. This is not automatic report-pane detection.
+
+Resizing the comparison, changing pane arrangements, switching display scaling or monitors with different scaling, or using a different PowerScribe/remote-desktop layout can put another control under that offset. The app rejects an offset outside the comparison rectangle and checks window focus, clipboard freshness/ownership, clinical headings, and navigation state. Those checks detect many failures, but valid report headings do not prove that a clicked pane was the attending pane or that each Tab reached the intended control. No claim of arbitrary-layout compatibility is made. Multiple visible windows matching the expected reporting title are rejected; title/version differences may prevent discovery.
+
+For a new workstation, set the intended comparison layout, use **Options > Capture report click (optional)** if needed, and verify a few known resident/attending pairs and their order. Keep that layout stable during extraction. Repeat the click calibration and short check after layout/scaling changes. **Remember worklist (F8)** is a separate session-only focus capture, not report-pane calibration. Reliable use across arbitrary layouts would require identifying the actual report controls; the optional accessibility mode still depends on controls that the UAB installation may not expose.
 
 ## v0.13: first case, last case, Go
 
@@ -12,7 +30,7 @@ Stopped runs keep saved captures and show a brief result with an actionable next
 
 Validation: executable compiled and **111 tests passed**, including the existing 103 capture/navigation checks plus adaptive timing, migration, unique filenames, stopped-run recovery, and a native launcher layout check. Launcher previews were inspected with Options collapsed and expanded. Tests use synthetic reports and test-owned controls; they do not operate on PowerScribe or the real clipboard. The UAB workstation still needs a short trial to verify the actual range, report contents, and case order.
 
-The following release notes describe earlier changes; the current use instructions below reflect v0.13.
+The following release notes describe earlier changes; the current use instructions below reflect v0.14.
 
 ## v0.12: retain worklist focus before activation
 
@@ -91,12 +109,12 @@ The first version's accessibility approach did not work on Sterling's workstatio
 
 ## Use it — no PowerShell required
 
-1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.13**.
+1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.14**.
 2. Close any open Compare Report Revisions dialog and **click the first case row in PowerScribe's worklist**. Leave focus on that row. Keep the comparison-window size that works with the AHK.
 3. Enter **First case** and **Last case**, then **Go**. These labels determine the count; they do not select numbered rows. Start with one case, then a small batch. Options is unnecessary for a normally configured workstation.
 4. A small progress window shows the current action, elapsed time, saved count, and available stop shortcut (**Numpad \*** or **Ctrl+Shift+F12**). Use its Stop button to cancel.
 5. On success, complete pairs are copied and the [Compare Revisions website](https://compare-revisions-646439009049.us-central1.run.app/) opens if enabled. Select **Paste**, or Ctrl+V in the report box, then **Analyze reports**. The extractor does not paste or upload reports itself.
-6. **Open comparison file**, **Open save folder**, and **Details** are available after the run. Options lets you choose another save folder, enable Notepad, or adjust setup. Only `<output>.for-comparison.txt` contains comparison input; the original `<output>` retains incomplete entries too. Zero complete pairs leaves the clipboard unchanged and does not open the website. Stopped/failed runs retain completed pairs but do not automatically copy them or open the website.
+6. **Open comparison file**, **Open save folder**, and **Details** are available after the run. Expand **Copied text** to inspect the comparison input or **Copy again** after the clipboard changes. Options lets you choose another save folder, toggle Notepad, or adjust setup. Only `<output>.for-comparison.txt` contains comparison input; the original `<output>` retains incomplete entries too. Zero complete pairs leaves the clipboard unchanged and does not open the website. Stopped/failed runs retain completed pairs but do not automatically copy them or open the website.
 
 If automatic worklist detection fails, use **Options > Remember worklist (F8)**, select the first case row, and press F8 while PowerScribe is active. Return to the exporter and try Go. This focus capture lasts for the exporter session, rather than being saved permanently.
 

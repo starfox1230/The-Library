@@ -13,6 +13,40 @@ namespace ReportExporter
             return null;
         }
         private static void Require(bool check, string message) { if (!check) throw new Exception(message); }
+        public static void VerifyCopiedText()
+        {
+            using (var form = new ExportForm(true))
+            {
+                form.StartPosition = FormStartPosition.Manual; form.Location = new Point(-20000, -20000); form.ShowInTaskbar = false;
+                form.Show(); Application.DoEvents();
+                var toggle = (Button)Find(form, "CopiedTextToggle");
+                var panel = Find(form, "CopiedTextPanel");
+                var textBox = (TextBox)Find(form, "CopiedText");
+                var copy = (Button)Find(form, "CopyAgain");
+                Require(!toggle.Visible && !panel.Visible, "Empty copied-text controls should be hidden");
+                // Above the native edit control's usual input limit, with Unicode preserved.
+                string expected = "Case 7\r\n" + new string('x', 70000) + " café →\r\nCase 8\r\n";
+                form.SetCopiedText(expected, "Synthetic saved run 7-8"); Application.DoEvents();
+                Require(toggle.Visible && !panel.Visible && textBox.ReadOnly, "New result was expanded or editable");
+                toggle.PerformClick(); Application.DoEvents();
+                Require(panel.Visible && textBox.Text == expected, "Expanded text was truncated or changed");
+                form.ClipboardWriter = value => { throw new InvalidOperationException("Synthetic clipboard lock"); };
+                copy.PerformClick();
+                Require(Find(form, "CopyStatus").Text.Contains("Try Copy again") && textBox.Text == expected, "Clipboard failure erased text or has no recovery");
+                string clipboard = "An unrelated later clipboard item";
+                form.ClipboardWriter = value => clipboard = value;
+                copy.PerformClick();
+                Require(clipboard == expected, "Copy again did not restore the complete saved text");
+                clipboard = "Overwritten again"; copy.PerformClick();
+                Require(clipboard == expected, "Second recopy depended on previous clipboard contents");
+                form.SetCopiedText(null, "Failed run without complete pairs");
+                Require(textBox.Text == expected && Find(form, "CopiedSource").Text == "Synthetic saved run 7-8", "Empty run erased or relabeled previous saved text");
+                form.SetCopiedText("New complete export", "Synthetic newer run"); Application.DoEvents();
+                Require(!panel.Visible && textBox.Text == "New complete export", "New saved text did not replace old text and collapse");
+                Require(((CheckBox)Find(form, "OpenNotepad")).Checked, "Notepad is not enabled by default for a new setup");
+                form.Close();
+            }
+        }
         public static void Verify()
         {
             // This test-owned form has no hotkeys, profile access, PowerScribe

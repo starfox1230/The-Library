@@ -18,7 +18,7 @@ namespace ReportExporter
         [DataMember] public string TimingMode = "Automatic";
         [DataMember] public string OutputDirectory;
         [DataMember] public bool OpenWebsite = true;
-        [DataMember] public bool OpenTextFile;
+        [DataMember] public bool OpenTextFile = true;
         [DataMember] public int ComparisonWaitMs = 3000;
         [DataMember] public bool KeyboardWorkflow = true;
         [DataMember] public bool AutoRestoreFocus = true;
@@ -46,7 +46,7 @@ namespace ReportExporter
             MainTitle = "PowerScribe 360 | Reporting"; ComparisonTitle = "Compare Report Revisions";
             TimeoutMs = 10000; PollMs = 10; StableMs = 50;
             FindingsOnly = false;
-            TimingMode = "Automatic"; OutputDirectory = null; OpenWebsite = true; OpenTextFile = false;
+            TimingMode = "Automatic"; OutputDirectory = null; OpenWebsite = true; OpenTextFile = true;
         }
         public void Validate()
         {

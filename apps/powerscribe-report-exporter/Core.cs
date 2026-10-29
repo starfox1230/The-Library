@@ -94,13 +94,18 @@ namespace ReportExporter
 
     public static class ExportDelivery
     {
+        public static string ReadCompleted(string path, int completed)
+        {
+            if (completed <= 0) return null;
+            string text = File.ReadAllText(path + ".for-comparison.txt");
+            return String.IsNullOrWhiteSpace(text) ? null : text;
+        }
         // Called only after a successful run. Copy complete pairs, never archival
         // placeholders/pending records. Injectable writer keeps tests off clipboard.
         public static bool CopyCompleted(string path, int completed, Action<string> copy)
         {
-            if (completed <= 0) return false;
-            string text = File.ReadAllText(path + ".for-comparison.txt");
-            if (String.IsNullOrWhiteSpace(text)) return false;
+            string text = ReadCompleted(path, completed);
+            if (text == null) return false;
             copy(text);
             return true;
         }

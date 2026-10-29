@@ -7,8 +7,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.13.0.0")]
-[assembly: AssemblyFileVersion("0.13.0.0")]
+[assembly: AssemblyVersion("0.14.0.0")]
+[assembly: AssemblyFileVersion("0.14.0.0")]
 
 namespace ReportExporter
 {
@@ -17,13 +17,19 @@ namespace ReportExporter
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-progress"))
+            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-copied" || args[0] == "--preview-progress"))
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 using (Form form = args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
+                    if (args[0] == "--preview-copied")
+                    {
+                        var exporter = (ExportForm)form;
+                        exporter.SetCopiedText("Case 1\r\nAttending Report:\r\nFINDINGS: Synthetic attending report for preview.\r\n\r\nResident Report:\r\nFINDINGS: Synthetic resident report for preview.\r\n", "Preview only - synthetic reports");
+                        exporter.SetCopiedTextVisible(true);
+                    }
                     var progress = form as ProgressOverlay;
                     if (progress != null) progress.SetPhase("Waiting for fresh attending report text...", 2, 10);
                     form.StartPosition = FormStartPosition.Manual; form.Location = new Point(-20000, -20000);
@@ -93,7 +99,15 @@ namespace ReportExporter
         private readonly Button optionsButton = new Button { Name = "Options", Text = "Options >", AutoSize = true, FlatStyle = FlatStyle.Flat };
         private readonly ComboBox speed = new ComboBox { Name = "Speed", DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
         private readonly TextBox outputFolder = new TextBox { Width = 390, ReadOnly = true };
-        private readonly CheckBox openText = new CheckBox { Text = "Also open the comparison file in Notepad", AutoSize = true };
+        private readonly CheckBox openText = new CheckBox { Name = "OpenNotepad", Text = "Open the saved comparison file in Notepad", AutoSize = true, Checked = true };
+        private readonly Button copiedToggle = new Button { Name = "CopiedTextToggle", Text = "Copied text >", AutoSize = true, FlatStyle = FlatStyle.Flat, Visible = false };
+        private readonly FlowLayoutPanel copiedPanel = new FlowLayoutPanel { Name = "CopiedTextPanel", AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
+        private readonly TextBox copiedText = new TextBox { Name = "CopiedText", Width = 570, Height = 220, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, MaxLength = Int32.MaxValue };
+        private readonly Label copiedSource = new Label { Name = "CopiedSource", AutoSize = true, MaximumSize = new Size(570, 0) };
+        private readonly Button copyAgain = new Button { Name = "CopyAgain", Text = "Copy again", AutoSize = true };
+        private readonly Label copyStatus = new Label { Name = "CopyStatus", AutoSize = true, MaximumSize = new Size(440, 0) };
+        private bool copiedExpanded;
+        internal Action<string> ClipboardWriter;
         private readonly TextBox details = new TextBox { Name = "RunDetails", Width = 570, Height = 180, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Visible = false };
         private readonly Button detailsButton = new Button { Text = "Details", AutoSize = true };
         private readonly Button openComparison = new Button { Text = "Open comparison file", AutoSize = true };
@@ -111,7 +125,8 @@ namespace ReportExporter
         public ExportForm(bool preview)
         {
             previewMode = preview;
-            Text = "PowerScribe Report Exporter v0.13";
+            ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
+            Text = "PowerScribe Report Exporter v0.14";
             ClientSize = new Size(620, 280);
             MinimumSize = new Size(640, 310);
             Font = new Font("Segoe UI", 10);
@@ -190,12 +205,24 @@ namespace ReportExporter
             optionsPanel.Controls.Add(Row("Maximum wait (s)", timeout, "", new Label { AutoSize = true, Text = "Not a fixed delay" }));
             optionsPanel.Controls.Add(findingsOnly);
             optionsPanel.Controls.Add(website); optionsPanel.Controls.Add(openText);
+            optionsPanel.Controls.Add(new Label { Text = "A backup file is always saved. Notepad only controls opening it.", AutoSize = true, MaximumSize = new Size(570, 0), ForeColor = Color.DimGray });
             outputFolder.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Report comparisons");
             var chooseFolder = new Button { Text = "Save folder...", AutoSize = true };
             chooseFolder.Click += (sender, args) => { using (var picker = new FolderBrowserDialog { Description = "Choose where reports are saved", SelectedPath = outputFolder.Text }) { if (picker.ShowDialog(this) == DialogResult.OK) outputFolder.Text = picker.SelectedPath; } };
             var folderRow = new FlowLayoutPanel { AutoSize = true }; folderRow.Controls.Add(outputFolder); folderRow.Controls.Add(chooseFolder); optionsPanel.Controls.Add(folderRow);
             stopHint.Text = "Stop with " + stopShortcut + ". Close the old Review Reports script\nso it does not run during this export.";
             optionsPanel.Controls.Add(stopHint);
+            copiedToggle.FlatAppearance.BorderSize = 0;
+            copiedToggle.Click += (sender, args) => SetCopiedTextVisible(!copiedExpanded);
+            body.Controls.Add(copiedToggle); body.Controls.Add(copiedPanel);
+            copiedPanel.Controls.Add(copiedSource);
+            copiedPanel.Controls.Add(copiedText);
+            var copyRow = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(570, 0) };
+            copyRow.Controls.Add(copyAgain); copyRow.Controls.Add(copyStatus); copiedPanel.Controls.Add(copyRow);
+            copyAgain.Click += (sender, args) => {
+                try { ClipboardWriter(copiedText.Text); copyStatus.Text = "Copied. Ready to paste."; }
+                catch (Exception) { copyStatus.Text = "Clipboard busy. Try Copy again, or select the text and Ctrl+C."; }
+            };
             resultActions = new FlowLayoutPanel { Name = "ResultActions", AutoSize = true, MaximumSize = new Size(570, 0), Visible = false };
             var openFolder = new Button { Text = "Open save folder", AutoSize = true };
             openComparison.Click += (sender, args) => OpenComparisonFile();
@@ -237,9 +264,23 @@ namespace ReportExporter
             optionsExpanded = visible; optionsPanel.Visible = visible; optionsButton.Text = visible ? "Options v" : "Options >";
             ResizeForContent();
         }
+        internal void SetCopiedText(string text, string source)
+        {
+            // Keep the previous completed export if this run produced no usable text.
+            if (String.IsNullOrWhiteSpace(text)) return;
+            copiedText.Text = text; copiedSource.Text = source;
+            copyStatus.Text = ""; copiedToggle.Visible = true;
+            SetCopiedTextVisible(false);
+        }
+        internal void SetCopiedTextVisible(bool visible)
+        {
+            copiedExpanded = visible && copiedText.TextLength > 0;
+            copiedPanel.Visible = copiedExpanded; copiedToggle.Text = copiedExpanded ? "Copied text v" : "Copied text >";
+            ResizeForContent();
+        }
         private void ResizeForContent()
         {
-            int desired = optionsExpanded ? 720 : details.Visible ? 620 : resultActions.Visible ? 410 : 280;
+            int desired = optionsExpanded ? 720 : copiedExpanded ? 720 : details.Visible ? 620 : resultActions.Visible ? 410 : 280;
             ClientSize = new Size(ClientSize.Width, Math.Min(desired, Screen.FromControl(this).WorkingArea.Height - 80));
         }
         private void OpenComparisonFile()
@@ -439,6 +480,7 @@ namespace ReportExporter
             bool openWebsite = website.Checked;
             bool openTextFile = openText.Checked;
             lastOutput = output; resumeCase = null; resultActions.Visible = false; details.Visible = false;
+            SetCopiedTextVisible(false);
             SetOptionsVisible(false);
             captureRole = null; running = true; cancellation = new CancellationTokenSource();
             start.Enabled = false; stop.Enabled = true;
@@ -455,7 +497,7 @@ namespace ReportExporter
                 string result = "";
                 bool success = false;
                 bool failed = false;
-                string outcome = "Stopped", nextStep = "", diagnostic = "";
+                string outcome = "Stopped", nextStep = "", diagnostic = "", availableText = null;
                 AsyncProgressLog progressLog = null;
                 Action<string> reportProgress = text => {
                     if (progressLog != null)
@@ -467,7 +509,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.13...");
+                    reportProgress("Initializing native exporter v0.14...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);
@@ -477,19 +519,29 @@ namespace ReportExporter
                     diagnostic = "Only complete pairs go into the comparison file. Unconfirmed pending and unavailable entries remain in the original capture.\r\n" + runner.OutcomeSummary;
                     try
                     {
-                        if (ExportDelivery.CopyCompleted(output, runner.Completed,
-                            text => Clipboard.SetDataObject(text, true, 3, 100)))
+                        availableText = ExportDelivery.ReadCompleted(output, runner.Completed);
+                        if (availableText != null)
+                        {
+                            ClipboardWriter(availableText);
                             result += " Copied. On the website: Paste, then Analyze reports.";
+                        }
                     }
                     catch (Exception)
                     {
-                        result += " Clipboard copy failed; use Open comparison file to copy the saved text.";
+                        result += " Clipboard copy failed; use Copied text > Copy again or Open comparison file.";
                     }
                 }
                 catch (OperationCanceledException) { result = "Stopped. " + runner.Completed + " complete pairs saved. See Details to continue from the stopping point."; diagnostic = "Cancelled by the user. Saved captures were kept."; }
                 catch (Exception error) { failed = true; nextStep = RunSummary.NextStep(error, runner, firstLabel, lastLabel); result = "Export stopped. " + runner.Completed + " complete pairs saved. " + nextStep; diagnostic = error.Message; }
                 finally
                 {
+                    // This also exposes already saved complete pairs after a stopped run.
+                    // Reading failure does not erase the previous in-app export or its file.
+                    if (availableText == null && runner.Completed > 0)
+                    {
+                        try { availableText = ExportDelivery.ReadCompleted(output, runner.Completed); }
+                        catch (Exception) { result += " The saved text could not be loaded here; check Open save folder."; }
+                    }
                     diagnostic = RunSummary.Build(runner, firstLabel, lastLabel, outcome, nextStep + "\r\n" + diagnostic, output);
                     try { File.WriteAllText(output + ".run-summary.txt", diagnostic); }
                     catch (Exception) { result += " The run summary could not be saved; Details still has it."; }
@@ -505,6 +557,7 @@ namespace ReportExporter
                     foreach (Control control in body.Controls) control.Enabled = true;
                     start.Enabled = true; stop.Enabled = false;
                     status.Text = result;
+                    SetCopiedText(availableText, "Saved export " + DateTime.Now.ToString("g") + " - case labels " + firstLabel + "-" + lastLabel + ", " + runner.Completed + " complete pairs.\r\n" + Path.GetFileName(output));
                     details.Text = diagnostic; detailsButton.Text = "Details"; details.Visible = false; resultActions.Visible = true;
                     openComparison.Enabled = runner.Completed > 0;
                     resumeCase = success ? null : RunSummary.ResumeAt(runner, firstLabel, lastLabel); resume.Visible = resumeCase.HasValue;
