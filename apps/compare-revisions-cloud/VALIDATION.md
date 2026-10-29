@@ -4,6 +4,12 @@ Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## October 28, 2026 update
 
+### Local wording choices with explicit bulk action
+
+- **73 Python tests passed.** Prompt/embedded-template synchronization and the explicitly chosen all-cases default through form submissions remain covered; clinical logic and model instructions are unchanged.
+- **Wording, UI, review-controls, highlights, batching and inline-preview browser suites passed.** Dedicated wording checks verify local changes leave other cases untouched; the optional all-cases action changes the default only when clicked; current controls remain within two pixels of their original viewport position during local and bulk hide/show in paired and single views at 320/375/1280/1440-pixel widths; near-end bulk collapse avoids scroll clamping; rapid toggles restore native scroll anchoring; and pinned source links stay mounted. Idle expiry, focus-paused expiry, Escape, mobile offer bounds, later-opened cases, streaming and preview state are covered.
+- Desktop/mobile screenshots of the optional action were inspected. All fixtures and requests are synthetic. The update has not been deployed to Google Cloud.
+
 ### Compact labels and global report wording
 
 - **73 Python tests passed.** The new display preference defaults to shown, accepts an explicit hide/show value through report form submissions, and falls back to shown for an invalid value. Template and prompt export synchronization still pass.

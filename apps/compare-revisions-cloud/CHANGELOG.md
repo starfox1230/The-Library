@@ -1,5 +1,12 @@
 # Changes and rationale — October 4, 2026
 
+## Local wording toggle with optional bulk action — October 28, 2026
+
+- Restore per-case Show/Hide report wording. Show a temporary, explicitly labeled action to apply that same state to all cases; do not change other cases without that click. Only the explicit bulk action updates the default for unopened/streamed cases and future submissions.
+- Update evidence and toggle states in place without rebuilding rows or source panels. Retain the current control's viewport position when earlier cases resize, preserve focus and report selections, and reserve bottom scroll room only when necessary to prevent browser clamping near the end of the page.
+- Float the optional action below the toggle so it does not move surrounding content. Dismiss after eight idle seconds, pause expiration during hover or keyboard focus, and support a dismiss button and Escape. Preserve local choices across normal rerenders; clear them with reports. Include local overrides in the synthetic conversation preview state.
+- Add browser coverage for individual versus explicit bulk changes, desktop/mobile and single/paired layouts, near-end page shortening, rapid toggles, stationary controls, source pinning, streamed results and accessible expiration. This supersedes the previous always-global toggle behavior.
+
 ## Less review text and global wording visibility — October 28, 2026
 
 - Remove the visible Filter cases heading and the full selection/count instruction line. Retain accessible labels for the category/status groups and the contextual Reset filters button.

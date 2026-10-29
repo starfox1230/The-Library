@@ -39,20 +39,18 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.locator('#case-0').click();
   await page.locator('#case-1').click();
   await page.locator('#evidence-0').click();
-  for(const key of [0,1]){
-   assert.equal(await page.locator('#evidence-'+key).textContent(),'Show report wording');
-   assert.equal(await page.locator('#evidence-'+key).getAttribute('aria-expanded'),'false');
-   assert.equal(await page.locator('#row-'+key+' .evidence:not([hidden])').count(),0);
-  }
-  assert.equal(await page.locator('#report-wording-value').inputValue(),'0');
+  assert.equal(await page.locator('#evidence-0').textContent(),'Show report wording');
+  assert.equal(await page.locator('#row-0 .evidence:not([hidden])').count(),0);
+  assert.equal(await page.locator('#evidence-1').textContent(),'Hide report wording','a local toggle leaves other cases unchanged');
+  assert.equal(await page.locator('#report-wording-value').inputValue(),'1');
   await page.locator('#case-2').click();
-  assert.equal(await page.locator('#row-2 .evidence:not([hidden])').count(),0,'newly opened cases inherit the global preference');
+  assert(await page.locator('#row-2 .evidence:not([hidden])').count()>0,'newly opened cases retain the default');
   await page.locator('#combined-view').uncheck();
   await page.locator('#order').selectOption('change-high');
   await page.locator('#filter-major').click();await page.locator('#filter-all').click();
-  assert.equal(await page.locator('#case-list .evidence:not([hidden])').count(),0,'preference survives view, sorting and filtering');
-  await page.locator('#evidence-1').click();
-  assert.equal(await page.locator('#case-list .evidence[hidden]').count(),0,'showing from a different case updates every open case');
+  assert.equal(await page.locator('#row-0 .evidence:not([hidden])').count(),0,'local preference survives view, sorting and filtering');
+  await page.locator('#evidence-0').click();
+  assert.equal(await page.locator('#case-list .evidence[hidden]').count(),0);
   assert.equal(await page.locator('#report-wording-value').inputValue(),'1');
   await page.locator('#case-1').click();await page.locator('#case-2').click();
   await page.locator('#combined-view').check();await page.locator('#order').selectOption('oldest');
@@ -117,7 +115,7 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.screenshot({path:path.join(out,'review-controls-mobile.png')});
   await page.locator('#evidence-0').click();
   await page.locator('#clear-button').evaluate(n=>n.click());
-  assert.equal(await page.locator('#report-wording-value').inputValue(),'0','Clear reports preserves the display preference');
+  assert.equal(await page.locator('#report-wording-value').inputValue(),'1','a local toggle never changes the default for new batches');
   assert.equal(requests,0);assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(out,'review-controls-results.json'),JSON.stringify({passed:true,checks:['resident/attending colors in both themes and views','all minor/wording visible','safe prose','multi-select union + search','keyboard and focus','stable totals','status filters','both percentage directions + missing values','320–1440px layout','no model requests']},null,2));
   console.log('Review controls browser checks passed.');

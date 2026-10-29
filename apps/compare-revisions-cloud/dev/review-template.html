@@ -139,6 +139,10 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .tab:hover { background:transparent; color:var(--ink); }
 #cr-app .member-note { margin:0 0 14px; color:var(--muted); font-size:12px; }
 #cr-app .summary-tools { display:flex; justify-content:space-between; gap:15px; align-items:center; margin-bottom:14px; font-size:12px; }
+#cr-app .wording-tools { position:relative; flex:none; }
+#cr-app .wording-offer { position:absolute; top:100%; right:0; z-index:5; display:flex; align-items:center; gap:8px; width:max-content; max-width:min(250px,calc(100vw - 56px)); padding:7px; border:1px solid var(--line); border-radius:8px; background:var(--panel); box-shadow:0 4px 16px color-mix(in srgb,var(--ink) 12%,transparent); }
+#cr-app .wording-offer button { font-size:12px; }
+#cr-app .wording-offer .wording-dismiss { padding:6px; min-width:30px; }
 #cr-app .group { margin-top:24px; }
 #cr-app .group:first-of-type { margin-top:8px; }
 #cr-app .group h3 { margin:0 0 12px; font-size:12px; font-weight:650; display:flex; align-items:center; gap:8px; }
@@ -247,6 +251,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="list-bar"><span id="results" role="status"></span><button type="button" class="plain" id="collapse">Collapse all</button></div>
 <p class="summary-direction"><span class="resident-summary">Resident</span><span class="attending-summary"> → Attending</span></p>
 <div class="case-list" id="case-list"></div>
+<div id="wording-scroll-space" aria-hidden="true"></div>
 <footer><span>Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
 <p class="sr" id="announcement" aria-live="polite"></p>
@@ -259,6 +264,9 @@ html[data-theme="dark"] {color-scheme:dark;}
 const $ = id => document.getElementById(id);
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
+const wordingOverrides=new Map();
+let wordingOffer=null, wordingOfferTimer=null;
+let wordingAnchorRestore=null, wordingAnchorPrevious='';
 const selectedFilters=new Set(), controllers=new Set();
 const diffModes=new Map(), spacingVisible=new Map();
 const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new Map(), reportScroll=new Map(), hoverTimers=new Map();
@@ -332,6 +340,75 @@ function updateProgress() {
  $('progress-note').textContent=notes.join(' · ');$('progress-note').hidden=!notes.length;
 }
 function evidenceCell(label,quote) { const cell=el('div'); cell.append(el('div','source-label',label)); cell.append(quote?el('blockquote','',quote):el('p','absent','No corresponding quoted wording.')); return cell; }
+const wordingShown=key=>wordingOverrides.get(key)??showReportWording;
+function dismissWordingOffer(returnFocus=false) {
+ const key=wordingOffer?.key;
+ clearTimeout(wordingOfferTimer);wordingOfferTimer=null;wordingOffer=null;
+ document.querySelectorAll('#cr-app .wording-offer').forEach(node=>node.remove());
+ if(returnFocus&&key!==undefined)$('evidence-'+key)?.focus({preventScroll:true});
+}
+function scheduleWordingOfferDismissal() {
+ clearTimeout(wordingOfferTimer);
+ wordingOfferTimer=setTimeout(()=>{
+  const offer=document.querySelector('#cr-app .wording-offer');
+  if(offer?.contains(document.activeElement)||offer?.matches(':hover'))return;
+  dismissWordingOffer();
+ },8000);
+}
+function mountWordingOffer(key) {
+ if(wordingOffer?.key!==key)return;
+ const holder=$('wording-tools-'+key);if(!holder)return;
+ holder.querySelector('.wording-offer')?.remove();
+ const show=wordingOffer.show, offer=el('div','wording-offer');offer.setAttribute('role','group');offer.setAttribute('aria-label','Optional change for all cases');
+ const apply=button(show?'Show wording in all cases':'Hide wording in all cases','wording-apply-all',()=>{
+  preserveWordingPosition(key,()=>{
+   showReportWording=show;wordingOverrides.clear();$('report-wording-value').value=show?'1':'0';
+   dismissWordingOffer();syncWording();
+  });
+  $('evidence-'+key)?.focus({preventScroll:true});
+  $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' in all cases.';
+ });
+ apply.id='wording-all-'+key;
+ const dismiss=button('×','plain wording-dismiss',()=>dismissWordingOffer(true));dismiss.setAttribute('aria-label','Dismiss change for all cases');
+ offer.append(apply,dismiss);
+ offer.addEventListener('mouseenter',()=>clearTimeout(wordingOfferTimer));
+ offer.addEventListener('mouseleave',scheduleWordingOfferDismissal);
+ offer.addEventListener('focusin',()=>clearTimeout(wordingOfferTimer));
+ offer.addEventListener('focusout',scheduleWordingOfferDismissal);
+ offer.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();dismissWordingOffer(true);}});
+ holder.append(offer);
+}
+function syncWording() {
+ for(const row of document.querySelectorAll('#case-list .case')){
+  const key=row.id.slice(4), show=wordingShown(key), toggle=$('evidence-'+key);
+  for(const evidence of row.querySelectorAll('.evidence'))evidence.hidden=!show;
+  if(toggle){toggle.textContent=show?'Hide report wording':'Show report wording';toggle.setAttribute('aria-expanded',String(show));}
+ }
+}
+function preserveWordingPosition(key,change) {
+ const control=$('evidence-'+key);if(!control){change();return;}
+ const top=control.getBoundingClientRect().top, root=document.documentElement;
+ if(wordingAnchorRestore!==null)cancelAnimationFrame(wordingAnchorRestore);
+ else wordingAnchorPrevious=root.style.overflowAnchor;
+ root.style.overflowAnchor='none';
+ change();
+ // Reserve only the missing bottom room when shortening a near-end page.
+ // Otherwise the browser would clamp scrollY and move the current control.
+ const space=$('wording-scroll-space');space.style.height='0px';
+ const target=Math.max(0,window.scrollY+control.getBoundingClientRect().top-top);
+ const missing=target-Math.max(0,root.scrollHeight-window.innerHeight);
+ if(missing>0)space.style.height=Math.ceil(missing)+'px';
+ window.scrollTo({top:target,behavior:'instant'});
+ wordingAnchorRestore=requestAnimationFrame(()=>{root.style.overflowAnchor=wordingAnchorPrevious;wordingAnchorRestore=null;});
+}
+function toggleWording(key) {
+ const show=!wordingShown(key);
+ preserveWordingPosition(key,()=>{
+  dismissWordingOffer();wordingOverrides.set(key,show);syncWording();
+  wordingOffer={key,show};mountWordingOffer(key);scheduleWordingOfferDismissal();
+ });
+ $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
+}
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
@@ -356,12 +433,13 @@ function summaryPanel(c,key) {
  if(!syntheticPreview && ['error','partial'].includes(c.status)) {
   const retry=button('Retry analysis','',()=>{const editor=$('custom-prompt');if(!editor.value.trim()){editor.setCustomValidity('Enter instructions or restore the defaults.');}else editor.setCustomValidity('');if(!editor.checkValidity()){$('input-disclosure').open=true;editor.closest('details').open=true;editor.reportValidity();return;}analyzeCase(c,key,generation,editor.value);});retry.disabled=queueRunning||controllers.size>0;panel.append(retry);
  }
- const items=revisions(c), show=showReportWording;
+ const items=revisions(c), show=wordingShown(key);
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
-  const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>{showReportWording=!showReportWording;$('report-wording-value').value=showReportWording?'1':'0';renderAndFocus('evidence-'+key);});
-  toggle.title='Applies to all cases';
-  toggle.id='evidence-'+key; toggle.setAttribute('aria-expanded',String(show)); tools.append(toggle); panel.append(tools);
+  const holder=el('div','wording-tools');holder.id='wording-tools-'+key;
+  const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>toggleWording(key));
+  toggle.addEventListener('keydown',event=>{if(event.key==='Escape'&&wordingOffer?.key===key){event.preventDefault();dismissWordingOffer();}});
+  toggle.id='evidence-'+key; toggle.setAttribute('aria-expanded',String(show)); holder.append(toggle);tools.append(holder); panel.append(tools);
   for(const group of groupOrder) {
    const matches=items.filter(r=>r.importance===group); if(!matches.length)continue;
    const section=el('section','group group-'+group); section.append(el('h3','',labels[group]+' · '+matches.length));
@@ -499,6 +577,7 @@ function caseRow(c,key) {
 function toggleCase(key,expand=!opened.has(key)) {
  const row=$('row-'+key), head=$('case-'+key), reveal=$('body-'+key);
  expand?opened.add(key):opened.delete(key);
+ if(!expand&&wordingOffer?.key===key)dismissWordingOffer();
  if(row && head && reveal){
   const clip=reveal.firstElementChild;
   if(expand&&!clip.firstChild)clip.append(bodyPanel(cases[Number(key)],key));
@@ -540,6 +619,7 @@ function render() {
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
  if(combinedView)for(const key of opened)showRevisionLinks(key,false);
+ if(wordingOffer)mountWordingOffer(wordingOffer.key);
 }
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
@@ -616,6 +696,10 @@ async function analyzeBatch(group,instructions,runGeneration) {
  }
 }
 $('search').addEventListener('input',render);$('order').addEventListener('change',render);
+window.addEventListener('scroll',()=>{
+ const space=$('wording-scroll-space'), reserved=parseFloat(space.style.height)||0;
+ if(reserved&&window.scrollY<=Math.max(0,document.documentElement.scrollHeight-window.innerHeight-reserved))space.style.height='0px';
+},{passive:true});
 $('reset-filters').addEventListener('click',()=>{selectedFilters.clear();$('search').value='';renderAndFocus('filter-all');});
 $('combined-view').addEventListener('change',()=>{combinedView=$('combined-view').checked;if(combinedView)for(const key of views.keys())views.set(key,'summary');$('cr-app').classList.toggle('dual-view',combinedView);$('combined-view-value').value=combinedView?'1':'0';render();$('announcement').textContent=combinedView?'Summary and text changes shown together.':'Single case view restored.';});
 $('custom-prompt').addEventListener('input',()=>{$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Edits apply to your next analysis or retry.';});
@@ -639,6 +723,7 @@ $('paste-button').addEventListener('click',async()=>{
 $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleCase(key,false);$('search').focus();});
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
+ dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  for(const timer of hoverTimers.values())clearTimeout(timer);hoverTimers.clear();pinnedRevisions.clear();hoveredRevisions.clear();passageIndices.clear();reportScroll.clear();

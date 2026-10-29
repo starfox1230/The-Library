@@ -74,10 +74,11 @@ const server=http.createServer(async(req,res)=>{
  await page.waitForFunction(()=>document.getElementById('progress-track').getAttribute('aria-valuenow')==='100');
  assert.match(await page.locator('#progress-count').innerText(),/100 of 100 report pairs · 100%/);
  assert.match(await page.locator('#progress-note').innerText(),/1 analysis needs attention/);
- assert.equal(await page.locator('#row-1 .evidence:not([hidden])').count(),0,'streamed results inherit global hidden wording');
- assert.equal(await page.locator('#evidence-1').textContent(),'Show report wording');
- await page.locator('#evidence-1').click();
- assert.equal(await page.locator('#case-list .evidence[hidden]').count(),0,'a streamed case can restore wording globally');
+ assert(await page.locator('#row-1 .evidence:not([hidden])').count()>0,'a local toggle does not hide other streamed cases');
+ assert.equal(await page.locator('#evidence-1').textContent(),'Hide report wording');
+ assert.equal(await page.locator('#row-0 .evidence:not([hidden])').count(),0,'streaming preserves the local choice');
+ await page.locator('#evidence-1').click();await page.locator('#wording-all-1').click();
+ assert.equal(await page.locator('#case-list .evidence:not([hidden])').count(),0,'a streamed case offers an explicit change for all cases');
  assert.equal(await page.locator('.case').count(),100);
  await page.locator('#case-36').click();await page.locator('#row-36').getByRole('button',{name:'Retry analysis'}).click();
  await page.waitForFunction(()=>document.querySelector('#row-36 .badge.major')!==null);
