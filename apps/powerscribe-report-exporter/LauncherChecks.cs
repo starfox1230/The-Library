@@ -13,6 +13,12 @@ namespace ReportExporter
             return null;
         }
         private static void Require(bool check, string message) { if (!check) throw new Exception(message); }
+        private static void RequireUnclipped(Control control, Form form)
+        {
+            var bounds = control.RectangleToScreen(control.ClientRectangle);
+            for (Control parent = control.Parent; parent != null; parent = parent.Parent)
+                Require(parent.RectangleToScreen(parent.ClientRectangle).Contains(bounds), control.Name + " is clipped by " + parent.GetType().Name);
+        }
         public static void VerifyCopiedText()
         {
             using (var form = new ExportForm(true))
@@ -28,6 +34,7 @@ namespace ReportExporter
                 string expected = "Case 7\r\n" + new string('x', 70000) + " café →\r\nCase 8\r\n";
                 form.SetCopiedText(expected, "Synthetic saved run 7-8"); Application.DoEvents();
                 Require(toggle.Visible && !panel.Visible && textBox.ReadOnly, "New result was expanded or editable");
+                Require(toggle.Parent.Controls.GetChildIndex(toggle) < toggle.Parent.Controls.GetChildIndex(Find(form, "Options")), "Copied text is below Options");
                 toggle.PerformClick(); Application.DoEvents();
                 Require(panel.Visible && textBox.Text == expected, "Expanded text was truncated or changed");
                 form.ClipboardWriter = value => { throw new InvalidOperationException("Synthetic clipboard lock"); };
@@ -59,14 +66,16 @@ namespace ReportExporter
                 var go = Find(form, "Go");
                 var speed = (ComboBox)Find(form, "Speed");
                 Require(!options.Visible && go.Visible && Find(form, "FirstCase").Visible && Find(form, "LastCase").Visible, "Simple launcher controls are not visible or Options is expanded");
-                Require(form.AcceptButton == go && form.ClientSize.Height < 400, "Go is not the default action or collapsed launcher is too tall");
+                Require(form.AcceptButton == go && form.ClientSize.Height < 550, "Go is not the default action or collapsed launcher is too tall");
                 Require(speed.SelectedIndex == 0, "Automatic is not the default speed");
+                RequireUnclipped(Find(form, "FirstCase"), form); RequireUnclipped(Find(form, "LastCase"), form); RequireUnclipped(go, form);
                 form.SetOptionsVisible(true); Application.DoEvents();
                 Require(options.Visible && form.ClientSize.Height > 500 && go.Visible, "Options did not expand or Go disappeared");
+                RequireUnclipped(go, form);
                 speed.SelectedIndex = 3; Application.DoEvents();
                 Require(options.PreferredSize.Height > 300, "Custom timing did not lay out");
                 form.SetOptionsVisible(false); Application.DoEvents();
-                Require(!options.Visible && form.ClientSize.Height < 400, "Options did not collapse");
+                Require(!options.Visible && form.ClientSize.Height < 550, "Options did not collapse");
                 var origin = form.PointToClient(go.PointToScreen(Point.Empty));
                 Require(origin.X >= 0 && origin.Y >= 0 && origin.Y + go.Height <= form.ClientSize.Height, "Go is clipped outside the launcher");
                 form.Close();

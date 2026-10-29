@@ -7,8 +7,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.14.0.0")]
-[assembly: AssemblyFileVersion("0.14.0.0")]
+[assembly: AssemblyVersion("0.15.0.0")]
+[assembly: AssemblyFileVersion("0.15.0.0")]
 
 namespace ReportExporter
 {
@@ -84,8 +84,8 @@ namespace ReportExporter
         private readonly Label status = new Label { AutoSize = false, Width = 570, Height = 70, Text = "Select the first case row in PowerScribe.\nEnter the first and last case numbers below, then Go." };
         private readonly Label stopHint = new Label { AutoSize = true };
         private readonly Label captured = new Label { AutoSize = false, Width = 590, Height = 30 };
-        private readonly Button start = new Button { Name = "Go", Text = "Go", Width = 110, Height = 36, BackColor = Color.FromArgb(32, 89, 155), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-        private readonly Button stop = new Button { Text = "Stop", AutoSize = true, Enabled = false };
+        private readonly Button start = new NightButton { Name = "Go", Text = "Go", Width = 136, Height = 42, Primary = true };
+        private readonly Button stop = new NightButton { Text = "Stop", Width = 92, Height = 42, AutoSize = false, Enabled = false };
         private FlowLayoutPanel body;
         private string captureRole;
         // Session-only native handles: never serialize them to controls.json.
@@ -96,22 +96,22 @@ namespace ReportExporter
         private ProgressOverlay overlay;
         private FlowLayoutPanel keyboardSettings, accessibilitySettings;
         private FlowLayoutPanel optionsPanel, resultActions, customTiming;
-        private readonly Button optionsButton = new Button { Name = "Options", Text = "Options >", AutoSize = true, FlatStyle = FlatStyle.Flat };
-        private readonly ComboBox speed = new ComboBox { Name = "Speed", DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
+        private readonly Button optionsButton = new NightButton { Name = "Options", Text = "Options", Width = 620, Height = 44, AutoSize = false, Disclosure = true };
+        private readonly ComboBox speed = new NightComboBox { Name = "Speed", DropDownStyle = ComboBoxStyle.DropDownList, Width = 230 };
         private readonly TextBox outputFolder = new TextBox { Width = 390, ReadOnly = true };
         private readonly CheckBox openText = new CheckBox { Name = "OpenNotepad", Text = "Open the saved comparison file in Notepad", AutoSize = true, Checked = true };
-        private readonly Button copiedToggle = new Button { Name = "CopiedTextToggle", Text = "Copied text >", AutoSize = true, FlatStyle = FlatStyle.Flat, Visible = false };
-        private readonly FlowLayoutPanel copiedPanel = new FlowLayoutPanel { Name = "CopiedTextPanel", AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
-        private readonly TextBox copiedText = new TextBox { Name = "CopiedText", Width = 570, Height = 220, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, MaxLength = Int32.MaxValue };
+        private readonly Button copiedToggle = new NightButton { Name = "CopiedTextToggle", Text = "Copied text", Width = 620, Height = 44, AutoSize = false, Disclosure = true, Visible = false };
+        private readonly FlowLayoutPanel copiedPanel = new FlowLayoutPanel { Name = "CopiedTextPanel", AutoSize = true, Padding = new Padding(12), Width = 620, MinimumSize = new Size(620, 0), MaximumSize = new Size(620, 0), FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
+        private readonly TextBox copiedText = new TextBox { Name = "CopiedText", Width = 590, Height = 240, Font = new Font("Consolas", 10), Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Both, WordWrap = false, MaxLength = Int32.MaxValue };
         private readonly Label copiedSource = new Label { Name = "CopiedSource", AutoSize = true, MaximumSize = new Size(570, 0) };
-        private readonly Button copyAgain = new Button { Name = "CopyAgain", Text = "Copy again", AutoSize = true };
+        private readonly Button copyAgain = new NightButton { Name = "CopyAgain", Text = "Copy again", AutoSize = true };
         private readonly Label copyStatus = new Label { Name = "CopyStatus", AutoSize = true, MaximumSize = new Size(440, 0) };
         private bool copiedExpanded;
         internal Action<string> ClipboardWriter;
         private readonly TextBox details = new TextBox { Name = "RunDetails", Width = 570, Height = 180, Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Visible = false };
-        private readonly Button detailsButton = new Button { Text = "Details", AutoSize = true };
-        private readonly Button openComparison = new Button { Text = "Open comparison file", AutoSize = true };
-        private readonly Button resume = new Button { Text = "Prepare remaining cases", AutoSize = true, Visible = false };
+        private readonly Button detailsButton = new NightButton { Text = "Details", AutoSize = true };
+        private readonly Button openComparison = new NightButton { Text = "Open comparison file", AutoSize = true };
+        private readonly Button resume = new NightButton { Text = "Prepare remaining cases", AutoSize = true, Visible = false };
         private readonly bool previewMode;
         private bool optionsExpanded;
         private string lastOutput;
@@ -126,23 +126,28 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.14";
-            ClientSize = new Size(620, 280);
-            MinimumSize = new Size(640, 310);
+            Text = "PowerScribe Report Exporter v0.15";
+            ClientSize = new Size(700, 438);
+            MinimumSize = new Size(720, 470);
             Font = new Font("Segoe UI", 10);
-            body = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(15), FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
+            DoubleBuffered = true;
+            body = new FlowLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(24, 8, 24, 16), FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
             Controls.Add(body);
-            var feedback = new Panel { Dock = DockStyle.Top, Height = 94, Padding = new Padding(15), BackColor = Color.FromArgb(230, 240, 250) };
+            var feedback = new Panel { Dock = DockStyle.Top, Height = 78, Padding = new Padding(24, 8, 24, 8), BackColor = NightTheme.Canvas };
             status.Dock = DockStyle.Fill;
-            status.Font = new Font(Font, FontStyle.Bold);
+            status.Font = new Font("Segoe UI", 10);
             feedback.Controls.Add(status);
             Controls.Add(feedback);
             first.Name = "FirstCase"; last.Name = "LastCase";
-            body.Controls.Add(Row("First case", first, "Last case", last));
-            body.Controls.Add(new Label { Text = "Numbers label the export; PowerScribe starts from the row you selected.", AutoSize = true, MaximumSize = new Size(570, 0), ForeColor = Color.DimGray });
+            var range = new TableLayoutPanel { Width = 620, Height = 86, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 0, 0, 8) };
+            range.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); range.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            range.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            range.Controls.Add(RangeField("First case", first), 0, 0); range.Controls.Add(RangeField("Last case", last), 1, 0);
+            body.Controls.Add(range);
+            body.Controls.Add(new Label { Text = "Case numbers label the export; PowerScribe starts from your selected row.", AutoSize = true, MaximumSize = new Size(620, 0), Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray, Margin = new Padding(0, 0, 0, 16) });
             optionsButton.FlatAppearance.BorderSize = 0;
             body.Controls.Add(optionsButton);
-            optionsPanel = new FlowLayoutPanel { Name = "OptionsPanel", AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
+            optionsPanel = new FlowLayoutPanel { Name = "OptionsPanel", AutoSize = true, Padding = new Padding(12), Width = 620, MinimumSize = new Size(620, 0), MaximumSize = new Size(620, 0), FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
             body.Controls.Add(optionsPanel);
             speed.Items.AddRange(new object[] { "Automatic - fast first", "Fast (fixed)", "Conservative (fixed)", "Custom timing" });
             speed.SelectedIndex = 0;
@@ -156,14 +161,14 @@ namespace ReportExporter
             keyboardSettings = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
             keyboardSettings.Controls.Add(new Label { Text = "PowerScribe setup (only if needed)", AutoSize = true });
             var worklistButtons = new FlowLayoutPanel { AutoSize = true };
-            var rememberWorklist = new Button { Text = "Remember worklist (F8)", AutoSize = true };
+            var rememberWorklist = new NightButton { Text = "Remember worklist (F8)", AutoSize = true };
             rememberWorklist.Click += (sender, args) => {
                 if (!captureHotkey) { ShowError("F8 is in use", "Close the other program using F8 and reopen this exporter."); return; }
                 lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
                 captureRole = "WorklistFocus";
                 status.Text = "Click the FIRST CASE ROW in PowerScribe, then press F8 while PowerScribe is active. This remembers keyboard focus; no accessibility capture is used.";
             };
-            var clearWorklist = new Button { Text = "Clear remembered worklist", AutoSize = true };
+            var clearWorklist = new NightButton { Text = "Clear remembered worklist", AutoSize = true };
             clearWorklist.Click += (sender, args) => {
                 lockedWorklistMain = lockedWorklistChild = IntPtr.Zero; captureRole = null;
                 status.Text = "Remembered worklist cleared. The next export will detect focus automatically.";
@@ -171,7 +176,7 @@ namespace ReportExporter
             worklistButtons.Controls.Add(rememberWorklist); worklistButtons.Controls.Add(clearWorklist);
             keyboardSettings.Controls.Add(worklistButtons);
             keyboardSettings.Controls.Add(Row("Report click X", clickX, "Y", clickY));
-            var captureClick = new Button { Text = "Capture report click (optional)", AutoSize = true };
+            var captureClick = new NightButton { Text = "Capture report click (optional)", AutoSize = true };
             captureClick.Click += (sender, args) => {
                 if (!captureHotkey) { ShowError("F8 is in use", "Close the other program using F8 and reopen this exporter, or enter the X/Y position manually."); return; }
                 captureRole = "KeyboardPoint";
@@ -188,7 +193,7 @@ namespace ReportExporter
             foreach (string role in new string[] { "CaseList", "Attending", "Resident", "Close" })
             {
                 string current = role;
-                var button = new Button { Text = role == "Close" ? "Capture OK button" : "Capture " + role, AutoSize = true };
+                var button = new NightButton { Text = role == "Close" ? "Capture OK button" : "Capture " + role, AutoSize = true };
                 button.Click += (sender, args) => {
                     if (running) return;
                     if (!captureHotkey) { status.Text = "F8 is in use by another program. Close that program and reopen the exporter."; return; }
@@ -207,7 +212,7 @@ namespace ReportExporter
             optionsPanel.Controls.Add(website); optionsPanel.Controls.Add(openText);
             optionsPanel.Controls.Add(new Label { Text = "A backup file is always saved. Notepad only controls opening it.", AutoSize = true, MaximumSize = new Size(570, 0), ForeColor = Color.DimGray });
             outputFolder.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Report comparisons");
-            var chooseFolder = new Button { Text = "Save folder...", AutoSize = true };
+            var chooseFolder = new NightButton { Text = "Save folder...", AutoSize = true };
             chooseFolder.Click += (sender, args) => { using (var picker = new FolderBrowserDialog { Description = "Choose where reports are saved", SelectedPath = outputFolder.Text }) { if (picker.ShowDialog(this) == DialogResult.OK) outputFolder.Text = picker.SelectedPath; } };
             var folderRow = new FlowLayoutPanel { AutoSize = true }; folderRow.Controls.Add(outputFolder); folderRow.Controls.Add(chooseFolder); optionsPanel.Controls.Add(folderRow);
             stopHint.Text = "Stop with " + stopShortcut + ". Close the old Review Reports script\nso it does not run during this export.";
@@ -215,6 +220,8 @@ namespace ReportExporter
             copiedToggle.FlatAppearance.BorderSize = 0;
             copiedToggle.Click += (sender, args) => SetCopiedTextVisible(!copiedExpanded);
             body.Controls.Add(copiedToggle); body.Controls.Add(copiedPanel);
+            // Keep the completed export above setup, even when Options is open.
+            body.Controls.SetChildIndex(copiedToggle, 2); body.Controls.SetChildIndex(copiedPanel, 3);
             copiedPanel.Controls.Add(copiedSource);
             copiedPanel.Controls.Add(copiedText);
             var copyRow = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(570, 0) };
@@ -224,25 +231,41 @@ namespace ReportExporter
                 catch (Exception) { copyStatus.Text = "Clipboard busy. Try Copy again, or select the text and Ctrl+C."; }
             };
             resultActions = new FlowLayoutPanel { Name = "ResultActions", AutoSize = true, MaximumSize = new Size(570, 0), Visible = false };
-            var openFolder = new Button { Text = "Open save folder", AutoSize = true };
+            var openFolder = new NightButton { Text = "Open save folder", AutoSize = true };
             openComparison.Click += (sender, args) => OpenComparisonFile();
             openFolder.Click += (sender, args) => { try { Process.Start(Path.GetDirectoryName(lastOutput)); } catch (Exception error) { ShowError("Folder did not open", error.Message); } };
             detailsButton.Click += (sender, args) => { details.Visible = !details.Visible; detailsButton.Text = details.Visible ? "Hide details" : "Details"; ResizeForContent(); };
             resume.Click += (sender, args) => { if (resumeCase.HasValue) { first.Value = resumeCase.Value; status.Text = "Select case " + resumeCase.Value + " in PowerScribe, then Go. This button only sets the range here."; } };
             resultActions.Controls.Add(openComparison); resultActions.Controls.Add(openFolder); resultActions.Controls.Add(detailsButton); resultActions.Controls.Add(resume);
             body.Controls.Add(resultActions); body.Controls.Add(details);
-            var actionRow = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48, Padding = new Padding(12, 4, 12, 4) };
-            actionRow.Controls.Add(start); actionRow.Controls.Add(stop); Controls.Add(actionRow);
+            var footer = new Panel { Dock = DockStyle.Bottom, Height = 76, Padding = new Padding(24, 14, 24, 14), BackColor = NightTheme.Surface };
+            var actionRow = new FlowLayoutPanel { Dock = DockStyle.Right, Width = 250, FlowDirection = FlowDirection.RightToLeft, WrapContents = false, BackColor = NightTheme.Surface };
+            actionRow.Dock = DockStyle.Fill; actionRow.Margin = new Padding(0);
+            actionRow.Controls.Add(start); actionRow.Controls.Add(stop);
+            var ready = new Label { Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray };
+            var footerLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = NightTheme.Surface, Margin = new Padding(0) };
+            footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 250));
+            footerLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            footerLayout.Controls.Add(ready, 0, 0); footerLayout.Controls.Add(actionRow, 1, 0);
+            footer.Controls.Add(footerLayout); Controls.Add(footer);
+            var header = new Panel { Dock = DockStyle.Top, Height = 92, BackColor = NightTheme.Canvas, Padding = new Padding(24, 18, 24, 0) };
+            var brand = new Label { Text = "COMPARE REVISIONS", Dock = DockStyle.Top, Height = 23, Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Color.DimGray };
+            var title = new Label { Text = "Report exporter", Dock = DockStyle.Fill, Font = new Font("Segoe UI", 23, FontStyle.Bold) };
+            header.Controls.Add(title); header.Controls.Add(brand); Controls.Add(header);
             start.Click += (sender, args) => StartExport();
             stop.Click += (sender, args) => CancelExport();
             if (!previewMode) LoadProfile();
             RefreshCaptured();
             keyboard.CheckedChanged += (sender, args) => ApplyMode();
             ApplyMode();
-            speed.SelectedIndexChanged += (sender, args) => { customTiming.Visible = speed.SelectedIndex == 3; ResizeForContent(); };
+            speed.SelectedIndexChanged += (sender, args) => { customTiming.Visible = speed.SelectedIndex == 3; ready.Text = "Speed: " + speed.Text; ResizeForContent(); };
+            ready.Text = "Speed: " + speed.Text;
             customTiming.Visible = speed.SelectedIndex == 3;
             optionsButton.Click += (sender, args) => SetOptionsVisible(!optionsExpanded);
             AcceptButton = start;
+            NightTheme.Apply(this);
+            copiedSource.ForeColor = NightTheme.Muted;
+            optionsPanel.BackColor = copiedPanel.BackColor = NightTheme.Surface;
             FormClosing += (sender, args) => {
                 if (running && cancellation != null && !cancellation.IsCancellationRequested)
                 { CancelExport(); args.Cancel = true; status.Text = "Stopping... close again to exit immediately if PowerScribe's accessibility provider is stuck."; }
@@ -261,7 +284,7 @@ namespace ReportExporter
 
         public void SetOptionsVisible(bool visible)
         {
-            optionsExpanded = visible; optionsPanel.Visible = visible; optionsButton.Text = visible ? "Options v" : "Options >";
+            optionsExpanded = visible; optionsPanel.Visible = visible; ((NightButton)optionsButton).Expanded = visible; optionsButton.Invalidate();
             ResizeForContent();
         }
         internal void SetCopiedText(string text, string source)
@@ -275,12 +298,12 @@ namespace ReportExporter
         internal void SetCopiedTextVisible(bool visible)
         {
             copiedExpanded = visible && copiedText.TextLength > 0;
-            copiedPanel.Visible = copiedExpanded; copiedToggle.Text = copiedExpanded ? "Copied text v" : "Copied text >";
+            copiedPanel.Visible = copiedExpanded; ((NightButton)copiedToggle).Expanded = copiedExpanded; copiedToggle.Invalidate();
             ResizeForContent();
         }
         private void ResizeForContent()
         {
-            int desired = optionsExpanded ? 720 : copiedExpanded ? 720 : details.Visible ? 620 : resultActions.Visible ? 410 : 280;
+            int desired = optionsExpanded ? 820 : copiedExpanded ? 820 : details.Visible ? 760 : resultActions.Visible ? 560 : 438;
             ClientSize = new Size(ClientSize.Width, Math.Min(desired, Screen.FromControl(this).WorkingArea.Height - 80));
         }
         private void OpenComparisonFile()
@@ -291,6 +314,13 @@ namespace ReportExporter
         }
         protected override bool ShowWithoutActivation { get { return previewMode; } }
 
+        private static Control RangeField(string label, NumericUpDown number)
+        {
+            var card = new NightPanel { Dock = DockStyle.Fill, Padding = new Padding(14, 9, 14, 10), Margin = new Padding(0, 0, 12, 0) };
+            var heading = new Label { Text = label, Dock = DockStyle.Top, Height = 23, Font = new Font("Segoe UI", 9), ForeColor = Color.DimGray };
+            number.Font = new Font("Segoe UI", 15); number.Dock = DockStyle.Bottom; number.TextAlign = HorizontalAlignment.Left;
+            card.Controls.Add(number); card.Controls.Add(heading); return card;
+        }
         private static Control Row(string left, Control a, string right, Control b)
         {
             var row = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(590, 100), WrapContents = false };
@@ -302,6 +332,7 @@ namespace ReportExporter
         protected override void OnHandleCreated(EventArgs args)
         {
             base.OnHandleCreated(args);
+            NightTheme.TitleBar(this);
             if (previewMode) { stopHotkey = true; return; }
             captureHotkey = Native.RegisterHotKey(Handle, 1, 0x4000, 0x77); // F8, no repeat
             stopHotkey = Native.RegisterHotKey(Handle, 2, 0x4000, 0x6A); // Numpad multiply
@@ -509,7 +540,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.14...");
+                    reportProgress("Initializing native exporter v0.15...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);
@@ -594,21 +625,25 @@ namespace ReportExporter
         public ProgressOverlay(string stopShortcut)
         {
             Text = "Export progress — " + stopShortcut + " stops";
-            ClientSize = new Size(430, 152);
+            ClientSize = new Size(470, 180);
             FormBorderStyle = FormBorderStyle.FixedToolWindow;
             ControlBox = false;
             TopMost = true;
             StartPosition = FormStartPosition.Manual;
             Font = new Font("Segoe UI", 10);
-            var stopButton = new Button { Text = "Stop export", Dock = DockStyle.Bottom, Height = 34 };
+            var stopButton = new NightButton { Text = "Stop export", Dock = DockStyle.Bottom, Height = 42 };
             stopButton.Click += (sender, args) => { if (StopRequested != null) StopRequested(this, EventArgs.Empty); };
             Controls.Add(stopButton); Controls.Add(elapsed); Controls.Add(count); Controls.Add(phase);
             heartbeat.Tick += (sender, args) => {
                 elapsed.Text = "Elapsed " + totalTime.Elapsed.TotalSeconds.ToString("F1") + " s  |  current step " + phaseTime.Elapsed.TotalSeconds.ToString("F1") + " s";
             };
             elapsed.Text = "Elapsed 0 s  |  current step 0 s";
+            NightTheme.Apply(this); phase.Font = new Font(Font, FontStyle.Bold);
+            count.ForeColor = NightTheme.Accent; elapsed.ForeColor = NightTheme.Muted;
             heartbeat.Start();
         }
+        protected override void OnHandleCreated(EventArgs args)
+        { base.OnHandleCreated(args); NightTheme.TitleBar(this); }
         public void SetPhase(string text, int completed, int total)
         {
             if (phase.Text != text) phaseTime.Restart();

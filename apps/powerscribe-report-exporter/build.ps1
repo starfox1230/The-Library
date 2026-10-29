@@ -13,14 +13,14 @@ $refs += @('WPF\UIAutomationClient.dll', 'WPF\UIAutomationTypes.dll', 'WPF\Windo
 $arguments = @('/nologo', '/optimize+', '/platform:anycpu', '/target:winexe', '/main:ReportExporter.Program')
 $arguments += '/out:' + (Join-Path $outputPath 'PowerScribeReportExporter.exe')
 $arguments += $refs | ForEach-Object { '/reference:' + (Join-Path $frameworkPath $_) }
-$arguments += @((Join-Path $PSScriptRoot 'Core.cs'), (Join-Path $PSScriptRoot 'LauncherSupport.cs'), (Join-Path $PSScriptRoot 'WindowsSession.cs'), (Join-Path $PSScriptRoot 'NativeClipboard.cs'), (Join-Path $PSScriptRoot 'KeyboardSession.cs'), (Join-Path $PSScriptRoot 'Program.cs'))
+$arguments += @((Join-Path $PSScriptRoot 'Core.cs'), (Join-Path $PSScriptRoot 'LauncherSupport.cs'), (Join-Path $PSScriptRoot 'WindowsSession.cs'), (Join-Path $PSScriptRoot 'NativeClipboard.cs'), (Join-Path $PSScriptRoot 'KeyboardSession.cs'), (Join-Path $PSScriptRoot 'NightTheme.cs'), (Join-Path $PSScriptRoot 'Program.cs'))
 & $compilerPath @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Executable compilation failed.' }
 if ($Test) {
     $testArguments = @('/nologo', '/optimize+', '/platform:anycpu', '/target:exe', '/main:ReportExporter.Tests')
     $testArguments += '/out:' + (Join-Path $outputPath 'ExporterTests.exe')
     $testArguments += $refs | ForEach-Object { '/reference:' + (Join-Path $frameworkPath $_) }
-    $testArguments += @((Join-Path $PSScriptRoot 'Core.cs'), (Join-Path $PSScriptRoot 'LauncherSupport.cs'), (Join-Path $PSScriptRoot 'WindowsSession.cs'), (Join-Path $PSScriptRoot 'NativeClipboard.cs'), (Join-Path $PSScriptRoot 'KeyboardSession.cs'), (Join-Path $PSScriptRoot 'Program.cs'), (Join-Path $PSScriptRoot 'LauncherChecks.cs'), (Join-Path $PSScriptRoot 'Tests.cs'))
+    $testArguments += @((Join-Path $PSScriptRoot 'Core.cs'), (Join-Path $PSScriptRoot 'LauncherSupport.cs'), (Join-Path $PSScriptRoot 'WindowsSession.cs'), (Join-Path $PSScriptRoot 'NativeClipboard.cs'), (Join-Path $PSScriptRoot 'KeyboardSession.cs'), (Join-Path $PSScriptRoot 'NightTheme.cs'), (Join-Path $PSScriptRoot 'Program.cs'), (Join-Path $PSScriptRoot 'LauncherChecks.cs'), (Join-Path $PSScriptRoot 'Tests.cs'))
     & $compilerPath @testArguments
     if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed.' }
     & (Join-Path $outputPath 'ExporterTests.exe')

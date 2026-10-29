@@ -1,4 +1,14 @@
-# PowerScribe Report Exporter v0.14
+# PowerScribe Report Exporter v0.15
+
+## v0.15: night appearance
+
+The launcher now uses a consistent dark palette with readable text, larger case-number fields, rounded controls, and a prominent mint **Go** button. The footer keeps Go and Stop visible while the expanded content scrolls and shows the selected speed. Options, report input, diagnostics, and the progress overlay follow the same palette. A dark title bar is requested on Windows versions that support it; system dialogs and some native scroll/spin controls can retain the Windows appearance.
+
+**Copied text** appears **above Options** after a run has saved complete pairs. It stays hidden before the first usable export and starts collapsed after each new usable export. Expand it to inspect the complete comparison input and use **Copy again** after another app changes the clipboard. Saved files, optional Notepad opening, existing preferences, and capture/navigation safeguards retain the v0.14 workflow.
+
+Validation: executable compiled and **114 tests passed**. Native launcher checks now verify that the larger number fields and Go fit inside their parent controls, that Go remains visible with Options expanded, and that Copied text appears above Options. Main, Options, Copied text, and progress previews were inspected. Tests and previews use synthetic reports and test-owned windows; they do not operate on PowerScribe or the real clipboard. End-to-end UAB workstation behavior still needs local verification.
+
+The title-bar integration follows [Microsoft's Win32 dark-theme guidance](https://learn.microsoft.com/windows/apps/desktop/modernize/apply-windows-themes). The theme only draws this application's controls and does not change Windows' system theme or PowerScribe's layout.
 
 ## v0.14: copied text and optional Notepad
 
@@ -30,7 +40,7 @@ Stopped runs keep saved captures and show a brief result with an actionable next
 
 Validation: executable compiled and **111 tests passed**, including the existing 103 capture/navigation checks plus adaptive timing, migration, unique filenames, stopped-run recovery, and a native launcher layout check. Launcher previews were inspected with Options collapsed and expanded. Tests use synthetic reports and test-owned controls; they do not operate on PowerScribe or the real clipboard. The UAB workstation still needs a short trial to verify the actual range, report contents, and case order.
 
-The following release notes describe earlier changes; the current use instructions below reflect v0.14.
+The following release notes describe earlier changes; the current use instructions below reflect v0.15.
 
 ## v0.12: retain worklist focus before activation
 
@@ -109,7 +119,7 @@ The first version's accessibility approach did not work on Sterling's workstatio
 
 ## Use it — no PowerShell required
 
-1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.14**.
+1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.15**.
 2. Close any open Compare Report Revisions dialog and **click the first case row in PowerScribe's worklist**. Leave focus on that row. Keep the comparison-window size that works with the AHK.
 3. Enter **First case** and **Last case**, then **Go**. These labels determine the count; they do not select numbered rows. Start with one case, then a small batch. Options is unnecessary for a normally configured workstation.
 4. A small progress window shows the current action, elapsed time, saved count, and available stop shortcut (**Numpad \*** or **Ctrl+Shift+F12**). Use its Stop button to cancel.
