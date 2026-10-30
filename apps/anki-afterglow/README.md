@@ -10,7 +10,7 @@ Close Anki, then run from any PowerShell location:
 powershell -NoProfile -ExecutionPolicy Bypass -File "C:\Users\sterl\Documents\GitHub\The-Library\apps\anki-afterglow\install_to_anki.ps1"
 ```
 
-Restart Anki and review a card. Open **Tools → Afterglow — Music background** for the enable switch, audio response, intensity, motion, letter halos, palette, quality, and timing advance. Settings apply immediately. The installer refuses to run while Anki is open, replaces files in the stable `anki_afterglow` folder, and preserves `meta.json` settings. Disable or remove Afterglow through Anki's add-on manager to restore normal review backgrounds.
+Restart Anki and review a card. Open **Tools → Afterglow — Music background** for the enable switch, audio response, intensity, motion, letter halos, palette, quality, and timing advance. When Speed Streak's top-level menu is present, the same action also appears there after the profile opens. This uses Qt's public menu interface and never changes Speed Streak's files. Settings apply immediately. The installer refuses to run while Anki is open, replaces files in the stable `anki_afterglow` folder, and preserves `meta.json` settings. Disable or remove Afterglow through Anki's add-on manager to restore normal review backgrounds.
 
 Windows .NET Framework's C# compiler builds the small audio helper during installation. No pip, Python wheels, Spotify account, audio driver, or microphone permission is required. `build.ps1` also generates a local `afterglow.ankiaddon` for Tools → Add-ons → Install from file. The generated binary/package are local build outputs, not committed source.
 

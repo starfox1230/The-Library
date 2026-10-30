@@ -16,7 +16,8 @@ window.addonManager = SimpleNamespace(
     addonFromModule=lambda name: 'anki_afterglow', getConfig=lambda name: config,
     setConfigAction=lambda *a: None, setWebExports=lambda *a: None,
     writeConfig=lambda name, value: config.update(value))
-window.form = SimpleNamespace(menuTools=QMenu(window))
+window.form = SimpleNamespace(menuTools=QMenu(window), menubar=window.menuBar())
+speed_menu = window.form.menubar.addMenu('Speed Streak')
 calls = []
 window.reviewer = SimpleNamespace(web=SimpleNamespace(eval=calls.append))
 aqt.mw = window
@@ -26,6 +27,9 @@ module = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 c = module.controller
+c.attach_menu()
+c.attach_menu()
+assert speed_menu.actions().count(c.action) == 1
 c.state_changed('review', 'overview')
 for _ in range(20):
     app.processEvents();time.sleep(.02)

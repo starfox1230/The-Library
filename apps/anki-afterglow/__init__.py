@@ -35,6 +35,20 @@ class Afterglow:
         gui_hooks.profile_will_close.append(self.close)
         gui_hooks.reviewer_did_show_question.append(self.card_shown)
         gui_hooks.reviewer_did_show_answer.append(self.card_shown)
+        gui_hooks.profile_did_open.append(self.attach_menu)
+
+    def attach_menu(self):
+        # Discover the public Qt menu after all add-ons load. No Speed Streak imports.
+        menubar = getattr(mw.form, "menubar", None)
+        if not menubar:
+            return
+        for item in menubar.actions():
+            menu = item.menu()
+            if menu and item.text().replace("&", "").strip() == "Speed Streak":
+                if self.action not in menu.actions():
+                    menu.addSeparator()
+                    menu.addAction(self.action)
+                return
 
     def web_content(self, content, context):
         if isinstance(context, Reviewer):
