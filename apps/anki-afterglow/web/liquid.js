@@ -3,8 +3,8 @@
 (() => {
   'use strict';
   if(window.AfterglowLiquid)return;
-  const colors={aurora:[[.04,.80,.76],[.48,.16,.92],[.92,.16,.52]],acid:[[.04,.70,.65],[.40,.85,.16],[.95,.48,.08]],ultraviolet:[[.46,.12,.90],[.12,.38,.91],[.90,.12,.57]]};
-  const hues={aurora:[180,270,330],acid:[165,90,35],ultraviolet:[270,225,320]};
+  const colors={aurora:[[.04,.80,.76],[.48,.16,.92],[.92,.16,.52]],acid:[[.04,.70,.65],[.40,.85,.16],[.95,.48,.08]],ultraviolet:[[.46,.12,.90],[.12,.38,.91],[.90,.12,.57]],ember:[[1.,.19,.035],[1.,.70,.10],[.60,.18,1.]]};
+  const hues={aurora:[180,270,330],acid:[165,90,35],ultraviolet:[270,225,320],ember:[12,42,270]};
   const vertex='attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}';
   const fragment=`
 #ifdef GL_FRAGMENT_PRECISION_HIGH
@@ -57,7 +57,7 @@ void main(){
     init();
     canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;});
     canvas.addEventListener('webglcontextrestored',()=>{try{init();}catch(_){ready=false;}});
-    return {canvas,kind:'webgl',draw(s){
+    return {canvas,kind:'webgl',dispose(){gl.getExtension('WEBGL_lose_context')?.loseContext();},draw(s){
       if(!ready)return;
       gl.viewport(0,0,canvas.width,canvas.height);gl.useProgram(program);
       gl.uniform2f(loc.resolution,canvas.width,canvas.height);gl.uniform2f(loc.viewSize,s.vw,s.vh);gl.uniform2f(loc.worldSize,s.w,s.h);gl.uniform2f(loc.offset,s.x,s.y);

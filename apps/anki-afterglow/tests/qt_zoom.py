@@ -18,7 +18,7 @@ view.resize(1000,900)
 view.show()
 print('Qt WebEngine initialized',flush=True)
 root=Path(__file__).parents[1]
-html='<html><head><style>body{margin:0;color:white}#qa{font:24px sans-serif;display:inline-block}</style><style>'+ (root/'web/afterglow.css').read_text()+'</style></head><body><div id="qa">Zoom this card text</div><script>'+(root/'web/liquid.js').read_text()+'\n'+(root/'web/afterglow.js').read_text()+'</script></body></html>'
+html='<html><head><style>body{margin:0;color:white}#qa{font:24px sans-serif;display:inline-block}</style><style>'+ (root/'web/afterglow.css').read_text()+'</style></head><body><div id="qa">Zoom this card text</div><script>'+'\n'.join((root/('web/'+name)).read_text() for name in ('liquid.js','particles.js','afterglow.js'))+'</script></body></html>'
 
 def wait(seconds=.2):
     end=time.monotonic()+seconds
@@ -39,11 +39,13 @@ def paint(y=0,dpr=None):
           'surface':{'x':0,'y':y,'width':1000,'height':900,'view_width':view.width(),
                      'view_height':view.height(),'dpr':view.devicePixelRatioF() if dpr is None else dpr},
           'primary':True,'scene_time':0}
-    data['config']['intensity']=66
-    js('Afterglow.update('+json.dumps(data)+')')
-    data['config']['intensity']=65
-    js('Afterglow.update('+json.dumps(data)+')')
-    wait()
+    for intensity in (66,65):
+        before=js('Afterglow.metrics().frames')
+        data['config']['intensity']=intensity
+        js('Afterglow.update('+json.dumps(data)+')')
+        deadline=time.monotonic()+3
+        while js('Afterglow.metrics().frames')<=before and time.monotonic()<deadline:wait(.02)
+        assert js('Afterglow.metrics().frames')>before,'Expected static repaint did not finish'
 
 try:
     view.setHtml(html)
@@ -56,6 +58,8 @@ try:
         paint()
         print('Checked zoom',zoom,flush=True)
         snapshots.append(js('document.querySelector("canvas").toDataURL()'))
+        comparison=js('(()=>{const e=document.querySelector("canvas"),c=document.createElement("canvas");c.width=e.width;c.height=e.height;const ctx=c.getContext("2d");ctx.drawImage(e,0,0);const p=ctx.getImageData(0,0,c.width,c.height).data;if(!window.zoomPixels)window.zoomPixels=new Uint8ClampedArray(p);let d=0;for(let i=0;i<p.length;i++)d+=Math.abs(p[i]-zoomPixels[i]);return {width:c.width,height:c.height,difference:d/p.length,renderer:Afterglow.renderer};})()')
+        print('Zoom pixels:',comparison,flush=True)
         sizes.append(js('document.querySelector("#qa").getBoundingClientRect().width*1000/innerWidth'))
     assert len(set(snapshots))==1,'Background changed under Qt page zoom'
     assert max(sizes)>min(sizes)*3,'Card text did not actually zoom during the test'

@@ -50,6 +50,22 @@ interface ICapture {
     void ReleaseBuffer(uint frames);
     void GetNextPacketSize(out uint frames);
 }
+class BandBank {
+    double[] filtered=new double[8], energy=new double[8], coefficients=new double[8];
+    public BandBank(int rate) {
+        double[] cutoffs={60,120,250,500,1000,2000,4000,8000};
+        for(int i=0;i<8;i++)coefficients[i]=1-Math.Exp(-2*Math.PI*Math.Min(cutoffs[i],rate*.4)/rate);
+    }
+    public void Push(double sample) {
+        double previous=0;
+        for(int i=0;i<8;i++){filtered[i]+=coefficients[i]*(sample-filtered[i]);double signal=filtered[i]-previous;previous=filtered[i];energy[i]+=signal*signal;}
+    }
+    public double[] Read(int samples) {
+        double[] values=new double[8];
+        for(int i=0;i<8;i++){values[i]=Math.Sqrt(energy[i]/samples);energy[i]=0;}
+        return values;
+    }
+}
 class Loopback {
     [DllImport("ole32.dll")] static extern int PropVariantClear(ref PropertyValue value);
     static readonly object OutputLock = new object();
@@ -57,7 +73,17 @@ class Loopback {
     static string F(double x) { return x.ToString("0.000000", Inv); }
     static string J(string x) { return "\"" + x.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ") + "\""; }
     static void Emit(string x) { lock(OutputLock) Console.WriteLine(x); }
-    [MTAThread] static int Main() {
+    [MTAThread] static int Main(string[] args) {
+        if(args.Length>0 && args[0]=="--test-bands") {
+            foreach(int frequency in new int[]{60,500,4000}) {
+                BandBank bank=new BandBank(48000);
+                for(int sample=0;sample<48000;sample++)bank.Push(.1*Math.Sin(2*Math.PI*frequency*sample/48000.0));
+                double[] values=bank.Read(48000);string output="";
+                for(int i=0;i<8;i++){if(i>0)output+=",";output+=F(values[i]);}
+                Emit("{\"frequency\":"+frequency+",\"bands\":["+output+"]}");
+            }
+            return 0;
+        }
         try { Run(); return 0; }
         catch (Exception e) {
             Console.WriteLine("{\"error\":\"Windows audio unavailable (" + e.HResult.ToString("X") + "). Retrying.\"}");
@@ -117,6 +143,7 @@ class Loopback {
         Guid captureId = typeof(ICapture).GUID; object service;
         client.GetService(ref captureId, out service); ICapture capture = (ICapture)service;
         double low = 0, energy = 0, bass = 0, alpha = 1 - Math.Exp(-2 * Math.PI * 160 / rate);
+        BandBank bank=new BandBank(rate);
         int samples = 0, window = rate / 50;
         DateTime check = DateTime.UtcNow, emit = DateTime.UtcNow;
         byte[] bytes = new byte[0];
@@ -145,8 +172,11 @@ class Loopback {
                             if (Double.IsNaN(sample) || Double.IsInfinity(sample)) sample = 0;
                             low += alpha * (sample - low);
                             energy += sample * sample; bass += low * low; samples++;
+                            bank.Push(sample);
                             if (samples >= window) {
-                                Emit("{\"energy\":" + F(Math.Sqrt(energy / samples)) + ",\"bass\":" + F(Math.Sqrt(bass / samples)) + deviceJson + "}");
+                                string bands="";double[] values=bank.Read(samples);
+                                for(int band=0;band<8;band++){if(band>0)bands+=",";bands+=F(values[band]);}
+                                Emit("{\"energy\":" + F(Math.Sqrt(energy / samples)) + ",\"bass\":" + F(Math.Sqrt(bass / samples)) + ",\"bands\":["+bands+"]" + deviceJson + "}");
                                 energy = bass = 0; samples = 0; emit = DateTime.UtcNow;
                             }
                         }

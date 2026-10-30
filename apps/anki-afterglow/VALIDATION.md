@@ -2,6 +2,17 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.4 particle cloud and performance comparison
+
+- Read the complete supplied transcript and identified the [creator's tutorial](https://www.elekktronaut.com/tutorials/audioreactive-particle-cloud-new). Implemented original age-colored GPU line/point particles, forward-integrated band clocks and a kick-count camera target with lag. The exact TouchDesigner compute simulation and post-processing are not ported.
+- Edge on ANGLE / Intel Arc / Direct3D11: approximately 60.0 FPS, p95 intervals 16.8 ms. Isolated native Qt WebEngine with three panes in a 1920×1080 hidden window: all three approximately 60.0 FPS, p95 16.7/16.7/16.8 ms. Mean JS submission cost was about 0.09–0.16 ms per pane; this excludes GPU and compositor cost. These tests load no Anki collection or other add-ons. Live review + Speed Streak + TV performance remains a user-session check.
+- Cloud browser regression: GPU initialized, continued drawing, no pointer control, no movement from raw bass when integrated clocks are fixed, forward-clock updates move particles, switching between cloud and liquid works without JS errors. Screenshot inspected for trails, age colors and text visibility.
+- Ten motion/beat unit tests pass, including monotonically increasing particle and camera clocks during repeated loud/quiet kicks and independent spectral-group speeds.
+- Native C# filter-bank test uses the same BandBank class as WASAPI with offline 60/500/4000 Hz tones. It separates low/mid/high energy without playing sound. The live output probe identified TOSHIBA-TV but was silent during this check, so current real-music capture/band levels were inconclusive; previous versions confirmed that output's real music capture.
+- Standalone smoke test: loopback-only service starts, audio/motion state and all assets load, unlisted files return 404, Stop shuts down the server and helper cleanly. No browser window is opened by the automated smoke test.
+- Anki library settings/lifecycle checks pass; Qt's 75–250% zoom test remains pixel-identical and its answer-bar slice aligns. Static repaint checks wait for completed render frames to avoid sampling a pending repaint. Liquid GPU and Canvas regressions continue to pass.
+- The normal running Anki installation is not hot-patched; reinstall with Anki closed activates the update.
+
 ## 0.3 liquid wall
 
 - Replaced the dance-floor scene with an original WebGL liquid field: three-octave domain warping, broad saturated color folds, a restrained luminous crease and bass-driven displacement. No pointer or mouse handlers. Automatic Canvas 2D fallback uses seven fluid ribbons and cached color pools.

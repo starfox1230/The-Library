@@ -2,6 +2,7 @@
 import json
 import platform
 import time
+import subprocess
 from pathlib import Path
 from aqt import gui_hooks, mw
 from aqt.reviewer import Reviewer, ReviewerBottomBar
@@ -44,7 +45,7 @@ class Afterglow:
         self.last_injection = 0
         self.decorated = []
         css = (ROOT / 'web/afterglow.css').read_text(encoding='utf-8')
-        js = (ROOT / 'web/liquid.js').read_text(encoding='utf-8') + '\n' + (ROOT / 'web/afterglow.js').read_text(encoding='utf-8')
+        js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','afterglow.js'))
         self.inject_script = '(function(){if(window.Afterglow)return;const s=document.createElement("style");s.textContent=' + json.dumps(css) + ';document.head.append(s);' + js + '})();'
         self.action = QAction("Afterglow — Music background…", mw)
         self.action.triggered.connect(self.settings)
@@ -54,6 +55,9 @@ class Afterglow:
         mw.addAction(self.fullscreen_action)
         self.fullscreen_action.triggered.connect(self.fullscreen)
         mw.form.menuTools.addAction(self.fullscreen_action)
+        self.preview_action=QAction('Afterglow — Standalone performance preview',mw)
+        self.preview_action.triggered.connect(self.standalone)
+        mw.form.menuTools.addAction(self.preview_action)
         mw.addonManager.setConfigAction(__name__, self.settings)
         mw.addonManager.setWebExports(__name__, r"web/.*\.(js|css)")
         gui_hooks.webview_will_set_content.append(self.web_content)
@@ -75,6 +79,7 @@ class Afterglow:
                     menu.addSeparator()
                     menu.addAction(self.action)
                     menu.addAction(self.fullscreen_action)
+                    menu.addAction(self.preview_action)
                 return
 
     def web_content(self, content, context):
@@ -82,12 +87,17 @@ class Afterglow:
             base = f"/_addons/{PACKAGE}/web"
             content.css.append(base + "/afterglow.css")
             content.js.append(base + "/liquid.js")
+            content.js.append(base + "/particles.js")
             content.js.append(base + "/afterglow.js")
 
     def fullscreen(self):
         toggle = getattr(mw, 'on_toggle_full_screen', None)
         if toggle:
             toggle()
+
+    def standalone(self):
+        if platform.system()=='Windows':
+            subprocess.Popen(['powershell.exe','-NoProfile','-ExecutionPolicy','Bypass','-File',str(ROOT/'start_preview.ps1')],creationflags=0x08000000)
 
     def views(self):
         reviewer = getattr(mw, 'reviewer', None)
@@ -206,11 +216,17 @@ class Afterglow:
             slider.valueChanged.connect(lambda value, k=key, l=value_label, title=label: (l.setText(f"{title}: {value}"), save(k, value)))
             form.addRow(value_label, slider)
         palette = QComboBox()
-        for title, value in [("Aurora · cyan / violet / rose", "aurora"), ("Acid · lime / teal / amber", "acid"), ("Ultraviolet · purple / blue / pink", "ultraviolet")]:
+        for title, value in [("Aurora · cyan / violet / rose", "aurora"), ("Acid · lime / teal / amber", "acid"), ("Ultraviolet · purple / blue / pink", "ultraviolet"), ('Ember · coral / gold / violet','ember')]:
             palette.addItem(title, value)
         palette.setCurrentIndex(max(0, palette.findData(self.config["palette"])))
         palette.currentIndexChanged.connect(lambda _: save("palette", palette.currentData()))
         form.addRow("Palette", palette)
+        visual=QComboBox()
+        visual.addItem('Particle cloud','particles')
+        visual.addItem('Liquid wall','liquid')
+        visual.setCurrentIndex(max(0,visual.findData(self.config['visual'])))
+        visual.currentIndexChanged.connect(lambda _:save('visual',visual.currentData()))
+        form.addRow('Visual',visual)
         quality = QComboBox()
         quality.addItems(["Economy · 30 FPS", "Smooth · 60 FPS"])
         quality.setCurrentIndex(int(self.config["quality"]))

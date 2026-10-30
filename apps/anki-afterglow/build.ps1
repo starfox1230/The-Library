@@ -7,6 +7,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Audio helper compilation failed.' }
 $package = Join-Path $source 'afterglow.ankiaddon'
 $zip = Join-Path $source 'afterglow.zip'
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip }
-Compress-Archive -LiteralPath @((Join-Path $source '__init__.py'),(Join-Path $source 'audio.py'),(Join-Path $source 'beat.py'),(Join-Path $source 'motion.py'),(Join-Path $source 'config.json'),(Join-Path $source 'manifest.json'),(Join-Path $source 'loopback.exe'),(Join-Path $source 'web')) -DestinationPath $zip
+$files=@('__init__.py','audio.py','beat.py','motion.py','config.json','manifest.json','loopback.exe','standalone.py','standalone.html','start_preview.ps1','web') | ForEach-Object {Join-Path $source $_}
+Compress-Archive -LiteralPath $files -DestinationPath $zip
 Move-Item -LiteralPath $zip -Destination $package -Force
 Write-Host "Built $package"

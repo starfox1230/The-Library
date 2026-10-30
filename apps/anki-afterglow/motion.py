@@ -8,6 +8,10 @@ class MusicMotion:
         self.gain = .02
         self.level = self.bass = self.push = self.phase = 0.0
         self.hit = 0
+        self.camera = self.camera_goal = 0.0
+        self.band_levels = [0.0]*8
+        self.band_phases = [0.0]*8
+        self.band_rates = [.1]*8
 
     def feed(self, now, sound):
         dt = min(.1, max(0, now-self.last)) if self.last is not None else 0
@@ -22,9 +26,20 @@ class MusicMotion:
         hit = sound.get('hit_id', 0)
         if hit and hit != self.hit:
             self.push = 1
+            self.camera_goal += .055
         self.hit = hit
         # A calm drift in silence, with actual sound accelerating and folding it.
         rate = .10 + self.level*.48 + self.bass*.22 + self.push*.16
         self.phase += dt*rate
+        self.camera_goal += dt*.025
+        self.camera += (self.camera_goal-self.camera)*(1-math.exp(-dt*.8))
+        bands=sound.get('bands') or [energy]*8
+        for i in range(8):
+            target=min(1,max(0,bands[i] if i<len(bands) else 0)/max(.00005,self.gain*.65)) if energy>.00003 else 0
+            self.band_levels[i]+=(target-self.band_levels[i])*(1-math.exp(-dt*2.5))
+            self.band_rates[i]=.10+self.band_levels[i]*.65
+            self.band_phases[i]+=dt*self.band_rates[i]
         return dict(flow_time=self.phase, flow_rate=rate, music_level=self.level,
-                    music_bass=self.bass, music_push=self.push)
+                    music_bass=self.bass, music_push=self.push,
+                    particle_phases=list(self.band_phases),particle_rates=list(self.band_rates),
+                    camera_phase=self.camera,camera_rate=(self.camera_goal-self.camera)*.8)

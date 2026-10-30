@@ -49,7 +49,7 @@ class AudioListener:
             now = time.monotonic()
             state = dict(self._state, **self._tracker.snapshot(now, lead_ms), hit_id=self._hit_id)
             if now - self._last_frame > .5:
-                state.update(energy=0, bass=0, period=0, bpm=0, confidence=0)
+                state.update(energy=0, bass=0, bands=[0]*8, period=0, bpm=0, confidence=0)
                 if self._process:
                     state['status'] = 'Waiting for audio frames'
             return state

@@ -34,6 +34,21 @@ class MotionTests(unittest.TestCase):
         repeated=driver.feed(1/30,{'energy':.03,'bass':.02})
         self.assertEqual(first['flow_time'],repeated['flow_time'])
 
+    def test_particle_clocks_and_camera_never_reverse_on_kicks(self):
+        driver=motion.MusicMotion();previous=None
+        for i in range(600):
+            loud=i%15<3
+            state=driver.feed(i/60,{'energy':.04 if loud else .001,'bass':.03 if loud else .0001,'hit_id':i//15+1,'bands':[.03 if loud else .0001]*8})
+            if previous:
+                self.assertTrue(all(a>=b for a,b in zip(state['particle_phases'],previous['particle_phases'])))
+                self.assertGreaterEqual(state['camera_phase'],previous['camera_phase'])
+            previous=state
+
+    def test_bands_drive_different_particle_groups(self):
+        driver=motion.MusicMotion()
+        for i in range(240):state=driver.feed(i/30,{'energy':.02,'bass':.01,'bands':[.03]+[0]*7})
+        self.assertGreater(state['particle_phases'][0],state['particle_phases'][7]*3)
+
 
 if __name__=='__main__':
     unittest.main()

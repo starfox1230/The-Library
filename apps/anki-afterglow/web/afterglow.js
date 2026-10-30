@@ -5,14 +5,18 @@
   canvas.id = 'afterglow-canvas';
   canvas.hidden=true;
   canvas.setAttribute('aria-hidden', 'true');
-  const visual = window.AfterglowLiquid(canvas);
+  let currentVisual='particles';
+  let visual = window.AfterglowParticles(canvas);
   canvas = visual.canvas;
   const root = document.documentElement;
-  let config = {enabled:false, intensity:65, motion:55, contrast:70, quality:1, palette:'aurora', clear_backgrounds:true, impact:80, immersive:true, show_meter:true};
+  let config = {enabled:false, intensity:65, motion:55, contrast:70, quality:1, palette:'aurora', clear_backgrounds:true, impact:80, immersive:true, show_meter:true,visual:'particles'};
   let state = {}, raf = 0, last = 0, time = 0, pulse = 0, level = 0, gain = .03, nextBeat = 0;
   let dirty = true, configKey = '';
   let surface=null, received=0, lastHit=0, attack=0, previousBass=0;
   let hud, meter, caption, meterTick=0;
+  let camera=0,clocks=Array(8).fill(0);
+  const timings=[];let drawCost=0,drawCount=0;
+  function metrics(){const samples=timings.slice(1).map((t,i)=>t-timings[i]).sort((a,b)=>a-b);return {frames:drawCount,renderer:visual.kind,device:visual.info||visual.kind,fps:timings.length>1?(timings.length-1)*1000/(timings.at(-1)-timings[0]):0,p95_ms:samples[Math.floor(samples.length*.95)]||0,draw_ms:drawCount?drawCost/drawCount:0,visual:currentVisual};}
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (v, a, b) => Math.max(a,Math.min(b,v));
   function mount() {
@@ -52,6 +56,7 @@
     }
   });
   function frame(ms) {
+    const started=performance.now();
     raf=0;
     if (!config.enabled || document.hidden) return;
     const moving = config.motion > 0 && !reduced.matches;
@@ -80,12 +85,16 @@
     if(moving){
       if(state.flow_time!==undefined){const age=(ms-received)/1000;time=(Number(state.flow_time)+Math.min(.6,age)*Number(state.flow_rate??.1)+Math.max(0,age-.6)*.1)*config.motion/55;}
       else time+=dt*(.10+musicLevel*.48+musicBass*.22+pulse*.16)*config.motion/55;
+      const age=Math.min(.6,(ms-received)/1000);
+      clocks=state.particle_phases?state.particle_phases.map((p,i)=>(p+age*(state.particle_rates?.[i]??.1))*config.motion/55):Array(8).fill(time);
+      camera=state.camera_phase!==undefined?(state.camera_phase+age*(state.camera_rate||0))*config.motion/55:time*.12;
     }
     visual.draw({w:surface?.width||innerWidth,h:surface?.height||innerHeight,
       vw:surface?.view_width||innerWidth,vh:surface?.view_height||innerHeight,
       x:surface?.x||0,y:surface?.y||0,time,intensity:config.intensity/100,
       palette:config.palette,level:moving?musicLevel:0,bass:moving?musicBass*config.impact/100:0,
-      pulse:moving?pulse:0});
+      pulse:moving?pulse:0,quality:config.quality,clocks,camera});
+    timings.push(ms);if(timings.length>120)timings.shift();drawCost+=performance.now()-started;drawCount++;
     if(moving)raf=requestAnimationFrame(frame);
   }
   function wake() { if(config.enabled&&!document.hidden&&!raf)raf=requestAnimationFrame(frame); }
@@ -100,6 +109,12 @@
     const key=JSON.stringify(data.config);
     if(key!==configKey) {
       configKey=key;config={...config,...data.config};mount();resize();dirty=true;
+      if(config.visual!==currentVisual){
+        visual.dispose?.();const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;
+        currentVisual=config.visual==='liquid'?'liquid':'particles';
+        visual=(currentVisual==='liquid'?window.AfterglowLiquid:window.AfterglowParticles)(canvas);canvas=visual.canvas;mount();resize();
+        timings.length=0;drawCost=drawCount=0;
+      }
       root.classList.toggle('ag-on',!!config.enabled);
       root.classList.toggle('ag-clear',!!config.clear_backgrounds);
       root.classList.toggle('ag-immersive',!!config.immersive);
@@ -114,13 +129,14 @@
       if(received-meterTick>250){
         meterTick=received;
         const hearing=(Number(data.energy)||0)>.00003;
-        caption.textContent=hearing?`${data.device||'System audio'} · ${reduced.matches?'Reduced motion':!config.motion?'Motion paused':data.bpm?Math.round(data.bpm)+' BPM':'Hearing music'}`:(data.status&&data.status!=='Listening to system audio'?data.status:'Afterglow · Waiting for sound');
+        const fps=config.motion&&!reduced.matches?` · ${Math.round(metrics().fps)} FPS`:'';
+        caption.textContent=(hearing?`${data.device||'System audio'} · ${reduced.matches?'Reduced motion':!config.motion?'Motion paused':data.bpm?Math.round(data.bpm)+' BPM':'Hearing music'}`:(data.status&&data.status!=='Listening to system audio'?data.status:'Afterglow · Waiting for sound'))+fps;
       }
     }
     if(data.period)nextBeat=performance.now()/1000+data.next_in;
     wake();
   }
-  window.Afterglow={update,renderer:visual.kind};
+  window.Afterglow={update,metrics,get renderer(){return visual.kind;}};
   addEventListener('resize',()=>{resize();wake();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else{dirty=true;wake();}});
   reduced.addEventListener('change',()=>{dirty=true;wake();});
