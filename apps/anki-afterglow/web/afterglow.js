@@ -6,8 +6,7 @@
   canvas.hidden=true;
   canvas.setAttribute('aria-hidden', 'true');
   let currentVisual='particles';
-  let visual = window.AfterglowParticles(canvas);
-  canvas = visual.canvas;
+  let visual = null, decorationOnly=false;
   const root = document.documentElement;
   let config = {enabled:false, intensity:65, motion:55, contrast:70, quality:1, palette:'aurora', clear_backgrounds:true, impact:80, immersive:true, show_meter:true,visual:'particles'};
   let state = {}, raf = 0, last = 0, time = 0, pulse = 0, level = 0, gain = .03, nextBeat = 0;
@@ -15,8 +14,10 @@
   let surface=null, received=0, lastHit=0, attack=0, previousBass=0;
   let hud, meter, caption, meterTick=0;
   let camera=0,clocks=Array(8).fill(0);
-  const timings=[];let drawCost=0,drawCount=0;
-  function metrics(){const samples=timings.slice(1).map((t,i)=>t-timings[i]).sort((a,b)=>a-b);return {frames:drawCount,renderer:visual.kind,device:visual.info||visual.kind,fps:timings.length>1?(timings.length-1)*1000/(timings.at(-1)-timings[0]):0,p95_ms:samples[Math.floor(samples.length*.95)]||0,draw_ms:drawCount?drawCost/drawCount:0,visual:currentVisual};}
+  const timings=[];let drawCost=0,drawCount=0,lastScene=null;
+  // Synchronous readback is only for QA; normal frames use disposable GPU buffers.
+  function paint(){if(visual&&lastScene&&!decorationOnly)visual.draw(lastScene);}
+  function metrics(){const samples=timings.slice(1).map((t,i)=>t-timings[i]).sort((a,b)=>a-b);return {frames:drawCount,renderer:decorationOnly?'decorator':visual?.kind||'idle',device:visual?.info||visual?.kind||'none',fps:decorationOnly?state.scene_fps||0:timings.length>1?(timings.length-1)*1000/(timings.at(-1)-timings[0]):0,p95_ms:samples[Math.floor(samples.length*.95)]||0,draw_ms:drawCount?drawCost/drawCount:0,visual:currentVisual};}
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (v, a, b) => Math.max(a,Math.min(b,v));
   function mount() {
@@ -58,9 +59,11 @@
   function frame(ms) {
     const started=performance.now();
     raf=0;
-    if (!config.enabled || document.hidden) return;
+    if (!config.enabled || document.hidden || decorationOnly || !visual) return;
     const moving = config.motion > 0 && !reduced.matches;
-    const budget = config.quality ? 15 : 31;
+    // Smooth mode follows the display clock. A 15 ms gate drops valid frames
+    // when Qt delivers uneven timestamps even on a 60 Hz display.
+    const budget = config.quality ? 0 : 31;
     if (ms-last < budget) {raf=requestAnimationFrame(frame);return;}
     const dt=Math.min(.08,(ms-last)/1000 || .016);last=ms;
     const now=ms/1000;
@@ -89,15 +92,16 @@
       clocks=state.particle_phases?state.particle_phases.map((p,i)=>(p+age*(state.particle_rates?.[i]??.1))*config.motion/55):Array(8).fill(time);
       camera=state.camera_phase!==undefined?(state.camera_phase+age*(state.camera_rate||0))*config.motion/55:time*.12;
     }
-    visual.draw({w:surface?.width||innerWidth,h:surface?.height||innerHeight,
+    lastScene={w:surface?.width||innerWidth,h:surface?.height||innerHeight,
       vw:surface?.view_width||innerWidth,vh:surface?.view_height||innerHeight,
       x:surface?.x||0,y:surface?.y||0,time,intensity:config.intensity/100,
       palette:config.palette,level:moving?musicLevel:0,bass:moving?musicBass*config.impact/100:0,
-      pulse:moving?pulse:0,quality:config.quality,clocks,camera});
+      pulse:moving?pulse:0,quality:config.quality,clocks,camera};
+    visual.draw(lastScene);
     timings.push(ms);if(timings.length>120)timings.shift();drawCost+=performance.now()-started;drawCount++;
     if(moving)raf=requestAnimationFrame(frame);
   }
-  function wake() { if(config.enabled&&!document.hidden&&!raf)raf=requestAnimationFrame(frame); }
+  function wake() { if(config.enabled&&!decorationOnly&&!document.hidden&&!raf)raf=requestAnimationFrame(frame); }
   function update(data) {
     const oldSurface=JSON.stringify(surface);
     surface=data.surface||null;
@@ -106,22 +110,28 @@
     if(data.hit_id && data.hit_id!==lastHit){attack=1;lastHit=data.hit_id;}
     attack=Math.max(attack,clamp((bass-previousBass)/Math.max(gain,.0001)*3,0,1));previousBass=bass;
     if(oldSurface!==JSON.stringify(surface)){resize();dirty=true;}
-    const key=JSON.stringify(data.config);
+    const modeChanged=decorationOnly!==!!data.decoration_only;
+    decorationOnly=!!data.decoration_only;
+    const key=JSON.stringify(data.config)+decorationOnly;
     if(key!==configKey) {
       configKey=key;config={...config,...data.config};mount();resize();dirty=true;
-      if(config.visual!==currentVisual){
-        visual.dispose?.();const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;
+      if(modeChanged || config.visual!==currentVisual || (!visual&&!decorationOnly)){
+        visual?.dispose?.();visual=null;
+        cancelAnimationFrame(raf);raf=0;
+        const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;
         currentVisual=config.visual==='liquid'?'liquid':'particles';
-        visual=(currentVisual==='liquid'?window.AfterglowLiquid:window.AfterglowParticles)(canvas);canvas=visual.canvas;mount();resize();
+        if(!decorationOnly){visual=(currentVisual==='liquid'?window.AfterglowLiquid:window.AfterglowParticles)(canvas);canvas=visual.canvas;}
+        mount();resize();
         timings.length=0;drawCost=drawCount=0;
       }
       root.classList.toggle('ag-on',!!config.enabled);
+      root.classList.toggle('ag-shared',decorationOnly);
       root.classList.toggle('ag-clear',!!config.clear_backgrounds);
       root.classList.toggle('ag-immersive',!!config.immersive);
       root.classList.toggle('ag-chrome',data.primary===false);
       root.style.setProperty('--ag-outline',(.25+config.contrast*.006).toFixed(2));
       root.style.setProperty('--ag-radius',(1+config.contrast*.045)+'px');
-      canvas.hidden=!config.enabled;protectText(true);
+      canvas.hidden=!config.enabled||decorationOnly;protectText(true);
     }
     if(hud){
       hud.hidden=!config.enabled||!config.show_meter||data.primary===false;
@@ -136,7 +146,7 @@
     if(data.period)nextBeat=performance.now()/1000+data.next_in;
     wake();
   }
-  window.Afterglow={update,metrics,get renderer(){return visual.kind;}};
+  window.Afterglow={update,metrics,paint,get renderer(){return decorationOnly?'decorator':visual?.kind||'idle';}};
   addEventListener('resize',()=>{resize();wake();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else{dirty=true;wake();}});
   reduced.addEventListener('change',()=>{dirty=true;wake();});

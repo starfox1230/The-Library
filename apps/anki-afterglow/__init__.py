@@ -3,15 +3,17 @@ import json
 import platform
 import time
 import subprocess
+import os
 from pathlib import Path
 from aqt import gui_hooks, mw
 from aqt.reviewer import Reviewer, ReviewerBottomBar
 from aqt.toolbar import TopToolbar
 from aqt.webview import AnkiWebView
 from aqt.qt import (QAction, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
-                    QFormLayout, QLabel, QSlider, Qt, QTimer, QPoint, QProgressBar, QPushButton)
+                    QFormLayout, QLabel, QSlider, Qt, QTimer, QPoint, QProgressBar, QPushButton, QColor)
 from .audio import AudioListener
 from .motion import MusicMotion
+from .backdrop import SharedBackdrop
 
 ROOT = Path(__file__).parent
 PACKAGE = mw.addonManager.addonFromModule(__name__)
@@ -43,6 +45,12 @@ class Afterglow:
         self.meter = None
         self.scene_start = time.monotonic()
         self.last_injection = 0
+        self.last_diagnostics = 0
+        self.background = None
+        self.transparent_pages = {}
+        self.scene_fps = 0
+        self.last_scene_metrics = 0
+        self.decoration_updates = {}
         self.decorated = []
         css = (ROOT / 'web/afterglow.css').read_text(encoding='utf-8')
         js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','afterglow.js'))
@@ -127,6 +135,17 @@ class Afterglow:
                 continue
             payload = {"config": dict(self.config, enabled=False)}
             web.eval("window.Afterglow && window.Afterglow.update(" + json.dumps(payload) + ");")
+        if self.background:
+            self.background.eval('window.Afterglow&&Afterglow.update({config:{enabled:false}});')
+            self.background.hide()
+        self.restore_pages()
+        self.decoration_updates.clear()
+
+    def restore_pages(self, keep=()):
+        for web, color in list(self.transparent_pages.items()):
+            if web not in keep:
+                if self.alive(web):web.page().setBackgroundColor(color)
+                del self.transparent_pages[web]
 
     def card_shown(self, card):
         self.active = True
@@ -135,6 +154,10 @@ class Afterglow:
     def close(self):
         self.active = False
         self.hide_background()
+        if self.background:
+            self.background.page().deleteLater()
+            self.background.deleteLater()
+            self.background=None
         self.audio.stop()
         self.listening = False
 
@@ -162,6 +185,29 @@ class Afterglow:
                 self.last_injection = time.monotonic()
             host = mw.centralWidget() or mw
             views = self.views()
+            shared = enabled and self.config.get('shared_background',False) and mw.centralWidget() is not None
+            if shared:
+                if self.background is None:
+                    self.background=SharedBackdrop(host,self.inject_script)
+                if self.background.geometry()!=host.rect():self.background.setGeometry(host.rect())
+                if not self.background.isVisible():
+                    self.background.show();self.background.lower()
+                for view in views:
+                    if view not in self.transparent_pages:
+                        self.transparent_pages[view]=view.page().backgroundColor()
+                        view.page().setBackgroundColor(QColor(0,0,0,0))
+                self.restore_pages(views)
+                payload=dict(state,config=self.config,primary=False,scene_time=time.monotonic()-self.scene_start,
+                             surface=dict(x=0,y=0,width=host.width(),height=host.height(),view_width=host.width(),view_height=host.height(),dpr=host.devicePixelRatioF()))
+                self.background.eval('window.Afterglow&&Afterglow.update('+json.dumps(payload)+');')
+                if time.monotonic()-self.last_scene_metrics>1:
+                    self.last_scene_metrics=time.monotonic()
+                    self.background.evalWithCallback('window.Afterglow&&Afterglow.metrics()',self.scene_metrics)
+            else:
+                if self.background:
+                    self.background.eval('window.Afterglow&&Afterglow.update({config:{enabled:false}});')
+                    self.background.hide()
+                self.restore_pages()
             for previous in self.decorated:
                 if previous not in views and self.alive(previous):
                     previous.eval('window.Afterglow && window.Afterglow.update({config:{enabled:false}});')
@@ -179,8 +225,45 @@ class Afterglow:
                                     view_width=surface.width(), view_height=surface.height(),
                                     dpr=surface.devicePixelRatioF())
                 payload = dict(state, config=self.config, surface=geometry,
-                               primary=surface is web, scene_time=time.monotonic()-self.scene_start)
+                               primary=surface is web, scene_time=time.monotonic()-self.scene_start,
+                               decoration_only=shared,scene_fps=self.scene_fps)
+                # Static transparent pages need no 30 Hz audio stream. Only the
+                # optional primary HUD refreshes, at four updates per second.
+                if shared:
+                    key=json.dumps([self.config,geometry,surface is web])
+                    previous_key,last_sent=self.decoration_updates.get(surface,('',0))
+                    hud_due=surface is web and self.config.get('show_meter') and time.monotonic()-last_sent>.25
+                    if key==previous_key and not hud_due and not inject:
+                        continue
+                    self.decoration_updates[surface]=(key,time.monotonic())
+                else:
+                    self.decoration_updates.pop(surface,None)
                 surface.eval("window.Afterglow && window.Afterglow.update(" + json.dumps(payload) + ");")
+            if self.config.get('diagnostics') and time.monotonic()-self.last_diagnostics>3:
+                self.last_diagnostics=time.monotonic()
+                self.record_performance(views+([self.background] if shared else []))
+
+    def scene_metrics(self, value):
+        if isinstance(value,dict):self.scene_fps=value.get('fps',0)
+
+    def record_performance(self, views):
+        from aqt.qt import QQuickWindow
+        report={'time':time.time(),'qt_api':str(QQuickWindow.graphicsApi()),
+                'qt_opengl':os.environ.get('QT_OPENGL'), 'panes':[],
+                'geometry':[dict(width=v.width(),height=v.height(),dpr=v.devicePixelRatioF(),zoom=v.zoomFactor()) for v in views]}
+        pending=[len(views)]
+        def complete(value,index):
+            report['panes'].append(dict(index=index,metrics=value))
+            pending[0]-=1
+            if pending[0]==0:
+                folder=ROOT/'user_files';folder.mkdir(exist_ok=True)
+                with (folder/'performance.jsonl').open('a',encoding='utf-8') as stream:
+                    stream.write(json.dumps(report)+'\n')
+        for index,view in enumerate(views):
+            if hasattr(view,'evalWithCallback'):
+                view.evalWithCallback('window.Afterglow&&Afterglow.metrics()',lambda value,i=index:complete(value,i))
+            else:
+                complete(None,index)
 
     def ensure_renderer(self, target, ready):
         if not ready and self.active and self.alive(target):
@@ -201,6 +284,7 @@ class Afterglow:
         for key, label in [("enabled", "Enable Afterglow"), ("listen", "React to computer audio"),
                            ("immersive", "Extend behind toolbars, answer buttons and side panes"),
                            ("show_meter", "Show live audio meter on the review screen"),
+                           ("shared_background", "Use one shared graphics layer"),
                            ("clear_backgrounds", "Replace card container backgrounds")]:
             box = QCheckBox(label)
             box.setChecked(bool(self.config[key]))
@@ -228,7 +312,7 @@ class Afterglow:
         visual.currentIndexChanged.connect(lambda _:save('visual',visual.currentData()))
         form.addRow('Visual',visual)
         quality = QComboBox()
-        quality.addItems(["Economy · 30 FPS", "Smooth · 60 FPS"])
+        quality.addItems(["Economy · 30 FPS", "Smooth · display refresh rate"])
         quality.setCurrentIndex(int(self.config["quality"]))
         quality.currentIndexChanged.connect(lambda value: save("quality", value))
         form.addRow("Rendering", quality)

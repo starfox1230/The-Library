@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import aqt
 from aqt.qt import QApplication, QMainWindow, QMenu, QTimer, QWidget
 import json
+import tempfile
 
 app = QApplication([])
 window = QMainWindow()
@@ -57,7 +58,9 @@ class WebStub(QWidget):
     def eval(self, script):
         self.last_script=script
     def evalWithCallback(self, script, callback):
-        callback(True)
+        callback({'fps':60,'renderer':'webgl'} if 'metrics()' in script else True)
+    def zoomFactor(self):
+        return 1.25
 real_geometry=WebStub(window)
 real_geometry.setGeometry(20,30,800,600)
 window.reviewer.web=real_geometry
@@ -67,5 +70,13 @@ payload=json.loads(real_geometry.last_script.split('window.Afterglow.update(',1)
 assert payload['surface']['view_width']==800 and payload['surface']['view_height']==600
 assert payload['surface']['x']==20 and payload['surface']['y']==30
 assert payload['surface']['dpr']==real_geometry.devicePixelRatioF()
+with tempfile.TemporaryDirectory() as directory:
+    original_root=module.ROOT;module.ROOT=Path(directory)
+    c.record_performance([real_geometry])
+    report=json.loads((module.ROOT/'user_files/performance.jsonl').read_text())
+    assert report['panes'][0]['metrics']['fps']==60
+    assert report['geometry'][0]['zoom']==1.25
+    assert 'card' not in report
+    module.ROOT=original_root
 c.close()
 print('PASS: Anki libraries, menu, settings dialog, audio start/stop, reviewer bridge')

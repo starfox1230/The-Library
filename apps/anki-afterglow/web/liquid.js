@@ -97,7 +97,7 @@ void main(){
   }
   window.AfterglowLiquid=canvas=>{
     try{
-      const gl=canvas.getContext('webgl',{alpha:false,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:true,powerPreference:'low-power'});
+      const gl=canvas.getContext('webgl',{alpha:false,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'low-power'});
       if(gl)return gpu(canvas,gl);
     }catch(_){
       const replacement=canvas.cloneNode();canvas.replaceWith(replacement);canvas=replacement;

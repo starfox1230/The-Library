@@ -2,6 +2,15 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.4.1 live Anki integration
+
+- Installed with Anki closed, then opened the existing profile and one ungraded review question with Speed Streak present. No answer was revealed or graded. Confirmed live music signal from TOSHIBA-TV in the settings/review meter and tempo estimates; this establishes capture, not correctness of the musical tempo or perceived synchronization.
+- Added one native Qt WebEngine background under transparent existing Anki pages. Foreground pages report `decorator` and zero rendered frames. They retain text, halos and button handlers; the shared surface reports ANGLE / Intel Arc / Direct3D11. Static decorators receive configuration/geometry updates and an optional 4 Hz HUD stream instead of 30 Hz audio streams. The backdrop is lowered only when shown. Disabling/leaving review restores saved page background colors; profile close disposes the background.
+- Early live builds, including the shared layer before the final communication/layout changes, measured about 40–47 FPS when unattended. The final build with the user's original hidden-meter preference measured 53–57 FPS in consecutive samples, with p95 intervals still about 33 ms and JS submission about 0.16–0.18 ms. These are short sequential observations, not a controlled A/B test or a guarantee of sustained 60 FPS. Desktop screenshot/input inspection lowered readings considerably. No claim that all remaining stutter is solved.
+- Live View → Zoom In changed the card page from 1.0 to 1.1 while the background remained at 1.0; Ctrl+0 restored the card. Fullscreen entry/exit also worked. The floating Speed Streak window remains independent. The isolated 75–250% Qt zoom/pixel test passes. The shared-layer Qt benchmark at 1920×1080 measured about 60 FPS, p95 16.8 ms, with all three foreground pages drawing zero animation frames.
+- Particle browser tests now cover switching into transparent decoration-only mode, no foreground animation, background FPS propagation and restoring per-pane GPU rendering. GPU/liquid/Canvas regressions, ten motion/beat tests, Anki settings/lifecycle smoke, native filter bank and standalone service checks pass. GPU readback tests explicitly repaint before reading pixels; normal GPU contexts use disposable buffers.
+- Optional `diagnostics: true` config writes only renderer metrics, native sizes, zoom and graphics API to local `user_files/performance.jsonl`; no card text or audio is logged. Diagnostics is off by default and was removed from the user's configuration after testing. Original palette, intensity, motion, audio settings, hidden meter and card zoom were preserved. The shared layer is enabled.
+
 ## 0.4 particle cloud and performance comparison
 
 - Read the complete supplied transcript and identified the [creator's tutorial](https://www.elekktronaut.com/tutorials/audioreactive-particle-cloud-new). Implemented original age-colored GPU line/point particles, forward-integrated band clocks and a kick-count camera target with lag. The exact TouchDesigner compute simulation and post-processing are not ported.
@@ -47,6 +56,6 @@ Passed on Sterling's Windows machine:
 - Installer run twice against an isolated add-ons fixture: old Python files replaced, `meta.json` settings preserved, helper compiled and installed. Normal installer refuses installation while Anki is running.
 - Python compilation and JavaScript syntax checks. Package contains the helper and reviewer assets.
 
-Not yet confirmed: listening to a real music track and judging synchronization by ear; actual live card-template/Speed Streak coexistence and performance during a normal review session. Anki was running during development, so the live add-ons folder was not changed. Synthetic tracker tests do not establish beat accuracy on arbitrary music. Use the timing advance setting to tune the first session.
+Still needs Sterling's judgment: perceived synchronization by ear and whether this original particle treatment matches the desired aesthetic. Live card-template/Speed Streak coexistence and HDMI music capture were checked in 0.4.1, with the measured performance limits above. Synthetic tracker tests do not establish beat accuracy on arbitrary music. Use the timing advance setting to tune the first session.
 
 Reproduce tracker tests with `python -m unittest discover -s apps/anki-afterglow/tests -v`. Run `tests/qt_smoke.py` with the installed Anki environment's Python. Run `tests/browser.cjs` with Playwright available (or `PLAYWRIGHT_MODULE` pointing to that package); it uses installed Edge and writes `preview.png`.

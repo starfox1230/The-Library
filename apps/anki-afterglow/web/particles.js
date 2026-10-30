@@ -89,7 +89,7 @@ void main(){float a=opacity;if(pointMode>.5){vec2 p=gl_PointCoord*2.-1.;a*=pow(m
     }};
   }
   window.AfterglowParticles=canvas=>{
-    try{const gl=canvas.getContext('webgl',{alpha:false,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:true,powerPreference:'high-performance'});if(gl)return gpu(canvas,gl);}
+    try{const gl=canvas.getContext('webgl',{alpha:false,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:false,powerPreference:'high-performance'});if(gl)return gpu(canvas,gl);}
     catch(error){console.warn('Afterglow particle graphics fallback:',String(error));const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;}
     return cpu(canvas);
   };
