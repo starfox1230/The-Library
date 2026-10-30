@@ -1,5 +1,19 @@
 # Changes and rationale — October 4, 2026
 
+## Incomplete OCR case numbers — October 29, 2026
+
+- Keep OCR case-number reads and repair incomplete/duplicate labels only when
+  unique surrounding anchors establish one consistent consecutive sequence.
+  Highlight repairs and require confirmation; never alter accession strings.
+- Refuse automatic repairs across contradictory reads, source gaps, irregular
+  row spacing or insufficient evidence. Add an optional operator-verified range
+  with matching row count for genuinely consecutive screenshots.
+- Explain duplicate case numbers directly instead of labeling them conflicting
+  accessions. Label engine confidence as a read score rather than a percentage.
+- Correct the sample validation record: three manual-reference transcription
+  errors understated accession accuracy. All 47 accessions were read correctly;
+  case-label repair brings this one image from 40 to 47 correct pairs.
+
 ## Accession OCR and standalone reader — October 29, 2026
 
 - Add screenshot paste/file import, browser-local OCR, editable row confirmation,

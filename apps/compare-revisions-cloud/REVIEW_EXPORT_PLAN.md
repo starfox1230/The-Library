@@ -83,7 +83,11 @@ locally in the browser, show extracted rows beside their source image regions,
 and require explicit confirmation before attaching identifiers. The comparison
 AI does not need the accession lookup; attach it to the review only.
 Match by batch and explicit source number, never by shifting remaining rows
-after an OCR omission. Preserve leading zeros and flag missing, conflicting or
+after an OCR omission. Case-label repair requires one consistent consecutive
+sequence supported by unique anchors and regular row spacing; repairs remain
+highlighted and unconfirmed. An optional verified first/last range requires
+operator acknowledgement and an exact row count. Accessions are never inferred
+or autocorrected. Preserve leading zeros and flag missing, conflicting or
 ambiguous rows. Preserve each source member's accession when grouping. The
 accession-only lookup does not prove same-patient identity; an MRN-based identity
 check is not implemented. An operator must resolve an incorrectly grouped pair.

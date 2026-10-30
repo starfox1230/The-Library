@@ -18,9 +18,17 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   separated numeric column left of Accession can be detected. Otherwise mark
   the two column widths on the image and select Read marked columns. Narrow
   images receive a per-row, per-column pass. Reading is not verification.
+- Case numbers are still read by OCR. An incomplete or duplicate reading can
+  be repaired when at least 60% of rows provide unique, consistent consecutive
+  anchors, including anchors near both ends, with regular row spacing. A
+  contradictory readable number, source gap or missing-row spacing blocks
+  automatic repair. Suggested numbers are highlighted and remain unconfirmed.
+  **Use verified consecutive case numbers** is an optional fallback: enter the
+  first/last source numbers and explicitly verify that every row is present in
+  order. The count must match. Neither method changes accession strings.
 - Check every **case number and accession**, correct errors, then check Confirmed.
   View row or focus a field to see its highlighted source row in an enlarged
-  image. Leading zeros stay intact. Conflicts block export; missing mappings
+  image. Leading zeros stay intact. Duplicate-case conflicts block export; missing mappings
   are reported rather than shifted. No universal recognition-accuracy claim is
   made. Capture larger source text where possible.
 - Source numbers are exact, batch-local keys. Confirmed lookup rows survive the

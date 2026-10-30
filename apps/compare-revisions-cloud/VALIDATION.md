@@ -16,27 +16,36 @@ Prepared October 4, 2026. All fixture reports are synthetic.
   a loopback-only test server. It checks exact synthetic OCR, unconfirmed-row
   isolation, duplicate screenshot handling, grouped accession copying, primary
   selection after sorting, brief copied feedback, edited-row conflicts, stale
-  report-batch suspension, manual column selection for headerless images, mobile
+  report-batch suspension, manual column selection for headerless images, verified
+  range acknowledgement/count checks, unchanged accession strings, mobile
   overflow and Clear. Real HTML downloads are opened from disk with network
   requests blocked, exercising filters, theme/view changes, clinical reports,
   clipboard fallback and recipient-subset exports that omit other records.
 - Synthetic dark/light reader and lookup layout previews were inspected. The
   banner is absent from the preparation page and present in the reader/print.
   Exported production reviews are not labeled as illustrative synthetic output.
-- A user-provided 115-pixel-wide, 47-row screenshot was tested separately from
-  the repository. Manual comparison found 47 rows recovered, **44/47 exact
-  accession strings**, **40/47 correct source numbers**, and **37/47 fully correct
-  case/accession pairs** before correction. These are one-sample observations,
-  not a validated accuracy estimate. The narrow-image pass improved recovery,
-  but wrong digits and source numbers remained. Every row requires confirmation;
-  confidence scores are not truth. Larger source captures should be tested.
-  The image and extracted identifiers were not added to Git or public artifacts.
+- **Correction to the initial sample assessment:** the manual reference had
+  three transcription errors. Enlarged-source review found **47/47 exact
+  accession strings**, **40/47 correct source numbers**, and **40/47 correct
+  pairs** before sequence repair. The earlier 44-accession/37-pair claim is
+  retracted. All 47 rows of the user-provided 115-pixel-wide screenshot were
+  recovered. The new sequence repair corrects seven incomplete/unread labels,
+  yielding **47/47 exact pairs on this sample**, without changing accessions.
+  These are one-sample observations, not a validated accuracy estimate. Every
+  row still requires confirmation; engine read scores are not measured accuracy.
+  Larger source captures and more varied lists should be tested. The image and
+  extracted identifiers were not added to Git or public artifacts.
+- `check-sequence.cjs` passes independent safeguards for unread/truncated labels,
+  non-1 source offsets, unchanged accession strings and confirmation status. It
+  rejects contradictory unique reads, actual numbering gaps, reordered rows,
+  irregular/missing or duplicate row spacing, and insufficient anchors.
 - No patient reports, paid model calls, new API keys, auth changes or Cloud Run
   deployment were used. The Gmail sample was read only; no email was sent.
 
 Run `python dev/assemble.py`, `python dev/synthetic_preview.py`, the Python suite,
 and `python dev/cache-ocr-assets.py`, then start `python dev/serve-lookup-qa.py`
-for `node dev/check-lookup.cjs`. The
+for `node dev/check-lookup.cjs`. Run `node dev/check-sequence.cjs` for the pure
+sequence safeguards. The
 loopback harness uses fake identity and synthetic reports only; it is not a
 deployable authentication configuration. The cache helper verifies the public
 bytes in `dev/ocr-assets.json` and writes only ignored `dev/qa-output/ocr-assets/`.

@@ -2,7 +2,7 @@
 let lookupRows=JSON.parse($('lookup-data').textContent||'[]');
 const lookupSourceText=$('report-text')?.value;
 const lookupMatchesReview=()=>exportedReview||!cases.length||$('report-text').value===lookupSourceText;
-const validLookup=r=>Number.isInteger(r.case_number)&&r.case_number>0&&r.case_number<=1000000&&typeof r.accession==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(r.accession);
+const validLookup=r=>!r.caseIssue&&Number.isInteger(r.case_number)&&r.case_number>0&&r.case_number<=1000000&&typeof r.accession==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(r.accession);
 function lookupConflicts(){
  const seen=new Map(),conflicts=new Set();
  for(const r of lookupRows){if(!validLookup(r))continue;if(seen.has(r.case_number)&&seen.get(r.case_number)!==r.accession)conflicts.add(r.case_number);seen.set(r.case_number,r.accession);}
@@ -35,7 +35,7 @@ function updateLookupCoverage(){
  const matched=new Set(valid.filter(r=>source.has(r.case_number)).map(r=>r.case_number));
  const missing=[...source].filter(n=>!matched.has(n));
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
- $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Conflicting cases: '+[...conflicts].join(', ')+'. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>!r.confirmed)?'Check each row against the screenshot, then confirm.':'');
+ $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>r.caseIssue)?'Some case numbers may be incomplete. Correct them or use a verified consecutive range. ':'')+(lookupRows.some(r=>!r.confirmed)?'Check each row against the screenshot, then confirm.':'');
  $('lookup-value').value=JSON.stringify(valid.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));
  $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!r.confirmed||!validLookup(r))||conflicts.size>0;
  {% endif %}
@@ -48,15 +48,17 @@ function paintLookup(){
  for(const [name,color] of [['caseColumn','#2689df'],['accessionColumn','#dba72a']]){const col=currentImage[name];if(!col)continue;ctx.fillStyle=color+'33';ctx.fillRect(col[0],0,col[1]-col[0],canvas.height);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(col[0],1,col[1]-col[0],canvas.height-2);}
  if(Number.isFinite(currentImage.focusY)){ctx.strokeStyle='#e14c79';ctx.lineWidth=2;ctx.strokeRect(1,currentImage.focusY-9,canvas.width-2,18);}
 }
-function showLookupImage(img){currentImage=img;$('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth):img.bitmap.width*Number(zoom))+'px';paintLookup();}
+function showLookupImage(img){if(currentImage!==img){$('lookup-range-first').value='';$('lookup-range-last').value='';$('lookup-range-checked').checked=false;$('lookup-range-status').textContent='';}currentImage=img;$('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;$('lookup-range-tools').hidden=false;const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth):img.bitmap.width*Number(zoom))+'px';paintLookup();}
+function lookupRowMessage(r,conflicts){return r.caseIssue|| (conflicts.has(r.case_number)?'Duplicate case '+r.case_number+' · check OCR':!validLookup(r)?'Check case / accession':(r.source||'Manual')+(r.numberSource==='sequence'?' · case repaired from '+(r.originalCase??'unread'):r.numberSource==='range'?' · verified range':r.confidence!==undefined?' · read score '+Math.round(r.confidence):''));}
 function lookupTable(){
  const conflicts=lookupConflicts();$('lookup-rows').replaceChildren();
  lookupRows.forEach((r,index)=>{
   const tr=el('tr'),n=el('input'),a=el('input'),check=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;a.setAttribute('aria-label','Accession row '+(index+1));check.type='checkbox';check.checked=!!r.confirmed;check.setAttribute('aria-label','Confirm row '+(index+1));check.disabled=!validLookup(r)||conflicts.has(r.case_number);
-  const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',conflicts.has(r.case_number)?'Conflicting accession':!validLookup(r)?'Check case / accession':(r.source||'Manual')+(r.confidence!==undefined?' · OCR '+Math.round(r.confidence)+'%':''));
+  if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Check before confirming.';}
+  const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',lookupRowMessage(r,conflicts));status.title='A duplicate case warning means the lookup assigns different accessions to one case number. OCR read scores are engine confidence, not measured accuracy.';
   const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));n.addEventListener('focus',reveal);a.addEventListener('focus',reveal);}
-  const changed=()=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();r.confirmed=false;check.checked=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],box=row.querySelector('[type=checkbox]');box.disabled=!validLookup(item)||conflicts.has(item.case_number);row.children[2].querySelector('span').textContent=conflicts.has(item.case_number)?'Conflicting accession':!validLookup(item)?'Check case / accession':item.confirmed?'Confirmed':'Check against screenshot';}updateReview();};
-  n.addEventListener('input',changed);a.addEventListener('input',changed);
+  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;check.checked=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],box=row.querySelector('[type=checkbox]');box.disabled=!validLookup(item)||conflicts.has(item.case_number);row.children[2].querySelector('span').textContent=lookupRowMessage(item,conflicts);}updateReview();};
+  n.addEventListener('input',()=>changed(true));a.addEventListener('input',()=>changed(false));
   check.addEventListener('change',()=>{r.confirmed=check.checked;updateReview();});
   for(const child of [n,a,source,check,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
  });updateLookupCoverage();
@@ -64,7 +66,7 @@ function lookupTable(){
 function clearLookup(){
  lookupEpoch++;lookupRows=[];for(const img of lookupImages)img.bitmap.close();lookupImages.length=0;currentImage=null;marking=null;
  if(ocrWorker){ocrWorker.terminate().catch(()=>{});ocrWorker=null;}
- ocrLoading=null;ocrBusy=false;$('lookup-files').value='';$('lookup-images').replaceChildren();$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('ocr-status').textContent='';lookupTable();
+ ocrLoading=null;ocrBusy=false;$('lookup-files').value='';$('lookup-images').replaceChildren();$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;$('lookup-range-status').textContent='';$('ocr-status').textContent='';lookupTable();
 }
 async function getOCR(epoch){
  if(ocrWorker)return ocrWorker;
@@ -105,23 +107,32 @@ function detectColumns(img){
 }
 async function recognizeColumns(img,worker,epoch){
  const words=[];
+ img.caseChecks=[];
  if(img.accessionColumn[1]-img.accessionColumn[0]<240){
   // Tiny table screenshots lose whole rows in page OCR. Segment by visible ink
   // in the accession column, then recognize each actual row and both columns.
-  // Row positions are never substituted for unreadable case numbers.
+  // Keep actual row positions; sequence repair runs only after OCR validation.
   const probe=document.createElement('canvas'),left=Math.floor(img.accessionColumn[0]),width=Math.ceil(img.accessionColumn[1])-left;probe.width=width;probe.height=img.bitmap.height;const pc=probe.getContext('2d');pc.drawImage(img.bitmap,left,0,width,img.bitmap.height,0,0,width,img.bitmap.height);const data=pc.getImageData(0,0,width,img.bitmap.height).data,bands=[];let start=null,last=-1;
   for(let y=0;y<img.bitmap.height;y++){let ink=0;for(let x=0;x<width;x++){const i=(y*width+x)*4;if((data[i]+data[i+1]+data[i+2])/3<140)ink++;}if(ink>=2){if(start===null)start=y;last=y;}else if(start!==null&&y-last>2){if(last-start>=3)bands.push([start,last]);start=null;}}
   if(start!==null&&last-start>=3)bands.push([start,last]);probe.width=1;probe.height=1;
   if(bands.length>260)throw Error('rows');
+  const digits=document.createElement('canvas'),digitLeft=Math.floor(img.caseColumn[0]),digitWidth=Math.ceil(img.caseColumn[1])-digitLeft;digits.width=digitWidth;digits.height=img.bitmap.height;const dc=digits.getContext('2d');dc.drawImage(img.bitmap,digitLeft,0,digitWidth,img.bitmap.height,0,0,digitWidth,img.bitmap.height);const digitPixels=dc.getImageData(0,0,digitWidth,img.bitmap.height).data;
   for(const [top,bottom] of bands){
    if(top<=(img.headerY||0))continue;
    if(epoch!==lookupEpoch)return;
+   // A missing thin '1' can still produce a valid integer. Count separated ink
+   // components to flag a shorter reading. This check never supplies a digit.
+   const components=[];let begin=null,lastX=0;
+   for(let x=0;x<digitWidth;x++){let ink=false;for(let y=Math.max(0,top-2);y<=Math.min(img.bitmap.height-1,bottom+2);y++){const i=(y*digitWidth+x)*4;if(Math.min(digitPixels[i],digitPixels[i+1],digitPixels[i+2])<140){ink=true;break;}}if(ink){if(begin===null)begin=x;lastX=x;}else if(begin!==null){components.push(lastX-begin+1);begin=null;}}
+   if(begin!==null)components.push(lastX-begin+1);
+   if(components.length&&components.length<=7&&components.every(w=>w<=bottom-top+5))img.caseChecks.push({y:(top+bottom)/2,digits:components.length});
    for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
     const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=4,canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
     await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:name==='caseColumn'?'13':'7'});const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
     for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:(w.bbox.x0-8)/scale+x0,x1:(w.bbox.x1-8)/scale+x0,y0:(w.bbox.y0-8)/scale+y0,y1:(w.bbox.y1-8)/scale+y0}});
    }
   }
+  digits.width=1;digits.height=1;
   if(epoch!==lookupEpoch)return;img.words=words;readImageRows(img);return;
  }
  for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
@@ -138,7 +149,7 @@ async function recognizeColumns(img,worker,epoch){
 function readImageRows(img){
  if(!img.caseColumn||!img.accessionColumn){$('ocr-status').textContent='Mark the case-number and accession columns on the screenshot, then read marked columns.';return;}
  if(Math.max(img.caseColumn[0],img.accessionColumn[0])<Math.min(img.caseColumn[1],img.accessionColumn[1])){$('ocr-status').textContent='The marked columns overlap. Mark two separate columns.';return;}
- lookupRows=lookupRows.filter(r=>r.imageId!==img.id);let found=0;
+ lookupRows=lookupRows.filter(r=>r.imageId!==img.id);img.rows=[];let found=0;
  const within=(w,col)=>{const x=(w.bbox.x0+w.bbox.x1)/2;return x>=col[0]&&x<=col[1];};
  for(const line of imageLines(img.words)){
   if(line.y<=(img.headerY||0))continue;
@@ -147,11 +158,33 @@ function readImageRows(img){
   const number=/^\d{1,7}$/.test(n)&&Number(n)>0?Number(n):null;
   if(!number&&/^(?:acc(?:ession)?(?:number|no)?|case|number|no)$/i.test(accession.replace(/[ #._-]/g,'')))continue;
   if(!number&&!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(accession))continue;
-  const candidate={case_number:number,accession,confirmed:false,source:img.label,imageId:img.id,rowY:line.y,confidence:Math.min(...[...ns,...as].map(w=>w.confidence??0))};
-  if(!number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
+  const check=(img.caseChecks||[]).find(c=>Math.abs(c.y-line.y)<=5);
+  const caseIssue=!number?'Case number not read':check&&n.length<check.digits?'Case number may be incomplete':'';
+  const candidate={case_number:number,accession,confirmed:false,source:img.label,imageId:img.id,rowY:line.y,caseIssue,confidence:Math.min(...[...ns,...as].map(w=>w.confidence??0))};
+  img.rows.push(candidate);
   found++;
  }
- lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. Check every case number and accession against the screenshot and confirm each match.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Adjust the marked columns or add rows manually.';
+ const repairs=repairCaseSequence(img.rows);
+ for(const candidate of img.rows)if(!candidate.case_number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
+ lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; highlighted rows still need confirmation. ':'')+'Check every case number and accession against the screenshot and confirm each match.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Adjust the marked columns or add rows manually.';
+}
+function regularImageRows(rows){
+ const gaps=rows.slice(1).map((r,i)=>r.rowY-rows[i].rowY),ordered=[...gaps].sort((a,b)=>a-b),median=ordered[Math.floor(ordered.length/2)];
+ return gaps.every(g=>g>0&&g>=median*.55&&g<=median*1.6);
+}
+function repairCaseSequence(rows){
+ if(rows.length<4||!regularImageRows(rows))return 0;
+ const occurrences=new Map();for(const r of rows)if(Number.isInteger(r.case_number))occurrences.set(r.case_number,(occurrences.get(r.case_number)||0)+1);
+ const anchors=rows.map((r,i)=>({r,i,start:r.case_number-i})).filter(a=>Number.isInteger(a.r.case_number)&&!a.r.caseIssue&&occurrences.get(a.r.case_number)===1);
+ if(anchors.length<Math.max(4,Math.ceil(rows.length*.6)))return 0;
+ const starts=new Set(anchors.map(a=>a.start));
+ // Any contradictory readable number, gap or reordered source list blocks
+ // repair. Do not choose a majority that could erase a legitimate source gap.
+ if(starts.size!==1||!anchors.some(a=>a.i<3)||!anchors.some(a=>a.i>=rows.length-3))return 0;
+ const start=anchors[0].start;if(start<1||start+rows.length-1>1000000)return 0;
+ let changed=0;
+ for(const [i,r] of rows.entries())if(!Number.isInteger(r.case_number)||r.caseIssue||r.case_number!==start+i){r.originalCase=r.case_number;r.case_number=start+i;r.caseIssue='';r.numberSource='sequence';r.confirmed=false;changed++;}
+ return changed;
 }
 async function addLookupImages(files){
  if(ocrBusy){$('ocr-status').textContent='Wait for the current screenshots to finish.';return;}
@@ -184,6 +217,19 @@ async function addLookupImages(files){
 }
 $('lookup-files').addEventListener('change',()=>addLookupImages([...$('lookup-files').files]));
 $('lookup-zoom').addEventListener('change',()=>{if(currentImage)showLookupImage(currentImage);});
+$('lookup-range-apply').addEventListener('click',()=>{
+ const status=$('lookup-range-status'),first=$('lookup-range-first').value.trim(),last=$('lookup-range-last').value.trim(),img=currentImage;
+ if(ocrBusy){status.textContent='Wait for OCR to finish first.';return;}
+ if(!img?.rows?.length){status.textContent='Read the screenshot rows first.';return;}
+ if(!/^\d+$/.test(first)||!/^\d+$/.test(last)||Number(first)<1||Number(last)>1000000||Number(last)<Number(first)){status.textContent='Enter the first and last case numbers visible in this screenshot.';return;}
+ const count=Number(last)-Number(first)+1,rows=[...img.rows].sort((a,b)=>a.rowY-b.rowY);
+ if(count!==rows.length){status.textContent='Range has '+count+' cases, but '+rows.length+' image rows were detected. Resolve missing or extra rows before assigning numbers.';return;}
+ if(!regularImageRows(rows)){status.textContent='The detected row spacing is irregular. Check for a missing, duplicate or wrapped row; edit numbers individually instead.';return;}
+ if(!$('lookup-range-checked').checked){status.textContent='Check that every case in this range is present and in order before applying it.';return;}
+ lookupRows=lookupRows.filter(r=>r.imageId!==img.id);
+ for(const [i,r] of rows.entries()){const next={...r,case_number:Number(first)+i,caseIssue:'',numberSource:'range',confirmed:false};if(!lookupRows.some(other=>other.case_number===next.case_number&&other.accession===next.accession))lookupRows.push(next);}
+ lookupTable();updateReview();status.textContent='Assigned '+first+'–'+last+' to '+rows.length+' image rows. Accessions are unchanged and still require confirmation.';
+});
 $('report-text').addEventListener('input',updateReview);
 $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length){event.preventDefault();addLookupImages(files);}});
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Click inside this lookup section and press Ctrl+V, or choose an image file.';}});

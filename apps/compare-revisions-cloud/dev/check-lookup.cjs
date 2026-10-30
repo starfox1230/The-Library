@@ -8,7 +8,7 @@ const out=path.join(__dirname,'qa-output');
   const page=await context.newPage(),errors=[],unexpected=[],posts=[];
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',route=>{const u=new URL(route.request().url());if(u.protocol==='file:')return route.continue();if(!['127.0.0.1','localhost'].includes(u.hostname)){unexpected.push(u.href);return route.abort();}if(route.request().method()==='POST')posts.push(route.request().postData());return route.continue();});
-  await page.goto('http://127.0.0.1:8766/qa');await page.locator('#lookup-panel summary').click();
+  await page.goto('http://127.0.0.1:8766/qa');await page.locator('#lookup-panel > summary').click();
   assert.equal(await page.locator('.phi-banner').count(),0);
   await page.locator('#lookup-files').setInputFiles(path.join(out,'lookup-synthetic.png'));
   await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===6,{},{timeout:90000});
@@ -60,6 +60,15 @@ const out=path.join(__dirname,'qa-output');
   assert.equal(await page.locator('#export-review').isDisabled(),true);assert.equal(await page.locator('#row-0 .copy-accession').getAttribute('title'),'Copy 0000069001 (source case 69)');
   await page.locator('#lookup-rows tr').last().getByRole('button',{name:'Remove'}).click();
   const originalInput=await page.locator('#report-text').inputValue();await page.locator('#input-disclosure > summary').click();await page.locator('#report-text').fill('Changed report batch');assert.equal(await page.locator('.copy-accession').count(),0);assert.equal(await page.locator('#export-review').isDisabled(),true);await page.locator('#report-text').fill(originalInput);
+  // Explicit range fallback must not run without acknowledgement or with a
+  // count mismatch. It changes case labels only, never accession strings.
+  await page.getByRole('button',{name:'Screenshot 1',exact:true}).click();await page.locator('#lookup-range-tools > summary').click();await page.locator('#lookup-range-first').fill('68');await page.locator('#lookup-range-last').fill('73');
+  const beforeRange=await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value));
+  await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('Check that every case'));assert.equal(await page.locator('#lookup-rows input[aria-label^="Case number"]').last().inputValue(),'78');
+  await page.locator('#lookup-range-checked').check();await page.locator('#lookup-range-last').fill('74');await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('7 cases, but 6'));
+  // Deliberate operator override for testing only; this synthetic source has
+  // nonconsecutive labels, so automatic repair correctly leaves them unchanged.
+  await page.locator('#lookup-range-last').fill('73');await page.locator('#lookup-range-apply').click();assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Case number"]').evaluateAll(xs=>xs.map(x=>x.value)),['68','69','70','71','72','73']);assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value)),beforeRange);assert.equal(await page.locator('#lookup-rows input[type=checkbox]:checked').count(),0);
   await page.locator('#lookup-clear').click();assert.equal(await page.locator('.copy-accession').count(),0);
   assert.equal(await page.locator('#lookup-rows tr').count(),0);
   // Headerless images require explicit visual column selection, not guessing.
