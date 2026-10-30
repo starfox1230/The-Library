@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-30 17:54 Central Daylight Time
+Updated: 2026-10-30 18:25 Central Daylight Time
 Cards: 17
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T13:16:51-05:00
+Last seen: 2026-10-30T17:57:38-05:00
+Card ID: 1765507990137
+Note ID: 1765507990136
+
+Question:
+00:12
+
+The standard treatment for osteoblastoma is [...].
+
+Answer:
+00:12
+
+The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-09-30T07:40:43-05:00
@@ -73,7 +91,7 @@ reverse halo sign/atoll sign in pulmonary mucormycosis
 
 1/2
 
-## Card 2
+## Card 3
 
 Deck: Other::Radiology (All)::.Visual::Everything Else
 Flagged: 2026-07-29T16:52:20-05:00
@@ -104,7 +122,7 @@ try {
 Answer:
 Toggle Masks
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
@@ -124,7 +142,7 @@ Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus syste
 
 Notion AIRP Lecture
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -142,7 +160,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 5
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -164,7 +182,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-08-11T23:16:10-05:00
@@ -182,7 +200,7 @@ Answer:
 
 For gestations earlier than 10 weeks, the appropriate thermal index in obstetric ultrasound is TIS.
 
-## Card 7
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-10-21T18:15:30-05:00
@@ -201,24 +219,6 @@ Answer:
 Expected Essure position extends across the uterotubal junction into the proximal or interstitial fallopian tubes.
 
 Essure devices appear as paired metallic microinserts at the uterine cornua.
-
-## Card 8
-
-Deck: .NEW::Audio
-Flagged: 2026-09-29T13:16:51-05:00
-Last seen: 2026-10-30T17:23:35-05:00
-Card ID: 1765507990137
-Note ID: 1765507990136
-
-Question:
-00:12
-
-The standard treatment for osteoblastoma is [...].
-
-Answer:
-00:12
-
-The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
 ## Card 9
 
