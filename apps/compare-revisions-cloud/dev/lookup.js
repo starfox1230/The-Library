@@ -1,4 +1,4 @@
-// Only explicitly confirmed, batch-local mappings reach the reader or AI input form.
+// Valid, batch-local mappings are accepted by Analyze/Download; no per-row approval.
 let lookupRows=JSON.parse($('lookup-data').textContent||'[]');
 const lookupSourceText=$('report-text')?.value;
 const lookupMatchesReview=()=>exportedReview||!cases.length||$('report-text').value===lookupSourceText;
@@ -8,7 +8,7 @@ function lookupConflicts(){
  for(const r of lookupRows){if(!validLookup(r))continue;if(seen.has(r.case_number)&&seen.get(r.case_number)!==r.accession)conflicts.add(r.case_number);seen.set(r.case_number,r.accession);}
  return conflicts;
 }
-function caseAccessions(c){if(!lookupMatchesReview())return [];const conflicts=lookupConflicts();return [...new Map(lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!conflicts.has(r.case_number)&&members(c).includes(r.case_number)).sort((a,b)=>a.case_number-b.case_number).map(r=>[r.accession,r])).values()];}
+function caseAccessions(c){if(!lookupMatchesReview())return [];const conflicts=lookupConflicts();return [...new Map(lookupRows.filter(r=>validLookup(r)&&!conflicts.has(r.case_number)&&members(c).includes(r.case_number)).sort((a,b)=>a.case_number-b.case_number).map(r=>[r.accession,r])).values()];}
 async function copyAccession(target,value){
  const original=target.textContent;
  try{
@@ -24,20 +24,20 @@ function appendAccessionTools(row,c){
  copy.title='Copy '+entries[0].accession+' (source case '+entries[0].case_number+')';tools.append(copy);
  if(entries.length===1)tools.append(el('span','muted',entries[0].accession));
  else{const detail=el('details'),summary=el('summary','muted',entries.length+' accessions');detail.append(summary);for(const entry of entries){const line=el('div','lookup-tools');const one=button('Copy','plain',()=>copyAccession(one,entry.accession));line.append(el('span','','Case '+entry.case_number+' · '+entry.accession),one);detail.append(line);}tools.append(detail);}
- const mapped=new Set(lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!lookupConflicts().has(r.case_number)).map(r=>r.case_number));
+ const mapped=new Set(lookupRows.filter(r=>validLookup(r)&&!lookupConflicts().has(r.case_number)).map(r=>r.case_number));
  const missing=members(c).filter(n=>!mapped.has(n));if(missing.length)tools.append(el('span','lookup-warning','Lookup missing: '+missing.join(', ')));
  row.append(tools);
 }
 function updateLookupCoverage(){
  {% if not exported_review | default(false) %}
- const matchesBatch=lookupMatchesReview(),conflicts=lookupConflicts(),source=new Set(matchesBatch?cases.flatMap(members):[]),valid=lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!conflicts.has(r.case_number));
- $('lookup-count').textContent=valid.length?'· '+new Set(valid.map(r=>r.case_number)).size+' confirmed':'';
+ const matchesBatch=lookupMatchesReview(),conflicts=lookupConflicts(),source=new Set(matchesBatch?cases.flatMap(members):[]),valid=lookupRows.filter(r=>validLookup(r)&&!conflicts.has(r.case_number));
+ $('lookup-count').textContent=valid.length?'· '+new Set(valid.map(r=>r.case_number)).size+' ready':'';
  const matched=new Set(valid.filter(r=>source.has(r.case_number)).map(r=>r.case_number));
  const missing=[...source].filter(n=>!matched.has(n));
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
- $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>r.caseIssue)?'Some case numbers may be incomplete. Correct them or use a verified consecutive range. ':'')+(lookupRows.some(r=>!r.confirmed)?'Check each row against the screenshot, then confirm.':'');
+ $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>r.caseIssue)?'Some case numbers may be incomplete. Correct them or use a verified consecutive range. ':'');
  $('lookup-value').value=JSON.stringify(valid.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));
- $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!r.confirmed||!validLookup(r))||conflicts.size>0;
+ $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!validLookup(r))||conflicts.size>0;
  {% endif %}
 }
 {% if not exported_review | default(false) %}
@@ -53,14 +53,13 @@ function lookupRowMessage(r,conflicts){return r.caseIssue|| (conflicts.has(r.cas
 function lookupTable(){
  const conflicts=lookupConflicts();$('lookup-rows').replaceChildren();
  lookupRows.forEach((r,index)=>{
-  const tr=el('tr'),n=el('input'),a=el('input'),check=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;a.setAttribute('aria-label','Accession row '+(index+1));check.type='checkbox';check.checked=!!r.confirmed;check.setAttribute('aria-label','Confirm row '+(index+1));check.disabled=!validLookup(r)||conflicts.has(r.case_number);
-  if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Check before confirming.';}
+  const tr=el('tr'),n=el('input'),a=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;a.setAttribute('aria-label','Accession row '+(index+1));
+  if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Compare with the source if needed.';}
   const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',lookupRowMessage(r,conflicts));status.title='A duplicate case warning means the lookup assigns different accessions to one case number. OCR read scores are engine confidence, not measured accuracy.';
   const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));n.addEventListener('focus',reveal);a.addEventListener('focus',reveal);}
-  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;check.checked=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],box=row.querySelector('[type=checkbox]');box.disabled=!validLookup(item)||conflicts.has(item.case_number);row.children[2].querySelector('span').textContent=lookupRowMessage(item,conflicts);}updateReview();};
+  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
   n.addEventListener('input',()=>changed(true));a.addEventListener('input',()=>changed(false));
-  check.addEventListener('change',()=>{r.confirmed=check.checked;updateReview();});
-  for(const child of [n,a,source,check,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
+  for(const child of [n,a,source,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
  });updateLookupCoverage();
 }
 function clearLookup(){
@@ -176,7 +175,7 @@ function readImageRows(img){
  }
  const repairs=repairCaseSequence(img.rows);
  for(const candidate of img.rows)if(!candidate.case_number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
- lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; highlighted rows still need confirmation. ':'')+'Check every case number and accession against the screenshot and confirm each match.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Adjust the marked columns or add rows manually.';
+ lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; suggested numbers are highlighted. ':'')+'Analyze reports accepts these mappings. You can correct any number against its source row.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Adjust the marked columns or add rows manually.';
 }
 function regularImageRows(rows){
  const gaps=rows.slice(1).map((r,i)=>r.rowY-rows[i].rowY),ordered=[...gaps].sort((a,b)=>a-b),median=ordered[Math.floor(ordered.length/2)];
@@ -190,7 +189,10 @@ function repairCaseSequence(rows){
  const starts=new Set(anchors.map(a=>a.start));
  // Any contradictory readable number, gap or reordered source list blocks
  // repair. Do not choose a majority that could erase a legitimate source gap.
- if(starts.size!==1||!anchors.some(a=>a.i<3)||!anchors.some(a=>a.i>=rows.length-3))return 0;
+ // An early genuine 2/3 may also be excluded when 22/31 were truncated to
+ // those digits. Allow an anchor in the first five rows, while retaining the
+ // global consensus, spacing and far-end requirements.
+ if(starts.size!==1||!anchors.some(a=>a.i<5)||!anchors.some(a=>a.i>=rows.length-3))return 0;
  const start=anchors[0].start;if(start<1||start+rows.length-1>1000000)return 0;
  let changed=0;
  for(const [i,r] of rows.entries())if(!Number.isInteger(r.case_number)||r.caseIssue||r.case_number!==start+i){r.originalCase=r.case_number;r.case_number=start+i;r.caseIssue='';r.numberSource='sequence';r.confirmed=false;changed++;}
@@ -223,7 +225,7 @@ async function addLookupImages(files){
    if(detectColumns(img))await recognizeColumns(img,worker,epoch);else $('ocr-status').textContent='Screenshot read. Mark the case-number and accession columns, then read marked columns.';
    showLookupImage(img);
   }
- }catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read this screenshot. Check the image size/format or retry. You can add and confirm rows manually.';}
+ }catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read this screenshot. Check the image size/format or retry. You can add rows manually.';}
  finally{if(epoch===lookupEpoch){ocrBusy=false;$('lookup-files').value='';updateLookupCoverage();}}
 }
 $('lookup-files').addEventListener('change',()=>addLookupImages([...$('lookup-files').files]));
@@ -239,7 +241,7 @@ $('lookup-range-apply').addEventListener('click',()=>{
  if(!$('lookup-range-checked').checked){status.textContent='Check that every case in this range is present and in order before applying it.';return;}
  lookupRows=lookupRows.filter(r=>r.imageId!==img.id);
  for(const [i,r] of rows.entries()){const next={...r,case_number:Number(first)+i,caseIssue:'',numberSource:'range',confirmed:false};if(!lookupRows.some(other=>other.case_number===next.case_number&&other.accession===next.accession))lookupRows.push(next);}
- lookupTable();updateReview();status.textContent='Assigned '+first+'–'+last+' to '+rows.length+' image rows. Accessions are unchanged and still require confirmation.';
+ lookupTable();updateReview();status.textContent='Assigned '+first+'–'+last+' to '+rows.length+' image rows. Accession strings are unchanged.';
 });
 $('report-text').addEventListener('input',updateReview);
 $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length){event.preventDefault();addLookupImages(files);}});
@@ -256,11 +258,11 @@ $('export-review').addEventListener('click',async()=>{
   if(ocrBusy||!lookupMatchesReview())throw Error('batch');
   const selected=$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
   const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,status:c.status,revisions:revisions(c)}));
-  const lookup=lookupRows.filter(r=>r.confirmed&&validLookup(r)).map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true}));
+  const lookup=lookupRows.filter(r=>validLookup(r)).map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true}));
   const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_mode:reviewMode,theme:themeChoice,combined_view:combinedView,show_report_wording:showReportWording})});
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html')||response.redirected)throw Error();
   const blob=await response.blob(),url=URL.createObjectURL(blob),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('export-status').textContent='Review downloaded. Contains PHI—keep it within approved systems.';
- }catch{$('export-status').textContent='Export could not be completed. Check that analysis and lookup confirmation are finished, or refresh your sign-in.';}
+ }catch{$('export-status').textContent='Export could not be completed. Check that analysis is finished and lookup issues are resolved, or refresh your sign-in.';}
  finally{updateLookupCoverage();}
 });
 lookupTable();

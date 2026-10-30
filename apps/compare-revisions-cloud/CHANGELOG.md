@@ -1,5 +1,20 @@
 # Changes and rationale — October 4, 2026
 
+## Automatic lookup acceptance and overlay experiment — October 30, 2026
+
+- Remove individual lookup confirmation checkboxes. Analyze reports and Download
+  accept valid mappings directly. Missing/invalid values, conflicting accessions
+  and unfinished OCR still need resolution; valid rows require no approval clicks.
+- Preserve the existing backend `confirmed: true` payload for compatibility; it
+  now records acceptance through the action, not individual manual verification.
+- Allow an early sequence anchor in the first five rows: duplicate OCR reads of
+  2/3 elsewhere can exclude the genuine early 2/3. Retain the global consistency,
+  anchor-count, regular-spacing and far-end requirements.
+- Test the three supplied screenshots (47, 49 and 81 rows) and a developer-only
+  pixel-overlay benchmark. The overlay comparison misses too many altered
+  strings to use as a production validator; findings and reproduction are in
+  `OCR_OVERLAY_EXPERIMENT.md`. No source identifiers/images are committed.
+
 ## Steady OCR progress — October 29, 2026
 
 - Stop displaying the OCR worker's per-call percentages, which restart for each

@@ -1,6 +1,6 @@
 # Shared review, two title perspectives, standalone HTML
 
-Updated October 29, 2026. Screenshot OCR, confirmed accession lookup, grouped
+Updated October 30, 2026. Screenshot OCR, action-accepted accession lookup, grouped
 copy actions and standalone HTML export are now implemented in source. The PHI
 banner appears only in the downloaded reader. Cloud Run deployment is pending.
 See README.md for the implemented workflow. Dual-title generation remains planned.
@@ -45,7 +45,7 @@ fields with CSS.
 | Include | Exclude from the entire file |
 | --- | --- |
 | Original source case numbers and group labels | Full pasted input or full report strings |
-| Explicitly confirmed accessions keyed to source numbers | MRN lookup fields, raw lookup screenshots or unconfirmed OCR guesses |
+| Valid accessions accepted by Analyze/Download, keyed to source numbers | MRN lookup fields, raw lookup screenshots or invalid or conflicting lookup rows |
 | Both titles, modality if retained/validated | Indication/history, comparison, technique |
 | Shared clinical revision summaries and categories | Attestations, signatures, administrative metadata |
 | Parsed Findings/Impression/Conclusion text on both sides | Original context in hidden JSON, scripts, comments or attributes |
@@ -80,12 +80,13 @@ labels, not permanent exam identifiers.
 
 The optional screenshot-import step is in the preparation web app. Process OCR
 locally in the browser, show extracted rows beside their source image regions,
-and require explicit confirmation before attaching identifiers. The comparison
+and accept valid mappings when Analyze/Download is used, without individual
+approval checkboxes. Missing or conflicting mappings still require correction. The comparison
 AI does not need the accession lookup; attach it to the review only.
 Match by batch and explicit source number, never by shifting remaining rows
 after an OCR omission. Case-label repair requires one consistent consecutive
 sequence supported by unique anchors and regular row spacing; repairs remain
-highlighted and unconfirmed. An optional verified first/last range requires
+highlighted for inspection, with no individual confirmation requirement. An optional verified first/last range requires
 operator acknowledgement and an exact row count. Accessions are never inferred
 or autocorrected. Preserve leading zeros and flag missing, conflicting or
 ambiguous rows. Preserve each source member's accession when grouping. The
@@ -100,7 +101,7 @@ pair per batch is the simplest initial workflow; capability remains unverified.
 Generate each recipient's file from only their assigned cases. A filter hiding
 other recipients' cases is not equivalent to omitting those cases from the file.
 
-Include the confirmed lookup in the review HTML, with copyable identifiers;
+Include the accepted lookup in the review HTML, with copyable identifiers;
 recipients do not need a separate mapping file. The exported reader does not
 need the original screenshots or OCR runtime. Adding these locator fields does
 not permit export of excluded report context such as technique or comparison.
@@ -158,7 +159,7 @@ app or any particular deployment for PHI.
    context remains while excluded sections are absent.
 8. Check OCR missing/conflicting rows, leading zeros, duplicate screenshots,
    overlapping source numbers in different batches, group identity conflicts
-   and recipient-specific exports. Unconfirmed identifiers must not appear.
+   and recipient-specific exports. Invalid or conflicting identifiers must not appear.
 9. Verify the PHI banner persists while scrolling, survives title/theme changes
    and printing, and does not claim that the file has access protection.
 

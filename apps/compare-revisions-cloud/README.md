@@ -23,7 +23,7 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   for each small OCR call.
 - Add screenshots together or in successive uploads after OCR finishes. A batch
   supports up to 20 screenshots. Overlap is allowed: the same source case number
-  and exact accession are kept once, preserving existing confirmation. The same
+  and exact accession are kept once, preserving the existing mapping. The same
   case number with different accessions remains a conflict for source checking;
   neither reading silently replaces the other. Keep the original PowerScribe
   numbers across screenshots. A verified consecutive range applies to the selected
@@ -32,16 +32,18 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   be repaired when at least 60% of rows provide unique, consistent consecutive
   anchors, including anchors near both ends, with regular row spacing. A
   contradictory readable number, source gap or missing-row spacing blocks
-  automatic repair. Suggested numbers are highlighted and remain unconfirmed.
+  automatic repair. Suggested numbers remain highlighted for easy inspection.
   **Use verified consecutive case numbers** is an optional fallback: enter the
   first/last source numbers and explicitly verify that every row is present in
   order. The count must match. Neither method changes accession strings.
-- Check every **case number and accession**, correct errors, then check Confirmed.
+- **Analyze reports accepts valid mappings automatically.** There are no per-row
+  confirmation checkboxes. Correct missing numbers or conflicting readings; these
+  remain blocked because a unique case/accession match cannot be established.
   View row or focus a field to see its highlighted source row in an enlarged
   image. Leading zeros stay intact. Duplicate-case conflicts block export; missing mappings
   are reported rather than shifted. No universal recognition-accuracy claim is
   made. Capture larger source text where possible.
-- Source numbers are exact, batch-local keys. Confirmed lookup rows survive the
+- Source numbers are exact, batch-local keys. Valid lookup rows survive the
   normal Analyze form submission without sending them to Azure. Editing report
   input suspends copying/export against the old results until the new batch is
   analyzed. Clear reports clears lookup rows, screenshots and OCR worker memory.
@@ -56,7 +58,7 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   the file. Do not use a display filter as a substitute for correct participant
   attribution. Resident/attending authorship is not inferred by OCR.
 - The download contains validated Findings/Impression/Conclusion, summaries,
-  clinical diff/evidence, source numbers and confirmed accessions. Context,
+  clinical diff/evidence, source numbers and accepted accessions. Context,
   attestations, raw errors/warnings, pasted-input controls, prompts and OCR
   screenshots/runtime are omitted. The reader supports ordinary review controls
   and copy fallback without a server connection. Ambiguous headings/footer
@@ -69,6 +71,15 @@ Implemented in replacement source; Cloud Run deployment is still pending.
 The existing Resident/Attending prompt modes are unchanged: one selected title
 per analysis. Generating both title perspectives in one response remains a
 separate planned change; this update does not add model calls or alter grading.
+
+## Overlay comparison experiment — October 30, 2026
+
+A developer-only render/compare benchmark tests correct accessions against
+substitutions, insertions, deletions and transpositions. It is **not enabled as a
+production validator**: its frozen threshold detected only 38–47% of altered
+strings on the three supplied screenshots. See `OCR_OVERLAY_EXPERIMENT.md` for
+methods, limits, aggregate results and reproduction instructions. Screenshot
+pixels and identifiers remain outside Git; Cloud Run dependencies are unchanged.
 
 ## Paste-ready 47-case test file
 
@@ -87,7 +98,7 @@ not a validated reference for model importance labels or clinical accuracy.
 To test overlapping OCR with the user's 1–47 sample image, capture rows 1–20,
 18–35 and 33–47 with their original case numbers and accession header. Add all
 three images to the same batch without clearing lookup. Identical overlaps
-should leave 47 mappings. Correct any OCR disagreements before confirming.
+should leave 47 mappings. Correct any OCR disagreements before analyzing.
 
 To update the existing service, replace `main.py` and redeploy using the steps
 below. `requirements.txt` is unchanged; the generated source includes all new

@@ -236,7 +236,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .lookup-table th,#cr-app .lookup-table td {padding:6px; text-align:left; border-bottom:1px solid var(--line);}
 #cr-app .lookup-table th {position:sticky; top:0; background:var(--panel);}
 #cr-app .lookup-table input {padding:6px; min-width:65px;}
-#cr-app .lookup-table input[type=checkbox] {width:18px; height:18px; min-width:18px;}
+#cr-app .lookup-table td:last-child .plain {white-space:nowrap;}
 #cr-app .lookup-table input.lookup-repaired {border-color:var(--accent); background:var(--soft);}
 #cr-app .lookup-table td:nth-child(3) .plain {display:block; font-size:11px; padding:2px 0;}
 #cr-app .lookup-warning {color:var(--major);}
@@ -282,18 +282,18 @@ html[data-theme="dark"] {color-scheme:dark;}
 </details>
 <details class="lookup-card" id="lookup-panel">
 <summary>Case lookup · screenshots to accessions <span class="muted" id="lookup-count"></span></summary>
-<p class="hint">Capture the same PowerScribe list and ordering used for your report batch. Include the case-number and accession columns. Screenshots stay in this browser; check every extracted match before confirming.</p>
+<p class="hint">Capture the same PowerScribe list and ordering used for your report batch. Include the case-number and accession columns. Screenshots stay in this browser. Analyze reports accepts valid mappings automatically; edit any OCR errors here.</p>
 <div class="lookup-tools"><label for="lookup-files">Add screenshots</label><input type="file" id="lookup-files" accept="image/png,image/jpeg,image/webp" multiple><button type="button" id="lookup-paste">Paste screenshot</button><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button></div>
 <p class="hint" id="ocr-status" role="status"></p>
 <div class="lookup-tools" id="lookup-images"></div>
 <div class="lookup-tools" id="lookup-column-tools" hidden><button type="button" id="mark-case">Mark case column</button><button type="button" id="mark-accession">Mark accession column</button><button type="button" id="read-columns">Read marked columns</button><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select><span class="hint">Drag across the width of each column if automatic detection needs correction.</span></div>
-<details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; check and confirm each accession separately.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
+<details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; accession strings stay unchanged.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
 <p class="hint" id="lookup-coverage" role="status"></p>
 <div class="lookup-workspace">
 <div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
-<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th>Confirmed</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
 </div>
-<p class="hint">A confirmed row attaches only to that exact source case number. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
+<p class="hint">Each valid mapping attaches only to its exact source case number. No individual approval is required. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
 </details>
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
@@ -854,7 +854,7 @@ $('clear-button').addEventListener('click',()=>{
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!r.confirmed||!validLookup(r))||lookupConflicts().size){event.preventDefault();$('lookup-panel').open=true;$('form-status').textContent='Wait for OCR to finish, then confirm or remove the remaining lookup rows before analyzing.';return;}$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('lookup-panel').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
 {% endif %}
 render();
 {% if not exported_review | default(false) %}

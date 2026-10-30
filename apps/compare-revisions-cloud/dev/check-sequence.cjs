@@ -12,6 +12,8 @@ rows[10].caseIssue='Case number not read';rows[16].caseIssue='Case number may be
 assert.equal(repair(rows),7);assert.deepEqual(rows.map(r=>r.case_number),make(47).map(r=>r.case_number));assert.deepEqual(rows.map(r=>r.accession),accessions);
 assert.equal(rows.filter(r=>r.numberSource==='sequence').length,7);assert(rows.every(r=>!r.confirmed));assert.equal(rows[16].originalCase,7);
 rows=make(12,68);rows[5].case_number=null;assert.equal(repair(rows),1);assert.equal(rows[5].case_number,73,'repair starts from actual source labels, not 1');
+rows=make(81);for(const [i,n] of [[0,null],[8,null],[10,null],[21,2],[30,3],[70,7]])rows[i].case_number=n;
+assert.equal(repair(rows),6);assert.deepEqual(rows.map(r=>r.case_number),make(81).map(r=>r.case_number),'duplicate OCR readings of 2/3 must not invalidate a coherent early anchor at 4');
 for(const mutate of [
  r=>{r[4].case_number=900;}, // Contradictory unique reading: never choose a majority.
  r=>{for(let i=5;i<r.length;i++)r[i].case_number++;}, // Genuine source-number gap.
@@ -21,5 +23,6 @@ for(const mutate of [
  r=>{r.forEach((v,i)=>{if(i>1)v.case_number=null;});}, // Insufficient anchors.
  r=>{r.forEach(v=>v.case_number=2);}, // Repeated labels cannot be anchors.
  r=>{r[7].case_number=1;}, // Unique readable contradiction with invalid start.
+ r=>{r.slice(0,5).forEach(v=>v.case_number=null);}, // No anchor near the beginning.
 ]){rows=make(12,68);mutate(rows);const before=copy(rows);assert.equal(repair(rows),0);assert.deepEqual(rows,before);}
 console.log('Sequence repair passed: seven truncated/unread labels, source offsets, unchanged accessions, confirmation retained, and refusal of contradictory/gapped/reordered/insufficient evidence.');

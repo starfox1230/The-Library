@@ -2,6 +2,30 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 30, 2026: automatic lookup acceptance and new screenshots
+
+- The current workflow supersedes the individual-confirmation requirements
+  recorded below. Valid mappings attach/copy/export without individual approval.
+  The actual-OCR browser suite checks absence of row checkboxes and native
+  Analyze submission of valid mappings, including after report input changes.
+  Missing/conflicting mappings still stop submission; strict backend validation,
+  stale-result suspension, offline export and partial-overlap checks remain.
+- 102 Python tests and the actual-OCR/export browser suite passed. Sequence
+  safeguards cover the newly observed missing early anchors with duplicated
+  OCR readings of 2/3 elsewhere; repair still refuses contradictory source
+  numbers, real numbering gaps, irregular spacing and insufficient anchors.
+- Three private images contain 47, 49 and 81 rows. Enlarged-source inspection
+  verified 177/177 exact accession reads. The two new images required five and
+  six case-label repairs; after the early-anchor fix all 177 source numbers and
+  pairs match these images. This is a small, related sample, not a general OCR
+  accuracy estimate. The 49-row image lacks headers and used manual column marking.
+- The primary overlay benchmark used a font/scale/threshold fitted on the
+  original image, frozen before inspecting the new images. It tested 28,632
+  altered strings, detecting 12,212 (42.7%) while accepting all 177 correct
+  strings. A second local-residual variant improved some mutation classes but
+  remained far below the requested 99% sensitivity/specificity. It is not used
+  as a production validator. See `OCR_OVERLAY_EXPERIMENT.md`.
+
 ## October 29, 2026: overlapping screenshots and 47-pair paste fixture
 
 - Added a fully synthetic paste file containing exactly 47 distinct report

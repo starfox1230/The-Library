@@ -17,9 +17,8 @@ const out=path.join(__dirname,'qa-output');
   await checkProgress('Reading columns',2);
   const values=await page.locator('#lookup-rows tr').evaluateAll(rows=>rows.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value)));
   assert.deepEqual(values,[68,69,70,71,74,78].map(n=>[String(n),'00000'+n+'001']));
-  assert.equal(await page.locator('.copy-accession').count(),0,'unconfirmed OCR must never attach');
-  assert.equal(await page.locator('#export-review').isDisabled(),true);
-  for(const checkbox of await page.locator('#lookup-rows input[type=checkbox]').all())await checkbox.check();
+  assert.equal(await page.locator('.copy-accession').count(),4,'valid OCR attaches without individual approval');assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
+  assert.equal(await page.locator('#export-review').isDisabled(),false);
   await page.locator('#lookup-files').setInputFiles(path.join(out,'lookup-synthetic.png'));
   await page.waitForFunction(()=>document.querySelectorAll('#lookup-images button').length===2&&!document.querySelector('#export-review').disabled,{},{timeout:90000});
   assert.equal(await page.locator('#lookup-rows tr').count(),6,'overlapping identical screenshot rows are deduplicated');
@@ -91,19 +90,24 @@ const out=path.join(__dirname,'qa-output');
   await page.waitForFunction(()=>document.querySelector('#ocr-status').textContent.startsWith('Read 6 rows.'),{},{timeout:90000});
   await checkProgress('Reading rows',6);await page.waitForTimeout(200);assert((await page.locator('#ocr-status').innerText()).startsWith('Read 6 rows.'),'late worker events must not overwrite completion');
   await page.locator('#lookup-clear').click();await page.waitForTimeout(200);assert.equal(await page.locator('#ocr-status').innerText(),'');
-  // Partly overlapping screenshots retain original numbers and confirmed rows.
+  // Partly overlapping screenshots retain original numbers without approvals.
   // 55–59 plus 57–61 must yield seven mappings, with 57–59 appearing once.
   const overlapImage=async first=>page.evaluate(first=>{const c=document.createElement('canvas');c.width=700;c.height=340;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='28px Consolas';x.fillText('Case',24,36);x.fillText('Accession',200,36);for(let i=0;i<5;i++){const n=first+i;x.fillText(String(n),24,90+i*48);x.fillText('00000'+n+'001',200,90+i*48);}return c.toDataURL('image/png').split(',')[1];},first);
   for(const [index,first] of [55,57].entries()){
    await page.locator('#lookup-files').setInputFiles({name:'synthetic-overlap-'+index+'.png',mimeType:'image/png',buffer:Buffer.from(await overlapImage(first),'base64')});
    await page.waitForFunction(count=>document.querySelector('#ocr-status').textContent.startsWith('Read 5 rows.')&&document.querySelectorAll('#lookup-rows tr').length===count,index===0?5:7,{timeout:90000});
-   if(index===0)for(const checkbox of await page.locator('#lookup-rows input[type=checkbox]').all())await checkbox.check();
+   assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
   }
   assert.deepEqual(await page.locator('#lookup-rows tr').evaluateAll(rs=>rs.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value))),[55,56,57,58,59,60,61].map(n=>[String(n),'00000'+n+'001']));
-  assert.equal(await page.locator('#lookup-rows input[type=checkbox]:checked').count(),5,'overlap preserves existing confirmations');assert.equal(await page.locator('#lookup-rows input[type=checkbox]:disabled').count(),0,'identical overlap is not a conflict');
+  assert(!(await page.locator('#lookup-coverage').innerText()).includes('Duplicate case numbers'),'identical overlap is not a conflict');
   await page.locator('#lookup-clear').click();
   await page.setViewportSize({width:375,height:900});await page.locator('#lookup-add').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'lookup must not overflow mobile viewport');
-  assert.deepEqual(errors,[]);console.log('Real OCR, steady row/column progress, confirmation, exact case joins, grouped accession copying, conflict handling, private-data exclusions and offline reader checks passed.');
+  const formPage=await context.newPage();await formPage.goto('http://127.0.0.1:8766/qa');await formPage.locator('#lookup-panel > summary').click();await formPage.locator('#lookup-add').click();await formPage.locator('#lookup-rows input').nth(0).fill('68');
+  await formPage.locator('#input-disclosure > summary').click();await formPage.locator('#report-text').fill('New report batch for intercepted synthetic form test.');await formPage.locator('#analyze-button').click();assert((await formPage.locator('#form-status').innerText()).includes('incomplete or conflicting'));
+  await formPage.locator('#lookup-rows input').nth(1).fill('0000068001');let submitted;
+  await formPage.route('**/qa',route=>{if(route.request().method()==='POST'){submitted=new URLSearchParams(route.request().postData());return route.fulfill({contentType:'text/html',body:'<title>Synthetic submission captured</title>'});}return route.continue();});
+  await formPage.locator('#analyze-button').click();await formPage.waitForFunction(()=>document.title==='Synthetic submission captured');assert.deepEqual(JSON.parse(submitted.get('lookup_json')),[{case_number:68,accession:'0000068001',confirmed:true}]);assert.equal(submitted.get('reports_text'),'New report batch for intercepted synthetic form test.');
+  assert.deepEqual(errors,[]);console.log('Real OCR, steady row/column progress, automatic lookup acceptance, exact case joins, grouped accession copying, conflict handling, private-data exclusions and offline reader checks passed.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});
