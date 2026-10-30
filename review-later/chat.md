@@ -44,10 +44,88 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-30 17:27 Central Daylight Time
-Cards: 11
+Updated: 2026-10-30 17:42 Central Daylight Time
+Cards: 15
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-04-10T07:05:39-05:00
+Last seen: 2026-10-30T17:39:18-05:00
+Card ID: 1762544589834
+Note ID: 1762544589833
+
+Question:
+00:12
+
+Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus system): [...].
+
+Answer:
+00:12
+
+Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus system): Stage 1 – mild, salt-and-pepper pattern; Stage 2 – moderate, patchy replacement with some preserved fatty marrow; Stage 3 – severe, diffuse replacement with marrow isointense or hypointense to the disc.
+
+Notion AIRP Lecture
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:51:25-05:00
+Last seen: 2026-10-30T17:39:04-05:00
+Card ID: 1776434006758
+Note ID: 1776434006758
+
+Question:
+00:12
+
+The [...] dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+
+Answer:
+00:08
+
+The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-09-15T06:32:26-05:00
+Last seen: 2026-10-30T17:37:29-05:00
+Card ID: 1786336094574
+Note ID: 1786336094573
+
+Question:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the [...], creating a tongue-shaped fragment.
+
+Answer:
+00:12
+
+A tongue-type calcaneal fracture extends from the posterior facet to the posterior calcaneal tuberosity, creating a tongue-shaped fragment.
+
+The Achilles tendon pulls the posterior fragment superiorly.
+
+Source: Maroufi et al., 2023.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-08-11T23:16:10-05:00
+Last seen: 2026-10-30T17:34:05-05:00
+Card ID: 1775850448291
+Note ID: 1775850448290
+
+Question:
+00:12
+
+For gestations earlier than 10 weeks, the appropriate thermal index in obstetric ultrasound is [...].
+
+Answer:
+00:08
+
+For gestations earlier than 10 weeks, the appropriate thermal index in obstetric ultrasound is TIS.
+
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-10-21T18:15:30-05:00
@@ -67,7 +145,7 @@ Expected Essure position extends across the uterotubal junction into the proxima
 
 Essure devices appear as paired metallic microinserts at the uterine cornua.
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -85,7 +163,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:34:53-05:00
@@ -107,7 +185,7 @@ Which nuclear medicine renal scan is primarily used for evaluation of tubular fu
 
 MAG3
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -125,7 +203,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:49:17-05:00
@@ -143,7 +221,7 @@ Answer:
 
 Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
 
-## Card 6
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:48:46-05:00
@@ -161,7 +239,7 @@ Answer:
 
 In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of Ebstein anomaly.
 
-## Card 7
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:42:43-05:00
@@ -183,7 +261,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:28:31-05:00
@@ -205,7 +283,7 @@ Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
 
 Full source page for context.
 
-## Card 9
+## Card 13
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
@@ -227,7 +305,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 10
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
@@ -245,7 +323,7 @@ Answer:
 
 In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
 
-## Card 11
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:54:41-05:00
