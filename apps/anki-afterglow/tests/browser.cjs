@@ -47,6 +47,9 @@ const assert=require('assert');
  await page.waitForTimeout(65);
  const loud=await light();
  assert(loud>quiet*1.15,`Music should visibly change the scene: ${quiet} -> ${loud}`);
+ await page.evaluate(()=>{window.radialCalls=0;const original=CanvasRenderingContext2D.prototype.createRadialGradient;CanvasRenderingContext2D.prototype.createRadialGradient=function(...args){radialCalls++;return original.apply(this,args);};});
+ await page.waitForTimeout(250);
+ assert.equal(await page.evaluate(()=>radialCalls),0,'Steady-state animation should composite cached glows, not rebuild radial gradients');
  assert(await page.locator('#afterglow-meter').isVisible());
  // Top/card/bottom views render slices of one shared world, rather than restarting
  // the horizon at the top of the answer bar.
@@ -64,7 +67,7 @@ const assert=require('assert');
  }
  let diff=0;for(let i=0;i<slices[0].length;i++)diff+=Math.abs(slices[0][i]-slices[1][i]);
  assert(diff/slices[0].length<1,'Shared scene must align across card and answer bar');
- console.log(`Audio visual response: ${quiet.toFixed(1)} -> ${loud.toFixed(1)} RGB sum; aligned toolbar slices verified`);
+ console.log(`Audio visual response: ${quiet.toFixed(1)} -> ${loud.toFixed(1)} RGB sum; aligned toolbar slices and cached gradients verified`);
  console.log('PASS: browser rendering, card replacement, adaptive halos, demo rhythm, still mode, disable, reduced motion; no JS errors');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

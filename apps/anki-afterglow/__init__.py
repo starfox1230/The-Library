@@ -154,14 +154,23 @@ class Afterglow:
             self.decorated = views
             for surface in views:
                 if inject:
-                    surface.eval(self.inject_script)
+                    if hasattr(surface, 'evalWithCallback'):
+                        surface.evalWithCallback('!!window.Afterglow', lambda ready, target=surface: self.ensure_renderer(target, ready))
+                    else:
+                        surface.eval(self.inject_script)
                 geometry = None
                 if hasattr(surface, 'mapTo'):
                     pos = surface.mapTo(host, QPoint(0, 0))
-                    geometry = dict(x=pos.x(), y=pos.y(), width=host.width(), height=host.height())
+                    geometry = dict(x=pos.x(), y=pos.y(), width=host.width(), height=host.height(),
+                                    view_width=surface.width(), view_height=surface.height(),
+                                    dpr=surface.devicePixelRatioF())
                 payload = dict(state, config=self.config, surface=geometry,
                                primary=surface is web, scene_time=time.monotonic()-self.scene_start)
                 surface.eval("window.Afterglow && window.Afterglow.update(" + json.dumps(payload) + ");")
+
+    def ensure_renderer(self, target, ready):
+        if not ready and self.active and self.alive(target):
+            target.eval(self.inject_script)
 
     def settings(self):
         dialog = QDialog(mw)

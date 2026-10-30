@@ -7,7 +7,8 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 import aqt
-from aqt.qt import QApplication, QMainWindow, QMenu, QTimer
+from aqt.qt import QApplication, QMainWindow, QMenu, QTimer, QWidget
+import json
 
 app = QApplication([])
 window = QMainWindow()
@@ -52,4 +53,19 @@ c.tick()
 assert not c.listening and c.audio._process is None
 c.close()
 c.timer.stop()
+class WebStub(QWidget):
+    def eval(self, script):
+        self.last_script=script
+    def evalWithCallback(self, script, callback):
+        callback(True)
+real_geometry=WebStub(window)
+real_geometry.setGeometry(20,30,800,600)
+window.reviewer.web=real_geometry
+c.active=True
+c.tick()
+payload=json.loads(real_geometry.last_script.split('window.Afterglow.update(',1)[1][:-2])
+assert payload['surface']['view_width']==800 and payload['surface']['view_height']==600
+assert payload['surface']['x']==20 and payload['surface']['y']==30
+assert payload['surface']['dpr']==real_geometry.devicePixelRatioF()
+c.close()
 print('PASS: Anki libraries, menu, settings dialog, audio start/stop, reviewer bridge')

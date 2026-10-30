@@ -2,6 +2,14 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.2.1 zoom and rendering follow-up
+
+- Identified a coordinate mismatch: Qt window dimensions were combined with browser CSS viewport dimensions, which change under Anki page zoom. The bridge now sends native pane dimensions and display density; background buffers and transforms use those native coordinates.
+- Actual Qt WebEngine (from the installed Anki environment), isolated off-record page: 75/100/125/150/200/250% page zoom produced pixel-identical background snapshots while card text grew by more than 3×. A differently zoomed answer-bar slice differed by only 0.0037 on average per pixel channel from the corresponding full scene. The test uses a hidden native window and no Anki profile or collection. The software-rendered test environment logged GLES fallback messages.
+- Browser regression checks confirm no radial gradients are created during steady-state animation after cache warm-up. Three 256×256 glow textures and a bounded 384×512-or-smaller vignette are composited instead. Toolbar button backdrop blur was removed; renderer health checks use a short boolean probe before sending any source.
+- Qt library smoke checks verify that native pane width, height, offset and DPR reach the renderer. Existing audio, still-mode, halo, toolbar-alignment and beat tests continue to pass.
+- These are rendering-work reductions, not a measured claim of improved live Anki FPS on the TV. Normal-review smoothness remains a hands-on check after reinstall.
+
 ## 0.2 follow-up
 
 - The user reported imperceptible music response. A live probe confirmed changing system audio on **TOSHIBA-TV (5- HD Audio Driver for Display Audio)**. The old mapping made very small visual changes. The new mapping uses strong attack response, adaptive gain for quiet sources, visible edge arcs and a live device/signal meter.

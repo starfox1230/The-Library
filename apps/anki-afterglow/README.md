@@ -1,4 +1,4 @@
-# Afterglow 0.2 — personal Windows preview
+# Afterglow 0.2.1 — personal Windows preview
 
 A separate Anki desktop add-on: full-review-window cyan/violet/rose light, flowing filaments, a distant neon floor, and individual letter halos. Plays alongside Speed Streak without importing it, patching its code, or accessing its timers. Works without Speed Streak too. Does not change saved card fields, scheduling, answer keys, or music playback.
 
@@ -29,6 +29,8 @@ An independent streaming detector finds attacks, estimates a 75–180 BPM tempo,
 Images stay opaque and unmodified. Card container backgrounds can be replaced; switch that setting off for notes whose backgrounds carry meaning. Computed text color selects a dark or pale per-letter halo without recoloring the letters. No text is wrapped or changed. Scrollbar tracks are transparent with a thin visible thumb. Custom card CSS using aggressive stacking contexts or opaque tables may need adjustment.
 
 Frame rate is bounded to 30/60 FPS; backing resolution is capped at 1440×1000 with at most 1.25× device density. Rendering stops in hidden documents; Motion 0 and OS reduced-motion preferences produce a still scene. Lights use soft pulses rather than abrupt full-screen flashes. Disabling the feature removes its styling immediately.
+
+Card zoom scales the card's content while the background stays anchored to native window coordinates. Main and toolbar views can use different zoom factors. Version 0.2.1 supplies each pane's native width/height and display density explicitly; CSS viewport pixels and browser DPR are no longer used to size the Anki scene. A Qt WebEngine regression test covers 75–250% zoom. Three cached glow textures and one bounded vignette replace repeated large radial-gradient calculations. Transparent buttons no longer apply a blur filter, and renderer health checks send a small existence probe instead of repeatedly sending the renderer's full source. These changes reduce rendering work; actual frame rate still depends on the machine, other add-ons and display size.
 
 The browser [preview](index.html) uses the same renderer and a clearly labeled simulated rhythm. It does not capture audio. Live HDMI system capture was confirmed with Sterling's TOSHIBA-TV output. Perceived synchronization and live card-template appearance still need hands-on confirmation after installing the update.
 

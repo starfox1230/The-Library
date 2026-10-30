@@ -12,6 +12,8 @@
   let width = 1, height = 1, dirty = true, configKey = '';
   let surface=null, received=0, sceneAt=0, lastHit=0, attack=0, previousBass=0;
   let hud, meter, caption, meterTick=0;
+  const glowCache=new Map();
+  let shadeCache=null,shadeKey='';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const palettes = {aurora:[185,267,324], acid:[155,80,38], ultraviolet:[260,218,313]};
   const clamp = (v, a, b) => Math.max(a,Math.min(b,v));
@@ -25,8 +27,11 @@
     }
   }
   function resize() {
-    const scale = Math.min(1.25, devicePixelRatio || 1, 1440 / (surface?.width||innerWidth), 1000 / (surface?.height||innerHeight));
-    const w = Math.max(1,Math.round(innerWidth * scale)), h = Math.max(1,Math.round(innerHeight * scale));
+    // Qt supplies device-independent WINDOW pixels. Browser CSS pixels and DPR
+    // change with card zoom; neither may resize or shift the background scene.
+    const vw=surface?.view_width||innerWidth,vh=surface?.view_height||innerHeight;
+    const scale = Math.min(1.25, surface?.dpr||devicePixelRatio||1, 1440 / (surface?.width||vw), 1000 / (surface?.height||vh));
+    const w = Math.max(1,Math.round(vw * scale)), h = Math.max(1,Math.round(vh * scale));
     if (canvas.width !== w || canvas.height !== h) {canvas.width=w;canvas.height=h;width=w;height=h;dirty=true;}
   }
   function protectText(refresh=false) {
@@ -49,12 +54,25 @@
     }
   });
   function glow(x,y,r,hue,alpha,squash=1) {
-    ctx.save();ctx.translate(x,y);ctx.scale(1,squash);
-    const gradient=ctx.createRadialGradient(0,0,0,0,0,r);
-    gradient.addColorStop(0,`hsla(${hue},95%,64%,${alpha})`);
-    gradient.addColorStop(.30,`hsla(${hue},95%,49%,${alpha*.55})`);
-    gradient.addColorStop(1,`hsla(${hue},95%,30%,0)`);
-    ctx.fillStyle=gradient;ctx.fillRect(-r,-r,r*2,r*2);ctx.restore();
+    let sprite=glowCache.get(hue);
+    if(!sprite){
+      sprite=document.createElement('canvas');sprite.width=sprite.height=256;
+      const c=sprite.getContext('2d'),g=c.createRadialGradient(128,128,0,128,128,128);
+      g.addColorStop(0,`hsla(${hue},95%,64%,1)`);g.addColorStop(.30,`hsla(${hue},95%,49%,.55)`);g.addColorStop(1,`hsla(${hue},95%,30%,0)`);
+      c.fillStyle=g;c.fillRect(0,0,256,256);glowCache.set(hue,sprite);
+    }
+    ctx.globalAlpha=clamp(alpha,0,1);
+    ctx.drawImage(sprite,x-r,y-r*squash,r*2,r*2*squash);ctx.globalAlpha=1;
+  }
+  function shade(w,h){
+    const key=w+':'+h;
+    if(shadeKey!==key){
+      shadeKey=key;shadeCache=document.createElement('canvas');shadeCache.width=384;shadeCache.height=Math.max(32,Math.min(512,Math.round(384*h/w)));
+      const c=shadeCache.getContext('2d');c.scale(shadeCache.width/w,shadeCache.height/h);
+      const g=c.createRadialGradient(w*.5,h*.42,0,w*.5,h*.45,Math.max(w,h)*.7);
+      g.addColorStop(0,'rgba(3,6,16,.55)');g.addColorStop(.46,'rgba(3,6,16,.20)');g.addColorStop(1,'rgba(0,2,10,.42)');c.fillStyle=g;c.fillRect(0,0,w,h);
+    }
+    ctx.drawImage(shadeCache,0,0,w,h);
   }
   function frame(ms) {
     raf=0;
@@ -82,7 +100,8 @@
     if (!moving && !dirty) return;
     dirty=false;
     const w=surface?.width||innerWidth,h=surface?.height||innerHeight,t=time,intensity=config.intensity/100;
-    ctx.setTransform(width/innerWidth,0,0,height/innerHeight,-(surface?.x||0)*width/innerWidth,-(surface?.y||0)*height/innerHeight);
+    const sx=width/(surface?.view_width||innerWidth),sy=height/(surface?.view_height||innerHeight);
+    ctx.setTransform(sx,0,0,sy,-(surface?.x||0)*sx,-(surface?.y||0)*sy);
     const hues=palettes[config.palette]||palettes.aurora;
     ctx.globalCompositeOperation='source-over';ctx.fillStyle='#050812';ctx.fillRect(0,0,w,h);
     ctx.globalCompositeOperation='screen';
@@ -136,9 +155,7 @@
       ctx.fillRect(x,y,i%8===0?1.5: .8,i%8===0?1.5:.8);
     }
     ctx.globalCompositeOperation='source-over';
-    const shade=ctx.createRadialGradient(w*.5,h*.42,0,w*.5,h*.45,Math.max(w,h)*.7);
-    shade.addColorStop(0,'rgba(3,6,16,.55)');shade.addColorStop(.46,'rgba(3,6,16,.20)');shade.addColorStop(1,'rgba(0,2,10,.42)');
-    ctx.fillStyle=shade;ctx.fillRect(0,0,w,h);
+    shade(w,h);
     if(moving)raf=requestAnimationFrame(frame);
   }
   function wake() { if(config.enabled&&!document.hidden&&!raf)raf=requestAnimationFrame(frame); }
@@ -152,7 +169,7 @@
     if(oldSurface!==JSON.stringify(surface)){resize();dirty=true;}
     const key=JSON.stringify(data.config);
     if(key!==configKey) {
-      configKey=key;config={...config,...data.config};mount();resize();dirty=true;
+      configKey=key;const oldPalette=config.palette;config={...config,...data.config};if(oldPalette!==config.palette)glowCache.clear();mount();resize();dirty=true;
       root.classList.toggle('ag-on',!!config.enabled);
       root.classList.toggle('ag-clear',!!config.clear_backgrounds);
       root.classList.toggle('ag-immersive',!!config.immersive);
