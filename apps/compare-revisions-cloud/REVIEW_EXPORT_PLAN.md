@@ -78,7 +78,7 @@ the same extraction session, keeping sort order and filters stable. Do not ask
 recipients to reproduce the original list later. Case numbers are batch-local
 labels, not permanent exam identifiers.
 
-The optional screenshot-import step is in the preparation web app. Process OCR
+The optional screenshot-paste step is in the preparation web app. Process OCR
 locally in the browser, show extracted rows beside their source image regions,
 and accept valid mappings when Analyze/Download is used, without individual
 approval checkboxes. Missing or conflicting mappings still require correction. The comparison
@@ -87,8 +87,9 @@ Match by batch and explicit source number, never by shifting remaining rows
 after an OCR omission. Case-label repair requires one consistent consecutive
 sequence supported by unique anchors and regular row spacing; repairs remain
 highlighted for inspection, with no individual confirmation requirement. An optional verified first/last range requires
-operator acknowledgement and an exact row count. Accessions are never inferred
-or autocorrected. Preserve leading zeros and flag missing, conflicting or
+operator acknowledgement and an exact row count. Numeric digits are never
+trimmed, padded or inferred. Two-letter/numeric context corrects OT prefix
+confusions and O in a numeric position; unusual digit lengths are flagged. Preserve leading zeros and flag missing, conflicting or
 ambiguous rows. Preserve each source member's accession when grouping. The
 accession-only lookup does not prove same-patient identity; an MRN-based identity
 check is not implemented. An operator must resolve an incorrectly grouped pair.

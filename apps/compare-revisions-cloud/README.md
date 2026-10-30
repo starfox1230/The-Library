@@ -1,33 +1,34 @@
 # Compare Revisions: cloud review redesign
 
-## Screenshot lookup and HTML export — October 29, 2026
+## Screenshot lookup and HTML export — October 30, 2026
 
 Implemented in replacement source; Cloud Run deployment is still pending.
 
-- Expand **Case lookup · screenshots to accessions**. Add PNG/JPEG/WebP files,
-  use Paste screenshot, or press Ctrl+V inside that section. Capture the exact
-  list/order used for the report extraction, including source numbers and the
-  accession column. The final lookup uses accessions, not MRNs.
+- The **Paste screenshot here** area is directly below the report-text box.
+  Click it and press Ctrl+V, or use Paste screenshot. No file picker or manual
+  column-marking controls are shown. Capture the exact list/order used for report
+  extraction, including source numbers and accessions. The final lookup uses
+  accessions, not MRNs.
 - OCR runs in a browser worker. The app supplies pinned, SHA-256-checked public
   Tesseract.js 6.0.1/core 6.0.0/English model assets from its own `/ocr-assets/`
   routes. Cloud Run downloads those public runtime files on first use and caches
   them in process memory; screenshots are never uploaded. No OCR API key or
   Python dependency is added. Restricted outbound asset access can prevent OCR;
   manual row entry remains available.
-- Headers are detected when possible. For a blank row-number header, a clearly
-  separated numeric column left of Accession can be detected. Otherwise mark
-  the two column widths on the image and select Read marked columns. Narrow
-  images receive a per-row, per-column pass. Reading is not verification.
-  Progress identifies the screenshot and phase, then counts completed rows or
-  columns. Its percentage advances within that pass, rather than restarting
-  for each small OCR call.
-- Add screenshots together or in successive uploads after OCR finishes. A batch
-  supports up to 20 screenshots. Overlap is allowed: the same source case number
-  and exact accession are kept once, preserving the existing mapping. The same
-  case number with different accessions remains a conflict for source checking;
-  neither reading silently replaces the other. Keep the original PowerScribe
-  numbers across screenshots. A verified consecutive range applies to the selected
-  screenshot's actual first/last numbers, not a new numbering sequence.
+- Case/accession columns are inferred from repeated row positions and two-letter
+  accession prefixes; an Accession header is optional. Multiple competing columns
+  or insufficient evidence request a clearer crop rather than guessing. Extra
+  numeric columns are excluded from the case/accession crops. Native crop edges
+  are snapped to pixels and enlargement adapts to text height. Narrow images
+  receive a per-row, per-column pass. Progress counts completed work in each pass.
+- Add screenshots together on the clipboard or paste another after OCR finishes,
+  up to 20 per batch. Identical case/accession overlaps are kept once. Different
+  accessions for one case remain conflicts. Keep original PowerScribe numbers;
+  the optional verified range applies to one screenshot's actual source numbers.
+- OCR context corrections normalize 0T/07/O7 to OT, and letter O to zero only in
+  the numeric part. Existing numeric digits are never trimmed, padded or guessed.
+  XR, RF, MR, CT, OT and US work; other two-letter prefixes are preserved. Strong
+  same-image digit-length consensus flags unusual lengths for correction.
 - Case numbers are still read by OCR. An incomplete or duplicate reading can
   be repaired when at least 60% of rows provide unique, consistent consecutive
   anchors, including anchors near both ends, with regular row spacing. A
@@ -48,20 +49,22 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   input suspends copying/export against the old results until the new batch is
   analyzed. Clear reports clears lookup rows, screenshots and OCR worker memory.
   No lookup or screenshots are written to browser localStorage/IndexedDB.
-- Each mapped review card has **Copy accession**, followed by a short copied
-  confirmation. Groups retain every mapped accession; the primary button copies
-  the accession belonging to the earliest mapped source member. Expand the
-  accession list to copy another. This is a locator, not proof of patient or
-  linked-study identity. Mapping gaps are shown explicitly.
+- Each mapped card has a low-profile, 44-pixel **copy icon left of the caret**,
+  with a Copy accession tooltip and brief feedback. It copies the earliest mapped
+  group member without expanding the card. The full accession list and individual
+  copy buttons sit below the Summary/Text changes content when expanded. Groups
+  retain every mapped accession. Missing mappings remain explicit.
 - **Download review HTML** creates a new offline reader. Optionally export only
   currently shown entries; other cases and their lookup rows are omitted from
-  the file. Do not use a display filter as a substitute for correct participant
+  the file. Login or normal-page HTML is rejected before creating a download.
+  Do not use a display filter as a substitute for correct participant
   attribution. Resident/attending authorship is not inferred by OCR.
 - The download contains validated Findings/Impression/Conclusion, summaries,
   clinical diff/evidence, source numbers and accepted accessions. Context,
   attestations, raw errors/warnings, pasted-input controls, prompts and OCR
   screenshots/runtime are omitted. The reader supports ordinary review controls
-  and copy fallback without a server connection. Ambiguous headings/footer
+  and copy fallback without a server connection. Reports are embedded in the file,
+  not loaded from localStorage; tests also cover unavailable storage. Ambiguous headings/footer
   variants remain a limitation; inspect a representative export before use.
 - A persistent **Contains PHI** notice appears only in the exported reader,
   including print output. Use approved storage/delivery. A download does not

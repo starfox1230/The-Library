@@ -2,6 +2,38 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 30, 2026: compact copying and headerless screenshot paste
+
+- **103 Python tests passed.** Export checks now require the standalone-reader
+  marker and ensure the normal application head does not contain it.
+- Actual pinned Tesseract browser checks passed for image ClipboardEvents,
+  headerless case/accession inference with an intervening numeric column, wide
+  and narrow passes, steady progress, overlaps, conflicts, stale lookup handling,
+  automatic action acceptance and native Analyze form submission. A normal-page
+  export response is rejected without downloading it. A newly opened exported
+  reader works with storage disabled and all networking blocked.
+- Separate controls checks passed for a 44-by-44 header icon left of the caret,
+  keyboard copying, no nested buttons, unchanged card height/expansion, retained
+  SVG, transient feedback, grouped footer accessions, dark/light themes and a
+  375-pixel viewport. Existing UI, paste, mode, highlight and review-control
+  browser suites also passed.
+- Pure detection checks cover XR/RF/MR/CT/OT/US/NM, contextual 0T/07/O7 and O
+  corrections, leading zeros, extra numeric-column exclusion, ambiguous-column
+  refusal and nondestructive digit-length warnings. An all-numeric headerless
+  column cannot establish its own accession identity.
+- The latest user's pasted 46-row OCR text was checked separately: 17 contextual
+  string corrections and three digit-length warnings (source cases 16, 18 and
+  39). Existing numeric tails are unchanged. The associated private image was
+  not available as an authenticated download, so these are text-rule checks,
+  not a new image-level accuracy result. No identifiers/screenshots are in Git.
+- **116 exporter checks passed** for v0.17, including a native-control check
+  that live updates affect only the external progress window while launcher
+  status stays steady. This release does not change capture timing. The ZIP
+  was locally hash-verified and its synchronized Drive file was read back.
+- These checks do not establish arbitrary screenshot accuracy, correct report
+  authorship or end-to-end PowerScribe compatibility. The hospital dry run and
+  live Cloud Run deployment remain outstanding.
+
 ## October 30, 2026: automatic lookup acceptance and new screenshots
 
 - The current workflow supersedes the individual-confirmation requirements

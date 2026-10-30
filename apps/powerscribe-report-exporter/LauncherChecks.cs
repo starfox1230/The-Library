@@ -19,6 +19,27 @@ namespace ReportExporter
             for (Control parent = control.Parent; parent != null; parent = parent.Parent)
                 Require(parent.RectangleToScreen(parent.ClientRectangle).Contains(bounds), control.Name + " is clipped by " + parent.GetType().Name);
         }
+        public static void VerifyProgressRouting()
+        {
+            using (var form = new ExportForm(true))
+            using (var overlay = new ProgressOverlay("Numpad *"))
+            {
+                var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                typeof(ExportForm).GetField("overlay", flags).SetValue(form, overlay);
+                var status = (Label)typeof(ExportForm).GetField("status", flags).GetValue(form);
+                string initial = status.Text; Size size = form.ClientSize;
+                form.ApplyProgress("Synthetic step one", 1, 5);
+                form.ApplyProgress("Synthetic step two", 2, 5);
+                var phase = (Label)typeof(ProgressOverlay).GetField("phase", flags).GetValue(overlay);
+                var count = (Label)typeof(ProgressOverlay).GetField("count", flags).GetValue(overlay);
+                Require(status.Text == initial && form.ClientSize == size, "Live progress changed/resized the launcher");
+                Require(phase.Text == "Synthetic step two" && count.Text.StartsWith("2 / 5"), "External progress lost phase or count");
+                typeof(ExportForm).GetField("overlay", flags).SetValue(form, null);
+                form.ApplyProgress("After overlay closed", 3, 5);
+                Require(status.Text == initial, "Late live update changed the launcher");
+            }
+        }
+
         public static void VerifyTypedRange()
         {
             using (var form = new ExportForm(true))

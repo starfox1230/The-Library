@@ -1,4 +1,8 @@
-# PowerScribe Report Exporter v0.16
+# PowerScribe Report Exporter v0.17
+
+## v0.17: one live progress window
+
+Live phase/count updates now appear only in the external progress window. The compact launcher keeps a steady message during capture, avoiding repeated resizing and duplicate updates. Stop remains available in the progress window and through the existing shortcut. Final completion, failure, recovery and copied-text results still appear in the launcher. Capture timing and report extraction are unchanged.
 
 ## v0.16: compact typing-first launcher
 

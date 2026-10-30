@@ -2,6 +2,7 @@
 <html lang="en" data-theme="{{ theme | default('system') }}">
 <head>
 <meta charset="utf-8">
+{% if exported_review | default(false) %}<meta name="compare-revisions-export" content="offline-v1">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Compare Revisions</title>
@@ -221,13 +222,16 @@ html[data-theme="dark"] {color-scheme:dark;}
 </style>
 <style>
 #cr-app .lookup-card {margin:0 0 24px; padding:16px 20px; border:1px solid var(--line); border-radius:10px; background:var(--panel);}
-#cr-app .lookup-card summary {font-weight:600;}
+#cr-app .lookup-heading {font-weight:600; font-size:13px;}
+#cr-app .lookup-card {margin:14px 0;}
+#cr-app .lookup-paste-zone {display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px; margin-top:10px; border:1px dashed var(--line); border-radius:10px; background:var(--soft);}
+#cr-app .lookup-paste-zone:focus-visible {outline:2px solid var(--accent); outline-offset:2px;}
 #cr-app .lookup-tools {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0;}
 #cr-app .lookup-tools input {width:auto; max-width:100%;}
 #cr-app .lookup-range-confirm {display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;}
 #cr-app .lookup-range-confirm input {width:18px; height:18px; padding:0; flex:none;}
 #cr-app .lookup-image {max-height:420px; overflow:auto; margin:10px 0; border:1px solid var(--line);}
-#cr-app .lookup-image canvas {display:block; max-width:none; height:auto; touch-action:none; cursor:crosshair;}
+#cr-app .lookup-image canvas {display:block; max-width:none; height:auto; touch-action:none; cursor:default;}
 #cr-app .lookup-workspace {display:grid; grid-template-columns:minmax(180px,1fr) minmax(340px,1.6fr); gap:14px; align-items:start;}
 #cr-app .lookup-workspace .lookup-image {margin:0;}
 @media(max-width:760px) { #cr-app .lookup-workspace {grid-template-columns:minmax(0,1fr);} }
@@ -241,8 +245,17 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .lookup-table td:nth-child(3) .plain {display:block; font-size:11px; padding:2px 0;}
 #cr-app .lookup-warning {color:var(--major);}
 #cr-app .case {position:relative;}
-#cr-app .accession-tools {padding:0 24px 12px 56px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;}
-#cr-app .accession-tools button {padding:5px 10px; font-size:12px;}
+#cr-app .case.has-accession .case-head {padding-left:64px;}
+#cr-app .case-copy-accession {position:absolute; left:8px; top:10px; width:44px; height:44px; padding:0; display:grid; place-items:center; color:var(--muted); background:transparent; border:0; border-radius:8px; z-index:1;}
+#cr-app .case-copy-accession:hover {color:var(--ink); background:var(--soft);}
+#cr-app .case-copy-accession svg {width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7;}
+#cr-app .accession-copy-feedback {display:none; position:absolute; left:46px; top:8px; width:max-content; max-width:220px; padding:5px 9px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); font-size:12px; box-shadow:0 3px 12px #0002; pointer-events:none;}
+#cr-app .show-copy-feedback .accession-copy-feedback {display:block;}
+#cr-app .accession-tools {margin-top:20px; padding-top:16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; font-size:12px;}
+#cr-app .accession-line {display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+#cr-app .accession-value {font-variant-numeric:tabular-nums; overflow-wrap:anywhere; color:var(--muted);}
+#cr-app .accession-tools button {padding:6px 10px; font-size:12px;}
+@media(max-width:740px) { #cr-app .case.has-accession .case-head {padding-left:58px;} #cr-app .case-copy-accession {left:4px;}}
 #cr-app .copy-accession {color:var(--accent);}
 #cr-app .phi-banner {position:sticky; top:0; z-index:20; padding:10px 24px; background:var(--minor-bg); color:var(--ink); border-bottom:1px solid var(--minor); font-size:12px;}
 #cr-app .export-tools {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
@@ -270,6 +283,21 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
 <span class="hint" id="paste-status" role="status"></span>
+<section class="lookup-card" id="lookup-panel" aria-label="Screenshot lookup">
+<div class="lookup-heading">Accession screenshots <span class="muted" id="lookup-count"></span></div>
+<div id="lookup-paste-zone" class="lookup-paste-zone" tabindex="0" role="group" aria-label="Paste screenshot here"><span>Paste screenshot here</span><span class="hint">Click here and press Ctrl+V. Include case numbers and accessions; a column header is optional.</span><button type="button" id="lookup-paste">Paste screenshot</button></div>
+<div class="lookup-tools"><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button><span class="hint">Screenshots stay in this browser.</span></div>
+<p class="hint" id="ocr-status" role="status"></p>
+<div class="lookup-tools" id="lookup-images"></div>
+<div class="lookup-tools" id="lookup-column-tools" hidden><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select></div>
+<details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; accession strings stay unchanged.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
+<p class="hint" id="lookup-coverage" role="status"></p>
+<div class="lookup-workspace">
+<div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
+<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+</div>
+<p class="hint">Each valid mapping attaches only to its exact source case number. No individual approval is required. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
+</section>
 <details class="customize"><summary>Customize instructions</summary>
 <label for="custom-prompt">Analysis instructions</label>
 <p class="hint" id="prompt-help">These are the full model instructions. Your edits replace them on the next analysis or retry. Analyses already running keep the instructions they started with.</p>
@@ -280,21 +308,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="form-actions"><button type="submit" class="primary" id="analyze-button">Analyze reports</button><button type="button" id="clear-button">Clear reports</button><span class="hint" id="form-status" role="status"></span></div>
 </form>
 </details>
-<details class="lookup-card" id="lookup-panel">
-<summary>Case lookup · screenshots to accessions <span class="muted" id="lookup-count"></span></summary>
-<p class="hint">Capture the same PowerScribe list and ordering used for your report batch. Include the case-number and accession columns. Screenshots stay in this browser. Analyze reports accepts valid mappings automatically; edit any OCR errors here.</p>
-<div class="lookup-tools"><label for="lookup-files">Add screenshots</label><input type="file" id="lookup-files" accept="image/png,image/jpeg,image/webp" multiple><button type="button" id="lookup-paste">Paste screenshot</button><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button></div>
-<p class="hint" id="ocr-status" role="status"></p>
-<div class="lookup-tools" id="lookup-images"></div>
-<div class="lookup-tools" id="lookup-column-tools" hidden><button type="button" id="mark-case">Mark case column</button><button type="button" id="mark-accession">Mark accession column</button><button type="button" id="read-columns">Read marked columns</button><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select><span class="hint">Drag across the width of each column if automatic detection needs correction.</span></div>
-<details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; accession strings stay unchanged.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
-<p class="hint" id="lookup-coverage" role="status"></p>
-<div class="lookup-workspace">
-<div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
-<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
-</div>
-<p class="hint">Each valid mapping attaches only to its exact source case number. No individual approval is required. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
-</details>
+
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
@@ -659,7 +673,7 @@ function bodyPanel(c,key) {
    if(name==='Text changes'){const dock=el('div','report-dock');dock.append(heading,panel);pane.append(dock);}else pane.append(heading,panel);content.append(pane);
   }
  }else content=active==='summary'?summaryPanel(c,key):active==='diff'?diffPanel(c,key):reportPanel(c);
- content.id='view-'+key;content.setAttribute('role','tabpanel');content.setAttribute('aria-labelledby','tab-'+key+'-'+active);body.append(content);return body;
+ content.id='view-'+key;content.setAttribute('role','tabpanel');content.setAttribute('aria-labelledby','tab-'+key+'-'+active);body.append(content);appendAccessionTools(body,c);return body;
 }
 function caseRow(c,key) {
  const isOpen=opened.has(key), row=el('section','case'+(isOpen?' is-open':'')), head=button('','case-head',()=>toggleCase(key));
@@ -683,7 +697,7 @@ function caseRow(c,key) {
  for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
  if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
  if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);row.append(head);
- appendAccessionTools(row,c);
+ const copy=accessionIcon(c);if(copy){row.classList.add('has-accession');row.prepend(copy);}
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
 }
@@ -854,7 +868,7 @@ $('clear-button').addEventListener('click',()=>{
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('lookup-panel').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('input-disclosure').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
 {% endif %}
 render();
 {% if not exported_review | default(false) %}

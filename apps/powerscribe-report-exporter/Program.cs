@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.16.0.0")]
-[assembly: AssemblyFileVersion("0.16.0.0")]
+[assembly: AssemblyVersion("0.17.0.0")]
+[assembly: AssemblyFileVersion("0.17.0.0")]
 
 namespace ReportExporter
 {
@@ -128,7 +128,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.16";
+            Text = "PowerScribe Report Exporter v0.17";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -470,8 +470,8 @@ namespace ReportExporter
         {
             if (cancellation != null)
             {
-                cancellation.Cancel(); status.Text = "Stopping; completed cases are already saved.";
-                if (overlay != null) overlay.SetPhase(status.Text, -1, 0);
+                cancellation.Cancel();
+                if (overlay != null) overlay.SetPhase("Stopping; completed cases are already saved.", -1, 0);
             }
         }
 
@@ -483,12 +483,16 @@ namespace ReportExporter
             catch (InvalidOperationException) { }
         }
 
+        internal void ApplyProgress(string text, int completed, int total)
+        {
+            // Keep the compact launcher steady. Only the external progress
+            // window receives live step/count updates; final results stay here.
+            if (overlay != null && !overlay.IsDisposed) overlay.SetPhase(text, completed, total);
+        }
+
         private void UpdateStatus(string text, int completed, int total)
         {
-            Post(() => {
-                status.Text = completed + " / " + total + " cases saved.\r\n" + text;
-                if (overlay != null && !overlay.IsDisposed) overlay.SetPhase(text, completed, total);
-            });
+            Post(() => ApplyProgress(text, completed, total));
         }
 
         private void ShowError(string title, string message)
@@ -527,7 +531,7 @@ namespace ReportExporter
             captureRole = null; running = true; cancellation = new CancellationTokenSource();
             start.Enabled = false; stop.Enabled = true;
             foreach (Control control in body.Controls) if (control != status && control != start.Parent) control.Enabled = false;
-            status.Text = "Exporting. " + stopShortcut + " stops the run.";
+            status.Text = "Exporting. Follow the progress window.\n" + stopShortcut + " stops the run.";
             overlay = new ProgressOverlay(stopShortcut);
             overlay.StopRequested += (sender, args) => CancelExport();
             var screen = Screen.FromControl(this).WorkingArea;
@@ -551,7 +555,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.16...");
+                    reportProgress("Initializing native exporter v0.17...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);

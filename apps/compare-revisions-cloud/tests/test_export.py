@@ -41,12 +41,18 @@ class ExportTests(unittest.TestCase):
                 'id="custom-prompt"', 'id="lookup-panel"', 'csrf_token', '/analyze-batch',
                 'createWorker', '/ocr-assets/', 'review-prompts']:
             self.assertNotIn(marker, html)
+        self.assertIn('<meta name="compare-revisions-export" content="offline-v1">', html)
         self.assertIn('Contains PHI.', html)
         self.assertIn('000068001', html)
         self.assertIn('Clear lungs.', html)
         self.assertIn('Clinical reports', html)
         self.assertNotIn('Synthetic preview · illustrative results',html)
         self.assertIn('clinical-review.html', result.headers['Content-Disposition'])
+
+    def test_normal_page_has_no_offline_reader_marker(self):
+        with self.m.app.test_client() as client:
+            html=client.get('/').get_data(as_text=True)
+        self.assertNotIn('<meta name="compare-revisions-export"', html)
 
     def test_export_rebuilds_clinical_offsets_and_rejects_context_quotes(self):
         m = self.m

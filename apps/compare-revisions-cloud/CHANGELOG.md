@@ -1,5 +1,29 @@
 # Changes and rationale — October 4, 2026
 
+## Compact accession controls and simpler screenshot paste — October 30, 2026
+
+- Put an icon-only Copy accession action immediately left of the case caret,
+  with a 44-pixel target, tooltip, keyboard support and brief feedback that does
+  not expand or resize the card. Put the complete grouped accession list and
+  individual copy actions below the expanded review panes.
+- Move screenshot paste directly below Report input. Remove file selection and
+  manual column-marking controls. Infer headerless case/accession columns from
+  repeated positions and prefixed identifiers, excluding additional numeric
+  columns; request a clearer crop when evidence is insufficient or ambiguous.
+- Correct OCR-only OT prefix confusions and O in numeric positions. Preserve
+  existing digits and leading zeros. Flag unusual digit lengths without silently
+  shortening or completing identifiers. Adapt enlargement to text height and
+  preserve grayscale for the wide-column pass to reduce observed extra strokes.
+- Reject login/normal application HTML returned during export using a parsed
+  offline-reader head marker. Verify the generated reader in a fresh browser
+  context with storage unavailable and all network requests blocked.
+- Record all requested NEW items and remaining workstation/image-validation
+  limits in NOTION_UPDATES_2026_10_30.md. Add a November 4 baseline launch plan;
+  survey cadence and follow-up cutoff remain decisions to lock before launch.
+- Companion extractor v0.17 sends live progress only to its external progress
+  window. The launcher retains final results. Its portable release was uploaded
+  to the existing Drive folder; website Cloud Run deployment remains pending.
+
 ## Automatic lookup acceptance and overlay experiment — October 30, 2026
 
 - Remove individual lookup confirmation checkboxes. Analyze reports and Download

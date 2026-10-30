@@ -1,6 +1,6 @@
 # Shared report-review aid: four-week feasibility/QI pilot
 
-Updated October 29, 2026 after the mentor discussion and clarification that each
+Updated October 30, 2026 after the mentor discussion and clarification that each
 weekly block has seven source shifts. Plan: one participating attending per week
 for four weeks, three usual-practice shifts followed by four tool shifts. Assume
 four distinct attendings; if one repeats, independent providers are fewer.
@@ -30,7 +30,51 @@ by this document. Roster dates, eligibility and institutional determination rema
 
 Full meeting notes, tentative names and survey drafts are kept privately in
 Notion, not copied into this repository. Draft question specifications are ready;
-native Google Forms setup and testing remain pending.
+the user has created native Forms through another method. Their content and
+hospital accessibility still need an audit against the final measurement rules.
+
+## November 4 launch: current working timeline
+
+The first block starts Wednesday evening, November 4, 2026. Assuming seven
+consecutive night shifts, label each source shift by its starting date:
+
+| When | Milestone |
+| --- | --- |
+| November 2 target | Verify attending and both overnight resident roles; lock feedback definitions, survey cadence and follow-up cutoff with mentor |
+| November 3 target; before November 4 evening required | Test the actual Forms, finalize and deliver neutral measurement instructions, verify operator access/coverage and approved process |
+| Nights November 4–6 | Three usual-practice source shifts; residents notice feedback, with no study-generated baseline review batches delivered |
+| November 6 target | Deploy, complete hospital-workstation dry run and freeze technical/form versions before intervention |
+| November 7 morning | Baseline source shifts finish; phase-close/survey checkpoint subject to the agreed follow-up rule |
+| Nights November 7–10 | Four tool source shifts; centrally prepare and deliver reviews after each completed shift |
+| November 8 morning | First tool batch can be generated from the November 7 night, before the next shift where practical |
+| November 9 target | Verify next block roster and coverage; record observed delivery/burden problems |
+| November 11 morning | Final tool source shift ends; provide its review opportunity and collect surveys under the same agreed cutoff rule |
+
+These are planning targets rather than completed recruitment or scheduled
+messages. Confirm the actual roster before using them; later block dates are
+not inferred. The website has not been deployed by these source changes.
+
+Residents need measurement instructions **before baseline**, even when surveys
+are administered after several shifts. Draft briefing: work as usual; remember
+rough numbers of distinct cases receiving feedback from the specified attending,
+whether changes were only notified or explained, during/after-shift timing and
+usual channel. Include positive case-specific feedback and both resident roles.
+No exact tally or patient details are required. Count a linked examination once.
+Independent reading of reports/AI summaries is measured separately from human
+feedback. Keep use natural with no teaching quota. The private Notion launch plan
+contains a complete briefing draft and native dated tasks assigned to Sterling.
+
+The latest preference is **one survey after each phase**, superseding the daily
+survey suggestion below as the working direction. Cadence/cutoff still need
+agreement. Immediate phase-end surveys around November 7 and 11 cannot fully
+observe the older proposed 48-hour window for the last source shift. Keeping
+that window instead closes the phases approximately November 9 and 13, measured
+from actual shift ends. The final tool batch must have a genuine review
+opportunity before assessing its use. Freeze the same rule for both phases and
+label feedback by source shift across the transition. With phase-end forms,
+retain shift-specific items/actual exposure or another prespecified approach;
+three baseline and four tool shifts are not equal denominators. Update both
+actual Forms and the briefing together before collection.
 
 ## Aim and claims
 
