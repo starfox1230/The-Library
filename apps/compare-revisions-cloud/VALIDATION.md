@@ -2,6 +2,15 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 29, 2026: OCR progress correction
+
+- Removed worker-level percentage updates that restarted on every recognition
+  call. The actual-OCR browser suite checks nondecreasing 0–100% progress for
+  wide-image columns and a narrow six-row image (two OCR calls per row), plus
+  completion and Clear remaining stable after worker calls finish.
+- The 102 Python tests and existing sequence safeguards also pass. This change
+  only affects progress reporting; recognition, mappings and prompts are unchanged.
+
 ## October 29, 2026: screenshot accession lookup and offline export
 
 - **102 Python tests passed.** New tests cover strict confirmed lookup validation,

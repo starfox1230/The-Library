@@ -1515,11 +1515,17 @@ async function getOCR(epoch){
  if(!ocrLoading)ocrLoading=(async()=>{
   if(!window.Tesseract)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ocr-assets/tesseract.min.js';script.onload=resolve;script.onerror=()=>{script.remove();reject(Error('runtime'));};document.head.append(script);});
   const base=new URL('/ocr-assets/',location.href).href;
-  const worker=await window.Tesseract.createWorker('eng',1,{workerPath:base+'worker.min.js',corePath:base+'tesseract-core-lstm.wasm.js',langPath:base,workerBlobURL:false,cacheMethod:'none',logger:m=>{if(epoch===lookupEpoch&&m.status==='recognizing text')$('ocr-status').textContent='Reading screenshot… '+Math.round((m.progress||0)*100)+'%';}});
+  const worker=await window.Tesseract.createWorker('eng',1,{workerPath:base+'worker.min.js',corePath:base+'tesseract-core-lstm.wasm.js',langPath:base,workerBlobURL:false,cacheMethod:'none'});
   if(epoch!==lookupEpoch){await worker.terminate();throw Error('cleared');}
   await worker.setParameters({tessedit_pageseg_mode:'6'});ocrWorker=worker;return worker;
  })().catch(error=>{ocrLoading=null;throw error;});
  return ocrLoading;
+}
+function showOCRProgress(img,phase,completed,total,epoch){
+ // Worker percentages restart for every recognize() call. Report completed
+ // rows/columns instead, so the visible percentage never resets within a pass.
+ if(epoch!==lookupEpoch||!ocrBusy)return;
+ $('ocr-status').textContent=img.label+' · '+phase+'… '+completed+' of '+total+' ('+Math.floor(completed/total*100)+'%)';
 }
 function imageLines(words){
  const lines=[];
@@ -1559,8 +1565,9 @@ async function recognizeColumns(img,worker,epoch){
   if(start!==null&&last-start>=3)bands.push([start,last]);probe.width=1;probe.height=1;
   if(bands.length>260)throw Error('rows');
   const digits=document.createElement('canvas'),digitLeft=Math.floor(img.caseColumn[0]),digitWidth=Math.ceil(img.caseColumn[1])-digitLeft;digits.width=digitWidth;digits.height=img.bitmap.height;const dc=digits.getContext('2d');dc.drawImage(img.bitmap,digitLeft,0,digitWidth,img.bitmap.height,0,0,digitWidth,img.bitmap.height);const digitPixels=dc.getImageData(0,0,digitWidth,img.bitmap.height).data;
-  for(const [top,bottom] of bands){
-   if(top<=(img.headerY||0))continue;
+  const rows=bands.filter(([top])=>top>(img.headerY||0));
+  if(rows.length)showOCRProgress(img,'Reading rows',0,rows.length,epoch);
+  for(const [rowIndex,[top,bottom]] of rows.entries()){
    if(epoch!==lookupEpoch)return;
    // A missing thin '1' can still produce a valid integer. Count separated ink
    // components to flag a shorter reading. This check never supplies a digit.
@@ -1573,10 +1580,12 @@ async function recognizeColumns(img,worker,epoch){
     await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:name==='caseColumn'?'13':'7'});const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
     for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:(w.bbox.x0-8)/scale+x0,x1:(w.bbox.x1-8)/scale+x0,y0:(w.bbox.y0-8)/scale+y0,y1:(w.bbox.y1-8)/scale+y0}});
    }
+   showOCRProgress(img,'Reading rows',rowIndex+1,rows.length,epoch);
   }
   digits.width=1;digits.height=1;
   if(epoch!==lookupEpoch)return;img.words=words;readImageRows(img);return;
  }
+ let completedColumns=0;showOCRProgress(img,'Reading columns',0,2,epoch);
  for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
   const [left,right]=img[name],width=right-left;if(width<3)throw Error('column');
   const scale=Math.min(4,Math.sqrt(16000000/(width*img.bitmap.height))),canvas=document.createElement('canvas');canvas.width=Math.round(width*scale);canvas.height=Math.round(img.bitmap.height*scale);const ctx=canvas.getContext('2d');ctx.drawImage(img.bitmap,left,0,width,img.bitmap.height,0,0,canvas.width,canvas.height);
@@ -1585,6 +1594,7 @@ async function recognizeColumns(img,worker,epoch){
   const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
   if(epoch!==lookupEpoch)return;
   for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:w.bbox.x0/scale+left,x1:w.bbox.x1/scale+left,y0:w.bbox.y0/scale,y1:w.bbox.y1/scale}});
+  showOCRProgress(img,'Reading columns',++completedColumns,2,epoch);
  }
  if(epoch!==lookupEpoch)return;img.words=words;readImageRows(img);
 }
@@ -1645,6 +1655,7 @@ async function addLookupImages(files){
    const scale=Math.min(4,Math.max(1,1600/bitmap.width),Math.sqrt(16000000/(bitmap.width*bitmap.height)));
    const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
    const ctx=canvas.getContext('2d'),pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const v=(pixels.data[i]+pixels.data[i+1]+pixels.data[i+2])/3<140?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
+   $('ocr-status').textContent=img.label+' · Finding columns…';
    await worker.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'6'});
    const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
    if(epoch!==lookupEpoch)return;

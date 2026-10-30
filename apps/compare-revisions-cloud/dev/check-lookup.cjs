@@ -9,9 +9,12 @@ const out=path.join(__dirname,'qa-output');
   page.on('pageerror',e=>errors.push(e.message));
   await context.route('**/*',route=>{const u=new URL(route.request().url());if(u.protocol==='file:')return route.continue();if(!['127.0.0.1','localhost'].includes(u.hostname)){unexpected.push(u.href);return route.abort();}if(route.request().method()==='POST')posts.push(route.request().postData());return route.continue();});
   await page.goto('http://127.0.0.1:8766/qa');await page.locator('#lookup-panel > summary').click();
+  await page.evaluate(()=>{window.ocrStatuses=[];new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)window.ocrStatuses.push(n.textContent);}).observe(document.querySelector('#ocr-status'),{childList:true});});
+  async function checkProgress(phase,total){const messages=await page.evaluate(()=>window.ocrStatuses),values=messages.filter(s=>s.includes(phase+'…')).map(s=>Number(s.match(/\((\d+)%\)$/)?.[1]));assert(values.length>=3,'must expose completed work, not per-recognition percentages');assert.equal(values[0],0);assert.equal(values.at(-1),100);assert(values.every((v,i)=>Number.isFinite(v)&&(i===0||v>=values[i-1])),'progress must never jump backward within a pass');assert(messages.some(s=>s.includes(phase+'… '+total+' of '+total+' (100%)')));}
   assert.equal(await page.locator('.phi-banner').count(),0);
   await page.locator('#lookup-files').setInputFiles(path.join(out,'lookup-synthetic.png'));
   await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===6,{},{timeout:90000});
+  await checkProgress('Reading columns',2);
   const values=await page.locator('#lookup-rows tr').evaluateAll(rows=>rows.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value)));
   assert.deepEqual(values,[68,69,70,71,74,78].map(n=>[String(n),'00000'+n+'001']));
   assert.equal(await page.locator('.copy-accession').count(),0,'unconfirmed OCR must never attach');
@@ -79,8 +82,17 @@ const out=path.join(__dirname,'qa-output');
   for(const [button,x0,x1] of [['#mark-case',0,120],['#mark-accession',400,670]]){await page.locator(button).click();await page.locator('#lookup-canvas').scrollIntoViewIfNeeded();const box=await page.locator('#lookup-canvas').boundingBox(),scale=box.width/1350,y=box.y+40;await page.mouse.move(box.x+x0*scale+1,y);await page.mouse.down();await page.mouse.move(box.x+x1*scale,y);await page.mouse.up();}
   await page.locator('#read-columns').click();await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===6,{},{timeout:90000});
   assert.deepEqual(await page.locator('#lookup-rows tr').evaluateAll(rs=>rs.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value))),values);
-  await page.locator('#lookup-clear').click();await page.setViewportSize({width:375,height:900});await page.locator('#lookup-add').click();
+  await page.locator('#lookup-clear').click();
+  // A narrow screenshot makes two OCR calls per row. Worker progress restarts
+  // for every call; visible progress must instead count completed rows once.
+  await page.evaluate(()=>{window.ocrStatuses=[];});
+  const narrow=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=210;c.height=200;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='16px Consolas';x.fillText('Case',8,20);x.fillText('Accession',80,20);for(let i=0;i<6;i++){x.fillText(String(i+1),12,48+i*26);x.fillText('90000000'+(i+1),80,48+i*26);}return c.toDataURL('image/png').split(',')[1];});
+  await page.locator('#lookup-files').setInputFiles({name:'synthetic-narrow.png',mimeType:'image/png',buffer:Buffer.from(narrow,'base64')});
+  await page.waitForFunction(()=>document.querySelector('#ocr-status').textContent.startsWith('Read 6 rows.'),{},{timeout:90000});
+  await checkProgress('Reading rows',6);await page.waitForTimeout(200);assert((await page.locator('#ocr-status').innerText()).startsWith('Read 6 rows.'),'late worker events must not overwrite completion');
+  await page.locator('#lookup-clear').click();await page.waitForTimeout(200);assert.equal(await page.locator('#ocr-status').innerText(),'');
+  await page.setViewportSize({width:375,height:900});await page.locator('#lookup-add').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'lookup must not overflow mobile viewport');
-  console.log('Real OCR, confirmation, exact case joins, grouped accession copying, conflict handling, private-data exclusions and offline reader checks passed.');
+  assert.deepEqual(errors,[]);console.log('Real OCR, steady row/column progress, confirmation, exact case joins, grouped accession copying, conflict handling, private-data exclusions and offline reader checks passed.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exit(1);});

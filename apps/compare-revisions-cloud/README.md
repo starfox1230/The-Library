@@ -18,6 +18,9 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   separated numeric column left of Accession can be detected. Otherwise mark
   the two column widths on the image and select Read marked columns. Narrow
   images receive a per-row, per-column pass. Reading is not verification.
+  Progress identifies the screenshot and phase, then counts completed rows or
+  columns. Its percentage advances within that pass, rather than restarting
+  for each small OCR call.
 - Case numbers are still read by OCR. An incomplete or duplicate reading can
   be repaired when at least 60% of rows provide unique, consistent consecutive
   anchors, including anchors near both ends, with regular row spacing. A

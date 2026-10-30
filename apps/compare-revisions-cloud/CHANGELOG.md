@@ -1,5 +1,13 @@
 # Changes and rationale — October 4, 2026
 
+## Steady OCR progress — October 29, 2026
+
+- Stop displaying the OCR worker's per-call percentages, which restart for each
+  case-number/accession read and cause rapid jumps near completion.
+- Show a named column-detection phase, then completed rows (or columns) and a
+  percentage for that pass. Update once per complete row/column and identify the
+  screenshot. Worker callbacks cannot overwrite completion or Clear.
+
 ## Incomplete OCR case numbers — October 29, 2026
 
 - Keep OCR case-number reads and repair incomplete/duplicate labels only when
