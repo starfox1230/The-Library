@@ -4,11 +4,12 @@ using System;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Collections.Generic;
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] class Enumerator { }
 [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IDevices {
-    void EnumAudioEndpoints(int flow, uint mask, out IntPtr devices);
+    void EnumAudioEndpoints(int flow, uint mask, out IDeviceCollection devices);
     void GetDefaultAudioEndpoint(int flow, int role, out IDevice device);
     void GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out IDevice device);
     void RegisterEndpointNotificationCallback(IntPtr callback);
@@ -17,9 +18,19 @@ interface IDevices {
 [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IDevice {
     void Activate(ref Guid id, uint context, IntPtr parameters, [MarshalAs(UnmanagedType.IUnknown)] out object result);
-    void OpenPropertyStore(uint access, out IntPtr store);
+    void OpenPropertyStore(uint access, out IPropertyStore store);
     void GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
     void GetState(out uint state);
+}
+[ComImport, Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IDeviceCollection { void GetCount(out uint count); void Item(uint index, out IDevice device); }
+[StructLayout(LayoutKind.Sequential)] struct PropertyKey { public Guid id; public uint pid; }
+[StructLayout(LayoutKind.Explicit, Size=24)] struct PropertyValue { [FieldOffset(0)] public ushort type; [FieldOffset(8)] public IntPtr text; }
+[ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+interface IPropertyStore {
+    void GetCount(out uint count); void GetAt(uint index, out PropertyKey key);
+    void GetValue(ref PropertyKey key, out PropertyValue value);
+    void SetValue(ref PropertyKey key, ref PropertyValue value); void Commit();
 }
 [ComImport, Guid("1CB9AD4C-DBFA-4C32-B178-C2F568A703B2"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
 interface IClient {
@@ -40,8 +51,12 @@ interface ICapture {
     void GetNextPacketSize(out uint frames);
 }
 class Loopback {
+    [DllImport("ole32.dll")] static extern int PropVariantClear(ref PropertyValue value);
+    static readonly object OutputLock = new object();
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
     static string F(double x) { return x.ToString("0.000000", Inv); }
+    static string J(string x) { return "\"" + x.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\r", " ").Replace("\n", " ") + "\""; }
+    static void Emit(string x) { lock(OutputLock) Console.WriteLine(x); }
     [MTAThread] static int Main() {
         try { Run(); return 0; }
         catch (Exception e) {
@@ -50,9 +65,41 @@ class Loopback {
         }
     }
     static void Run() {
+        var workers = new Dictionary<string, Thread>();
         IDevices devices = (IDevices)new Enumerator();
-        IDevice device; devices.GetDefaultAudioEndpoint(0, 0, out device);
+        while (true) {
+            IDeviceCollection collection; devices.EnumAudioEndpoints(0, 1, out collection);
+            uint count; collection.GetCount(out count);
+            for(uint i=0;i<count;i++) {
+                IDevice device; collection.Item(i, out device);
+                string id; device.GetId(out id); Marshal.ReleaseComObject(device);
+                if(!workers.ContainsKey(id) || !workers[id].IsAlive) {
+                    string captureId=id;
+                    Thread thread=new Thread(delegate() {
+                        try { Capture(captureId); }
+                        catch(Exception) { Emit("{\"device_id\":"+J(captureId)+",\"error\":\"Audio output reconnecting\"}"); }
+                    });
+                    thread.IsBackground=true;thread.Start();workers[id]=thread;
+                }
+            }
+            Marshal.ReleaseComObject(collection);
+            if(count==0) Emit("{\"error\":\"No connected audio outputs. Retrying.\"}");
+            Thread.Sleep(2000);
+        }
+    }
+    static void Capture(string deviceId) {
+        IDevices devices = (IDevices)new Enumerator();
+        IDevice device; devices.GetDevice(deviceId, out device);
         string original; device.GetId(out original);
+        string name=original;
+        try {
+            IPropertyStore store; device.OpenPropertyStore(0,out store);
+            PropertyKey key=new PropertyKey { id=new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), pid=14 };
+            PropertyValue value; store.GetValue(ref key,out value);
+            try { if(value.type==31) name=Marshal.PtrToStringUni(value.text); }
+            finally { PropVariantClear(ref value); Marshal.ReleaseComObject(store); }
+        } catch { }
+        string deviceJson=",\"device_id\":"+J(original)+",\"device\":"+J(name);
         Guid clientId = typeof(IClient).GUID; object raw;
         device.Activate(ref clientId, 23, IntPtr.Zero, out raw);
         IClient client = (IClient)raw;
@@ -99,7 +146,7 @@ class Loopback {
                             low += alpha * (sample - low);
                             energy += sample * sample; bass += low * low; samples++;
                             if (samples >= window) {
-                                Console.WriteLine("{\"energy\":" + F(Math.Sqrt(energy / samples)) + ",\"bass\":" + F(Math.Sqrt(bass / samples)) + "}");
+                                Emit("{\"energy\":" + F(Math.Sqrt(energy / samples)) + ",\"bass\":" + F(Math.Sqrt(bass / samples)) + deviceJson + "}");
                                 energy = bass = 0; samples = 0; emit = DateTime.UtcNow;
                             }
                         }
@@ -107,12 +154,11 @@ class Loopback {
                     capture.GetNextPacketSize(out pending);
                 }
                 if ((DateTime.UtcNow - emit).TotalMilliseconds > 100) {
-                    Console.WriteLine("{\"energy\":0,\"bass\":0}"); emit = DateTime.UtcNow;
+                    Emit("{\"energy\":0,\"bass\":0" + deviceJson + "}"); emit = DateTime.UtcNow;
                 }
                 if ((DateTime.UtcNow - check).TotalSeconds > 2) {
-                    IDevice current; devices.GetDefaultAudioEndpoint(0, 0, out current);
-                    string id; current.GetId(out id); Marshal.ReleaseComObject(current);
-                    if (id != original) return; // Python restarts against the new device.
+                    uint state; device.GetState(out state);
+                    if (state != 1) return;
                     check = DateTime.UtcNow;
                 }
                 Thread.Sleep(5);

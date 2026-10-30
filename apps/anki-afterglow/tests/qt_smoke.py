@@ -20,6 +20,8 @@ window.form = SimpleNamespace(menuTools=QMenu(window), menubar=window.menuBar())
 speed_menu = window.form.menubar.addMenu('Speed Streak')
 calls = []
 window.reviewer = SimpleNamespace(web=SimpleNamespace(eval=calls.append))
+bottom_calls=[]
+window.bottomWeb = SimpleNamespace(eval=bottom_calls.append)
 aqt.mw = window
 root = Path(__file__).parents[1]
 spec = importlib.util.spec_from_file_location('afterglow_test', root / '__init__.py', submodule_search_locations=[str(root)])
@@ -35,8 +37,13 @@ for _ in range(20):
     app.processEvents();time.sleep(.02)
 assert c.listening and c.audio._process is not None
 assert calls and 'window.Afterglow' in calls[-1]
+assert bottom_calls and '"primary": false' in bottom_calls[-1]
 QTimer.singleShot(150, lambda: app.activeModalWidget().reject())
 c.settings()
+c.config['immersive'] = False
+c.tick()
+assert 'enabled:false' in bottom_calls[-1]
+c.config['immersive'] = True
 c.state_changed('overview', 'review')
 assert not c.listening and '"enabled": false' in calls[-1]
 c.state_changed('review', 'overview')

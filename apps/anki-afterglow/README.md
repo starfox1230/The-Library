@@ -1,4 +1,4 @@
-# Afterglow 0.1 — personal Windows preview
+# Afterglow 0.2 — personal Windows preview
 
 A separate Anki desktop add-on: full-review-window cyan/violet/rose light, flowing filaments, a distant neon floor, and individual letter halos. Plays alongside Speed Streak without importing it, patching its code, or accessing its timers. Works without Speed Streak too. Does not change saved card fields, scheduling, answer keys, or music playback.
 
@@ -16,17 +16,21 @@ Windows .NET Framework's C# compiler builds the small audio helper during instal
 
 ## Sound and timing
 
-The hidden helper uses Windows WASAPI shared-mode loopback on the default playback device. It calculates 20 ms loudness and low-frequency energy windows. Only those numeric features reach Anki, not the sound samples. No files are recorded, no microphone is used, and no network requests are made. Listening runs only during reviews with the feature enabled; the helper exits when leaving reviews or closing the profile. Output-device changes trigger reconnection. The system mix includes other sounds such as Anki's own audio. Exclusive-mode/protected audio may not be available.
+The hidden helper uses Windows WASAPI shared-mode loopback on connected playback devices, including HDMI/TV, USB and Bluetooth outputs. It calculates 20 ms loudness and low-frequency energy windows per output. Automatic selection follows the output carrying the strongest sustained signal, with a hold period to prevent flapping; it does not rely on the default-device setting. New outputs are checked every two seconds. Switching outputs resets beat tracking to avoid carrying the old rhythm across. Only numeric features and output names reach Anki, not the sound samples. No files are recorded, no microphone is used, and no network requests are made. Listening runs only during reviews with the feature enabled; the helper exits when leaving reviews or closing the profile. The system mix includes other sounds such as Anki's own audio. Exclusive-mode/protected audio may not be available.
+
+The review-screen meter identifies the selected device and shows signal activity. It says **Hearing music** while sound is detected and shows BPM once the predictor locks. Settings also show raw signal strength and a meter. **Music / beat impact** controls how strongly the lights react. The light fans and edge arcs respond to detected attacks immediately, even before tempo lock; silence produces only the slow ambient backdrop. Stale input fades out. Motion 0 or OS reduced motion freezes the light show and is identified by the meter.
 
 An independent streaming detector finds attacks, estimates a 75–180 BPM tempo, and aligns a predictive clock to recent beats. It needs several clear beats to lock, can choose half/double tempo, and may lose lock during breakdowns or changes. It falls back to smooth loudness response when confidence or recent sound drops. This is an initial heuristic tracker, not a promise of perfect synchronization. Adjust **Timing advance (ms)** upward if the lights feel late and downward if early; negative values delay the light. Device and rendering delays vary.
 
 ## Visual integration
 
-The canvas sits behind the reviewer content and covers its entire viewport, including behind the Speed Streak inline pane where that pane is transparent. It does not cover native Anki menus or the separate answer-button webview. Opaque Speed Streak panels stay as designed. Images stay opaque and unmodified. Card container backgrounds can be replaced; switch that setting off for notes whose backgrounds carry meaning. Computed text color selects a dark or pale per-letter halo without recoloring the letters. No text is wrapped or changed. Custom card CSS using aggressive stacking contexts or opaque tables may need adjustment.
+**Extend behind toolbars, answer buttons and side panes** is on by default. The review view, top toolbar, answer bar and embedded review panes draw aligned slices of one scene, using the same clock and window coordinates. Buttons retain their handlers and colors with translucent surfaces; toolbar and Speed Streak pane backgrounds become transparent. Floating Speed Streak windows outside the main review window are independent. Native Windows title/menu bars retain their normal appearance in windowed mode. **Speed Streak / Tools → Afterglow — Toggle immersive fullscreen**, or **Ctrl+Alt+F11**, uses Anki's own fullscreen mode; press the same shortcut to leave fullscreen. Switching immersive coverage off restores other panes immediately.
+
+Images stay opaque and unmodified. Card container backgrounds can be replaced; switch that setting off for notes whose backgrounds carry meaning. Computed text color selects a dark or pale per-letter halo without recoloring the letters. No text is wrapped or changed. Scrollbar tracks are transparent with a thin visible thumb. Custom card CSS using aggressive stacking contexts or opaque tables may need adjustment.
 
 Frame rate is bounded to 30/60 FPS; backing resolution is capped at 1440×1000 with at most 1.25× device density. Rendering stops in hidden documents; Motion 0 and OS reduced-motion preferences produce a still scene. Lights use soft pulses rather than abrupt full-screen flashes. Disabling the feature removes its styling immediately.
 
-The browser [preview](index.html) uses the same renderer and a clearly labeled simulated rhythm. It does not capture audio. Current live Anki review compatibility and perceived synchronization still need hands-on confirmation on Sterling's card templates.
+The browser [preview](index.html) uses the same renderer and a clearly labeled simulated rhythm. It does not capture audio. Live HDMI system capture was confirmed with Sterling's TOSHIBA-TV output. Perceived synchronization and live card-template appearance still need hands-on confirmation after installing the update.
 
 ## Sources and portability
 

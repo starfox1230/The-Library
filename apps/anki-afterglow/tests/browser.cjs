@@ -37,6 +37,34 @@ const assert=require('assert');
  await page.waitForTimeout(250);
  assert.equal(c,await page.locator('canvas').evaluate(e=>e.toDataURL()),'reduced motion must freeze canvas');
  assert.deepEqual(errors,[]);
+ // Compare the exact same scene with music absent and a detected attack.
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ await page.evaluate(()=>{clearInterval(previewLoop);Afterglow.update({config:{...cfg,motion:1,impact:100},energy:0,bass:0,scene_time:0});});
+ await page.waitForTimeout(700);
+ const light=()=>page.locator('canvas').evaluate(e=>{const p=e.getContext('2d').getImageData(0,0,e.width,e.height).data;let n=0;for(let i=0;i<p.length;i+=4)n+=p[i]+p[i+1]+p[i+2];return n/(p.length/4);});
+ const quiet=await light();
+ await page.evaluate(()=>Afterglow.update({config:{...cfg,motion:1,impact:100},energy:.05,bass:.04,hit_id:99,scene_time:0}));
+ await page.waitForTimeout(65);
+ const loud=await light();
+ assert(loud>quiet*1.15,`Music should visibly change the scene: ${quiet} -> ${loud}`);
+ assert(await page.locator('#afterglow-meter').isVisible());
+ // Top/card/bottom views render slices of one shared world, rather than restarting
+ // the horizon at the top of the answer bar.
+ const slices=[];
+ for(const size of [1000,100]) {
+   const p=await browser.newPage({viewport:{width:1440,height:size}});
+   await p.setContent('<html><body><center id="outer"><button id="ansbut">Show answer</button></center></body></html>');
+   await p.addStyleTag({path:path.resolve(__dirname,'../web/afterglow.css')});
+   await p.addScriptTag({path:path.resolve(__dirname,'../web/afterglow.js')});
+   await p.evaluate(size=>Afterglow.update({config:{enabled:true,motion:0,immersive:true,intensity:65},primary:false,surface:{x:0,y:1000-size,width:1440,height:1000},scene_time:0}),size);
+   await p.waitForTimeout(100);
+   slices.push(await p.locator('canvas').evaluate((e,size)=>Array.from(e.getContext('2d').getImageData(0,e.height-100,e.width,100).data),size));
+   assert.equal(await p.locator('#outer').evaluate(e=>getComputedStyle(e).backgroundColor),'rgba(0, 0, 0, 0)');
+   await p.close();
+ }
+ let diff=0;for(let i=0;i<slices[0].length;i++)diff+=Math.abs(slices[0][i]-slices[1][i]);
+ assert(diff/slices[0].length<1,'Shared scene must align across card and answer bar');
+ console.log(`Audio visual response: ${quiet.toFixed(1)} -> ${loud.toFixed(1)} RGB sum; aligned toolbar slices verified`);
  console.log('PASS: browser rendering, card replacement, adaptive halos, demo rhythm, still mode, disable, reduced motion; no JS errors');
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1);});

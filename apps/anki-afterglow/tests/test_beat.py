@@ -44,6 +44,17 @@ class BeatTests(unittest.TestCase):
         now = self.rhythm(tracker, 150, start=12, duration=15)
         self.assertAlmostEqual(tracker.snapshot(now)['bpm'], 150, delta=3)
 
+    def test_quiet_music_with_eighth_note_attacks(self):
+        tracker = beat.BeatTracker()
+        period = 60/128
+        for i in range(650):
+            t=i*.02
+            onbeat=t%period<.02
+            offbeat=(t-period/2)%period<.02
+            strength=.0007 if onbeat else .00035 if offbeat else .00001
+            tracker.feed(t,strength,strength)
+        self.assertAlmostEqual(tracker.snapshot(t)['bpm'],128,delta=3)
+
 
 if __name__ == '__main__':
     unittest.main()

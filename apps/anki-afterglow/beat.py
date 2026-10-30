@@ -23,9 +23,9 @@ class BeatTracker:
         self.previous = level
         self.mean = self.mean * .97 + flux * .03
         self.history.append((now, flux))
-        if energy > .001:
+        if energy > .00005:
             self.last_sound = now
-        if flux > max(.0008, self.mean * 2.4) and now - self.last_onset > .20:
+        if flux > max(.00003, self.mean * 2.4) and now - self.last_onset > .20:
             self.last_onset = now
             self.onsets.append((now, flux))
             if self.period:
@@ -51,23 +51,35 @@ class BeatTracker:
                         candidates.append(p)
         if not candidates:
             return
-        # Score phase agreement AND occupancy; subdivisions alone must not win.
-        def score(p):
-            origin = recent[-1][0]
-            errors = [abs((t - origin + p / 2) % p - p / 2) / p for t, _ in recent]
-            aligned = sum(e < .12 for e in errors)
-            occupancy = min(1, aligned / max(1, (recent[-1][0] - recent[0][0]) / p))
-            continuity = .04 * math.exp(-abs(p - self.period) * 30) if self.period else 0
-            return sum(math.exp(-(e / .12) ** 2) for e in errors) / len(errors) * (.65 + .35 * occupancy) + continuity
-        chosen = max(candidates, key=score)
-        confidence = min(1.0, score(chosen))
+        # Strong kicks anchor the phase; eighth-note hats may fall halfway between.
+        # Anchoring every hypothesis to the latest (possibly offbeat) attack made
+        # real music much harder to lock than clean synthetic clicks.
+        candidates = sorted(set(round(p, 3) for p in candidates))
+        anchors = sorted(recent, key=lambda item: item[1], reverse=True)[:8]
+        total = sum(v for _, v in recent)
+        def evaluate(p):
+            best = (0, recent[-1][0])
+            for origin, _ in anchors:
+                errors = [(abs((t-origin+p/2) % p-p/2)/p, v) for t,v in recent]
+                support = sum(v*(math.exp(-(e/.11)**2) + .55*math.exp(-((.5-e)/.11)**2)) for e,v in errors)/total
+                aligned = sum(e < .13 for e,_ in errors)
+                occupancy = min(1, aligned/max(1,(recent[-1][0]-recent[0][0])/p))
+                continuity = .025*math.exp(-abs(p-self.period)*30) if self.period else 0
+                score = support*(.65+.35*occupancy)+continuity
+                if score > best[0]:
+                    best = score, origin
+            return best
+        chosen, (confidence, origin) = max(((p,evaluate(p)) for p in candidates),key=lambda item:item[1][0])
+        confidence = min(1, confidence)
         if confidence < .6:
             self.confidence *= .8
             return
         if not self.period or abs(chosen - self.period) > .05:
-            self.period, self.phase = chosen, recent[-1][0]
+            self.period, self.phase = chosen, origin
         else:
             self.period = self.period * .8 + chosen * .2
+            error = (origin-self.phase+self.period/2) % self.period-self.period/2
+            self.phase += error*.2
         self.confidence = confidence
 
     def snapshot(self, now, lead_ms=35):

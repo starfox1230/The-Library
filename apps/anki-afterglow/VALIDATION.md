@@ -2,6 +2,17 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.2 follow-up
+
+- The user reported imperceptible music response. A live probe confirmed changing system audio on **TOSHIBA-TV (5- HD Audio Driver for Display Audio)**. The old mapping made very small visual changes. The new mapping uses strong attack response, adaptive gain for quiet sources, visible edge arcs and a live device/signal meter.
+- Automatic output selection captured audible features in 79 of 80 snapshots in an eight-second real-audio probe (the first snapshot occurs before startup). A subsequent probe detected 27 attacks and acquired a tempo hypothesis. This confirms the pipeline is receiving real HDMI audio, not that the musical tempo estimate is always correct.
+- Five tracker tests pass, including quiet music with eighth-note attacks. Phase fitting now evaluates strong anchors and offbeat subdivisions instead of anchoring every hypothesis to the latest attack.
+- Browser regression checks measured the same scene at **67.7 → 152.8** average RGB sum on a sound attack (more than twice the summed pixel brightness), replacing the earlier barely visible response. Card and answer-bar slices of the shared scene agree to within one average pixel-channel value. Transparent toolbar containers, still mode, reduced motion, disabling, text halos and JS errors are covered.
+- Installed Anki library smoke tests cover bottom-bar payloads, stopping/restoring immersive coverage, settings and audio lifecycle.
+- The running user Anki session is not hot-patched; reinstall with Anki closed is required to activate 0.2.
+
+## Initial 0.1 checks
+
 - Windows .NET compilation of the native WASAPI helper; live default-output endpoint opened and produced valid feature frames during an idle-audio smoke run. No audio files recorded.
 - Four automated tracker tests: 90/120/128/150/170 BPM lock and future prediction, 40 ms phase advance, unlocking after silence, and reacquiring a 120→150 BPM change.
 - Anki's installed Python/Qt libraries in a separate offscreen window: add-on import, menu registration, settings dialog, reviewer JS bridge, native helper start/stop, and disabling the feature. No user collection was opened or changed.
