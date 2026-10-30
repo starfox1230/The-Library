@@ -1,21 +1,19 @@
 (() => {
   'use strict';
   if (window.Afterglow) return;
-  const canvas = document.createElement('canvas');
+  let canvas = document.createElement('canvas');
   canvas.id = 'afterglow-canvas';
   canvas.hidden=true;
   canvas.setAttribute('aria-hidden', 'true');
-  const ctx = canvas.getContext('2d', {alpha:false});
+  const visual = window.AfterglowLiquid(canvas);
+  canvas = visual.canvas;
   const root = document.documentElement;
   let config = {enabled:false, intensity:65, motion:55, contrast:70, quality:1, palette:'aurora', clear_backgrounds:true, impact:80, immersive:true, show_meter:true};
   let state = {}, raf = 0, last = 0, time = 0, pulse = 0, level = 0, gain = .03, nextBeat = 0;
-  let width = 1, height = 1, dirty = true, configKey = '';
-  let surface=null, received=0, sceneAt=0, lastHit=0, attack=0, previousBass=0;
+  let dirty = true, configKey = '';
+  let surface=null, received=0, lastHit=0, attack=0, previousBass=0;
   let hud, meter, caption, meterTick=0;
-  const glowCache=new Map();
-  let shadeCache=null,shadeKey='';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const palettes = {aurora:[185,267,324], acid:[155,80,38], ultraviolet:[260,218,313]};
   const clamp = (v, a, b) => Math.max(a,Math.min(b,v));
   function mount() {
     if (!document.body) return;
@@ -30,9 +28,9 @@
     // Qt supplies device-independent WINDOW pixels. Browser CSS pixels and DPR
     // change with card zoom; neither may resize or shift the background scene.
     const vw=surface?.view_width||innerWidth,vh=surface?.view_height||innerHeight;
-    const scale = Math.min(1.25, surface?.dpr||devicePixelRatio||1, 1440 / (surface?.width||vw), 1000 / (surface?.height||vh));
+    const scale = Math.min(1.25, surface?.dpr||devicePixelRatio||1, (config.quality?1024:720) / (surface?.width||vw), (config.quality?720:480) / (surface?.height||vh));
     const w = Math.max(1,Math.round(vw * scale)), h = Math.max(1,Math.round(vh * scale));
-    if (canvas.width !== w || canvas.height !== h) {canvas.width=w;canvas.height=h;width=w;height=h;dirty=true;}
+    if (canvas.width !== w || canvas.height !== h) {canvas.width=w;canvas.height=h;dirty=true;}
   }
   function protectText(refresh=false) {
     const qa = document.getElementById('qa') || (state.primary===false ? document.body : null);
@@ -53,27 +51,6 @@
       clearTimeout(textTimer);textTimer=setTimeout(protectText,40);
     }
   });
-  function glow(x,y,r,hue,alpha,squash=1) {
-    let sprite=glowCache.get(hue);
-    if(!sprite){
-      sprite=document.createElement('canvas');sprite.width=sprite.height=256;
-      const c=sprite.getContext('2d'),g=c.createRadialGradient(128,128,0,128,128,128);
-      g.addColorStop(0,`hsla(${hue},95%,64%,1)`);g.addColorStop(.30,`hsla(${hue},95%,49%,.55)`);g.addColorStop(1,`hsla(${hue},95%,30%,0)`);
-      c.fillStyle=g;c.fillRect(0,0,256,256);glowCache.set(hue,sprite);
-    }
-    ctx.globalAlpha=clamp(alpha,0,1);
-    ctx.drawImage(sprite,x-r,y-r*squash,r*2,r*2*squash);ctx.globalAlpha=1;
-  }
-  function shade(w,h){
-    const key=w+':'+h;
-    if(shadeKey!==key){
-      shadeKey=key;shadeCache=document.createElement('canvas');shadeCache.width=384;shadeCache.height=Math.max(32,Math.min(512,Math.round(384*h/w)));
-      const c=shadeCache.getContext('2d');c.scale(shadeCache.width/w,shadeCache.height/h);
-      const g=c.createRadialGradient(w*.5,h*.42,0,w*.5,h*.45,Math.max(w,h)*.7);
-      g.addColorStop(0,'rgba(3,6,16,.55)');g.addColorStop(.46,'rgba(3,6,16,.20)');g.addColorStop(1,'rgba(0,2,10,.42)');c.fillStyle=g;c.fillRect(0,0,w,h);
-    }
-    ctx.drawImage(shadeCache,0,0,w,h);
-  }
   function frame(ms) {
     raf=0;
     if (!config.enabled || document.hidden) return;
@@ -81,7 +58,6 @@
     const budget = config.quality ? 15 : 31;
     if (ms-last < budget) {raf=requestAnimationFrame(frame);return;}
     const dt=Math.min(.08,(ms-last)/1000 || .016);last=ms;
-    if (moving) time=state.scene_time!==undefined ? (sceneAt+(ms-received)/1000)*(.18+config.motion/110) : time+dt*(.18+config.motion/110);
     const now=ms/1000;
     const energy=Number(state.energy)||0;
     const fresh = ms-received<600;
@@ -95,81 +71,35 @@
       const d=((now-nextBeat+p/2)%p+p)%p-p/2;
       beat=Math.exp(-((d/.065)**2));
     }
-    const desired=moving ? Math.max(beat,attack,level*.22)*config.impact/80 : 0;
+    const desired=moving ? Math.max(beat,attack,fresh?(Number(state.music_push)||0):0,level*.22)*config.impact/80 : 0;
     pulse+=(desired-pulse)*Math.min(1,dt*(desired>pulse?35:10));
     if (!moving && !dirty) return;
     dirty=false;
-    const w=surface?.width||innerWidth,h=surface?.height||innerHeight,t=time,intensity=config.intensity/100;
-    const sx=width/(surface?.view_width||innerWidth),sy=height/(surface?.view_height||innerHeight);
-    ctx.setTransform(sx,0,0,sy,-(surface?.x||0)*sx,-(surface?.y||0)*sy);
-    const hues=palettes[config.palette]||palettes.aurora;
-    ctx.globalCompositeOperation='source-over';ctx.fillStyle='#050812';ctx.fillRect(0,0,w,h);
-    ctx.globalCompositeOperation='screen';
-    // Large soft fields move around the perimeter, leaving air around the words.
-    glow(w*(.08+.1*Math.sin(t*.27)),h*(.28+.15*Math.cos(t*.21)),w*(.60+pulse*.18),hues[0],intensity*(.48+pulse*.95),.72);
-    glow(w*(.92+.08*Math.sin(t*.22)),h*(.35+.20*Math.sin(t*.16)),w*(.56+pulse*.15),hues[1],intensity*(.55+pulse*.95),.82);
-    glow(w*(.5+.30*Math.cos(t*.13)),h*1.07,w*.62,hues[2],intensity*(.4+pulse*.65),.38);
-    // Slowly sweeping light fans, with diffuse edges and a quiet center.
-    for(let side=0;side<2;side++)for(let j=0;j<4;j++) {
-      const x=side?w*.98:w*.02;
-      const end=w*(.16+j*.2+(.12+pulse*.05)*Math.sin(t*.18+j+side));
-      const beam=ctx.createLinearGradient(x,0,end,h);
-      beam.addColorStop(0,`hsla(${hues[side]},95%,75%,${clamp(intensity*(.08+pulse*.40),0,1)})`);
-      beam.addColorStop(1,`hsla(${hues[side]},95%,60%,0)`);
-      ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(x-2,0);ctx.lineTo(end-w*.05,h);ctx.lineTo(end+w*.05,h);ctx.lineTo(x+2,0);ctx.fill();
+    const musicLevel=fresh?Number(state.music_level ?? level):level;
+    const musicBass=fresh?Number(state.music_bass ?? Math.min(1,(Number(state.bass)||0)/Math.max(gain,.0001))):0;
+    if(moving){
+      if(state.flow_time!==undefined){const age=(ms-received)/1000;time=(Number(state.flow_time)+Math.min(.6,age)*Number(state.flow_rate??.1)+Math.max(0,age-.6)*.1)*config.motion/55;}
+      else time+=dt*(.10+musicLevel*.48+musicBass*.22+pulse*.16)*config.motion/55;
     }
-    // Expanding edge arcs provide an unmistakable musical accent without whitening the card.
-    if(pulse>.03)for(let side=0;side<2;side++) {
-      ctx.beginPath();ctx.ellipse(side?w:0,h*.5,w*(.25+pulse*.25),h*(.35+pulse*.20),0,0,Math.PI*2);
-      ctx.lineWidth=1+pulse*3;ctx.strokeStyle=`hsla(${hues[side]},95%,70%,${clamp(pulse*intensity*.6,0,1)})`;ctx.stroke();
-    }
-    // Long, flowing filament ribbons, rather than hard strobe flashes.
-    for(let j=0;j<9;j++) {
-      const hue=hues[j%3]+12*Math.sin(t*.12+j);
-      ctx.beginPath();
-      for(let i=0;i<=48;i++) {
-        const x=w*i/48, u=i/48;
-        const edge=j<5 ? .08 : .88;
-        const y=h*(edge+.065*Math.sin(u*5+t*.23+j*.85)+.055*Math.cos(u*9-t*.16+j));
-        if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-      }
-      ctx.strokeStyle=`hsla(${hue},95%,68%,${intensity*(.09+pulse*.04)})`;
-      ctx.lineWidth=(j%3===0?2: .8)*(w/1000);ctx.stroke();
-    }
-    // A distant dance-floor grid gives the light show depth.
-    const horizon=h*.73;
-    ctx.lineWidth=.7;ctx.strokeStyle=`hsla(${hues[0]},80%,65%,${intensity*.15})`;
-    for(let i=-10;i<=10;i++) {
-      ctx.beginPath();ctx.moveTo(w*.5+i*w*.018,horizon);ctx.lineTo(w*.5+i*w*.18,h);ctx.stroke();
-    }
-    for(let i=0;i<12;i++) {
-      const z=((i+t*.16)%12)/12;
-      const y=horizon+(h-horizon)*z*z;
-      ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();
-    }
-    // Sparse drifting pinpoints stay bounded even in long review sessions.
-    for(let i=0;i<52;i++) {
-      const x=((Math.sin(i*173.13)*.5+.5)*w+Math.sin(t*.12+i)*12+w)%w;
-      const y=((i*.61803398875+t*.002)%1)*h;
-      ctx.fillStyle=`hsla(${hues[i%3]},75%,85%,${intensity*(.12+.12*Math.sin(i+t*.3)**2)})`;
-      ctx.fillRect(x,y,i%8===0?1.5: .8,i%8===0?1.5:.8);
-    }
-    ctx.globalCompositeOperation='source-over';
-    shade(w,h);
+    visual.draw({w:surface?.width||innerWidth,h:surface?.height||innerHeight,
+      vw:surface?.view_width||innerWidth,vh:surface?.view_height||innerHeight,
+      x:surface?.x||0,y:surface?.y||0,time,intensity:config.intensity/100,
+      palette:config.palette,level:moving?musicLevel:0,bass:moving?musicBass*config.impact/100:0,
+      pulse:moving?pulse:0});
     if(moving)raf=requestAnimationFrame(frame);
   }
   function wake() { if(config.enabled&&!document.hidden&&!raf)raf=requestAnimationFrame(frame); }
   function update(data) {
     const oldSurface=JSON.stringify(surface);
     surface=data.surface||null;
-    state=data;received=performance.now();sceneAt=Number(data.scene_time)||0;
+    state=data;received=performance.now();
     const bass=Number(data.bass)||0;
     if(data.hit_id && data.hit_id!==lastHit){attack=1;lastHit=data.hit_id;}
     attack=Math.max(attack,clamp((bass-previousBass)/Math.max(gain,.0001)*3,0,1));previousBass=bass;
     if(oldSurface!==JSON.stringify(surface)){resize();dirty=true;}
     const key=JSON.stringify(data.config);
     if(key!==configKey) {
-      configKey=key;const oldPalette=config.palette;config={...config,...data.config};if(oldPalette!==config.palette)glowCache.clear();mount();resize();dirty=true;
+      configKey=key;config={...config,...data.config};mount();resize();dirty=true;
       root.classList.toggle('ag-on',!!config.enabled);
       root.classList.toggle('ag-clear',!!config.clear_backgrounds);
       root.classList.toggle('ag-immersive',!!config.immersive);
@@ -190,7 +120,7 @@
     if(data.period)nextBeat=performance.now()/1000+data.next_in;
     wake();
   }
-  window.Afterglow={update};
+  window.Afterglow={update,renderer:visual.kind};
   addEventListener('resize',()=>{resize();wake();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;}else{dirty=true;wake();}});
   reduced.addEventListener('change',()=>{dirty=true;wake();});

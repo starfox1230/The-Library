@@ -1,6 +1,6 @@
 # Possible next visual directions
 
-Live references requested by Sterling, October 30, 2026. These are inspiration links, not bundled components. Choose the direction before replacing the current scene.
+Live references requested by Sterling, October 30, 2026. These are inspiration links, not bundled components. Sterling selected a mix of Liquid Ether and Color Bends. Version 0.3 implements an original liquid color wall with music-driven movement and no mouse interaction.
 
 | Direction | Live reference | Description |
 |---|---|---|

@@ -2,6 +2,14 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.3 liquid wall
+
+- Replaced the dance-floor scene with an original WebGL liquid field: three-octave domain warping, broad saturated color folds, a restrained luminous crease and bass-driven displacement. No pointer or mouse handlers. Automatic Canvas 2D fallback uses seven fluid ribbons and cached color pools.
+- Three new MusicMotion tests verify that steady music advances the shared flow clock more than three times faster than silence, bass opens the folds, an attack settles back to quiet drift, and repeated timestamps do not advance the clock twice. Five existing beat tests also pass.
+- Browser suites run on both WebGL and explicitly forced Canvas fallback: real rendering, musical light response, letter halos, still/reduced-motion behavior, disabling and aligned pane slices. Both paths pass without JavaScript errors. The new renderer screenshot was visually inspected for flowing folds, saturated colors, dark troughs and legible card text.
+- Actual Qt WebEngine 75–250% zoom regression passes with the new renderer and resolution budget. The independently zoomed answer-bar slice remains aligned (average pixel-channel difference below 0.005 in the software test).
+- Installed Anki library settings/lifecycle smoke test passes with the new shared motion driver. The Windows audio capture path is unchanged. Perceived musical movement and live TV frame rate need hands-on confirmation after reinstalling this version.
+
 ## 0.2.1 zoom and rendering follow-up
 
 - Identified a coordinate mismatch: Qt window dimensions were combined with browser CSS viewport dimensions, which change under Anki page zoom. The bridge now sends native pane dimensions and display density; background buffers and transforms use those native coordinates.

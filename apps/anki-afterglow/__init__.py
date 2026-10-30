@@ -10,6 +10,7 @@ from aqt.webview import AnkiWebView
 from aqt.qt import (QAction, QCheckBox, QComboBox, QDialog, QDialogButtonBox,
                     QFormLayout, QLabel, QSlider, Qt, QTimer, QPoint, QProgressBar, QPushButton)
 from .audio import AudioListener
+from .motion import MusicMotion
 
 ROOT = Path(__file__).parent
 PACKAGE = mw.addonManager.addonFromModule(__name__)
@@ -29,6 +30,7 @@ class Afterglow:
     def __init__(self):
         self.config = dict(DEFAULTS, **(mw.addonManager.getConfig(__name__) or {}))
         self.audio = AudioListener()
+        self.motion = MusicMotion()
         self.timer = QTimer(mw)
         self.timer.setInterval(33)
         self.timer.timeout.connect(self.tick)
@@ -42,7 +44,7 @@ class Afterglow:
         self.last_injection = 0
         self.decorated = []
         css = (ROOT / 'web/afterglow.css').read_text(encoding='utf-8')
-        js = (ROOT / 'web/afterglow.js').read_text(encoding='utf-8')
+        js = (ROOT / 'web/liquid.js').read_text(encoding='utf-8') + '\n' + (ROOT / 'web/afterglow.js').read_text(encoding='utf-8')
         self.inject_script = '(function(){if(window.Afterglow)return;const s=document.createElement("style");s.textContent=' + json.dumps(css) + ';document.head.append(s);' + js + '})();'
         self.action = QAction("Afterglow — Music background…", mw)
         self.action.triggered.connect(self.settings)
@@ -79,6 +81,7 @@ class Afterglow:
         if isinstance(context, (Reviewer, ReviewerBottomBar, TopToolbar)):
             base = f"/_addons/{PACKAGE}/web"
             content.css.append(base + "/afterglow.css")
+            content.js.append(base + "/liquid.js")
             content.js.append(base + "/afterglow.js")
 
     def fullscreen(self):
@@ -132,6 +135,7 @@ class Afterglow:
             self.listening = bool(should_listen)
             self.audio.start() if should_listen else self.audio.stop()
         state = self.audio.snapshot(self.config["lead_ms"])
+        state.update(self.motion.feed(time.monotonic(), state))
         if platform.system() != "Windows":
             state["status"] = "Ambient visuals only — system audio currently supports Windows"
         if self.status_label:
