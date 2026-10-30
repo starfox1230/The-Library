@@ -506,6 +506,8 @@ class ReviewerTests(unittest.TestCase):
 
     def test_template_remains_in_sync(self):
         template = (APP_PATH.parent / 'dev/review-template.html').read_text(encoding='utf-8')
+        template = template.replace('/* LOOKUP AUTHORING SOURCE */',
+            (APP_PATH.parent / 'dev/lookup.js').read_text(encoding='utf-8'))
         self.assertEqual(self.module.TEMPLATE, template)
 
     def test_text_change_percent_uses_both_versions_and_ignores_context(self):

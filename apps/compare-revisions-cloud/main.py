@@ -1,5 +1,7 @@
 from flask import Flask, request, jsonify, render_template_string, session, abort, Response
 import difflib, re, os, json, logging
+import hashlib
+from urllib.request import urlopen
 # UAB sign-in uses the same identity library as Ben's handoff.
 import secrets
 import tempfile
@@ -643,6 +645,151 @@ def prepare_cases(text):
             for index, record in enumerate(group_nearby_identical_pairs(parse_cases(text)))]
 
 
+# === OCR ASSET MANIFEST ===
+OCR_ASSETS = {'tesseract.min.js': {'url': 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/tesseract.min.js', 'sha256': '10fff78484067759c43028a02a72d76d0b90eb17302bb23b58a9ec5410bc928b', 'bytes': 62961}, 'worker.min.js': {'url': 'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js', 'sha256': '38645599043239c0eb6db08a6504a92dcdc292200535f3e9339cd77c4443b842', 'bytes': 111162}, 'tesseract-core-lstm.wasm.js': {'url': 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core-lstm.wasm.js', 'sha256': '775a35df6f2ae100e02609443e6bd5cafcd07983dd6175454ca4a432a7730687', 'bytes': 3954181}, 'tesseract-core-lstm.wasm': {'url': 'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0/tesseract-core-lstm.wasm', 'sha256': '220e2e87551edccb85519796a170469f8ab2a8055216789e3b8b1ada18b7bc2b', 'bytes': 2871085}, 'eng.traineddata.gz': {'url': 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/eng.traineddata.gz', 'sha256': '45b4cb346724ac1774f1c36f42f182b887bcdb28ebe63e6fff90ac41f3fcff91', 'bytes': 2952873}}
+# === END OCR ASSET MANIFEST ===
+
+
+@lru_cache(maxsize=8)
+def load_ocr_asset(name):
+    """Fetch only pinned public runtime bytes; screenshots never reach Python."""
+    spec = OCR_ASSETS[name]
+    with urlopen(spec['url'], timeout=45) as response:
+        data = response.read(spec['bytes'] + 1)
+    if len(data) != spec['bytes'] or hashlib.sha256(data).hexdigest() != spec['sha256']:
+        raise ValueError('OCR asset integrity check failed')
+    return data
+
+
+@app.route('/ocr-assets/<name>')
+def ocr_asset(name):
+    if name not in OCR_ASSETS:
+        abort(404)
+    try:
+        data = load_ocr_asset(name)
+    except Exception:
+        return Response('OCR runtime unavailable. Try again later.', status=503, mimetype='text/plain')
+    content_type = 'application/wasm' if name.endswith('.wasm') else 'application/javascript' if name.endswith('.js') else 'application/gzip'
+    return Response(data, mimetype=content_type, headers={'X-Content-Type-Options': 'nosniff'})
+
+
+def confirmed_lookup(rows):
+    """No inference, numeric coercion of identifiers, or positional row matching."""
+    if not isinstance(rows, list) or len(rows) > 1000:
+        raise ValueError('The case lookup is invalid or too large.')
+    result = {}
+    for row in rows:
+        if (not isinstance(row, dict) or row.get('confirmed') is not True
+                or type(row.get('case_number')) is not int or not 1 <= row['case_number'] <= 1_000_000
+                or not isinstance(row.get('accession'), str)
+                or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{1,63}', row['accession'])):
+            raise ValueError('Confirm a valid case number and accession for every lookup row.')
+        number, accession = row['case_number'], row['accession']
+        if number in result and result[number] != accession:
+            raise ValueError(f'Case {number} has conflicting accessions. Correct its lookup first.')
+        result[number] = accession
+    return [dict(case_number=n, accession=a, confirmed=True) for n, a in sorted(result.items())]
+
+
+_EXPORT_FOOTER = re.compile(r'(?im)^\s*(?:attestations?\b|(?:electronically\s+)?signed\b|dictated\b|verified\s+by\b|as\s+the\s+attending\b|i\s+(?:have\s+)?(?:personally\s+)?reviewed\b|report\s+(?:status|finalized)\b|interpreted\s+by\b)')
+
+
+def export_review_cases(records):
+    """Construct fresh, clinical-only records; never serialize the submitted objects."""
+    if not isinstance(records, list) or not 1 <= len(records) <= 250:
+        raise ValueError('Export between 1 and 250 review entries.')
+    output, seen = [], set()
+    for index, raw in enumerate(records):
+        if not isinstance(raw, dict):
+            raise ValueError('Invalid review entry.')
+        numbers = raw.get('source_numbers')
+        if (not isinstance(numbers, list) or not numbers or len(numbers) > 250
+                or any(type(n) is not int or not 1 <= n <= 1_000_000 or n in seen for n in numbers)
+                or len(numbers) != len(set(numbers))):
+            raise ValueError('Source case numbers are invalid or repeated.')
+        seen.update(numbers)
+        reports, excluded = {}, []
+        for side in ('resident', 'attending'):
+            original = raw.get(side + '_report', '')
+            if not isinstance(original, str) or len(original) > 120_000:
+                raise ValueError('A report is invalid or too large.')
+            footer = _EXPORT_FOOTER.search(original)
+            candidate = original[:footer.start()] if footer else original
+            clinical = parse_sections(candidate, side)['clinical_text']
+            reports[side + '_report'] = clinical
+            # Guard generated prose against verbatim excluded context as well.
+            excluded.extend(line.strip() for line in original.splitlines()
+                            if len(line.strip()) >= 12 and line.strip() not in clinical)
+            for match in _HEADING.finditer(original):
+                if not re.fullmatch(_CLINICAL_HEADING, match.group('name'), re.I):
+                    end = original.find('\n', match.end())
+                    value = original[match.end():end if end >= 0 else len(original)].strip()
+                    if len(value) >= 12 and value not in clinical:
+                        excluded.append(value)
+        clinical_all = '\n'.join(reports.values())
+        def safe_prose(value, fallback=''):
+            if not isinstance(value, str) or len(value) > 3000:
+                return fallback
+            if _EXPORT_FOOTER.search(value) or any(s not in clinical_all and s.casefold() in value.casefold() for s in excluded):
+                return fallback
+            return value
+        case = _base_case(dict(reports, source_numbers=sorted(numbers)), f'g{index + 1}')
+        case['review_mode'] = raw.get('review_mode') if raw.get('review_mode') in REVIEW_PROMPTS else 'resident'
+        case['exam_label'] = safe_prose(raw.get('exam_label'), 'Exam')
+        case['title'] = safe_prose(raw.get('title'), 'Clinical report review')
+        status = raw.get('status')
+        if status in ('queued', 'processing'):
+            raise ValueError('Wait for analysis to finish before exporting.')
+        if status in ('complete', 'partial') and case['status'] == 'queued':
+            items = raw.get('revisions', [])
+            if not isinstance(items, list) or len(items) > 1000:
+                raise ValueError('Invalid revision list.')
+            clean = []
+            for item in items:
+                if not isinstance(item, dict):
+                    clean.append({})  # Let validation mark the inventory partial.
+                    continue
+                picked = {key: item.get(key, '') for key in _revision_properties}
+                for key in ('resident_summary', 'attending_summary', 'reason'):
+                    picked[key] = safe_prose(picked[key])
+                clean.append(picked)
+            case = validate_analysis(dict(exam_label=case['exam_label'], title=case['title'],
+                revisions=clean, warnings=[]), case)
+            if status == 'partial' or case['status'] != 'complete':
+                case.update(status='partial', status_message='Review analysis limitations',
+                    analysis_warnings=['Some analysis content needs review. Only validated clinical evidence is included.'])
+        else:
+            case.update(status='unavailable', title='Analysis unavailable', revisions=[],
+                status_message='Analysis was incomplete or unavailable when this review was exported.', analysis_warnings=[])
+        case['diff_note'] = 'Findings and Impression/Conclusion only.'
+        output.append(case)
+    return output
+
+
+@app.route('/export-review', methods=['POST'])
+@uab_login_required
+def export_review(*, context):
+    data = request.get_json(silent=True)
+    try:
+        if not isinstance(data, dict):
+            raise ValueError('Invalid export request.')
+        records = export_review_cases(data.get('cases'))
+        lookup = confirmed_lookup(data.get('lookup', []))
+        selected = {n for c in records for n in c['source_numbers']}
+        lookup = [row for row in lookup if row['case_number'] in selected]
+    except ValueError as exc:
+        return jsonify(error=str(exc)), 400
+    html = render_template_string(TEMPLATE, cases=records, lookup_rows=lookup,
+        exported_review=True, reports_text='', custom_prompt='', default_prompt='',
+        review_mode=data.get('review_mode') if data.get('review_mode') in REVIEW_PROMPTS else 'resident',
+        combined_view=bool(data.get('combined_view', True)), show_report_wording=bool(data.get('show_report_wording', True)),
+        theme=data.get('theme') if data.get('theme') in ('light', 'dark', 'system') else 'system',
+        error='', csrf_token='', username='', synthetic_preview=False)
+    return Response(html, mimetype='text/html', headers={
+        'Content-Disposition': 'attachment; filename="clinical-review.html"',
+        'X-Content-Type-Options': 'nosniff'})
+
+
 def _analysis_error(case, message):
     return dict(case, status='error', status_message=message, revisions=[], analysis_warnings=[message])
 
@@ -757,6 +904,7 @@ def index(*, context):
         review_mode = 'resident'
     default_prompt = REVIEW_PROMPTS[review_mode]
     cases, error, reports_text, custom_prompt = [], '', '', default_prompt
+    lookup = []
     combined_view = request.form.get('combined_view', '1') == '1'
     show_report_wording = request.form.get('show_report_wording', '1') != '0'
     theme = request.form.get('theme', 'system')
@@ -773,12 +921,13 @@ def index(*, context):
             error = 'Analysis instructions must be 40,000 characters or fewer.'
         else:
             try:
+                lookup = confirmed_lookup(json.loads(request.form.get('lookup_json', '[]') or '[]'))
                 cases = prepare_cases(reports_text)
                 for case in cases:
                     case['review_mode'] = review_mode
             except ValueError as exc:
                 error = str(exc)
-    return render_template_string(TEMPLATE, cases=cases, reports_text=reports_text,
+    return render_template_string(TEMPLATE, cases=cases, lookup_rows=lookup, reports_text=reports_text,
         custom_prompt=custom_prompt, default_prompt=default_prompt, review_mode=review_mode,
         combined_view=combined_view, show_report_wording=show_report_wording,
         theme=theme, error=error, csrf_token=csrf_token(),
@@ -1121,11 +1270,39 @@ html[data-theme="dark"] {color-scheme:dark;}
 @media(prefers-reduced-motion:reduce) {
 #cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .mode-label,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
 </style>
+<style>
+#cr-app .lookup-card {margin:0 0 24px; padding:16px 20px; border:1px solid var(--line); border-radius:10px; background:var(--panel);}
+#cr-app .lookup-card summary {font-weight:600;}
+#cr-app .lookup-tools {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0;}
+#cr-app .lookup-tools input {width:auto; max-width:100%;}
+#cr-app .lookup-image {max-height:420px; overflow:auto; margin:10px 0; border:1px solid var(--line);}
+#cr-app .lookup-image canvas {display:block; max-width:none; height:auto; touch-action:none; cursor:crosshair;}
+#cr-app .lookup-workspace {display:grid; grid-template-columns:minmax(180px,1fr) minmax(340px,1.6fr); gap:14px; align-items:start;}
+#cr-app .lookup-workspace .lookup-image {margin:0;}
+@media(max-width:760px) { #cr-app .lookup-workspace {grid-template-columns:minmax(0,1fr);} }
+#cr-app .lookup-table-wrap {max-height:330px; overflow:auto;}
+#cr-app .lookup-table {width:100%; border-collapse:collapse; font-size:12px;}
+#cr-app .lookup-table th,#cr-app .lookup-table td {padding:6px; text-align:left; border-bottom:1px solid var(--line);}
+#cr-app .lookup-table th {position:sticky; top:0; background:var(--panel);}
+#cr-app .lookup-table input {padding:6px; min-width:65px;}
+#cr-app .lookup-table input[type=checkbox] {width:18px; height:18px; min-width:18px;}
+#cr-app .lookup-table td:nth-child(3) .plain {display:block; font-size:11px; padding:2px 0;}
+#cr-app .lookup-warning {color:var(--major);}
+#cr-app .case {position:relative;}
+#cr-app .accession-tools {padding:0 24px 12px 56px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;}
+#cr-app .accession-tools button {padding:5px 10px; font-size:12px;}
+#cr-app .copy-accession {color:var(--accent);}
+#cr-app .phi-banner {position:sticky; top:0; z-index:20; padding:10px 24px; background:var(--minor-bg); color:var(--ink); border-bottom:1px solid var(--minor); font-size:12px;}
+#cr-app .export-tools {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
+@media print { #cr-app .phi-banner {position:static;} #cr-app .site-header,#cr-app .controls,#cr-app .filter-panel,#cr-app .export-tools {display:none;} #cr-app .case-reveal {display:block; visibility:visible;} }
+</style>
 </head>
 <body>
 <div id="cr-app" data-theme="{{ theme | default('system') }}" {% if combined_view %}class="dual-view"{% endif %}>
+{% if exported_review | default(false) %}<aside class="phi-banner"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</aside>{% endif %}
 <header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('resident') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
+{% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
 <label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
@@ -1137,6 +1314,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
 <input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
 <input type="hidden" id="theme-value" name="theme" value="{{ theme | default('system') }}">
+<input type="hidden" id="lookup-value" name="lookup_json" value="">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
 <span class="hint" id="paste-status" role="status"></span>
@@ -1150,7 +1328,25 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="form-actions"><button type="submit" class="primary" id="analyze-button">Analyze reports</button><button type="button" id="clear-button">Clear reports</button><span class="hint" id="form-status" role="status"></span></div>
 </form>
 </details>
+<details class="lookup-card" id="lookup-panel">
+<summary>Case lookup · screenshots to accessions <span class="muted" id="lookup-count"></span></summary>
+<p class="hint">Capture the same PowerScribe list and ordering used for your report batch. Include the case-number and accession columns. Screenshots stay in this browser; check every extracted match before confirming.</p>
+<div class="lookup-tools"><label for="lookup-files">Add screenshots</label><input type="file" id="lookup-files" accept="image/png,image/jpeg,image/webp" multiple><button type="button" id="lookup-paste">Paste screenshot</button><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button></div>
+<p class="hint" id="ocr-status" role="status"></p>
+<div class="lookup-tools" id="lookup-images"></div>
+<div class="lookup-tools" id="lookup-column-tools" hidden><button type="button" id="mark-case">Mark case column</button><button type="button" id="mark-accession">Mark accession column</button><button type="button" id="read-columns">Read marked columns</button><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select><span class="hint">Drag across the width of each column if automatic detection needs correction.</span></div>
+<p class="hint" id="lookup-coverage" role="status"></p>
+<div class="lookup-workspace">
+<div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
+<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th>Confirmed</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+</div>
+<p class="hint">A confirmed row attaches only to that exact source case number. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
+</details>
+{% else %}
+<input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
+{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
+{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
 <div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
@@ -1174,12 +1370,16 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
+<script id="lookup-data" type="application/json">{{ lookup_rows | default([]) | tojson }}</script>
+{% if not exported_review | default(false) %}
 <script id="default-prompt" type="application/json">{{ default_prompt | tojson }}</script>
 <script id="review-prompts" type="application/json">{{ review_prompts | tojson }}</script>
+{% endif %}
 <script>
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
+const exportedReview={{ exported_review | default(false) | tojson }};
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
 const wordingOverrides=new Map();
@@ -1190,8 +1390,9 @@ const diffModes=new Map(), spacingVisible=new Map();
 const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new Map(), reportScroll=new Map(), hoverTimers=new Map();
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
-let generation=0, queueRunning=false, submittedPrompt=$('custom-prompt').value;
+let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
 let reviewMode={{ review_mode | default('resident') | tojson }};
+{% if not exported_review | default(false) %}
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
 let defaultPrompt=reviewPrompts[reviewMode];
@@ -1207,7 +1408,9 @@ for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.
  $('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Instructions switched to '+reviewMode+' mode.';
  $('default-prompt').textContent=JSON.stringify(defaultPrompt);describeMode();
 });
-describeMode();
+{% else %}
+function describeMode(){}
+{% endif %}
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
 let themeChoice=$('theme-value').value;
 function applyTheme(){
@@ -1233,6 +1436,217 @@ const firstNumber = c => members(c).length ? Math.min(...members(c)) : Number.MA
 const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
 const caseLabel = c => c.case_label || members(c).join(', ');
+// Only explicitly confirmed, batch-local mappings reach the reader or AI input form.
+let lookupRows=JSON.parse($('lookup-data').textContent||'[]');
+const lookupSourceText=$('report-text')?.value;
+const lookupMatchesReview=()=>exportedReview||!cases.length||$('report-text').value===lookupSourceText;
+const validLookup=r=>Number.isInteger(r.case_number)&&r.case_number>0&&r.case_number<=1000000&&typeof r.accession==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(r.accession);
+function lookupConflicts(){
+ const seen=new Map(),conflicts=new Set();
+ for(const r of lookupRows){if(!validLookup(r))continue;if(seen.has(r.case_number)&&seen.get(r.case_number)!==r.accession)conflicts.add(r.case_number);seen.set(r.case_number,r.accession);}
+ return conflicts;
+}
+function caseAccessions(c){if(!lookupMatchesReview())return [];const conflicts=lookupConflicts();return [...new Map(lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!conflicts.has(r.case_number)&&members(c).includes(r.case_number)).sort((a,b)=>a.case_number-b.case_number).map(r=>[r.accession,r])).values()];}
+async function copyAccession(target,value){
+ const original=target.textContent;
+ try{
+  try{if(!navigator.clipboard?.writeText)throw Error();await navigator.clipboard.writeText(value);}
+  catch{const box=el('textarea');box.value=value;box.setAttribute('aria-label','Accession to copy');box.style.cssText='position:fixed;left:-9999px;top:0';document.body.append(box);box.select();let ok=false;try{ok=document.execCommand('copy');}finally{box.remove();target.focus({preventScroll:true});}if(!ok)throw Error();}
+  target.textContent='Accession copied';$('announcement').textContent='Accession copied';
+ }catch{target.textContent='Copy unavailable';$('announcement').textContent='Copy unavailable. Select the displayed accession and press Ctrl+C.';}
+ setTimeout(()=>{target.textContent=original;},1400);
+}
+function appendAccessionTools(row,c){
+ const entries=caseAccessions(c);if(!entries.length){if(lookupRows.length){const missing=el('div','accession-tools');missing.append(el('span','muted','Accession not attached'));row.append(missing);}return;}
+ const tools=el('div','accession-tools'),copy=button('Copy accession','copy-accession',()=>copyAccession(copy,entries[0].accession));
+ copy.title='Copy '+entries[0].accession+' (source case '+entries[0].case_number+')';tools.append(copy);
+ if(entries.length===1)tools.append(el('span','muted',entries[0].accession));
+ else{const detail=el('details'),summary=el('summary','muted',entries.length+' accessions');detail.append(summary);for(const entry of entries){const line=el('div','lookup-tools');const one=button('Copy','plain',()=>copyAccession(one,entry.accession));line.append(el('span','','Case '+entry.case_number+' · '+entry.accession),one);detail.append(line);}tools.append(detail);}
+ const mapped=new Set(lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!lookupConflicts().has(r.case_number)).map(r=>r.case_number));
+ const missing=members(c).filter(n=>!mapped.has(n));if(missing.length)tools.append(el('span','lookup-warning','Lookup missing: '+missing.join(', ')));
+ row.append(tools);
+}
+function updateLookupCoverage(){
+ {% if not exported_review | default(false) %}
+ const matchesBatch=lookupMatchesReview(),conflicts=lookupConflicts(),source=new Set(matchesBatch?cases.flatMap(members):[]),valid=lookupRows.filter(r=>r.confirmed&&validLookup(r)&&!conflicts.has(r.case_number));
+ $('lookup-count').textContent=valid.length?'· '+new Set(valid.map(r=>r.case_number)).size+' confirmed':'';
+ const matched=new Set(valid.filter(r=>source.has(r.case_number)).map(r=>r.case_number));
+ const missing=[...source].filter(n=>!matched.has(n));
+ const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
+ $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Conflicting cases: '+[...conflicts].join(', ')+'. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>!r.confirmed)?'Check each row against the screenshot, then confirm.':'');
+ $('lookup-value').value=JSON.stringify(valid.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));
+ $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!r.confirmed||!validLookup(r))||conflicts.size>0;
+ {% endif %}
+}
+{% if not exported_review | default(false) %}
+let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null,marking=null,dragStart=null;
+const lookupImages=[];
+function paintLookup(){
+ const canvas=$('lookup-canvas');if(!currentImage)return;const ctx=canvas.getContext('2d');canvas.width=currentImage.bitmap.width;canvas.height=currentImage.bitmap.height;ctx.drawImage(currentImage.bitmap,0,0);
+ for(const [name,color] of [['caseColumn','#2689df'],['accessionColumn','#dba72a']]){const col=currentImage[name];if(!col)continue;ctx.fillStyle=color+'33';ctx.fillRect(col[0],0,col[1]-col[0],canvas.height);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(col[0],1,col[1]-col[0],canvas.height-2);}
+ if(Number.isFinite(currentImage.focusY)){ctx.strokeStyle='#e14c79';ctx.lineWidth=2;ctx.strokeRect(1,currentImage.focusY-9,canvas.width-2,18);}
+}
+function showLookupImage(img){currentImage=img;$('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth):img.bitmap.width*Number(zoom))+'px';paintLookup();}
+function lookupTable(){
+ const conflicts=lookupConflicts();$('lookup-rows').replaceChildren();
+ lookupRows.forEach((r,index)=>{
+  const tr=el('tr'),n=el('input'),a=el('input'),check=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;a.setAttribute('aria-label','Accession row '+(index+1));check.type='checkbox';check.checked=!!r.confirmed;check.setAttribute('aria-label','Confirm row '+(index+1));check.disabled=!validLookup(r)||conflicts.has(r.case_number);
+  const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',conflicts.has(r.case_number)?'Conflicting accession':!validLookup(r)?'Check case / accession':(r.source||'Manual')+(r.confidence!==undefined?' · OCR '+Math.round(r.confidence)+'%':''));
+  const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));n.addEventListener('focus',reveal);a.addEventListener('focus',reveal);}
+  const changed=()=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();r.confirmed=false;check.checked=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],box=row.querySelector('[type=checkbox]');box.disabled=!validLookup(item)||conflicts.has(item.case_number);row.children[2].querySelector('span').textContent=conflicts.has(item.case_number)?'Conflicting accession':!validLookup(item)?'Check case / accession':item.confirmed?'Confirmed':'Check against screenshot';}updateReview();};
+  n.addEventListener('input',changed);a.addEventListener('input',changed);
+  check.addEventListener('change',()=>{r.confirmed=check.checked;updateReview();});
+  for(const child of [n,a,source,check,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
+ });updateLookupCoverage();
+}
+function clearLookup(){
+ lookupEpoch++;lookupRows=[];for(const img of lookupImages)img.bitmap.close();lookupImages.length=0;currentImage=null;marking=null;
+ if(ocrWorker){ocrWorker.terminate().catch(()=>{});ocrWorker=null;}
+ ocrLoading=null;ocrBusy=false;$('lookup-files').value='';$('lookup-images').replaceChildren();$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('ocr-status').textContent='';lookupTable();
+}
+async function getOCR(epoch){
+ if(ocrWorker)return ocrWorker;
+ if(!ocrLoading)ocrLoading=(async()=>{
+  if(!window.Tesseract)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='/ocr-assets/tesseract.min.js';script.onload=resolve;script.onerror=()=>{script.remove();reject(Error('runtime'));};document.head.append(script);});
+  const base=new URL('/ocr-assets/',location.href).href;
+  const worker=await window.Tesseract.createWorker('eng',1,{workerPath:base+'worker.min.js',corePath:base+'tesseract-core-lstm.wasm.js',langPath:base,workerBlobURL:false,cacheMethod:'none',logger:m=>{if(epoch===lookupEpoch&&m.status==='recognizing text')$('ocr-status').textContent='Reading screenshot… '+Math.round((m.progress||0)*100)+'%';}});
+  if(epoch!==lookupEpoch){await worker.terminate();throw Error('cleared');}
+  await worker.setParameters({tessedit_pageseg_mode:'6'});ocrWorker=worker;return worker;
+ })().catch(error=>{ocrLoading=null;throw error;});
+ return ocrLoading;
+}
+function imageLines(words){
+ const lines=[];
+ for(const w of [...words].sort((a,b)=>(a.bbox.y0+a.bbox.y1)-(b.bbox.y0+b.bbox.y1)||a.bbox.x0-b.bbox.x0)){
+  const y=(w.bbox.y0+w.bbox.y1)/2,h=w.bbox.y1-w.bbox.y0;
+  let line=lines.find(l=>Math.abs(l.y-y)<=Math.max(5,Math.min(l.height,h)*0.5));
+  if(!line){line={y,height:h,words:[]};lines.push(line);}line.words.push(w);
+ }
+ for(const line of lines)line.words.sort((a,b)=>a.bbox.x0-b.bbox.x0);return lines;
+}
+function detectColumns(img){
+ for(const line of imageLines(img.words)){
+  const clean=w=>w.text.toLowerCase().replace(/[^a-z#]/g,'');const cw=line.words.find(w=>['case','case#','caseid'].includes(clean(w))),aw=line.words.find(w=>/^acc(?:ession)?(?:number|no|#)?$/.test(clean(w)));
+  if(!aw)continue;
+  if(!cw){
+   if(line.words.length!==1)continue;
+   // A two-column export often leaves the row-number header blank. Accept only
+   // a clearly separated numeric column to the left of the named Accession.
+   const numeric=img.words.filter(w=>/^\d{1,7}$/.test(w.text)&&w.bbox.y0>aw.bbox.y1&&w.bbox.x1<aw.bbox.x0);
+   if(numeric.length>=3){const edge=Math.max(...numeric.map(w=>w.bbox.x1));if(edge<aw.bbox.x0){const boundary=(edge+aw.bbox.x0)/2;img.caseColumn=[0,boundary];img.accessionColumn=[boundary,img.bitmap.width];img.headerY=line.y+line.height/2;return true;}}
+   continue;
+  }
+  if(cw===aw)continue;
+  const bounds=word=>{const i=line.words.indexOf(word),center=w=>(w.bbox.x0+w.bbox.x1)/2;return [i? (center(line.words[i-1])+center(word))/2:0,i<line.words.length-1?(center(word)+center(line.words[i+1]))/2:img.bitmap.width];};
+  img.caseColumn=bounds(cw);img.accessionColumn=bounds(aw);img.headerY=line.y+line.height/2;return true;
+ }return false;
+}
+async function recognizeColumns(img,worker,epoch){
+ const words=[];
+ if(img.accessionColumn[1]-img.accessionColumn[0]<240){
+  // Tiny table screenshots lose whole rows in page OCR. Segment by visible ink
+  // in the accession column, then recognize each actual row and both columns.
+  // Row positions are never substituted for unreadable case numbers.
+  const probe=document.createElement('canvas'),left=Math.floor(img.accessionColumn[0]),width=Math.ceil(img.accessionColumn[1])-left;probe.width=width;probe.height=img.bitmap.height;const pc=probe.getContext('2d');pc.drawImage(img.bitmap,left,0,width,img.bitmap.height,0,0,width,img.bitmap.height);const data=pc.getImageData(0,0,width,img.bitmap.height).data,bands=[];let start=null,last=-1;
+  for(let y=0;y<img.bitmap.height;y++){let ink=0;for(let x=0;x<width;x++){const i=(y*width+x)*4;if((data[i]+data[i+1]+data[i+2])/3<140)ink++;}if(ink>=2){if(start===null)start=y;last=y;}else if(start!==null&&y-last>2){if(last-start>=3)bands.push([start,last]);start=null;}}
+  if(start!==null&&last-start>=3)bands.push([start,last]);probe.width=1;probe.height=1;
+  if(bands.length>260)throw Error('rows');
+  for(const [top,bottom] of bands){
+   if(top<=(img.headerY||0))continue;
+   if(epoch!==lookupEpoch)return;
+   for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
+    const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=4,canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
+    await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:name==='caseColumn'?'13':'7'});const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
+    for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:(w.bbox.x0-8)/scale+x0,x1:(w.bbox.x1-8)/scale+x0,y0:(w.bbox.y0-8)/scale+y0,y1:(w.bbox.y1-8)/scale+y0}});
+   }
+  }
+  if(epoch!==lookupEpoch)return;img.words=words;readImageRows(img);return;
+ }
+ for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
+  const [left,right]=img[name],width=right-left;if(width<3)throw Error('column');
+  const scale=Math.min(4,Math.sqrt(16000000/(width*img.bitmap.height))),canvas=document.createElement('canvas');canvas.width=Math.round(width*scale);canvas.height=Math.round(img.bitmap.height*scale);const ctx=canvas.getContext('2d');ctx.drawImage(img.bitmap,left,0,width,img.bitmap.height,0,0,canvas.width,canvas.height);
+  const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const v=(pixels.data[i]+pixels.data[i+1]+pixels.data[i+2])/3<140?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
+  await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:'6'});
+  const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
+  if(epoch!==lookupEpoch)return;
+  for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:w.bbox.x0/scale+left,x1:w.bbox.x1/scale+left,y0:w.bbox.y0/scale,y1:w.bbox.y1/scale}});
+ }
+ if(epoch!==lookupEpoch)return;img.words=words;readImageRows(img);
+}
+function readImageRows(img){
+ if(!img.caseColumn||!img.accessionColumn){$('ocr-status').textContent='Mark the case-number and accession columns on the screenshot, then read marked columns.';return;}
+ if(Math.max(img.caseColumn[0],img.accessionColumn[0])<Math.min(img.caseColumn[1],img.accessionColumn[1])){$('ocr-status').textContent='The marked columns overlap. Mark two separate columns.';return;}
+ lookupRows=lookupRows.filter(r=>r.imageId!==img.id);let found=0;
+ const within=(w,col)=>{const x=(w.bbox.x0+w.bbox.x1)/2;return x>=col[0]&&x<=col[1];};
+ for(const line of imageLines(img.words)){
+  if(line.y<=(img.headerY||0))continue;
+  const ns=line.words.filter(w=>within(w,img.caseColumn)),as=line.words.filter(w=>within(w,img.accessionColumn));
+  const n=ns.map(w=>w.text).join(' ').trim(),accession=as.map(w=>w.text).join(' ').trim();
+  const number=/^\d{1,7}$/.test(n)&&Number(n)>0?Number(n):null;
+  if(!number&&/^(?:acc(?:ession)?(?:number|no)?|case|number|no)$/i.test(accession.replace(/[ #._-]/g,'')))continue;
+  if(!number&&!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(accession))continue;
+  const candidate={case_number:number,accession,confirmed:false,source:img.label,imageId:img.id,rowY:line.y,confidence:Math.min(...[...ns,...as].map(w=>w.confidence??0))};
+  if(!number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
+  found++;
+ }
+ lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. Check every case number and accession against the screenshot and confirm each match.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Adjust the marked columns or add rows manually.';
+}
+async function addLookupImages(files){
+ if(ocrBusy){$('ocr-status').textContent='Wait for the current screenshots to finish.';return;}
+ if(lookupImages.length+files.length>20){$('ocr-status').textContent='Use at most 20 screenshots per batch.';return;}
+ const epoch=lookupEpoch;ocrBusy=true;marking=null;updateLookupCoverage();
+ try{
+  for(const file of files){
+   if(epoch!==lookupEpoch)return;
+   if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024)throw Error('image');
+   const bitmap=await createImageBitmap(file);if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('image');}
+   if(epoch!==lookupEpoch){bitmap.close();return;}
+   const img={id:crypto.randomUUID(),bitmap,label:'Screenshot '+(lookupImages.length+1),words:[]};lookupImages.push(img);
+   const choose=button(img.label,'',()=>showLookupImage(img));$('lookup-images').append(choose);showLookupImage(img);
+   $('ocr-status').textContent='Loading local OCR…';const worker=await getOCR(epoch);if(epoch!==lookupEpoch)return;
+   // A canvas supplies only image pixels to the browser worker. No screenshot request is made.
+   const scale=Math.min(4,Math.max(1,1600/bitmap.width),Math.sqrt(16000000/(bitmap.width*bitmap.height)));
+   const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
+   const ctx=canvas.getContext('2d'),pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const v=(pixels.data[i]+pixels.data[i+1]+pixels.data[i+2])/3<140?0:255;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=v;pixels.data[i+3]=255;}ctx.putImageData(pixels,0,0);
+   await worker.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:'6'});
+   const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
+   if(epoch!==lookupEpoch)return;
+   img.words=(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
+   if(!img.words.length&&Array.isArray(data.words))img.words=data.words;
+   if(scale!==1)img.words=img.words.map(w=>({...w,bbox:Object.fromEntries(Object.entries(w.bbox).map(([k,v])=>[k,v/scale]))}));
+   if(detectColumns(img))await recognizeColumns(img,worker,epoch);else $('ocr-status').textContent='Screenshot read. Mark the case-number and accession columns, then read marked columns.';
+   showLookupImage(img);
+  }
+ }catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read this screenshot. Check the image size/format or retry. You can add and confirm rows manually.';}
+ finally{if(epoch===lookupEpoch){ocrBusy=false;$('lookup-files').value='';updateLookupCoverage();}}
+}
+$('lookup-files').addEventListener('change',()=>addLookupImages([...$('lookup-files').files]));
+$('lookup-zoom').addEventListener('change',()=>{if(currentImage)showLookupImage(currentImage);});
+$('report-text').addEventListener('input',updateReview);
+$('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length){event.preventDefault();addLookupImages(files);}});
+$('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Click inside this lookup section and press Ctrl+V, or choose an image file.';}});
+$('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});lookupTable();});
+$('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
+for(const [id,column] of [['mark-case','caseColumn'],['mark-accession','accessionColumn']])$(id).addEventListener('click',()=>{if(ocrBusy){$('ocr-status').textContent='Wait for screenshot recognition to finish before marking columns.';return;}marking=column;$('ocr-status').textContent='Drag across the full width of the '+(column==='caseColumn'?'case-number':'accession')+' column.';});
+$('read-columns').addEventListener('click',async()=>{if(!currentImage||ocrBusy)return;if(!currentImage.caseColumn||!currentImage.accessionColumn){readImageRows(currentImage);return;}if(Math.max(currentImage.caseColumn[0],currentImage.accessionColumn[0])<Math.min(currentImage.caseColumn[1],currentImage.accessionColumn[1])){$('ocr-status').textContent='The marked columns overlap. Mark two separate columns.';return;}const epoch=lookupEpoch;ocrBusy=true;marking=null;updateLookupCoverage();try{await recognizeColumns(currentImage,await getOCR(epoch),epoch);}catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read these columns. Adjust the selection or add rows manually.';}finally{if(epoch===lookupEpoch){ocrBusy=false;updateLookupCoverage();}}});
+$('lookup-canvas').addEventListener('pointerdown',event=>{if(!marking||!currentImage)return;const canvas=$('lookup-canvas'),rect=canvas.getBoundingClientRect();dragStart=(event.clientX-rect.left)*canvas.width/rect.width;canvas.setPointerCapture(event.pointerId);});
+$('lookup-canvas').addEventListener('pointerup',event=>{if(dragStart===null||!marking||!currentImage)return;const canvas=$('lookup-canvas'),rect=canvas.getBoundingClientRect(),end=(event.clientX-rect.left)*canvas.width/rect.width;currentImage[marking]=[Math.max(0,Math.min(dragStart,end)),Math.min(canvas.width,Math.max(dragStart,end))];currentImage.headerY=0;dragStart=null;marking=null;paintLookup();});
+$('export-review').addEventListener('click',async()=>{
+ const target=$('export-review');target.disabled=true;$('export-status').textContent='Preparing clinical review…';
+ try{
+  if(ocrBusy||!lookupMatchesReview())throw Error('batch');
+  const selected=$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
+  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,status:c.status,revisions:revisions(c)}));
+  const lookup=lookupRows.filter(r=>r.confirmed&&validLookup(r)).map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true}));
+  const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_mode:reviewMode,theme:themeChoice,combined_view:combinedView,show_report_wording:showReportWording})});
+  if(!response.ok||!response.headers.get('content-type')?.includes('text/html')||response.redirected)throw Error();
+  const blob=await response.blob(),url=URL.createObjectURL(blob),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('export-status').textContent='Review downloaded. Contains PHI—keep it within approved systems.';
+ }catch{$('export-status').textContent='Export could not be completed. Check that analysis and lookup confirmation are finished, or refresh your sign-in.';}
+ finally{updateLookupCoverage();}
+});
+lookupTable();
+{% endif %}
+
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
 function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
@@ -1262,6 +1676,7 @@ function filterChip(key,text,cls='',description='') {
 }
 const textChange=c=>typeof c.text_change_percent==='number'&&Number.isFinite(c.text_change_percent)?c.text_change_percent:null;
 function updateProgress() {
+ if(exportedReview){$('analysis-progress').hidden=true;return;}
  const tracked=cases.filter(c=>analysisIds.has(c.id)), total=tracked.length;
  const finished=tracked.filter(c=>!['queued','processing'].includes(c.status)), done=finished.length;
  const percent=total?Math.round(done*100/total):0, issues=finished.filter(c=>c.status!=='complete').length;
@@ -1375,15 +1790,17 @@ function summaryPanel(c,key) {
  if(c.status_message && c.status!=='complete')notices.add(c.status_message);
  for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))notices.add(warning);
  for(const notice of notices)panel.append(el('p','notice',notice));
- if(!['complete','queued','processing'].includes(c.status)){
+ if(!exportedReview&&!['complete','queued','processing'].includes(c.status)){
   const next=c.status==='needs_sections'?'Check Findings/Impression headings in both reports, then submit the corrected pair again.':
    ['pending','unavailable'].includes(c.status)?'Recapture the completed resident and attending reports, then submit the pair again.':
    !analysisIds.has(c.id)?'Correct the input issue described above, then submit the pair again.':'Retry this analysis, or review the full reports.';
   panel.append(el('p','notice case-next-step','Next: '+next));
  }
+ {% if not exported_review | default(false) %}
  if(!syntheticPreview && ['error','partial'].includes(c.status)) {
   const retry=button('Retry analysis','',()=>{const editor=$('custom-prompt');if(!editor.value.trim()){editor.setCustomValidity('Enter instructions or restore the defaults.');}else editor.setCustomValidity('');if(!editor.checkValidity()){$('input-disclosure').open=true;editor.closest('details').open=true;editor.reportValidity();return;}analyzeCase(c,key,generation,editor.value);});retry.disabled=queueRunning||controllers.size>0;panel.append(retry);
  }
+ {% endif %}
  const items=revisions(c), show=wordingShown(key);
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
@@ -1474,14 +1891,15 @@ function showRevisionLinks(key,scrollToPassage=false){
 }
 function reportPanel(c) {
  const panel=el('div','report-grid');
- for(const [label,text] of [['Resident full report',c.resident_report],['Attending full report',c.attending_report]]) {
+ for(const [label,text] of [[exportedReview?'Resident clinical report':'Resident full report',c.resident_report],[exportedReview?'Attending clinical report':'Attending full report',c.attending_report]]) {
   const side=el('div'); side.append(el('div','source-label',label),el('pre','report-text',text || 'No report captured.')); panel.append(side);
  } return panel;
 }
 function bodyPanel(c,key) {
  const body=el('div','case-body'), tabs=el('div','tabs');
  const active=combinedView?(views.get(key)==='reports'?'reports':'paired'):(views.get(key)||'summary');
- const options=combinedView?[['paired','Summary + text changes'],['reports','Full reports']]:[['summary','Summary'],['diff','Text changes'],['reports','Full reports']];
+ const reportsLabel=exportedReview?'Clinical reports':'Full reports';
+ const options=combinedView?[['paired','Summary + text changes'],['reports',reportsLabel]]:[['summary','Summary'],['diff','Text changes'],['reports',reportsLabel]];
  tabs.setAttribute('role','tablist'); tabs.setAttribute('aria-label','Case '+caseLabel(c)+' views');
  for(const [view,label] of options) {
   const tab=button(label,'tab',()=>{views.set(key,view==='paired'?'summary':view);renderAndFocus('tab-'+key+'-'+view);}); tab.id='tab-'+key+'-'+view;
@@ -1522,6 +1940,7 @@ function caseRow(c,key) {
  for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
  if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
  if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);row.append(head);
+ appendAccessionTools(row,c);
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
 }
@@ -1549,7 +1968,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}
@@ -1569,12 +1988,14 @@ function render() {
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
  $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
+ updateLookupCoverage();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
  if(combinedView)for(const key of opened)showRevisionLinks(key,false);
  if(wordingOffer)mountWordingOffer(wordingOffer.key);
 }
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
+{% if not exported_review | default(false) %}
 async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
  if(syntheticPreview || queueRunning || runGeneration!==generation || c.status==='processing'||controllers.size>0)return;
  const mode=reviewMode;
@@ -1650,6 +2071,7 @@ async function analyzeBatch(group,instructions,runGeneration,mode) {
   controllers.delete(controller);if(runGeneration===generation)updateReview();
  }
 }
+{% endif %}
 $('search').addEventListener('input',render);$('order').addEventListener('change',render);
 window.addEventListener('scroll',()=>{
  const space=$('wording-scroll-space'), reserved=parseFloat(space.style.height)||0;
@@ -1657,6 +2079,7 @@ window.addEventListener('scroll',()=>{
 },{passive:true});
 $('reset-filters').addEventListener('click',()=>{selectedFilters.clear();$('search').value='';renderAndFocus('filter-all');});
 $('combined-view').addEventListener('change',()=>{combinedView=$('combined-view').checked;if(combinedView)for(const key of views.keys())views.set(key,'summary');$('cr-app').classList.toggle('dual-view',combinedView);$('combined-view-value').value=combinedView?'1':'0';render();$('announcement').textContent=combinedView?'Summary and text changes shown together.':'Single case view restored.';});
+{% if not exported_review | default(false) %}
 $('custom-prompt').addEventListener('input',()=>{$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Edits apply to your next analysis or retry.';});
 $('restore-prompt').addEventListener('click',()=>{$('custom-prompt').value=defaultPrompt;promptDrafts[reviewMode]=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Default instructions restored. Existing results stay as they are.';});
 $('paste-button').addEventListener('click',async()=>{
@@ -1681,15 +2104,19 @@ $('clear-button').addEventListener('click',()=>{
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
+ clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();
  for(const timer of hoverTimers.values())clearTimeout(timer);hoverTimers.clear();pinnedRevisions.clear();hoveredRevisions.clear();passageIndices.clear();reportScroll.clear();
  $('report-text').value='';$('report-text').defaultValue='';$('paste-status').textContent='';$('custom-prompt').value=defaultPrompt;$('custom-prompt').defaultValue=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='';
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',()=>{$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!r.confirmed||!validLookup(r))||lookupConflicts().size){event.preventDefault();$('lookup-panel').open=true;$('form-status').textContent='Wait for OCR to finish, then confirm or remove the remaining lookup rows before analyzing.';return;}$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+{% endif %}
 render();
+{% if not exported_review | default(false) %}
 if(!syntheticPreview)runQueue();
+{% endif %}
 })();
 </script>
 </div>

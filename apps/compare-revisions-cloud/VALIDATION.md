@@ -2,6 +2,46 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 29, 2026: screenshot accession lookup and offline export
+
+- **102 Python tests passed.** New tests cover strict confirmed lookup validation,
+  conflicting/duplicate source mappings, leading zeros, normal form persistence,
+  export CSRF, immutable source membership, headingless-report omission, rebuilt
+  evidence offsets, untrusted markup encoding, pinned asset integrity and
+  whole-document exclusion of context, raw errors/warnings, prompts, inputs,
+  screenshot/runtime data and unselected lookup records.
+- **Nine browser suites passed:** the existing mode, UI, grouping, batching,
+  review-controls, highlights, wording and paste suites, plus `check-lookup.cjs`.
+  The new suite uses the actual Tesseract worker/model and production template on
+  a loopback-only test server. It checks exact synthetic OCR, unconfirmed-row
+  isolation, duplicate screenshot handling, grouped accession copying, primary
+  selection after sorting, brief copied feedback, edited-row conflicts, stale
+  report-batch suspension, manual column selection for headerless images, mobile
+  overflow and Clear. Real HTML downloads are opened from disk with network
+  requests blocked, exercising filters, theme/view changes, clinical reports,
+  clipboard fallback and recipient-subset exports that omit other records.
+- Synthetic dark/light reader and lookup layout previews were inspected. The
+  banner is absent from the preparation page and present in the reader/print.
+  Exported production reviews are not labeled as illustrative synthetic output.
+- A user-provided 115-pixel-wide, 47-row screenshot was tested separately from
+  the repository. Manual comparison found 47 rows recovered, **44/47 exact
+  accession strings**, **40/47 correct source numbers**, and **37/47 fully correct
+  case/accession pairs** before correction. These are one-sample observations,
+  not a validated accuracy estimate. The narrow-image pass improved recovery,
+  but wrong digits and source numbers remained. Every row requires confirmation;
+  confidence scores are not truth. Larger source captures should be tested.
+  The image and extracted identifiers were not added to Git or public artifacts.
+- No patient reports, paid model calls, new API keys, auth changes or Cloud Run
+  deployment were used. The Gmail sample was read only; no email was sent.
+
+Run `python dev/assemble.py`, `python dev/synthetic_preview.py`, the Python suite,
+and `python dev/cache-ocr-assets.py`, then start `python dev/serve-lookup-qa.py`
+for `node dev/check-lookup.cjs`. The
+loopback harness uses fake identity and synthetic reports only; it is not a
+deployable authentication configuration. The cache helper verifies the public
+bytes in `dev/ocr-assets.json` and writes only ignored `dev/qa-output/ocr-assets/`.
+Production retrieves and verifies them through the app's asset route.
+
 ## October 29, 2026: Resident / Attending title modes
 
 - **92 Python tests passed.** New checks prove the default prompts differ only in title instructions and both exported files match their embedded variants. Verify fresh Resident selection, Attending form submission/default/editor preservation, invalid-mode rejection before provider access, unchanged grouping and source labels, and exactly one mocked request per review entry using the selected or edited prompt.

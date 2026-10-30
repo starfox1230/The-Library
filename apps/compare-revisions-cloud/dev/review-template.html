@@ -219,11 +219,39 @@ html[data-theme="dark"] {color-scheme:dark;}
 @media(prefers-reduced-motion:reduce) {
 #cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .mode-label,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
 </style>
+<style>
+#cr-app .lookup-card {margin:0 0 24px; padding:16px 20px; border:1px solid var(--line); border-radius:10px; background:var(--panel);}
+#cr-app .lookup-card summary {font-weight:600;}
+#cr-app .lookup-tools {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0;}
+#cr-app .lookup-tools input {width:auto; max-width:100%;}
+#cr-app .lookup-image {max-height:420px; overflow:auto; margin:10px 0; border:1px solid var(--line);}
+#cr-app .lookup-image canvas {display:block; max-width:none; height:auto; touch-action:none; cursor:crosshair;}
+#cr-app .lookup-workspace {display:grid; grid-template-columns:minmax(180px,1fr) minmax(340px,1.6fr); gap:14px; align-items:start;}
+#cr-app .lookup-workspace .lookup-image {margin:0;}
+@media(max-width:760px) { #cr-app .lookup-workspace {grid-template-columns:minmax(0,1fr);} }
+#cr-app .lookup-table-wrap {max-height:330px; overflow:auto;}
+#cr-app .lookup-table {width:100%; border-collapse:collapse; font-size:12px;}
+#cr-app .lookup-table th,#cr-app .lookup-table td {padding:6px; text-align:left; border-bottom:1px solid var(--line);}
+#cr-app .lookup-table th {position:sticky; top:0; background:var(--panel);}
+#cr-app .lookup-table input {padding:6px; min-width:65px;}
+#cr-app .lookup-table input[type=checkbox] {width:18px; height:18px; min-width:18px;}
+#cr-app .lookup-table td:nth-child(3) .plain {display:block; font-size:11px; padding:2px 0;}
+#cr-app .lookup-warning {color:var(--major);}
+#cr-app .case {position:relative;}
+#cr-app .accession-tools {padding:0 24px 12px 56px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;}
+#cr-app .accession-tools button {padding:5px 10px; font-size:12px;}
+#cr-app .copy-accession {color:var(--accent);}
+#cr-app .phi-banner {position:sticky; top:0; z-index:20; padding:10px 24px; background:var(--minor-bg); color:var(--ink); border-bottom:1px solid var(--minor); font-size:12px;}
+#cr-app .export-tools {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
+@media print { #cr-app .phi-banner {position:static;} #cr-app .site-header,#cr-app .controls,#cr-app .filter-panel,#cr-app .export-tools {display:none;} #cr-app .case-reveal {display:block; visibility:visible;} }
+</style>
 </head>
 <body>
 <div id="cr-app" data-theme="{{ theme | default('system') }}" {% if combined_view %}class="dual-view"{% endif %}>
+{% if exported_review | default(false) %}<aside class="phi-banner"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</aside>{% endif %}
 <header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('resident') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
+{% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
 <label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
@@ -235,6 +263,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
 <input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
 <input type="hidden" id="theme-value" name="theme" value="{{ theme | default('system') }}">
+<input type="hidden" id="lookup-value" name="lookup_json" value="">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
 <span class="hint" id="paste-status" role="status"></span>
@@ -248,7 +277,25 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div class="form-actions"><button type="submit" class="primary" id="analyze-button">Analyze reports</button><button type="button" id="clear-button">Clear reports</button><span class="hint" id="form-status" role="status"></span></div>
 </form>
 </details>
+<details class="lookup-card" id="lookup-panel">
+<summary>Case lookup · screenshots to accessions <span class="muted" id="lookup-count"></span></summary>
+<p class="hint">Capture the same PowerScribe list and ordering used for your report batch. Include the case-number and accession columns. Screenshots stay in this browser; check every extracted match before confirming.</p>
+<div class="lookup-tools"><label for="lookup-files">Add screenshots</label><input type="file" id="lookup-files" accept="image/png,image/jpeg,image/webp" multiple><button type="button" id="lookup-paste">Paste screenshot</button><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button></div>
+<p class="hint" id="ocr-status" role="status"></p>
+<div class="lookup-tools" id="lookup-images"></div>
+<div class="lookup-tools" id="lookup-column-tools" hidden><button type="button" id="mark-case">Mark case column</button><button type="button" id="mark-accession">Mark accession column</button><button type="button" id="read-columns">Read marked columns</button><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select><span class="hint">Drag across the width of each column if automatic detection needs correction.</span></div>
+<p class="hint" id="lookup-coverage" role="status"></p>
+<div class="lookup-workspace">
+<div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
+<div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th>Confirmed</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+</div>
+<p class="hint">A confirmed row attaches only to that exact source case number. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
+</details>
+{% else %}
+<input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
+{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
+{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
 <div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
@@ -272,12 +319,16 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
+<script id="lookup-data" type="application/json">{{ lookup_rows | default([]) | tojson }}</script>
+{% if not exported_review | default(false) %}
 <script id="default-prompt" type="application/json">{{ default_prompt | tojson }}</script>
 <script id="review-prompts" type="application/json">{{ review_prompts | tojson }}</script>
+{% endif %}
 <script>
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
+const exportedReview={{ exported_review | default(false) | tojson }};
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
 const wordingOverrides=new Map();
@@ -288,8 +339,9 @@ const diffModes=new Map(), spacingVisible=new Map();
 const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new Map(), reportScroll=new Map(), hoverTimers=new Map();
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
-let generation=0, queueRunning=false, submittedPrompt=$('custom-prompt').value;
+let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
 let reviewMode={{ review_mode | default('resident') | tojson }};
+{% if not exported_review | default(false) %}
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
 let defaultPrompt=reviewPrompts[reviewMode];
@@ -305,7 +357,9 @@ for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.
  $('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Instructions switched to '+reviewMode+' mode.';
  $('default-prompt').textContent=JSON.stringify(defaultPrompt);describeMode();
 });
-describeMode();
+{% else %}
+function describeMode(){}
+{% endif %}
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
 let themeChoice=$('theme-value').value;
 function applyTheme(){
@@ -331,6 +385,7 @@ const firstNumber = c => members(c).length ? Math.min(...members(c)) : Number.MA
 const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
 const caseLabel = c => c.case_label || members(c).join(', ');
+/* LOOKUP AUTHORING SOURCE */
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
 function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
@@ -360,6 +415,7 @@ function filterChip(key,text,cls='',description='') {
 }
 const textChange=c=>typeof c.text_change_percent==='number'&&Number.isFinite(c.text_change_percent)?c.text_change_percent:null;
 function updateProgress() {
+ if(exportedReview){$('analysis-progress').hidden=true;return;}
  const tracked=cases.filter(c=>analysisIds.has(c.id)), total=tracked.length;
  const finished=tracked.filter(c=>!['queued','processing'].includes(c.status)), done=finished.length;
  const percent=total?Math.round(done*100/total):0, issues=finished.filter(c=>c.status!=='complete').length;
@@ -473,15 +529,17 @@ function summaryPanel(c,key) {
  if(c.status_message && c.status!=='complete')notices.add(c.status_message);
  for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))notices.add(warning);
  for(const notice of notices)panel.append(el('p','notice',notice));
- if(!['complete','queued','processing'].includes(c.status)){
+ if(!exportedReview&&!['complete','queued','processing'].includes(c.status)){
   const next=c.status==='needs_sections'?'Check Findings/Impression headings in both reports, then submit the corrected pair again.':
    ['pending','unavailable'].includes(c.status)?'Recapture the completed resident and attending reports, then submit the pair again.':
    !analysisIds.has(c.id)?'Correct the input issue described above, then submit the pair again.':'Retry this analysis, or review the full reports.';
   panel.append(el('p','notice case-next-step','Next: '+next));
  }
+ {% if not exported_review | default(false) %}
  if(!syntheticPreview && ['error','partial'].includes(c.status)) {
   const retry=button('Retry analysis','',()=>{const editor=$('custom-prompt');if(!editor.value.trim()){editor.setCustomValidity('Enter instructions or restore the defaults.');}else editor.setCustomValidity('');if(!editor.checkValidity()){$('input-disclosure').open=true;editor.closest('details').open=true;editor.reportValidity();return;}analyzeCase(c,key,generation,editor.value);});retry.disabled=queueRunning||controllers.size>0;panel.append(retry);
  }
+ {% endif %}
  const items=revisions(c), show=wordingShown(key);
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
@@ -572,14 +630,15 @@ function showRevisionLinks(key,scrollToPassage=false){
 }
 function reportPanel(c) {
  const panel=el('div','report-grid');
- for(const [label,text] of [['Resident full report',c.resident_report],['Attending full report',c.attending_report]]) {
+ for(const [label,text] of [[exportedReview?'Resident clinical report':'Resident full report',c.resident_report],[exportedReview?'Attending clinical report':'Attending full report',c.attending_report]]) {
   const side=el('div'); side.append(el('div','source-label',label),el('pre','report-text',text || 'No report captured.')); panel.append(side);
  } return panel;
 }
 function bodyPanel(c,key) {
  const body=el('div','case-body'), tabs=el('div','tabs');
  const active=combinedView?(views.get(key)==='reports'?'reports':'paired'):(views.get(key)||'summary');
- const options=combinedView?[['paired','Summary + text changes'],['reports','Full reports']]:[['summary','Summary'],['diff','Text changes'],['reports','Full reports']];
+ const reportsLabel=exportedReview?'Clinical reports':'Full reports';
+ const options=combinedView?[['paired','Summary + text changes'],['reports',reportsLabel]]:[['summary','Summary'],['diff','Text changes'],['reports',reportsLabel]];
  tabs.setAttribute('role','tablist'); tabs.setAttribute('aria-label','Case '+caseLabel(c)+' views');
  for(const [view,label] of options) {
   const tab=button(label,'tab',()=>{views.set(key,view==='paired'?'summary':view);renderAndFocus('tab-'+key+'-'+view);}); tab.id='tab-'+key+'-'+view;
@@ -620,6 +679,7 @@ function caseRow(c,key) {
  for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
  if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
  if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);row.append(head);
+ appendAccessionTools(row,c);
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
 }
@@ -647,7 +707,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}
@@ -667,12 +727,14 @@ function render() {
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
  $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
+ updateLookupCoverage();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
  if(combinedView)for(const key of opened)showRevisionLinks(key,false);
  if(wordingOffer)mountWordingOffer(wordingOffer.key);
 }
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
+{% if not exported_review | default(false) %}
 async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
  if(syntheticPreview || queueRunning || runGeneration!==generation || c.status==='processing'||controllers.size>0)return;
  const mode=reviewMode;
@@ -748,6 +810,7 @@ async function analyzeBatch(group,instructions,runGeneration,mode) {
   controllers.delete(controller);if(runGeneration===generation)updateReview();
  }
 }
+{% endif %}
 $('search').addEventListener('input',render);$('order').addEventListener('change',render);
 window.addEventListener('scroll',()=>{
  const space=$('wording-scroll-space'), reserved=parseFloat(space.style.height)||0;
@@ -755,6 +818,7 @@ window.addEventListener('scroll',()=>{
 },{passive:true});
 $('reset-filters').addEventListener('click',()=>{selectedFilters.clear();$('search').value='';renderAndFocus('filter-all');});
 $('combined-view').addEventListener('change',()=>{combinedView=$('combined-view').checked;if(combinedView)for(const key of views.keys())views.set(key,'summary');$('cr-app').classList.toggle('dual-view',combinedView);$('combined-view-value').value=combinedView?'1':'0';render();$('announcement').textContent=combinedView?'Summary and text changes shown together.':'Single case view restored.';});
+{% if not exported_review | default(false) %}
 $('custom-prompt').addEventListener('input',()=>{$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Edits apply to your next analysis or retry.';});
 $('restore-prompt').addEventListener('click',()=>{$('custom-prompt').value=defaultPrompt;promptDrafts[reviewMode]=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Default instructions restored. Existing results stay as they are.';});
 $('paste-button').addEventListener('click',async()=>{
@@ -779,15 +843,19 @@ $('clear-button').addEventListener('click',()=>{
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
+ clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();
  for(const timer of hoverTimers.values())clearTimeout(timer);hoverTimers.clear();pinnedRevisions.clear();hoveredRevisions.clear();passageIndices.clear();reportScroll.clear();
  $('report-text').value='';$('report-text').defaultValue='';$('paste-status').textContent='';$('custom-prompt').value=defaultPrompt;$('custom-prompt').defaultValue=defaultPrompt;$('custom-prompt').setCustomValidity('');$('prompt-status').textContent='';
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',()=>{$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!r.confirmed||!validLookup(r))||lookupConflicts().size){event.preventDefault();$('lookup-panel').open=true;$('form-status').textContent='Wait for OCR to finish, then confirm or remove the remaining lookup rows before analyzing.';return;}$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+{% endif %}
 render();
+{% if not exported_review | default(false) %}
 if(!syntheticPreview)runQueue();
+{% endif %}
 })();
 </script>
 </div>

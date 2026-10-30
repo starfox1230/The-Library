@@ -1,7 +1,9 @@
 # Shared review, two title perspectives, standalone HTML
 
-Design only, October 29, 2026. No prompt, API, UI or exporter implementation is
-changed by this plan. The Cloud Run deployment has not been verified or updated.
+Updated October 29, 2026. Screenshot OCR, confirmed accession lookup, grouped
+copy actions and standalone HTML export are now implemented in source. The PHI
+banner appears only in the downloaded reader. Cloud Run deployment is pending.
+See README.md for the implemented workflow. Dual-title generation remains planned.
 
 ## Current source behavior
 
@@ -34,7 +36,7 @@ each grouped pair. Generate revisions, evidence, importance and summaries once.
 - Validate both title fields. Define a neutral fallback for legacy responses
   with only one title; switching modes must not silently rerun old cases.
 
-## Planned standalone HTML
+## Standalone HTML (implemented)
 
 Build a new document from a deliberately limited export data object. Do not
 save or clone the live page, serialize the entire app state, or hide unwanted
@@ -43,7 +45,7 @@ fields with CSS.
 | Include | Exclude from the entire file |
 | --- | --- |
 | Original source case numbers and group labels | Full pasted input or full report strings |
-| Explicitly confirmed MRN/accession and necessary exam locator details | Raw lookup screenshots or unconfirmed OCR guesses |
+| Explicitly confirmed accessions keyed to source numbers | MRN lookup fields, raw lookup screenshots or unconfirmed OCR guesses |
 | Both titles, modality if retained/validated | Indication/history, comparison, technique |
 | Shared clinical revision summaries and categories | Attestations, signatures, administrative metadata |
 | Parsed Findings/Impression/Conclusion text on both sides | Original context in hidden JSON, scripts, comments or attributes |
@@ -71,23 +73,25 @@ patient-report sharing through Google Forms, Notion or public hosting.
 
 ## Same-session screenshot lookup and recipient assignment
 
-Capture the report list, source case numbers and visible MRNs/accessions during
+Capture the report list, source case numbers and visible accessions during
 the same extraction session, keeping sort order and filters stable. Do not ask
 recipients to reproduce the original list later. Case numbers are batch-local
 labels, not permanent exam identifiers.
 
-Plan an optional screenshot-import step in the preparation web app. Process OCR
+The optional screenshot-import step is in the preparation web app. Process OCR
 locally in the browser, show extracted rows beside their source image regions,
 and require explicit confirmation before attaching identifiers. The comparison
-AI does not need the MRN/accession lookup; attach it after clinical analysis.
+AI does not need the accession lookup; attach it to the review only.
 Match by batch and explicit source number, never by shifting remaining rows
 after an OCR omission. Preserve leading zeros and flag missing, conflicting or
-ambiguous rows. Preserve each source member's lookup when grouping; conflicting
-MRNs within a proposed group require review/splitting.
+ambiguous rows. Preserve each source member's accession when grouping. The
+accession-only lookup does not prove same-patient identity; an MRN-based identity
+check is not implemented. An operator must resolve an incorrectly grouped pair.
 
-Resident/attending attribution must come from visible, confirmed columns or
-operator-assigned batches/ranges. Do not infer authorship from report wording
-or MRN. If PowerScribe supports filtering, preparing one known resident-attending
+Resident/attending attribution must be established by the operator before
+delivery; automatic author assignment is not implemented. Do not infer
+authorship from report wording or accession. If PowerScribe supports filtering,
+preparing one known resident-attending
 pair per batch is the simplest initial workflow; capability remains unverified.
 Generate each recipient's file from only their assigned cases. A filter hiding
 other recipients' cases is not equivalent to omitting those cases from the file.
@@ -97,7 +101,7 @@ recipients do not need a separate mapping file. The exported reader does not
 need the original screenshots or OCR runtime. Adding these locator fields does
 not permit export of excluded report context such as technique or comparison.
 
-## Persistent PHI notice
+## Persistent PHI notice (exported reader only)
 
 The identified review is deliberately treated as PHI. Keep a compact, visible
 banner at the top of the exported review, sticky while scrolling, readable in
@@ -108,7 +112,8 @@ interrupt review. Proposed copy:
 > authorized recipients. Do not forward to personal email or upload to
 > unapproved services.
 
-Show the same reminder beside the export action and in print output. Use an
+Include the reminder in print output; keep the persistent banner off the input
+website as requested. Use an
 ordinary filename that contains no MRN, accession or patient name. Do not label
 the file anonymous or de-identified merely because identifiers are collapsed or
 removed. Clinical narratives may themselves identify a patient.

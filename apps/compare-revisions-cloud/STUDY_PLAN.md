@@ -243,5 +243,6 @@ source-shift attribution; eligibility within the agreed 3/4 split; review and te
 opportunities; fixed feedback window; short forms; confidentiality; progression
 criteria; and the actual stable deployed software versions. No study is launched
 by this plan. See [REVIEW_EXPORT_PLAN.md](REVIEW_EXPORT_PLAN.md) for the planned
-dual-title response and standalone HTML review. Neither is implemented by this
-documentation update.
+dual-title response and standalone HTML review. Accession OCR and HTML export
+are now implemented in replacement source; deployment and the workflow dry run
+remain pending. Dual-title generation is still planned.

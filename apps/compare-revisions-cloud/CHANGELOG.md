@@ -1,5 +1,25 @@
 # Changes and rationale — October 4, 2026
 
+## Accession OCR and standalone reader — October 29, 2026
+
+- Add screenshot paste/file import, browser-local OCR, editable row confirmation,
+  image column marking, enlarged source-row highlighting and explicit coverage.
+  Keep accession strings exact and source-number joins batch-local; conflicts
+  cannot be exported, omissions never shift other cases, and input changes
+  suspend old lookup actions until the new batch is analyzed.
+- Add compact card copy actions with brief feedback. Preserve grouped source
+  accessions and use the earliest mapped source member for primary copying.
+- Add authenticated, CSRF-protected HTML export. Rebuild clinical-only reports,
+  diff offsets and evidence through an allowlist; discard original context,
+  screenshots, raw errors, prompts and unselected case data. The downloaded
+  reader works offline, has no analysis/input/OCR controls and displays the
+  persistent PHI banner only there.
+- Keep the existing two-file Cloud Run handoff. Pinned public OCR runtime assets
+  are fetched by the server, hash-checked, memory-cached and served same-origin;
+  screenshot pixels stay in the browser. No model/credential/dependency change.
+- Keep dual-title generation deferred. Current role-specific title prompts and
+  clinical grading remain unchanged. Cloud Run has not been deployed by this change.
+
 ## Resident / Attending title modes — October 29, 2026
 
 - Add an accessible native radio pill control above the collapsible report input. Fresh visits default to Resident; form submission and Clear preserve the selection. Keep both review views, criteria, grouping and comparison direction the same.

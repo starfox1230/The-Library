@@ -1,5 +1,61 @@
 # Compare Revisions: cloud review redesign
 
+## Screenshot lookup and HTML export — October 29, 2026
+
+Implemented in replacement source; Cloud Run deployment is still pending.
+
+- Expand **Case lookup · screenshots to accessions**. Add PNG/JPEG/WebP files,
+  use Paste screenshot, or press Ctrl+V inside that section. Capture the exact
+  list/order used for the report extraction, including source numbers and the
+  accession column. The final lookup uses accessions, not MRNs.
+- OCR runs in a browser worker. The app supplies pinned, SHA-256-checked public
+  Tesseract.js 6.0.1/core 6.0.0/English model assets from its own `/ocr-assets/`
+  routes. Cloud Run downloads those public runtime files on first use and caches
+  them in process memory; screenshots are never uploaded. No OCR API key or
+  Python dependency is added. Restricted outbound asset access can prevent OCR;
+  manual row entry remains available.
+- Headers are detected when possible. For a blank row-number header, a clearly
+  separated numeric column left of Accession can be detected. Otherwise mark
+  the two column widths on the image and select Read marked columns. Narrow
+  images receive a per-row, per-column pass. Reading is not verification.
+- Check every **case number and accession**, correct errors, then check Confirmed.
+  View row or focus a field to see its highlighted source row in an enlarged
+  image. Leading zeros stay intact. Conflicts block export; missing mappings
+  are reported rather than shifted. No universal recognition-accuracy claim is
+  made. Capture larger source text where possible.
+- Source numbers are exact, batch-local keys. Confirmed lookup rows survive the
+  normal Analyze form submission without sending them to Azure. Editing report
+  input suspends copying/export against the old results until the new batch is
+  analyzed. Clear reports clears lookup rows, screenshots and OCR worker memory.
+  No lookup or screenshots are written to browser localStorage/IndexedDB.
+- Each mapped review card has **Copy accession**, followed by a short copied
+  confirmation. Groups retain every mapped accession; the primary button copies
+  the accession belonging to the earliest mapped source member. Expand the
+  accession list to copy another. This is a locator, not proof of patient or
+  linked-study identity. Mapping gaps are shown explicitly.
+- **Download review HTML** creates a new offline reader. Optionally export only
+  currently shown entries; other cases and their lookup rows are omitted from
+  the file. Do not use a display filter as a substitute for correct participant
+  attribution. Resident/attending authorship is not inferred by OCR.
+- The download contains validated Findings/Impression/Conclusion, summaries,
+  clinical diff/evidence, source numbers and confirmed accessions. Context,
+  attestations, raw errors/warnings, pasted-input controls, prompts and OCR
+  screenshots/runtime are omitted. The reader supports ordinary review controls
+  and copy fallback without a server connection. Ambiguous headings/footer
+  variants remain a limitation; inspect a representative export before use.
+- A persistent **Contains PHI** notice appears only in the exported reader,
+  including print output. Use approved storage/delivery. A download does not
+  retain the live website's authentication or become anonymous by removing
+  headers. The banner is not access control or an institutional sensitivity label.
+
+The existing Resident/Attending prompt modes are unchanged: one selected title
+per analysis. Generating both title perspectives in one response remains a
+separate planned change; this update does not add model calls or alter grading.
+
+To update the existing service, replace `main.py` and redeploy using the steps
+below. `requirements.txt` is unchanged; the generated source includes all new
+application code and the pinned asset manifest.
+
 Updated October 29, 2026. Complete replacement source for the existing Google Cloud service. Based on the latest attached `main.py` (which matched the previous local source), not a readback of the live deployment. The October 29 updates add Resident/Attending title modes and group nearby identical full report pairs before analysis; the October 28 updates change summaries, expanded groups, text-change markers and filtering. The systematic-summary follow-up updates the prompt and required response fields without adding model requests.
 
 ## What to copy into Google Cloud

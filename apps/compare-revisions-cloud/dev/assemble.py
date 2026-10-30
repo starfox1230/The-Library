@@ -1,12 +1,18 @@
 """Embed the authoring template so Cloud Run still needs only two files."""
 from pathlib import Path
 import ast
+import json
 
 ROOT = Path(__file__).resolve().parents[1]
 main = ROOT / 'main.py'
 template = (ROOT / 'dev/review-template.html').read_text(encoding='utf-8')
+template = template.replace('/* LOOKUP AUTHORING SOURCE */', (ROOT / 'dev/lookup.js').read_text(encoding='utf-8'))
 assert "'''" not in template
 source = main.read_text(encoding='utf-8').split('# === UI TEMPLATE ===')[0]
+start = source.index('# === OCR ASSET MANIFEST ===')
+end = source.index('# === END OCR ASSET MANIFEST ===', start)
+manifest = json.loads((ROOT / 'dev/ocr-assets.json').read_text(encoding='utf-8'))
+source = source[:start] + '# === OCR ASSET MANIFEST ===\nOCR_ASSETS = ' + repr(manifest) + '\n' + source[end:]
 main.write_text(source + "# === UI TEMPLATE ===\nTEMPLATE = r'''" + template + "'''\n", encoding='utf-8')
 compile(main.read_text(encoding='utf-8'), str(main), 'exec')
 # Export the exact default without importing authentication or the API client.
