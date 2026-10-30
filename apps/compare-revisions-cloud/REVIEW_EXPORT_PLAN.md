@@ -43,6 +43,7 @@ fields with CSS.
 | Include | Exclude from the entire file |
 | --- | --- |
 | Original source case numbers and group labels | Full pasted input or full report strings |
+| Explicitly confirmed MRN/accession and necessary exam locator details | Raw lookup screenshots or unconfirmed OCR guesses |
 | Both titles, modality if retained/validated | Indication/history, comparison, technique |
 | Shared clinical revision summaries and categories | Attestations, signatures, administrative metadata |
 | Parsed Findings/Impression/Conclusion text on both sides | Original context in hidden JSON, scripts, comments or attributes |
@@ -68,6 +69,67 @@ summaries can themselves contain identifying or sensitive content. Delivery and
 storage need an institution-approved channel; this plan does not authorize
 patient-report sharing through Google Forms, Notion or public hosting.
 
+## Same-session screenshot lookup and recipient assignment
+
+Capture the report list, source case numbers and visible MRNs/accessions during
+the same extraction session, keeping sort order and filters stable. Do not ask
+recipients to reproduce the original list later. Case numbers are batch-local
+labels, not permanent exam identifiers.
+
+Plan an optional screenshot-import step in the preparation web app. Process OCR
+locally in the browser, show extracted rows beside their source image regions,
+and require explicit confirmation before attaching identifiers. The comparison
+AI does not need the MRN/accession lookup; attach it after clinical analysis.
+Match by batch and explicit source number, never by shifting remaining rows
+after an OCR omission. Preserve leading zeros and flag missing, conflicting or
+ambiguous rows. Preserve each source member's lookup when grouping; conflicting
+MRNs within a proposed group require review/splitting.
+
+Resident/attending attribution must come from visible, confirmed columns or
+operator-assigned batches/ranges. Do not infer authorship from report wording
+or MRN. If PowerScribe supports filtering, preparing one known resident-attending
+pair per batch is the simplest initial workflow; capability remains unverified.
+Generate each recipient's file from only their assigned cases. A filter hiding
+other recipients' cases is not equivalent to omitting those cases from the file.
+
+Include the confirmed lookup in the review HTML, with copyable identifiers;
+recipients do not need a separate mapping file. The exported reader does not
+need the original screenshots or OCR runtime. Adding these locator fields does
+not permit export of excluded report context such as technique or comparison.
+
+## Persistent PHI notice
+
+The identified review is deliberately treated as PHI. Keep a compact, visible
+banner at the top of the exported review, sticky while scrolling, readable in
+both themes and on narrow screens. Do not require acknowledgement or repeatedly
+interrupt review. Proposed copy:
+
+> **Contains PHI.** Use and share only within UAB-approved systems and with
+> authorized recipients. Do not forward to personal email or upload to
+> unapproved services.
+
+Show the same reminder beside the export action and in print output. Use an
+ordinary filename that contains no MRN, accession or patient name. Do not label
+the file anonymous or de-identified merely because identifiers are collapsed or
+removed. Clinical narratives may themselves identify a patient.
+
+The banner is a handling reminder, not encryption, authentication, forwarding
+prevention or access control. Agree on the actual delivery/storage workflow
+with the project team. A downloaded HTML file does not inherit the live site's
+login protection. No new tracking or recipient feedback attestation is needed.
+
+UAB's [August 22, 2025 IT update](https://www.uab.edu/it/news/item/restricted-data-allowed-in-onedrive-and-sharepoint)
+describes permitted institutional storage and email routes, prohibits forwarding
+PHI to outside/personal addresses, and links the updated Data Protection Rule.
+The [Data Protection Rule](https://www.uab.edu/it/home/policies/data-classification/data-protection-rule)
+requires secure transmission, authorized recipients and Restricted sensitivity
+labeling. A visible HTML banner is not a substitute for any required institutional
+file label. The [Email Guidelines](https://www.uab.edu/it/home/policies/email-guidelines)
+retain broader restrictive wording about uab.edu email. Confirm the applicable
+route rather than treating the Outlook application name as approval for every
+recipient, tenant, website or file location. This design does not certify the
+app or any particular deployment for PHI.
+
 ## Acceptance checks for future implementation
 
 1. A mocked analysis returns both titles, with identical revisions under either
@@ -85,6 +147,11 @@ patient-report sharing through Google Forms, Notion or public hosting.
    network requests. The report-entry area is absent.
 7. Clinically review a small approved sample to confirm that required learning
    context remains while excluded sections are absent.
+8. Check OCR missing/conflicting rows, leading zeros, duplicate screenshots,
+   overlapping source numbers in different batches, group identity conflicts
+   and recipient-specific exports. Unconfirmed identifiers must not appear.
+9. Verify the PHI banner persists while scrolling, survives title/theme changes
+   and printing, and does not claim that the file has access protection.
 
 ## Sequence before the pilot
 
