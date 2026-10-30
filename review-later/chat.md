@@ -44,10 +44,67 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-30 17:42 Central Daylight Time
-Cards: 15
+Updated: 2026-10-30 17:54 Central Daylight Time
+Cards: 17
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-30T07:40:43-05:00
+Last seen: 2026-10-30T17:51:01-05:00
+Card ID: 1768319986519
+Note ID: 1768319986519
+
+Question:
+00:12
+
+Sign and diagnosis in immunocompromised patient with fever?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Sign and diagnosis in immunocompromised patient with fever?
+
+reverse halo sign/atoll sign in pulmonary mucormycosis
+
+1/2
+
+## Card 2
+
+Deck: Other::Radiology (All)::.Visual::Everything Else
+Flagged: 2026-07-29T16:52:20-05:00
+Last seen: 2026-10-30T17:47:19-05:00
+Card ID: 1715571329867
+Note ID: 1715571329865
+
+Question:
+#image-occlusion-canvas {
+    --inactive-shape-color: #ffeba2;
+    --active-shape-color: #ff8e8e;
+    --inactive-shape-border: 1px #212121;
+    --active-shape-border: 1px #212121;
+}
+.card {
+    font-family: arial;
+    font-size: 20px;
+    text-align: center;
+    color: black;
+    background-color: white;
+}
+try {
+    anki.setupImageCloze();
+} catch (exc) {
+    document.getElementById("err").innerHTML = `Error loading image occlusion. Is your Anki version up to date?<br><br>${exc}`;
+}
+
+Answer:
+Toggle Masks
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-04-10T07:05:39-05:00
@@ -67,7 +124,7 @@ Grading of spine involvement in multiple myeloma on MRI (Durie-Salmon Plus syste
 
 Notion AIRP Lecture
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -85,7 +142,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 3
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -107,7 +164,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-08-11T23:16:10-05:00
@@ -125,7 +182,7 @@ Answer:
 
 For gestations earlier than 10 weeks, the appropriate thermal index in obstetric ultrasound is TIS.
 
-## Card 5
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-10-21T18:15:30-05:00
@@ -145,7 +202,7 @@ Expected Essure position extends across the uterotubal junction into the proxima
 
 Essure devices appear as paired metallic microinserts at the uterine cornua.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -163,7 +220,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T15:34:53-05:00
@@ -185,7 +242,7 @@ Which nuclear medicine renal scan is primarily used for evaluation of tubular fu
 
 MAG3
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -203,7 +260,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:49:17-05:00
@@ -221,7 +278,7 @@ Answer:
 
 Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:48:46-05:00
@@ -239,7 +296,7 @@ Answer:
 
 In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of Ebstein anomaly.
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:42:43-05:00
@@ -261,7 +318,7 @@ Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MS
 
 Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
 
-## Card 12
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:28:31-05:00
@@ -283,7 +340,7 @@ Source Core Radiology 2nd ed, GI: 221, Polyposis syndromes affecting the bowel.
 
 Full source page for context.
 
-## Card 13
+## Card 15
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
@@ -305,7 +362,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 14
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
@@ -323,7 +380,7 @@ Answer:
 
 In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
 
-## Card 15
+## Card 17
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:54:41-05:00
