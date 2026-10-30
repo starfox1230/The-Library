@@ -2,6 +2,17 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## October 29, 2026: overlapping screenshots and 47-pair paste fixture
+
+- Added a fully synthetic paste file containing exactly 47 distinct report
+  pairs, numbered 1–47 in the extractor's Attending/Resident order. The production
+  parser/preparation pipeline retains all 47 original numbers and entries without
+  provider calls. No real identifiers are included.
+- The actual-OCR browser suite checks partial overlap: screenshots covering
+  55–59 and 57–61 yield seven exact mappings, retain the first five confirmations,
+  and create no duplicate-case conflict. Existing conflicting-accession tests
+  still require resolution instead of silently replacing a reading.
+
 ## October 29, 2026: OCR progress correction
 
 - Removed worker-level percentage updates that restarted on every recognition

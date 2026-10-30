@@ -21,6 +21,13 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   Progress identifies the screenshot and phase, then counts completed rows or
   columns. Its percentage advances within that pass, rather than restarting
   for each small OCR call.
+- Add screenshots together or in successive uploads after OCR finishes. A batch
+  supports up to 20 screenshots. Overlap is allowed: the same source case number
+  and exact accession are kept once, preserving existing confirmation. The same
+  case number with different accessions remains a conflict for source checking;
+  neither reading silently replaces the other. Keep the original PowerScribe
+  numbers across screenshots. A verified consecutive range applies to the selected
+  screenshot's actual first/last numbers, not a new numbering sequence.
 - Case numbers are still read by OCR. An incomplete or duplicate reading can
   be repaired when at least 60% of rows provide unique, consistent consecutive
   anchors, including anchors near both ends, with regular row spacing. A
@@ -62,6 +69,25 @@ Implemented in replacement source; Cloud Run deployment is still pending.
 The existing Resident/Attending prompt modes are unchanged: one selected title
 per analysis. Generating both title perspectives in one response remains a
 separate planned change; this update does not add model calls or alter grading.
+
+## Paste-ready 47-case test file
+
+Open `dev/fixtures/synthetic-47-report-pairs.txt` and copy its entire contents
+into Report input. It starts directly with `Case 1` and uses the extractor's
+`Attending Report:` then `Resident Report:` format through `Case 47`.
+
+All clinical content is invented and unrelated to any real accession list.
+There are 47 distinct full report pairs, so grouping should retain 47 entries
+with source numbers 1–47. Examples include unchanged reports, wording edits,
+clinical additions/removals, laterality and interpretation changes, and a finding
+added to the impression without changing its wording in Findings. Every report
+includes an explicit synthetic-test indication. This is an input/UI fixture,
+not a validated reference for model importance labels or clinical accuracy.
+
+To test overlapping OCR with the user's 1–47 sample image, capture rows 1–20,
+18–35 and 33–47 with their original case numbers and accession header. Add all
+three images to the same batch without clearing lookup. Identical overlaps
+should leave 47 mappings. Correct any OCR disagreements before confirming.
 
 To update the existing service, replace `main.py` and redeploy using the steps
 below. `requirements.txt` is unchanged; the generated source includes all new

@@ -91,6 +91,17 @@ const out=path.join(__dirname,'qa-output');
   await page.waitForFunction(()=>document.querySelector('#ocr-status').textContent.startsWith('Read 6 rows.'),{},{timeout:90000});
   await checkProgress('Reading rows',6);await page.waitForTimeout(200);assert((await page.locator('#ocr-status').innerText()).startsWith('Read 6 rows.'),'late worker events must not overwrite completion');
   await page.locator('#lookup-clear').click();await page.waitForTimeout(200);assert.equal(await page.locator('#ocr-status').innerText(),'');
+  // Partly overlapping screenshots retain original numbers and confirmed rows.
+  // 55–59 plus 57–61 must yield seven mappings, with 57–59 appearing once.
+  const overlapImage=async first=>page.evaluate(first=>{const c=document.createElement('canvas');c.width=700;c.height=340;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='28px Consolas';x.fillText('Case',24,36);x.fillText('Accession',200,36);for(let i=0;i<5;i++){const n=first+i;x.fillText(String(n),24,90+i*48);x.fillText('00000'+n+'001',200,90+i*48);}return c.toDataURL('image/png').split(',')[1];},first);
+  for(const [index,first] of [55,57].entries()){
+   await page.locator('#lookup-files').setInputFiles({name:'synthetic-overlap-'+index+'.png',mimeType:'image/png',buffer:Buffer.from(await overlapImage(first),'base64')});
+   await page.waitForFunction(count=>document.querySelector('#ocr-status').textContent.startsWith('Read 5 rows.')&&document.querySelectorAll('#lookup-rows tr').length===count,index===0?5:7,{timeout:90000});
+   if(index===0)for(const checkbox of await page.locator('#lookup-rows input[type=checkbox]').all())await checkbox.check();
+  }
+  assert.deepEqual(await page.locator('#lookup-rows tr').evaluateAll(rs=>rs.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value))),[55,56,57,58,59,60,61].map(n=>[String(n),'00000'+n+'001']));
+  assert.equal(await page.locator('#lookup-rows input[type=checkbox]:checked').count(),5,'overlap preserves existing confirmations');assert.equal(await page.locator('#lookup-rows input[type=checkbox]:disabled').count(),0,'identical overlap is not a conflict');
+  await page.locator('#lookup-clear').click();
   await page.setViewportSize({width:375,height:900});await page.locator('#lookup-add').click();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'lookup must not overflow mobile viewport');
   assert.deepEqual(errors,[]);console.log('Real OCR, steady row/column progress, confirmation, exact case joins, grouped accession copying, conflict handling, private-data exclusions and offline reader checks passed.');
