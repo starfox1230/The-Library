@@ -44,7 +44,27 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-10-31 06:23 Central Daylight Time
-Cards: 0
+Updated: 2026-10-31 06:28 Central Daylight Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:34:58-05:00
+Last seen: 2026-10-31T06:26:34-05:00
+Card ID: 1775063675193
+Note ID: 1775063675193
+
+Question:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+[...]
+
+Answer:
+00:12
+
+What are the top methods to reduce side lobe artifact?
+
+turn on tissue harmonics, reposition the probe
