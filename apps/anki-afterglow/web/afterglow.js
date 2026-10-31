@@ -11,13 +11,13 @@
   let config = {enabled:false, intensity:65, motion:55, contrast:70, quality:1, palette:'aurora', clear_backgrounds:true, impact:80, immersive:true, show_meter:true,visual:'particles'};
   let state = {}, raf = 0, last = 0, time = 0, pulse = 0, level = 0, gain = .03, nextBeat = 0;
   let dirty = true, configKey = '';
-  let surface=null, received=0, lastHit=0, attack=0, previousBass=0;
+  let surface=null, received=0, lastHit=0, attack=0, previousBass=0, lastAttack=-1000;
   let hud, meter, caption, meterTick=0;
-  let camera=0,clocks=Array(8).fill(0);
+  let camera=0,clocks=Array(8).fill(0),clockMotion=55;
   const timings=[];let drawCost=0,drawCount=0,lastScene=null;
   // Synchronous readback is only for QA; normal frames use disposable GPU buffers.
   function paint(){if(visual&&lastScene&&!decorationOnly)visual.draw(lastScene);}
-  function metrics(){const samples=timings.slice(1).map((t,i)=>t-timings[i]).sort((a,b)=>a-b);return {frames:drawCount,renderer:decorationOnly?'decorator':visual?.kind||'idle',device:visual?.info||visual?.kind||'none',fps:decorationOnly?state.scene_fps||0:timings.length>1?(timings.length-1)*1000/(timings.at(-1)-timings[0]):0,p95_ms:samples[Math.floor(samples.length*.95)]||0,draw_ms:drawCount?drawCost/drawCount:0,visual:currentVisual};}
+  function metrics(){const samples=timings.slice(1).map((t,i)=>t-timings[i]).sort((a,b)=>a-b);return {frames:drawCount,particles:visual?.particles||0,renderer:decorationOnly?'decorator':visual?.kind||'idle',device:visual?.info||visual?.kind||'none',fps:decorationOnly?state.scene_fps||0:timings.length>1?(timings.length-1)*1000/(timings.at(-1)-timings[0]):0,p95_ms:samples[Math.floor(samples.length*.95)]||0,draw_ms:drawCount?drawCost/drawCount:0,visual:currentVisual};}
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const clamp = (v, a, b) => Math.max(a,Math.min(b,v));
   function mount() {
@@ -72,15 +72,17 @@
     gain = Math.max(.00005,gain+(energy-gain)*Math.min(1,dt*.7));
     const target=fresh&&energy>.00003 ? clamp(energy/(gain*1.7),0,1):0;
     level+=(target-level)*Math.min(1,dt*(target>level?30:9));
-    attack*=Math.exp(-dt*8);
+    if(level<.001)level=0;
+    attack*=Math.exp(-dt*12);
     let beat=0;
     if (fresh && state.period && state.confidence>.64 && now-nextBeat<1) {
       const p=state.period;
       const d=((now-nextBeat+p/2)%p+p)%p-p/2;
-      beat=Math.exp(-((d/.065)**2));
+      beat=Math.exp(-((d/.035)**2));
     }
-    const desired=moving ? Math.max(beat,attack,fresh?(Number(state.music_push)||0):0,level*.22)*config.impact/80 : 0;
-    pulse+=(desired-pulse)*Math.min(1,dt*(desired>pulse?35:10));
+    const desired=moving ? Math.max(beat,attack,fresh?(Number(state.music_push)||0):0)*config.impact/100 : 0;
+    pulse+=(desired-pulse)*(1-Math.exp(-dt*(desired>pulse?60:14)));
+    if(pulse<.001)pulse=0;
     if (!moving && !dirty) return;
     dirty=false;
     const musicLevel=fresh?Number(state.music_level ?? level):level;
@@ -89,14 +91,18 @@
       if(state.flow_time!==undefined){const age=(ms-received)/1000;time=(Number(state.flow_time)+Math.min(.6,age)*Number(state.flow_rate??.1)+Math.max(0,age-.6)*.1)*config.motion/55;}
       else time+=dt*(.10+musicLevel*.48+musicBass*.22+pulse*.16)*config.motion/55;
       const age=Math.min(.6,(ms-received)/1000);
-      clocks=state.particle_phases?state.particle_phases.map((p,i)=>(p+age*(state.particle_rates?.[i]??.1))*config.motion/55):Array(8).fill(time);
-      camera=state.camera_phase!==undefined?(state.camera_phase+age*(state.camera_rate||0))*config.motion/55:time*.12;
+      const resync=config.motion!==clockMotion;clockMotion=config.motion;
+      // A falling rate can make a new extrapolation land behind the last frame.
+      // Hold briefly instead of moving particles/camera backward between updates.
+      clocks=state.particle_phases?state.particle_phases.map((p,i)=>{const target=(p+age*(state.particle_rates?.[i]??.1))*config.motion/55;return resync?target:Math.max(clocks[i],target);}):clocks.map((p,i)=>p+dt*(.1+musicLevel*.65+pulse*(i<3?1.8:.85))*config.motion/55);
+      if(state.camera_phase!==undefined){const target=(state.camera_phase+age*(state.camera_rate||0))*config.motion/55;camera=resync?target:Math.max(camera,target);}
+      else camera+=dt*(.025+pulse*.30)*config.motion/55;
     }
     lastScene={w:surface?.width||innerWidth,h:surface?.height||innerHeight,
       vw:surface?.view_width||innerWidth,vh:surface?.view_height||innerHeight,
       x:surface?.x||0,y:surface?.y||0,time,intensity:config.intensity/100,
       palette:config.palette,level:moving?musicLevel:0,bass:moving?musicBass*config.impact/100:0,
-      pulse:moving?pulse:0,quality:config.quality,clocks,camera};
+      pulse:moving?pulse:0,quality:config.quality,particleCount:config.particle_count??4200,clocks,camera};
     visual.draw(lastScene);
     timings.push(ms);if(timings.length>120)timings.shift();drawCost+=performance.now()-started;drawCount++;
     if(moving)raf=requestAnimationFrame(frame);
@@ -107,8 +113,10 @@
     surface=data.surface||null;
     state=data;received=performance.now();
     const bass=Number(data.bass)||0;
-    if(data.hit_id && data.hit_id!==lastHit){attack=1;lastHit=data.hit_id;}
-    attack=Math.max(attack,clamp((bass-previousBass)/Math.max(gain,.0001)*3,0,1));previousBass=bass;
+    if(data.hit_id && data.hit_id!==lastHit){attack=1;lastHit=data.hit_id;lastAttack=received;}
+    const flux=(bass-previousBass)/Math.max(gain,.0001);
+    if(flux>.15&&received-lastAttack>160){attack=Math.max(attack,clamp(flux*2,0,1));lastAttack=received;}
+    previousBass=bass;
     if(oldSurface!==JSON.stringify(surface)){resize();dirty=true;}
     const modeChanged=decorationOnly!==!!data.decoration_only;
     decorationOnly=!!data.decoration_only;

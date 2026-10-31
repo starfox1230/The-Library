@@ -13,13 +13,26 @@ await page.waitForTimeout(1500);
 await page.screenshot({path:path.resolve(__dirname,'../preview.png')});
 const metrics=await page.evaluate(()=>Afterglow.metrics());assert(metrics.fps>10,'Renderer did not continue drawing');
 await page.evaluate(()=>{clearInterval(previewLoop);window.fixed={config:{...cfg,motion:55,visual:'particles'},flow_time:3,flow_rate:0,particle_phases:Array(8).fill(3),particle_rates:Array(8).fill(0),camera_phase:.1,camera_rate:0,music_level:0,music_bass:0,music_push:0};Afterglow.update(fixed);});
-await page.waitForTimeout(150);
+await page.waitForTimeout(850);
 const fixed=await page.locator('canvas').evaluate(c=>{Afterglow.paint();return c.toDataURL();});
 await page.mouse.move(100,100);await page.mouse.move(900,600);await page.waitForTimeout(150);
 assert(fixed===await page.locator('canvas').evaluate(c=>{Afterglow.paint();return c.toDataURL();}),'Pointer or frozen clock moved cloud');
-await page.evaluate(()=>Afterglow.update({...fixed,energy:.04,bass:.035,music_level:0,music_bass:1,music_push:1}));
+await page.evaluate(()=>Afterglow.update({...fixed,config:{...fixed.config,impact:0},energy:.04,bass:.035,music_level:0,music_bass:1,music_push:1}));
 await page.waitForTimeout(100);
 assert(fixed===await page.locator('canvas').evaluate(c=>{Afterglow.paint();return c.toDataURL();}),'Raw bass must not yank particle positions');
+const light=()=>page.locator('canvas').evaluate(c=>{Afterglow.paint();const copy=document.createElement('canvas');copy.width=c.width;copy.height=c.height;const ctx=copy.getContext('2d');ctx.drawImage(c,0,0);const data=ctx.getImageData(0,0,c.width,c.height).data;let sum=0;for(let i=0;i<data.length;i+=4)sum+=data[i]+data[i+1]+data[i+2];return sum/(data.length/4);});
+const quiet=await light();
+await page.evaluate(()=>Afterglow.update({...fixed,config:{...fixed.config,impact:100},music_push:1}));await page.waitForTimeout(65);
+const kick=await light();assert(kick>quiet*1.8,`Kick should visibly light/extend trails: ${quiet} -> ${kick}`);
+await page.evaluate(()=>Afterglow.update(fixed));await page.waitForTimeout(850);
+const released=await light();assert(released<kick*.7,'Light should release clearly between kicks');
+await page.evaluate(()=>Afterglow.update({...fixed,config:{...fixed.config,impact:100},period:.5,confidence:1,next_in:.09}));
+await page.waitForTimeout(110);const predicted=await light();
+assert(predicted>quiet*1.8,'Locked beat prediction must also light the cloud without a new onset');
+await page.evaluate(()=>Afterglow.update(fixed));await page.waitForTimeout(850);
+assert.equal(await page.evaluate(()=>Afterglow.metrics().particles),4200);
+await page.evaluate(()=>Afterglow.update({...fixed,config:{...fixed.config,particle_count:1800}}));await page.waitForTimeout(100);
+assert.equal(await page.evaluate(()=>Afterglow.metrics().particles),1800,'Particle control must change GPU load');
 await page.evaluate(()=>Afterglow.update({...fixed,particle_phases:Array(8).fill(3.2)}));await page.waitForTimeout(100);
 assert(fixed!==await page.locator('canvas').evaluate(c=>{Afterglow.paint();return c.toDataURL();}),'Integrated clocks must move particles');
 for(const visual of ['liquid','particles','liquid','particles']){await page.evaluate(visual=>Afterglow.update({...fixed,config:{...fixed.config,visual}}),visual);await page.waitForTimeout(100);assert.equal(await page.evaluate(()=>Afterglow.metrics().visual),visual);}
@@ -34,6 +47,17 @@ assert.equal(await page.evaluate(()=>Afterglow.metrics().frames),frames,'Foregro
 await page.evaluate(()=>Afterglow.update(fixed));await page.waitForTimeout(100);
 assert.equal(await page.evaluate(()=>Afterglow.renderer),'webgl');
 assert(await page.evaluate(()=>Afterglow.metrics().frames)>0,'Per-pane renderer should resume');
-assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS: cloud, no pointer control, no bass position jumps, integrated motion and visual switching',metrics}));
+// Capture the harness output across a falling-rate correction, independently
+// of GPU shading, to catch tiny between-packet backward jumps.
+const stream=await browser.newPage();await stream.setContent('<html><body></body></html>');
+await stream.evaluate(()=>{window.samples=[];window.AfterglowParticles=canvas=>({canvas,kind:'probe',draw:s=>samples.push({clocks:s.clocks.slice(),camera:s.camera})});});
+await stream.addScriptTag({path:path.resolve(__dirname,'../web/afterglow.js')});
+await stream.evaluate(()=>Afterglow.update({config:{enabled:true,motion:55},particle_phases:Array(8).fill(1),particle_rates:Array(8).fill(10),camera_phase:1,camera_rate:10}));
+await stream.waitForTimeout(80);
+await stream.evaluate(()=>Afterglow.update({config:{enabled:true,motion:55},particle_phases:Array(8).fill(1.05),particle_rates:Array(8).fill(0),camera_phase:1.05,camera_rate:0}));
+await stream.waitForTimeout(120);
+assert(await stream.evaluate(()=>samples.length>4&&samples.every((s,i)=>!i||(s.camera>=samples[i-1].camera&&s.clocks.every((p,j)=>p>=samples[i-1].clocks[j])))),'Falling rates must never rewind rendered motion');
+await stream.close();
+assert.deepEqual(errors,[]);console.log(JSON.stringify({result:'PASS: cloud, beat contrast and release, predicted beats, particle count, no pointer control, no bass position jumps, integrated motion and visual switching',quiet,kick,predicted,released,metrics}));
 await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

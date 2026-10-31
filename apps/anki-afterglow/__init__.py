@@ -168,7 +168,7 @@ class Afterglow:
             self.listening = bool(should_listen)
             self.audio.start() if should_listen else self.audio.stop()
         state = self.audio.snapshot(self.config["lead_ms"])
-        state.update(self.motion.feed(time.monotonic(), state))
+        state.update(self.motion.feed(time.monotonic(), state, impact=self.config['impact']/100))
         if platform.system() != "Windows":
             state["status"] = "Ambient visuals only — system audio currently supports Windows"
         if self.status_label:
@@ -292,6 +292,7 @@ class Afterglow:
             form.addRow(box)
         for key, label, lo, hi in [("intensity", "Light intensity", 0, 100), ("motion", "Motion", 0, 100),
                                    ("impact", "Music / beat impact", 0, 100),
+                                   ("particle_count", "Particle count (lower is faster)", 1200, 10000),
                                    ("contrast", "Letter halo strength", 0, 100), ("lead_ms", "Timing advance (ms)", -200, 200)]:
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setRange(lo, hi)

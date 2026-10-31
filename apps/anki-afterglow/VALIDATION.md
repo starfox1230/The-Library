@@ -2,6 +2,14 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.5 stronger beat response and lighter cloud
+
+- Fixed the weak particle response: the shader now consumes the beat pulse for particle brightness, trail length, point size and color accent. Detected kicks also boost forward band clocks and advance a lagged camera target more strongly. The impact control scales the native kick travel/camera response and the visual pulse. No full-screen background flash or whole-cloud amplitude scaling is added.
+- Default density falls from 12,000 to 4,200; Economy caps at 2,400. Only heads receive point sprites. Vertex submissions are 12,600 versus 48,000 per frame (74% fewer), independently adjustable through the new particle-count slider. This is a workload reduction, not a measured percentage improvement to live Anki FPS.
+- GPU browser regression sampled an otherwise fixed scene at about 9 summed RGB units between beats and 35–36 on a detected kick (about 4×), returning to the baseline after release. A confident predicted beat without a new onset sampled about 29. Impact 0 removes the pulse; the density control changes the actual GPU particle count. Pointer movement does not alter the scene. Added a renderer-output probe for monotonic clocks/camera across a falling-rate correction.
+- Twelve beat/motion tests pass, including kick acceleration/release at constant loudness and impact-0 suppression of rhythmic motion. Shared Qt WebEngine at 1920×1080, Intel Arc / ANGLE / Direct3D11: about 60 FPS, p95 16.8 ms, zero foreground animation frames. Anki library settings/lifecycle, independent 75–250% card zoom and liquid browser regression pass.
+- Installed 0.5 with Anki closed, preserving the existing metadata. This turn does not establish a new live Anki FPS measurement or subjective synchronization by ear. The normal-session results recorded under 0.4.1 are historical.
+
 ## 0.4.1 live Anki integration
 
 - Installed with Anki closed, then opened the existing profile and one ungraded review question with Speed Streak present. No answer was revealed or graded. Confirmed live music signal from TOSHIBA-TV in the settings/review meter and tempo estimates; this establishes capture, not correctness of the musical tempo or perceived synchronization.

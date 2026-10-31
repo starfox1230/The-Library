@@ -49,6 +49,26 @@ class MotionTests(unittest.TestCase):
         for i in range(240):state=driver.feed(i/30,{'energy':.02,'bass':.01,'bands':[.03]+[0]*7})
         self.assertGreater(state['particle_phases'][0],state['particle_phases'][7]*3)
 
+    def test_kick_surges_then_releases_at_constant_volume(self):
+        driver=motion.MusicMotion()
+        sound={'energy':.02,'bass':.01,'bands':[.008]*8}
+        for i in range(120):base=driver.feed(i/60,sound)
+        hit=driver.feed(2,dict(sound,hit_id=1))
+        self.assertGreater(hit['particle_rates'][0],base['particle_rates'][0]*2)
+        for i in range(1,31):release=driver.feed(2+i/60,dict(sound,hit_id=1))
+        self.assertLess(release['particle_rates'][0],hit['particle_rates'][0]*.6)
+        self.assertGreater(release['particle_phases'][0],hit['particle_phases'][0])
+
+    def test_impact_zero_removes_kick_motion_but_keeps_music_flow(self):
+        quiet=motion.MusicMotion();kicks=motion.MusicMotion()
+        for i in range(120):
+            sound={'energy':.02,'bass':.01,'bands':[.008]*8}
+            base=quiet.feed(i/60,sound,impact=0)
+            hit=kicks.feed(i/60,dict(sound,hit_id=i//30+1),impact=0)
+        self.assertEqual(base['particle_phases'],hit['particle_phases'])
+        self.assertEqual(base['camera_phase'],hit['camera_phase'])
+        self.assertGreater(hit['particle_rates'][0],.1)
+
 
 if __name__=='__main__':
     unittest.main()
