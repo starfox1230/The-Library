@@ -11,7 +11,7 @@ assert.equal(await page.evaluate(()=>Afterglow.metrics().visual),'particles');
 assert.equal(await page.evaluate(()=>Afterglow.renderer),'webgl','GPU test unexpectedly fell back');
 await page.click('#beat');await page.click('#reveal');await page.selectOption('#palette','ember');
 await page.waitForTimeout(1500);
-await page.screenshot({path:path.resolve(__dirname,'../preview.png')});
+await page.screenshot({path:path.resolve(__dirname,'../preview-cloud.png')});
 const metrics=await page.evaluate(()=>Afterglow.metrics());assert(metrics.fps>10,'Renderer did not continue drawing');
 await page.evaluate(()=>{clearInterval(previewLoop);window.fixed={config:{...cfg,motion:55,visual:'particles'},flow_time:3,flow_rate:0,particle_phases:Array(8).fill(3),particle_rates:Array(8).fill(0),camera_phase:.1,camera_rate:0,music_level:0,music_bass:0,music_push:0};Afterglow.update(fixed);});
 await page.waitForTimeout(850);

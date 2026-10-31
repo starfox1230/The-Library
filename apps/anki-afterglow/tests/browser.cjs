@@ -21,7 +21,7 @@ const assert=require('assert');
  await page.locator('#dark-text').evaluate(e=>e.remove());
  await page.click('#beat');
  await page.waitForTimeout(300);
- await page.screenshot({path:process.env.SCREENSHOT_PATH||path.resolve(__dirname,'../preview.png')});
+ await page.screenshot({path:process.env.SCREENSHOT_PATH||path.resolve(__dirname,'../preview-liquid.png')});
  await page.click('#motion');
  await page.waitForTimeout(100);
  const a=await page.locator('canvas').evaluate(e=>{Afterglow.paint();return e.toDataURL();});

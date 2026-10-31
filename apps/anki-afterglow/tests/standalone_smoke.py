@@ -15,7 +15,7 @@ try:
     time.sleep(.5)
     state=json.load(urlopen(url+'state'))
     assert len(state['particle_phases'])==8
-    for path in ('web/particles.js','web/liquid.js','web/afterglow.js','web/afterglow.css'):
+    for path in ('web/particles.js','web/liquid.js','web/club.js','web/waves.js','web/afterglow.js','web/afterglow.css'):
         assert urlopen(url+path).status==200
     try:urlopen(url+'../config.json')
     except HTTPError as e:assert e.code==404

@@ -1,4 +1,12 @@
-# Afterglow 0.6 — personal Windows preview
+# Afterglow 0.7 — personal Windows preview
+
+## Laser Wave Tunnel
+
+The latest default is **Laser Wave Tunnel**, guided by the corrected [ultraviolet laser-ring tunnel reference](https://www.youtube.com/watch?v=_OmLYckdMvI) from IncrediVFX. Twelve pink/blue/violet glowing hoops recede toward a vanishing point and flow toward the viewer. Bass creates broad bends, mids add travelling waves, and highs add fine ripples. Each kick pushes an outward wave through the hoops and accelerates forward travel. **Music / beat impact** controls how strongly it deforms. This is an original stylized visualization of eight broad frequency-band levels, not a literal oscilloscope waveform or the reference's video assets. It omits the reference's reflective floor to keep the full review background available.
+
+Open **Tools → Afterglow — Music background → Visual** to switch between **Laser Wave Tunnel**, **Techno Club**, **Particle cloud**, and **Liquid wall**. Techno Club was finished and saved separately in commit `2dcb46f` before this variant was added. The original v0.5 cloud is saved in `805eed3` and its personal settings backup remains untouched. Use the **Restore saved v0.5 Particle Cloud look** button for that full saved appearance.
+
+Laser Wave Tunnel uses 1,800 contour samples by default and two batched GPU draws, with point-sprite bloom instead of full-screen blur passes. Smooth caps at 3,600; Economy at 1,200. It shares the same local audio capture, transparent Anki pages, letter halos and zoom anchoring. It also has a simpler Canvas contour renderer. GPU tests verify independent positional responses to bass, mids, highs and kicks. Isolated Qt WebEngine reaches about 60 FPS; this is not a live review-session FPS guarantee.
 
 ## Techno Club and the saved cloud
 
@@ -8,7 +16,7 @@ The **v0.5 Particle Cloud remains available** in the Visual selector. Its render
 
 The default Techno Club density is 1,800, capped at 4,200 in Smooth or 1,200 in Economy. The density control is shared with the other visuals. Existing card text, buttons, zoom anchoring and the shared background layer are retained. Isolated Qt WebEngine with a simulated beat reached about 60 FPS; full live Anki performance and subjective musical feel are not established by that benchmark.
 
-A separate Anki desktop add-on: a full-window audio-reactive particle cloud with individual letter halos. The new mode is an original approximation of the principles in Bileam Tschepe's [Audioreactive Particle Cloud (new)](https://www.elekktronaut.com/tutorials/audioreactive-particle-cloud-new): age-colored line particles, audio-driven speed and lagged camera motion. It does not load the creator's project or require TouchDesigner. Plays alongside Speed Streak without importing it, patching its code, or accessing its timers. Works without Speed Streak too. Does not change saved card fields, scheduling, answer keys, or music playback.
+A separate Anki desktop add-on with audio-reactive backgrounds and individual letter halos. The saved Particle Cloud draws on the principles in Bileam Tschepe's [Audioreactive Particle Cloud (new)](https://www.elekktronaut.com/tutorials/audioreactive-particle-cloud-new): age-colored line particles, audio-driven speed and lagged camera motion. No visual loads the creator's project or requires TouchDesigner. Afterglow plays alongside Speed Streak without importing it, patching its code, or accessing its timers. It also works without Speed Streak and does not change saved card fields, scheduling, answer keys, or music playback.
 
 ## Particle cloud and performance
 
@@ -20,7 +28,7 @@ Version 0.4.1 adds a **single shared graphics layer** beneath transparent Anki p
 
 Live testing with Speed Streak and music on **TOSHIBA-TV** confirmed the shared background, readable text and working audio capture. Early builds measured roughly **40–47 FPS** when left alone. The final shared-layer build with the meter hidden measured about **53–57 FPS** during the sampled window. Occasional 33 ms intervals remain, and desktop inspection lowers the readings. These short observations do not establish locked 60 FPS or isolate the contribution of each optimization. See `VALIDATION.md` for details.
 
-**Particle cloud** is the default visual for this update, using two batched drawing calls for the shared background (or per pane with the shared layer disabled). No particle positions are copied through Python each frame. Eight smoothed audio bands advance eight forward-only particle clocks; falling amplitude slows the clocks instead of pulling particles back. Camera motion continues quietly between attacks. Colors follow particle age. **Ember** provides coral/gold/violet coloring. The cloud uses deterministic curved trajectories, rather than the tutorial's full compute-shader physics simulation. Bloom, selective luma blur, mirrors and the creator's exact presets are not reproduced.
+The saved **Particle cloud** uses two batched drawing calls for the shared background (or per pane with the shared layer disabled). No particle positions are copied through Python each frame. Eight smoothed audio bands advance eight forward-only particle clocks; falling amplitude slows the clocks instead of pulling particles back. Camera motion continues quietly between attacks. Colors follow particle age. **Ember** provides coral/gold/violet coloring. The cloud uses deterministic curved trajectories, rather than the tutorial's full compute-shader physics simulation. Bloom, selective luma blur, mirrors and the creator's exact presets are not reproduced.
 
 On Sterling's Intel Arc graphics, isolated Qt WebEngine and Edge tests measured approximately **60 FPS at 1920×1080**, with 95th-percentile frame intervals of 16.7–16.8 ms. These are renderer frame-cadence measurements, not a guarantee of live Anki review performance with other add-ons, large images or the TV's display settings. The review meter reports actual animation FPS. A simplified 150–650-point Canvas fallback is used if WebGL cannot initialize; the standalone diagnostics identify that fallback.
 

@@ -13,7 +13,7 @@
   let dirty = true, configKey = '';
   let surface=null, received=0, lastHit=0, attack=0, previousBass=0, lastAttack=-1000;
   let hud, meter, caption, meterTick=0;
-  let camera=0,clocks=Array(8).fill(0),clockMotion=55,clubTime=0,clubBeat=0;
+  let camera=0,clocks=Array(8).fill(0),clockMotion=55,clubTime=0,clubBeat=0,waveBands=Array(8).fill(0);
   const timings=[];let drawCost=0,drawCount=0,lastScene=null;
   // Synchronous readback is only for QA; normal frames use disposable GPU buffers.
   function paint(){if(visual&&lastScene&&!decorationOnly)visual.draw(lastScene);}
@@ -83,6 +83,12 @@
     const desired=moving ? Math.max(beat,attack,fresh?(Number(state.music_push)||0):0)*config.impact/100 : 0;
     pulse+=(desired-pulse)*(1-Math.exp(-dt*(desired>pulse?60:14)));
     if(pulse<.001)pulse=0;
+    for(let i=0;i<8;i++){
+      const raw=state.bands?.[i]??energy;
+      const target=moving&&fresh?clamp(raw/Math.max(.00005,gain*.65),0,1):0;
+      waveBands[i]+=(target-waveBands[i])*(1-Math.exp(-dt*(target>waveBands[i]?35:10)));
+      if(waveBands[i]<.001)waveBands[i]=0;
+    }
     if (!moving && !dirty) return;
     dirty=false;
     const musicLevel=fresh?Number(state.music_level ?? level):level;
@@ -106,7 +112,7 @@
       vw:surface?.view_width||innerWidth,vh:surface?.view_height||innerHeight,
       x:surface?.x||0,y:surface?.y||0,time,intensity:config.intensity/100,
       palette:config.palette,level:moving?musicLevel:0,bass:moving?musicBass*config.impact/100:0,
-      pulse:moving?pulse:0,clubBeat:moving?clubBeat:0,clubTime,quality:config.quality,particleCount:config.particle_count??4200,clocks,camera};
+      pulse:moving?pulse:0,clubBeat:moving?clubBeat:0,clubTime,waveBands:moving?waveBands.slice():Array(8).fill(0),waveImpact:config.impact/100,quality:config.quality,particleCount:config.particle_count??4200,clocks,camera};
     visual.draw(lastScene);
     timings.push(ms);if(timings.length>120)timings.shift();drawCost+=performance.now()-started;drawCount++;
     if(moving)raf=requestAnimationFrame(frame);
@@ -131,8 +137,8 @@
         visual?.dispose?.();visual=null;
         cancelAnimationFrame(raf);raf=0;
         const next=canvas.cloneNode();canvas.replaceWith(next);canvas=next;
-        currentVisual=['liquid','club'].includes(config.visual)?config.visual:'particles';
-        if(!decorationOnly){visual=({liquid:window.AfterglowLiquid,club:window.AfterglowClub,particles:window.AfterglowParticles}[currentVisual])(canvas);canvas=visual.canvas;}
+        currentVisual=['liquid','club','waves'].includes(config.visual)?config.visual:'particles';
+        if(!decorationOnly){visual=({liquid:window.AfterglowLiquid,club:window.AfterglowClub,waves:window.AfterglowWaves,particles:window.AfterglowParticles}[currentVisual])(canvas);canvas=visual.canvas;}
         mount();resize();
         timings.length=0;drawCost=drawCount=0;
       }

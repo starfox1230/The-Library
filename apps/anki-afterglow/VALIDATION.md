@@ -2,6 +2,15 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.7 Laser Wave Tunnel
+
+- Completed, installed and pushed Techno Club (`2dcb46f`) before adding this separate visual. The Club shader is unchanged; the original cloud shader and personal saved settings are retained.
+- Viewed the corrected IncrediVFX ultraviolet laser tunnel reference in the browser. Reworked the second visual into twelve depth-projected hoops flowing toward the viewer, with pink/violet/blue bloom, rather than the earlier flat ring sketch. The reference's video assets are not used; no reflective floor is implemented.
+- Circular contours combine travelling low/mid/high harmonics derived from eight numeric RMS bands. Beat envelopes add outward displacement and the shared forward clock accelerates on attacks. Near/far fading hides the depth wrap. These are stylized wave shapes, not sampled raw waveforms. The band bridge uses attack/release smoothing and is covered with constant overall volume but different active bands.
+- GPU fixed-time bright-core masks exclude the broad glow: low, mid, high and kick each moved the contours, retaining about 13–37% of the quiet outline's core pixels in the sampled comparison. Mid-to-high retained about 22%, confirming distinct spectral shapes. Both GPU and Canvas suites pass independent band movement, native feature bridge, all four visual selections, pause, reduced motion and disabling.
+- Default 1,800 contour samples; two batched draws. Isolated shared Qt WebEngine at 1920×1080: approximately 60 FPS, p95 16.8 ms, Intel Arc / ANGLE / Direct3D11, zero foreground animation frames. The 75–250% zoom test is pixel-identical; differently zoomed answer-bar alignment differs by less than 0.002 average pixel-channel value in the software test. No new live full-Anki session FPS claim.
+- Public/standalone previews include both new visuals. Public demo supplies simulated, independently varying bands and a clearly labelled beat. Local installer/package include the renderer, keep the previous personal cloud snapshot intact and select Laser Wave Tunnel with the Ultraviolet palette for this trial.
+
 ## 0.6 Techno Club and cloud preservation
 
 - Viewed the supplied YouTube Short in the browser: bright rounded particles in broken, rippling loops. Built an original neon ribbon renderer with large kick-driven radial/tangential/depth displacement, glow and a forward travel burst. The reference video was not downloaded or bundled.

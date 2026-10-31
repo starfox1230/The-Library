@@ -43,6 +43,7 @@ def main():
                        '/web/afterglow.js':ROOT/'web/afterglow.js','/web/liquid.js':ROOT/'web/liquid.js',
                        '/web/particles.js':ROOT/'web/particles.js','/web/afterglow.css':ROOT/'web/afterglow.css'}
                 files['/web/club.js']=ROOT/'web/club.js'
+                files['/web/waves.js']=ROOT/'web/waves.js'
                 target=files.get(path)
                 if not target:self.send_error(404);return
                 data=target.read_bytes();mime='text/html' if target.suffix=='.html' else 'text/css' if target.suffix=='.css' else 'text/javascript'

@@ -13,7 +13,7 @@ app=QApplication(['afterglow-performance-test'])
 window=QMainWindow();window.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen,True)
 host=QWidget();layout=QVBoxLayout(host);layout.setContentsMargins(0,0,0,0);layout.setSpacing(0);window.setCentralWidget(host)
 root=Path(__file__).parents[1]
-script='\n'.join((root/('web/'+name)).read_text() for name in ('liquid.js','particles.js','club.js','afterglow.js'))
+script='\n'.join((root/('web/'+name)).read_text() for name in ('liquid.js','particles.js','club.js','waves.js','afterglow.js'))
 html='<html><body style="margin:0"><script>'+script+'</script></body></html>'
 shared='--shared' in sys.argv
 views=[];profiles=[]
@@ -33,11 +33,11 @@ def update():
     t=time.monotonic()-start
     for view in views+([backdrop] if shared else []):
         pos=view.mapTo(host,view.rect().topLeft())
-        data={'config':{'enabled':True,'visual':'club' if '--club' in sys.argv else 'particles','particle_count':1800 if '--club' in sys.argv else 4200,'motion':55,'quality':1,'intensity':80,'show_meter':False},
+        data={'config':{'enabled':True,'visual':'waves' if '--waves' in sys.argv else 'club' if '--club' in sys.argv else 'particles','particle_count':1800 if ('--club' in sys.argv or '--waves' in sys.argv) else 4200,'motion':55,'quality':1,'intensity':80,'show_meter':False},
               'flow_time':t*.6,'flow_rate':.6,'particle_phases':[t*(.2+i*.06) for i in range(8)],'particle_rates':[.2+i*.06 for i in range(8)],
               'camera_phase':t*.06,'camera_rate':.06,'music_level':.6,'energy':.03,'bass':.02,'decoration_only':shared and view is not backdrop,
-              'hit_id':int(t*2)+1 if '--club' in sys.argv else 0,
-              'period':.5 if '--club' in sys.argv else 0,'confidence':1,'next_in':.5-t%.5,
+              'hit_id':int(t*2)+1 if ('--club' in sys.argv or '--waves' in sys.argv) else 0,
+              'period':.5 if ('--club' in sys.argv or '--waves' in sys.argv) else 0,'confidence':1,'next_in':.5-t%.5,
               'surface':{'x':pos.x(),'y':pos.y(),'width':host.width(),'height':host.height(),'view_width':view.width(),'view_height':view.height(),'dpr':view.devicePixelRatioF()}}
         view.page().runJavaScript('window.Afterglow&&Afterglow.update('+json.dumps(data)+')')
 timer=QTimer();timer.setInterval(33);timer.timeout.connect(update);timer.start()

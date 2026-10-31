@@ -53,7 +53,7 @@ class Afterglow:
         self.decoration_updates = {}
         self.decorated = []
         css = (ROOT / 'web/afterglow.css').read_text(encoding='utf-8')
-        js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','club.js','afterglow.js'))
+        js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','club.js','waves.js','afterglow.js'))
         self.inject_script = '(function(){if(window.Afterglow)return;const s=document.createElement("style");s.textContent=' + json.dumps(css) + ';document.head.append(s);' + js + '})();'
         self.action = QAction("Afterglow — Music background…", mw)
         self.action.triggered.connect(self.settings)
@@ -97,6 +97,7 @@ class Afterglow:
             content.js.append(base + "/liquid.js")
             content.js.append(base + "/particles.js")
             content.js.append(base + "/club.js")
+            content.js.append(base + "/waves.js")
             content.js.append(base + "/afterglow.js")
 
     def fullscreen(self):
@@ -308,6 +309,7 @@ class Afterglow:
         palette.currentIndexChanged.connect(lambda _: save("palette", palette.currentData()))
         form.addRow("Palette", palette)
         visual=QComboBox()
+        visual.addItem('Laser Wave Tunnel · ultraviolet sound waves','waves')
         visual.addItem('Techno Club · beat-driven neon ribbons','club')
         visual.addItem('Particle cloud','particles')
         visual.addItem('Liquid wall','liquid')
