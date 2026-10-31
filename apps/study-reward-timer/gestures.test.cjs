@@ -39,7 +39,7 @@ test('cancellation by blur, navigation or pointer interruption never completes a
   E.pause(x.s,3100);assert.equal(x.hold.start(),false);assert.equal(x.hold.isActive(),false);
 });
 
-test('main taps exclude interactive controls; moving and long presses do not toggle pause',()=>{
+test('main timers react on contact exactly once; controls are excluded and long press still opens duration',()=>{
   const saved={document:global.document,window:global.window,setTimeout:global.setTimeout,clearTimeout:global.clearTimeout,performance:global.performance};
   class Surface {
     listeners={};
@@ -54,15 +54,15 @@ test('main taps exclude interactive controls; moving and long presses do not tog
   const event=(extra={})=>({target,pointerId:1,isPrimary:true,button:0,clientX:100,clientY:100,preventDefault(){},stopPropagation(){},...extra});
   try {
     G.bind({face,completeButton:button,main,toggle:()=>toggles++,openDuration:()=>{durations++;dialog=true;},canInteract:()=>!dialog,holdEnabled:()=>false,hold:{cancel:()=>cancelled++,release(){}}});
-    main.emit('pointerdown',event());time=100;doc.emit('pointerup',event());assert.equal(toggles,1);
+    main.emit('pointerdown',event());assert.equal(toggles,1,'changes before release');time=100;doc.emit('pointerup',event());assert.equal(toggles,1,'release does not toggle again');
     main.emit('pointerdown',event({target:{closest:()=>({})}}));doc.emit('pointerup',event());assert.equal(toggles,1);
-    main.emit('pointerdown',event());doc.emit('pointermove',event({clientX:120}));doc.emit('pointerup',event());assert.equal(toggles,1);
-    main.emit('pointerdown',event());timeout();time=800;doc.emit('pointerup',event());assert.equal(durations,1);assert.equal(toggles,1);
-    dialog=false;main.emit('pointerdown',event());doc.emit('pointercancel',event());doc.emit('pointerup',event());assert.equal(toggles,1);assert.equal(cancelled,1);
+    main.emit('pointerdown',event());doc.emit('pointermove',event({clientX:120}));doc.emit('pointerup',event());assert.equal(toggles,2);
+    main.emit('pointerdown',event());timeout();time=800;doc.emit('pointerup',event());assert.equal(durations,1);assert.equal(toggles,3);
+    dialog=false;main.emit('pointerdown',event());doc.emit('pointercancel',event());doc.emit('pointerup',event());assert.equal(toggles,4);assert.equal(cancelled,1);
     // Switching apps can lose the old touch's pointerup entirely.
     doc.emit('pointerdown',event({pointerId:10}));main.emit('pointerdown',event({pointerId:10}));win.emit('blur',{});
     doc.emit('pointerdown',event({pointerId:11}));main.emit('pointerdown',event({pointerId:11}));
-    doc.emit('pointerup',event({pointerId:11}));assert.equal(toggles,2);
+    doc.emit('pointerup',event({pointerId:11}));assert.equal(toggles,6);
   } finally {for(const [key,value] of Object.entries(saved))global[key]=value;}
 });
 
@@ -107,15 +107,13 @@ test('hold boundary releases cannot click through to the newly visible Start but
   }
 });
 
-test('delayed release clicks, cancelled presses, and presses elsewhere cannot start a timer',()=>{
+test('Start reacts on contact; release, movement and compatibility clicks never start twice',()=>{
   withStartButton(x=>{
     x.hold.start();x.setTime(2000);x.flush();x.button.hidden=false;
-    x.setTime(5000);x.button.emit('click',x.event());assert.equal(x.starts(),0);
+    x.button.emit('click',x.event());assert.equal(x.starts(),0);
     x.doc.emit('pointerdown',x.event({target:x.otherTarget}));x.doc.emit('pointerup',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
-    x.doc.emit('pointerdown',x.event());x.doc.emit('pointercancel',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
-    x.doc.emit('pointerdown',x.event());x.doc.emit('pointermove',x.event({clientX:130}));x.doc.emit('pointerup',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),0);
-    x.doc.emit('pointerdown',x.event());x.doc.emit('pointerup',x.event({pointerId:2}));x.button.emit('click',x.event());assert.equal(x.starts(),0);
-    x.tap();assert.equal(x.starts(),1);
+    x.doc.emit('pointerdown',x.event());assert.equal(x.starts(),1,'starts before release');
+    x.doc.emit('pointermove',x.event({clientX:130}));x.doc.emit('pointercancel',x.event());x.button.emit('click',x.event());assert.equal(x.starts(),1);
   });
 });
 
