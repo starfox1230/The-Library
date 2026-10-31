@@ -7,6 +7,8 @@ export function drawLandmark(type, variant = 0) {
   switch (type) {
     case "school": school(g); break;
     case "fire-station": fireStation(g); break;
+    case "church": church(g); break;
+    case "temple": temple(g); break;
     case "museum": museum(g); break;
     case "library": library(g); break;
     case "clinic": clinic(g); break;
@@ -86,6 +88,38 @@ function fireStation(g) {
   g.moveTo(0, 9).lineTo(10, 9).stroke({ color: 0xd5d4bc, width: 2 });
   g.circle(-8, 21, 3).circle(5, 21, 3).fill(0x505d56);
   g.circle(-7, 6, 1.8).fill(0xe7b76c);
+}
+
+function church(g) {
+  block(g, 32, 22, 0xf1e9d8, 0xd8d5c9, 0x708c91);
+  pitchedRoof(g, 33, 22, 0x879da0, 0x607b81);
+  for (let i = 0; i < 3; i++) {
+    pane(g, -27 + i * 8, -18 + i * 4, 5, 9, .5, 0x94b7bb);
+    pane(g, 5 + i * 8, -8 - i * 4, 5, 9, -.5, 0x94b7bb);
+  }
+  pane(g, 8, -7, 9, 15, -.5, 0x6d8584);
+  // A modest ward chapel with a tall steeple and simple gold finial.
+  g.roundRect(-8, -55, 16, 29, 1).fill(0xf7f0df);
+  g.poly([-12, -55, 0, -69, 12, -55]).fill(0x708c91);
+  g.roundRect(-2, -50, 5, 8, 2).fill(0xa9c7c7);
+  g.circle(0, -72, 2.2).fill(0xd9b467);
+  g.moveTo(0, -70).lineTo(0, -68).stroke({ color: 0xd9b467, width: 1.4 });
+}
+
+function temple(g) {
+  block(g, 32, 27, 0xf7f0df, 0xe2ddcf, 0xb8b49f);
+  // A distant, carefully symmetrical temple with a taller central tower.
+  for (const x of [-22, -11, 11, 22]) {
+    g.roundRect(x - 2, -42, 4, 24, 1).fill(0xfaf5e8);
+    g.circle(x, -45, 3).fill(0xe4d7b5);
+    g.poly([x - 4, -47, x, -55, x + 4, -47]).fill(0xc5bea8);
+  }
+  g.roundRect(-6, -66, 12, 43, 1).fill(0xf8f2e4);
+  g.poly([-9, -66, 0, -80, 9, -66]).fill(0xb8b49f);
+  g.poly([-31, -44, 0, -58, 31, -44, 0, -32]).fill(0xf2ead6);
+  g.moveTo(-25, -39).lineTo(25, -39).stroke({ color: 0xd5c394, width: 1.5 });
+  g.circle(0, -83, 2.5).fill(0xd9b467);
+  pane(g, -3, -32, 6, 11, .5, 0x91aeb2);
 }
 
 function museum(g) {

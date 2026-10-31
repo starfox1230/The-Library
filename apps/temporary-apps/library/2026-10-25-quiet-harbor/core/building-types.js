@@ -9,6 +9,8 @@ export const BUILDING_TYPES = Object.freeze({
   market: { name: "Neighborhood market", category: "shop", description: "Colorful stalls bring neighbors and their harvests together." },
   school: { name: "Village school", category: "community", description: "A schoolhouse with a bell tower, flag, and room for curious minds." },
   "fire-station": { name: "Fire station", category: "community", description: "Red garage doors, a lookout tower, and a little fire engine ready to help." },
+  church: { name: "Neighborhood church", category: "community", description: "A welcoming chapel with a simple steeple and a peaceful garden path." },
+  temple: { name: "Harbor temple", category: "community", description: "A distant, graceful temple rises as the town's far-off landmark." },
   park: { name: "Fountain garden", category: "green", description: "A leafy public garden with a fountain and benches for a quiet moment." },
   library: { name: "Public library", category: "community", description: "Tall windows and shelves of stories give the town a place to read." },
   clinic: { name: "Community clinic", category: "community", description: "A bright neighborhood clinic, marked by a green cross." },
@@ -27,18 +29,21 @@ export const FIRST_LANDMARKS = Object.freeze([
   { slot: 25, type: "fire-station" },
   { slot: 30, type: "park" },
   { slot: 35, type: "library" },
-  { slot: 43, type: "clinic" },
+  { slot: 43, type: "church" },
+  { slot: 47, type: "clinic" },
   { slot: 55, type: "museum" },
   { slot: 71, type: "town-hall" },
   { slot: 87, type: "greenhouse" },
   { slot: 103, type: "observatory" },
   { slot: 111, type: "theater" },
+  { slot: 245, type: "temple" },
 ]);
 const CORE_TYPES = new Map(FIRST_LANDMARKS.map(({ slot, type }) => [slot, type]));
-const COMMUNITY = ["school", "fire-station", "library", "clinic", "museum", "town-hall", "greenhouse", "observatory", "theater"];
+const COMMUNITY = ["school", "fire-station", "library", "church", "clinic", "museum", "town-hall", "greenhouse", "observatory", "theater"];
 const SHOPS = ["bakery", "cafe", "market"];
 
 export function buildingTypeFor(seed, slot) {
+  if (slot === 245) return "temple";
   if (slot < 112) return CORE_TYPES.get(slot) || "cottage";
   const district = Math.floor((slot - 112) / 16);
   const lot = (slot - 112) % 16;

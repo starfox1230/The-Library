@@ -1,4 +1,4 @@
-self.QUIET_HARBOR_REVISION = "b73a634af263559f";
+self.QUIET_HARBOR_REVISION = "4302ac3cb821d577";
 self.QUIET_HARBOR_ASSETS = [
   "./",
   "./app.js",

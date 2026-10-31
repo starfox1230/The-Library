@@ -13,6 +13,7 @@ import { IslandRenderer } from "./scene/renderer.js";
 const $ = (id) => document.getElementById(id);
 const els = {
   timer: $("timer"), best: $("bestDuration"),
+  actionZone: $("actionZone"),
   label: $("holdLabel"), action: $("holdAction"), fill: $("holdFill"), help: $("holdHelp"),
   storage: $("storageNotice"), status: $("statusMessage"), undo: $("undoReset"),
   sceneMount: $("sceneMount"), fallback: $("sceneFallback"), frame: $("worldFrame"),
@@ -149,14 +150,21 @@ function attachEvents() {
   });
   $("openSettings").addEventListener("click", openSettings);
   $("closeSettings").addEventListener("click", () => els.settings.close());
-  $("recenter").addEventListener("click", () => renderer?.recenter());
+  $("expandScene").addEventListener("click", toggleExpandedScene);
+  $("settingsBeginAgain").addEventListener("click", () => {
+    if (!activeRun()) return;
+    els.settings.close();
+    els.resetDialog.showModal();
+  });
   $("zoomOut").addEventListener("click", () => renderer?.setZoom((renderer.camera?.zoom || .77) - .14));
   $("zoomIn").addEventListener("click", () => renderer?.setZoom((renderer.camera?.zoom || .77) + .14));
-  $("assistReset").addEventListener("click", () => els.resetDialog.showModal());
   $("cancelReset").addEventListener("click", (event) => { event.preventDefault(); els.resetDialog.close(); });
   $("confirmReset").addEventListener("click", (event) => { event.preventDefault(); els.resetDialog.close(); void recordEpisode(); });
   els.resetDialog.addEventListener("click", (event) => { if (event.target === els.resetDialog) els.resetDialog.close(); });
   els.settings.addEventListener("click", (event) => { if (event.target === els.settings) els.settings.close(); });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && document.body.classList.contains("scene-expanded")) setExpandedScene(false);
+  });
   els.undo.addEventListener("click", () => void undoAccidentalReset());
   els.motion.addEventListener("change", () => void updateSetting({ motion: els.motion.value }));
   els.calm.addEventListener("change", () => void updateSetting({ calmRestart: els.calm.checked }));
@@ -169,10 +177,20 @@ function attachEvents() {
   });
 }
 
+function toggleExpandedScene() { setExpandedScene(!document.body.classList.contains("scene-expanded")); }
+function setExpandedScene(expanded) {
+  document.body.classList.toggle("scene-expanded", expanded);
+  $("worldFrame").classList.toggle("is-expanded", expanded);
+  const button = $("expandScene");
+  button.setAttribute("aria-label", expanded ? "Return island to its normal size" : "Expand island to full screen");
+  button.title = expanded ? "Return to timer" : "Expand island";
+  if (expanded) button.focus({ preventScroll: true });
+}
+
 function updateHoldFill(progress) {
   els.fill.style.width = `${Math.round(progress * 100)}%`;
-  els.label.textContent = progress > 0 && progress < 1 ? "Keep holding…" : activeRun() ? "I picked — begin again" : "Begin growing";
-  els.help.textContent = progress > 0 && progress < 1 ? "release to keep your current run" : activeRun() ? "press and hold for one second" : "one tap begins your first little world";
+  els.label.textContent = progress > 0 && progress < 1 ? "Keep holding…" : "Begin growing";
+  els.help.textContent = progress > 0 && progress < 1 ? "release to keep your current run" : "one tap begins your first little world";
 }
 
 async function startRun() {
@@ -265,10 +283,12 @@ async function updateSetting(changes) {
 
 function render(forceScene = false) {
   const run = activeRun();
+  els.actionZone.hidden = Boolean(run);
+  $("settingsBeginAgain").hidden = !run;
   hold?.setEnabled(Boolean(run));
   els.action.disabled = busy;
-  els.label.textContent = run ? "I picked — begin again" : "Begin growing";
-  els.help.textContent = run ? "press and hold for one second" : "one tap begins your first little world";
+  els.label.textContent = "Begin growing";
+  els.help.textContent = "one tap begins your first little world";
   els.action.setAttribute("aria-describedby", "holdHelp");
   const elapsed = run ? currentElapsed(run) : 0;
   if (Math.floor(elapsed / 1000) !== lastShownSecond || forceScene) {
