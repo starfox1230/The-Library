@@ -12,6 +12,7 @@ class MusicMotion:
         self.band_levels = [0.0]*8
         self.band_phases = [0.0]*8
         self.band_rates = [.1]*8
+        self.club_phase = 0.0
 
     def feed(self, now, sound, impact=.8):
         impact=min(1,max(0,impact))
@@ -32,6 +33,8 @@ class MusicMotion:
         # A calm drift in silence, with actual sound accelerating and folding it.
         rate = .10 + self.level*.48 + self.bass*.22 + self.push*.16
         self.phase += dt*rate
+        club_rate=.12+self.level*.5+self.push*impact*3.8
+        self.club_phase+=dt*club_rate
         self.camera_goal += dt*.025
         self.camera += (self.camera_goal-self.camera)*(1-math.exp(-dt*2.4))
         bands=sound.get('bands') or [energy]*8
@@ -42,7 +45,7 @@ class MusicMotion:
             # Kicks accelerate forward travel. Decaying sound never rewinds it.
             self.band_rates[i]=.10+self.band_levels[i]*.65+self.push*impact*(1.8 if i<3 else .85)
             self.band_phases[i]+=dt*self.band_rates[i]
-        return dict(flow_time=self.phase, flow_rate=rate, music_level=self.level,
+        return dict(flow_time=self.phase, flow_rate=rate, club_time=self.club_phase,club_rate=club_rate,music_level=self.level,
                     music_bass=self.bass, music_push=self.push,
                     particle_phases=list(self.band_phases),particle_rates=list(self.band_rates),
                     camera_phase=self.camera,camera_rate=(self.camera_goal-self.camera)*2.4)

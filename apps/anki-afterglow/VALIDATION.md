@@ -2,6 +2,13 @@
 
 Passed on Sterling's Windows machine:
 
+## 0.6 Techno Club and cloud preservation
+
+- Viewed the supplied YouTube Short in the browser: bright rounded particles in broken, rippling loops. Built an original neon ribbon renderer with large kick-driven radial/tangential/depth displacement, glow and a forward travel burst. The reference video was not downloaded or bundled.
+- One batched point-sprite draw, default 1,800 particles. GPU pixel test held time fixed and found only about 3.6% of lit interbeat pixels still occupied on the kick, establishing actual spatial movement rather than just more light. Canvas fallback: about 1% retained. Both paths pass pause, reduced motion and disable checks; screenshots inspected for geometry and readable card text.
+- Isolated shared-layer Qt WebEngine with a simulated beat at 1920×1080: approximately 60 FPS, p95 16.8 ms, Intel Arc / ANGLE / Direct3D11; all three decorators draw zero animation frames. The 75–250% zoom and independently zoomed answer-bar alignment test passes for the club renderer's software fallback. This is not a new live review/Speed Streak frame-rate measurement.
+- The v0.5 cloud shader is unchanged and the original motion fields retain their formulas. Added independent club clock fields. Existing cloud browser and twelve beat/motion tests pass. Anki smoke test covers restoring a saved cloud profile. Installer saves prior preferences once and preserves them on subsequent replacements; generic defaults are packaged as fallback.
+
 ## 0.5 stronger beat response and lighter cloud
 
 - Fixed the weak particle response: the shader now consumes the beat pulse for particle brightness, trail length, point size and color accent. Detected kicks also boost forward band clocks and advance a lagged camera target more strongly. The impact control scales the native kick travel/camera response and the visual pulse. No full-screen background flash or whole-cloud amplitude scaling is added.

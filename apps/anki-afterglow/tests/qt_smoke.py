@@ -77,6 +77,10 @@ with tempfile.TemporaryDirectory() as directory:
     assert report['panes'][0]['metrics']['fps']==60
     assert report['geometry'][0]['zoom']==1.25
     assert 'card' not in report
+    (module.ROOT/'user_files/particle-cloud-v0.5.json').write_text(json.dumps({'palette':'ultraviolet','particle_count':4200,'motion':55,'impact':80}))
+    c.restore_cloud()
+    assert c.config['visual']=='particles' and c.config['palette']=='ultraviolet'
+    assert c.config['particle_count']==4200 and c.config['impact']==80
     module.ROOT=original_root
 c.close()
 print('PASS: Anki libraries, menu, settings dialog, audio start/stop, reviewer bridge')

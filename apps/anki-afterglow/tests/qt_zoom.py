@@ -3,6 +3,7 @@ import os
 os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--disable-gpu'
 import json
 import time
+import sys
 from pathlib import Path
 from aqt.qt import QApplication, QEventLoop, QTimer, Qt
 from PyQt6.QtWebEngineWidgets import QWebEngineView
@@ -18,7 +19,7 @@ view.resize(1000,900)
 view.show()
 print('Qt WebEngine initialized',flush=True)
 root=Path(__file__).parents[1]
-html='<html><head><style>body{margin:0;color:white}#qa{font:24px sans-serif;display:inline-block}</style><style>'+ (root/'web/afterglow.css').read_text()+'</style></head><body><div id="qa">Zoom this card text</div><script>'+'\n'.join((root/('web/'+name)).read_text() for name in ('liquid.js','particles.js','afterglow.js'))+'</script></body></html>'
+html='<html><head><style>body{margin:0;color:white}#qa{font:24px sans-serif;display:inline-block}</style><style>'+ (root/'web/afterglow.css').read_text()+'</style></head><body><div id="qa">Zoom this card text</div><script>'+'\n'.join((root/('web/'+name)).read_text() for name in ('liquid.js','particles.js','club.js','afterglow.js'))+'</script></body></html>'
 
 def wait(seconds=.2):
     end=time.monotonic()+seconds
@@ -35,7 +36,7 @@ def js(code):
     return result[0]
 
 def paint(y=0,dpr=None):
-    data={'config':{'enabled':True,'motion':0,'intensity':65,'immersive':True},
+    data={'config':{'enabled':True,'visual':'club' if '--club' in sys.argv else 'particles','motion':0,'intensity':65,'immersive':True},
           'surface':{'x':0,'y':y,'width':1000,'height':900,'view_width':view.width(),
                      'view_height':view.height(),'dpr':view.devicePixelRatioF() if dpr is None else dpr},
           'primary':True,'scene_time':0}

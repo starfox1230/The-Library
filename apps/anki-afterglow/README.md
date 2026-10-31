@@ -1,4 +1,12 @@
-# Afterglow 0.5 — personal Windows preview
+# Afterglow 0.6 — personal Windows preview
+
+## Techno Club and the saved cloud
+
+**Techno Club** is a separate new visual inspired by the loose, bright particle loops in [this supplied reference](https://www.youtube.com/shorts/eeYaC-pY_bo). Neon cyan/magenta/lime beads form broken, rippling ribbons. Kicks push their positions outward, twist the loops and bring them toward the viewer; a smooth envelope releases between beats. A shared forward clock adds a burst of travel on detected attacks. This is an original visual, not the video's code or assets. It uses one GPU point-sprite draw and 1,800 particles by default, with a simpler Canvas fallback.
+
+The **v0.5 Particle Cloud remains available** in the Visual selector. Its renderer and motion behavior are preserved; its exact source is also in Git commit `805eed3`. Before replacement, the PowerShell installer saves the user's previous configuration to local `user_files/particle-cloud-v0.5.json` once. **Tools → Afterglow → Restore saved v0.5 Particle Cloud look** restores its palette, density, brightness, motion, impact and halo settings. The generic `cloud-v0.5.json` is the fallback for fresh installs. Reinstalling does not overwrite that saved look.
+
+The default Techno Club density is 1,800, capped at 4,200 in Smooth or 1,200 in Economy. The density control is shared with the other visuals. Existing card text, buttons, zoom anchoring and the shared background layer are retained. Isolated Qt WebEngine with a simulated beat reached about 60 FPS; full live Anki performance and subjective musical feel are not established by that benchmark.
 
 A separate Anki desktop add-on: a full-window audio-reactive particle cloud with individual letter halos. The new mode is an original approximation of the principles in Bileam Tschepe's [Audioreactive Particle Cloud (new)](https://www.elekktronaut.com/tutorials/audioreactive-particle-cloud-new): age-colored line particles, audio-driven speed and lagged camera motion. It does not load the creator's project or require TouchDesigner. Plays alongside Speed Streak without importing it, patching its code, or accessing its timers. Works without Speed Streak too. Does not change saved card fields, scheduling, answer keys, or music playback.
 

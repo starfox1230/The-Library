@@ -53,7 +53,7 @@ class Afterglow:
         self.decoration_updates = {}
         self.decorated = []
         css = (ROOT / 'web/afterglow.css').read_text(encoding='utf-8')
-        js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','afterglow.js'))
+        js = '\n'.join((ROOT / ('web/'+name)).read_text(encoding='utf-8') for name in ('liquid.js','particles.js','club.js','afterglow.js'))
         self.inject_script = '(function(){if(window.Afterglow)return;const s=document.createElement("style");s.textContent=' + json.dumps(css) + ';document.head.append(s);' + js + '})();'
         self.action = QAction("Afterglow — Music background…", mw)
         self.action.triggered.connect(self.settings)
@@ -96,6 +96,7 @@ class Afterglow:
             content.css.append(base + "/afterglow.css")
             content.js.append(base + "/liquid.js")
             content.js.append(base + "/particles.js")
+            content.js.append(base + "/club.js")
             content.js.append(base + "/afterglow.js")
 
     def fullscreen(self):
@@ -301,17 +302,21 @@ class Afterglow:
             slider.valueChanged.connect(lambda value, k=key, l=value_label, title=label: (l.setText(f"{title}: {value}"), save(k, value)))
             form.addRow(value_label, slider)
         palette = QComboBox()
-        for title, value in [("Aurora · cyan / violet / rose", "aurora"), ("Acid · lime / teal / amber", "acid"), ("Ultraviolet · purple / blue / pink", "ultraviolet"), ('Ember · coral / gold / violet','ember')]:
+        for title, value in [("Club neon · cyan / magenta / lime", "neon"),("Aurora · cyan / violet / rose", "aurora"), ("Acid · lime / teal / amber", "acid"), ("Ultraviolet · purple / blue / pink", "ultraviolet"), ('Ember · coral / gold / violet','ember')]:
             palette.addItem(title, value)
         palette.setCurrentIndex(max(0, palette.findData(self.config["palette"])))
         palette.currentIndexChanged.connect(lambda _: save("palette", palette.currentData()))
         form.addRow("Palette", palette)
         visual=QComboBox()
+        visual.addItem('Techno Club · beat-driven neon ribbons','club')
         visual.addItem('Particle cloud','particles')
         visual.addItem('Liquid wall','liquid')
         visual.setCurrentIndex(max(0,visual.findData(self.config['visual'])))
         visual.currentIndexChanged.connect(lambda _:save('visual',visual.currentData()))
         form.addRow('Visual',visual)
+        restore=QPushButton('Restore saved v0.5 Particle Cloud look')
+        restore.clicked.connect(lambda: (self.restore_cloud(),dialog.accept()))
+        form.addRow(restore)
         quality = QComboBox()
         quality.addItems(["Economy · 30 FPS", "Smooth · display refresh rate"])
         quality.setCurrentIndex(int(self.config["quality"]))
@@ -337,6 +342,16 @@ class Afterglow:
         dialog.exec()
         self.status_label = None
         self.meter = None
+
+    def restore_cloud(self):
+        saved=ROOT/'user_files/particle-cloud-v0.5.json'
+        if not saved.exists():saved=ROOT/'cloud-v0.5.json'
+        values=json.loads(saved.read_text(encoding='utf-8-sig'))
+        for key in ('intensity','motion','contrast','quality','palette','impact','particle_count'):
+            if key in values:self.config[key]=values[key]
+        self.config['visual']='particles'
+        mw.addonManager.writeConfig(__name__,self.config)
+        self.tick()
 
 
 controller = Afterglow()

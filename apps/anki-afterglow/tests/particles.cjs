@@ -5,6 +5,7 @@ const browser=await chromium.launch({channel:'msedge',headless:true});
 const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
 page.on('console',m=>{if(m.type()==='warning'||m.type()==='error')console.log(m.text());});
 await page.goto('file:///'+path.resolve(__dirname,'../index.html').replaceAll('\\','/'));
+await page.selectOption('#visual','particles');await page.selectOption('#particles','4200');
 await page.waitForTimeout(300);
 assert.equal(await page.evaluate(()=>Afterglow.metrics().visual),'particles');
 assert.equal(await page.evaluate(()=>Afterglow.renderer),'webgl','GPU test unexpectedly fell back');
