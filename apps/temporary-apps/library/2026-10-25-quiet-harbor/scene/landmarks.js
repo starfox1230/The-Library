@@ -91,35 +91,76 @@ function fireStation(g) {
 }
 
 function church(g) {
-  block(g, 32, 22, 0xf1e9d8, 0xd8d5c9, 0x708c91);
-  pitchedRoof(g, 33, 22, 0x879da0, 0x607b81);
-  for (let i = 0; i < 3; i++) {
-    pane(g, -27 + i * 8, -18 + i * 4, 5, 9, .5, 0x94b7bb);
-    pane(g, 5 + i * 8, -8 - i * 4, 5, 9, -.5, 0x94b7bb);
+  // A contemporary LDS ward meetinghouse: long brick chapel, low roof,
+  // glazed entry and a slender white steeple mounted on the ridge.
+  diamond(g, 0, 2, 74, 38, 0xa8ba8d);
+  sacredBox(g, 0, 0, 52, 30, 0, 19, [0xb47f68, 0x99644f, 0xc59c7e]);
+  sacredFace(g, [[-26,-15,19],[26,-15,19],[26,0,34],[-26,0,34]], 0x737b79);
+  sacredFace(g, [[-26,0,34],[26,0,34],[26,15,19],[-26,15,19]], 0x515f61);
+  sacredFace(g, [[26,-15,19],[26,15,19],[26,0,34]], 0xd2b49a);
+  for (const x of [-20,-10,0,10]) {
+    sacredFace(g, [[x,15,5],[x+4,15,5],[x+4,15,15],[x,15,15]], 0xa6c9ca);
+    const a = sacredPoint(x-1,15,4), b = sacredPoint(x-1,15,17);
+    g.moveTo(...a).lineTo(...b).stroke({color:0xe3cdb1,width:1});
   }
-  pane(g, 8, -7, 9, 15, -.5, 0x6d8584);
-  // A modest ward chapel with a tall steeple and simple gold finial.
-  g.roundRect(-8, -55, 16, 29, 1).fill(0xf7f0df);
-  g.poly([-12, -55, 0, -69, 12, -55]).fill(0x708c91);
-  g.roundRect(-2, -50, 5, 8, 2).fill(0xa9c7c7);
-  g.circle(0, -72, 2.2).fill(0xd9b467);
-  g.moveTo(0, -70).lineTo(0, -68).stroke({ color: 0xd9b467, width: 1.4 });
+  // Recessed double doors in the gabled end, with a small paved approach.
+  sacredFace(g, [[26,-5,0],[33,-5,0],[33,6,0],[26,6,0]], 0xded4bd);
+  sacredFace(g, [[26,-5,0],[26,5,0],[26,5,13],[26,-5,13]], 0x638a91);
+  const doorBase = sacredPoint(26,0,0), doorTop = sacredPoint(26,0,13);
+  g.moveTo(...doorBase).lineTo(...doorTop).stroke({color:0xe9ddc5,width:1});
+  sacredFace(g, [[26,-6,16],[26,6,16],[26,0,24]], 0xede5d5);
+  sacredBox(g, 7, 0, 6, 6, 30, 45, [0xf4f0e4,0xd5ded7,0xffffff]);
+  // Long tapered spire, without the bell chamber of the earlier drawing.
+  sacredFace(g, [[4,-3,45],[10,-3,45],[7,0,72]], 0xfaf6e8);
+  sacredFace(g, [[10,-3,45],[10,3,45],[7,0,72]], 0xc8d6d1);
+  sacredFace(g, [[10,3,45],[4,3,45],[7,0,72]], 0xe4ece4);
+  for (const [x,z] of [[-25,16],[13,16],[28,-12]]) {
+    const [sx,sy] = sacredPoint(x,z,0);
+    g.ellipse(sx,sy,4,2.5).fill(0x6c9363);
+  }
 }
 
 function temple(g) {
-  block(g, 32, 27, 0xf7f0df, 0xe2ddcf, 0xb8b49f);
-  // A distant, carefully symmetrical temple with a taller central tower.
-  for (const x of [-22, -11, 11, 22]) {
-    g.roundRect(x - 2, -42, 4, 24, 1).fill(0xfaf5e8);
-    g.circle(x, -45, 3).fill(0xe4d7b5);
-    g.poly([x - 4, -47, x, -55, x + 4, -47]).fill(0xc5bea8);
+  // Salt Lake Temple inspired: solid granite mass, six attached towers,
+  // pointed windows and steep spires, with Moroni on the tallest tower.
+  diamond(g, 0, 2, 76, 38, 0xa8ba8d);
+  sacredBox(g, 0, 0, 52, 37, 0, 3, [0xc4c9bc,0xb4bfb6,0xe6e7d7]);
+  for (const z of [-14,0,14]) templeTower(g,-21,z,z===0?55:45,27);
+  sacredBox(g, 0, 0, 46, 32, 3, 35, [0xe8e4d4,0xc5cfc8,0xf5f0e1]);
+  sacredBox(g, 0, 0, 47, 33, 34, 38, [0xf1eddf,0xd7ded1,0xe9e7d6]);
+  for (const x of [-13,-3,7,17]) for (const h of [9,23]) {
+    sacredWindow(g,x,16,h,4,9);
   }
-  g.roundRect(-6, -66, 12, 43, 1).fill(0xf8f2e4);
-  g.poly([-9, -66, 0, -80, 9, -66]).fill(0xb8b49f);
-  g.poly([-31, -44, 0, -58, 31, -44, 0, -32]).fill(0xf2ead6);
-  g.moveTo(-25, -39).lineTo(25, -39).stroke({ color: 0xd5c394, width: 1.5 });
-  g.circle(0, -83, 2.5).fill(0xd9b467);
-  pane(g, -3, -32, 6, 11, .5, 0x91aeb2);
+  for (const z of [-10,7]) for (const h of [9,23]) {
+    sacredFace(g, [[23,z,h],[23,z+4,h],[23,z+4,h+8],[23,z+2,h+11],[23,z,h+8]], 0x73969e);
+  }
+  for (const z of [-14,0,14]) templeTower(g,21,z,z===0?65:49,3);
+  const [mx,my] = sacredPoint(21,0,85);
+  g.moveTo(mx,my-1).lineTo(mx,my-8).stroke({color:0xdcb65c,width:2.2});
+  g.circle(mx,my-10,1.8).fill(0xe8c77b);
+  g.moveTo(mx,my-7).lineTo(mx+4,my-8).lineTo(mx+10,my-9).stroke({color:0xe8c77b,width:1.3});
+  g.poly([mx+9,my-10.5,mx+12,my-12,mx+12,my-7,mx+9,my-8]).fill(0xe8c77b);
+}
+
+// Shared projection keeps rooflines, masonry and towers in the lot's isometric plane.
+function sacredPoint(x, z, height) { return [(x-z)*.8,(x+z)*.4-height]; }
+function sacredFace(g, points, color) { g.poly(points.flatMap(([x,z,h])=>sacredPoint(x,z,h))).fill(color); }
+function sacredBox(g, x, z, width, depth, bottom, top, colors) {
+  const l=x-width/2,r=x+width/2,b=z-depth/2,f=z+depth/2;
+  sacredFace(g,[[l,f,bottom],[r,f,bottom],[r,f,top],[l,f,top]],colors[0]);
+  sacredFace(g,[[r,f,bottom],[r,b,bottom],[r,b,top],[r,f,top]],colors[1]);
+  sacredFace(g,[[l,b,top],[r,b,top],[r,f,top],[l,f,top]],colors[2]);
+}
+function sacredWindow(g,x,z,h,width,height) {
+  sacredFace(g,[[x,z,h],[x+width,z,h],[x+width,z,h+height-2],[x+width/2,z,h+height],[x,z,h+height-2]],0x789ba2);
+}
+function templeTower(g,x,z,height,bottom) {
+  sacredBox(g,x,z,7,7,bottom,height,[0xf1eddf,0xc7d0c8,0xf8f4e7]);
+  sacredBox(g,x,z,8.5,8.5,height-1,height+2,[0xe2e2d3,0xb5c3bd,0xf5f0df]);
+  const peak=[x,z,height+20];
+  sacredFace(g,[[x-4,z+4,height+2],[x+4,z+4,height+2],peak],0xe9e8db);
+  sacredFace(g,[[x+4,z+4,height+2],[x+4,z-4,height+2],peak],0xaabdb8);
+  sacredWindow(g,x-1.5,z+3.55,height-12,3,8);
 }
 
 function museum(g) {

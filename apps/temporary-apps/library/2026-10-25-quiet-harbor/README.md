@@ -36,6 +36,8 @@ This is an expanding illustration, not a management simulation: schools and fire
 
 The current island, cottages, clock towers, gardens, and neighbors are original vector illustrations drawn by the renderer. Ground, paths, and objects use separate layers, and objects sort by their ground position. Existing run seeds and growth schedules are unchanged. The earlier Kenney art remains bundled with its licenses.
 
+The church illustration follows the long brick form, broad gabled roof, and slender white steeple of a Latter-day Saint meetinghouse ([Spanish Fork reference](https://local.churchofjesuschrist.org/en/us/ut/spanish-fork/1552-east-750-south)). The later temple is an original miniature inspired by the Salt Lake Temple's six attached towers and spires ([official architectural background](https://newsroom.churchofjesuschrist.org/additional-resources/background-on-the-salt-lake-temple)). These references inform the silhouettes; the artwork is drawn locally from vector primitives.
+
 - [Kenney Isometric Tiles Landscape](https://kenney.nl/assets/isometric-tiles-landscape), [Buildings](https://kenney.nl/assets/isometric-tiles-buildings), and [City](https://kenney.nl/assets/isometric-tiles-city), CC0. License copies and archive hashes are in `assets/licenses/` and `assets/sources.json`.
 - PixiJS 8.22.0, vendored locally under its MIT license in `vendor/PIXI-LICENSE.txt`.
 - The app icon is original Quiet Harbor artwork. The resident and water effects are drawn by the app.
@@ -52,6 +54,6 @@ The app's main document comes from the same cache revision as its modules until 
 
 Serve this folder and open `tests/visual-review.html` to compare the seed, ten-minute garden, one-hour neighborhood, two-day village, and hundred-day district. These deterministic scene fixtures do not modify saved progress. The page also embeds the real app at a 390 × 844 phone size.
 
-Open `tests/landmark-review.html` for a labeled gallery of all fourteen building/place designs, their descriptions, and first arrival times. Only visible cards create drawing contexts, and hidden cards release them.
+Open `tests/landmark-review.html` for a labeled gallery of all sixteen building/place designs, their descriptions, and first arrival times. Add `?places=church,temple` to view the two religious landmarks together. Only visible cards create drawing contexts, and hidden cards release them.
 
 The Home Screen shell uses `viewport-fit=cover`, `black-translucent` status-bar styling, safe-area padding, and a shared solid background/theme color. These let the page extend behind the system status area without a gradient seam. iOS controls its status icons and home indicator; web content does not hide those. Verify the installed presentation on a physical iPhone, since a desktop browser cannot reproduce that system chrome.
