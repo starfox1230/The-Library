@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     import aqt
     from aqt import gui_hooks
-    from aqt.qt import QApplication, QFont, QFontDatabase, QLabel, QMenu, QVBoxLayout, QWidget
+    from aqt.qt import QApplication, QCheckBox, QFont, QFontDatabase, QLabel, QMenu, QVBoxLayout, QWidget
 except ImportError:
     raise unittest.SkipTest("Run with Anki's Python for native Qt integration")
 
@@ -23,7 +23,7 @@ package = types.ModuleType(PACKAGE)
 package.__path__ = [str(ROOT / "apps/anki-pocket-knife")]
 sys.modules[PACKAGE] = package
 settings = types.ModuleType(f"{PACKAGE}.settings")
-settings.values = {"review_burst_goal": 10}
+settings.values = {"review_burst_goal": 10, "review_burst_reset_on_return": True}
 settings.get_setting = lambda key: settings.values[key]
 settings.set_setting = lambda key, value: settings.values.update({key: value})
 sys.modules[settings.__name__] = settings
@@ -64,6 +64,7 @@ class ReviewBurstTests(unittest.TestCase):
         self.hooks = (gui_hooks.reviewer_did_answer_card, gui_hooks.state_did_change, gui_hooks.profile_will_close)
         self.before = [hook.count() for hook in self.hooks]
         settings.values["review_burst_goal"] = 10
+        settings.values["review_burst_reset_on_return"] = True
 
     def tearDown(self):
         module.stop_burst()
@@ -135,6 +136,7 @@ class ReviewBurstTests(unittest.TestCase):
         self.assertEqual(controller.overlay.count, 1)
 
     def test_leave_review_return_restart_and_resize(self):
+        settings.values["review_burst_reset_on_return"] = False
         module.start_burst(2)
         controller = module._controller
         self.answer()
@@ -155,6 +157,71 @@ class ReviewBurstTests(unittest.TestCase):
         self.assertEqual(module._controller.overlay.count, 0)
         self.assertEqual(settings.values["review_burst_goal"], 3)
         self.assertEqual([hook.count() for hook in self.hooks], [x + 1 for x in self.before])
+
+    def leave_and_return(self):
+        self.mw.state = "overview"
+        gui_hooks.state_did_change("overview", "review")
+        self.mw.state = "deckBrowser"
+        gui_hooks.state_did_change("deckBrowser", "overview")
+        self.mw.state = "review"
+        gui_hooks.state_did_change("review", "deckBrowser")
+
+    def test_return_resets_partial_burst_every_time_by_default(self):
+        module.start_burst(3)
+        controller = module._controller
+        for _ in range(2):
+            self.answer()
+            self.leave_and_return()
+            self.assertIs(module._controller, controller)
+            self.assertTrue(controller.overlay.isVisible())
+            self.assertEqual(controller.overlay.count, 0)
+            self.assertEqual(controller.overlay.goal, 3)
+            self.assertEqual(controller.overlay.progress, 0)
+            self.assertEqual(controller.from_progress, 0)
+            self.assertEqual(controller.to_progress, 0)
+            self.assertFalse(controller.timer.isActive())
+        self.answer()
+        gui_hooks.state_did_change("review", "review")
+        self.assertEqual(controller.overlay.count, 1)
+
+    def test_return_restores_ring_and_allows_new_celebration(self):
+        module.start_burst(1)
+        controller = module._controller
+        for _ in range(2):
+            self.answer()
+            self.settle()
+            self.assertTrue(controller.confetti.isVisible())
+            self.answer()
+            self.assertEqual(controller.overlay.count, 2)
+            self.leave_and_return()
+            self.assertEqual(controller.overlay.count, 0)
+            self.assertEqual(controller.overlay.height(), 178)
+            self.assertFalse(controller.overlay.complete)
+            self.assertFalse(controller.confetti.isVisible())
+            self.assertIsNone(controller.celebration_start)
+
+    def test_return_preserves_completed_burst_when_setting_off(self):
+        settings.values["review_burst_reset_on_return"] = False
+        module.start_burst(1)
+        self.answer()
+        self.settle()
+        self.answer()
+        self.leave_and_return()
+        controller = module._controller
+        self.assertEqual(controller.overlay.count, 2)
+        self.assertTrue(controller.overlay.complete)
+        self.assertEqual(controller.overlay.height(), 38)
+        self.assertFalse(controller.timer.isActive())
+
+    def test_dialog_setting_saves_without_starting_burst(self):
+        def configure(dialog):
+            checkbox = dialog.findChild(QCheckBox)
+            self.assertTrue(checkbox.isChecked())
+            checkbox.setChecked(False)
+            self.assertFalse(settings.values["review_burst_reset_on_return"])
+            self.assertFalse(module.is_burst_active())
+        with patch.object(module.QDialog, "exec", configure):
+            module.open_burst_dialog()
 
     def test_profile_close_does_not_skip_other_addons(self):
         module.start_burst()

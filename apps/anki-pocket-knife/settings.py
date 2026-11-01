@@ -9,6 +9,7 @@ from .common import user_files_dir
 SETTINGS_PATH = user_files_dir() / "settings.json"
 DEFAULT_SETTINGS = {
     "review_burst_goal": 10,
+    "review_burst_reset_on_return": True,
     "scroll_to_top_on_answer": True,
     "review_image_overlay_shortcuts": True,
     "review_image_overlay_remember_position": False,

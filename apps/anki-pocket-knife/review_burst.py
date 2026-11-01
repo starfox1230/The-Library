@@ -9,7 +9,7 @@ from typing import Any
 import aqt
 from aqt import gui_hooks
 from aqt.qt import (
-    QAction, QColor, QDialog, QEvent, QFont, QHBoxLayout, QLabel, QMenu,
+    QAction, QCheckBox, QColor, QDialog, QEvent, QFont, QHBoxLayout, QLabel, QMenu,
     QObject, QPainter, QPen, QPointF, QPushButton, QRectF, QSpinBox,
     QTimer, Qt, QVBoxLayout, QWidget,
 )
@@ -151,7 +151,23 @@ class BurstController(QObject):
         else:
             self.finish_animation()
 
-    def state_changed(self, *_args: Any) -> None:
+    def reset(self) -> None:
+        self.timer.stop()
+        self.celebration_start = None
+        self.confetti.hide()
+        self.confetti.elapsed = 0.0
+        self.animation_start = 0.0
+        self.from_progress = self.to_progress = 0.0
+        self.overlay.count = 0
+        self.overlay.progress = self.overlay.pulse = 0.0
+        self.overlay.complete = False
+        self.overlay.setFixedHeight(178)
+        self.overlay.update()
+
+    def state_changed(self, new_state: str, old_state: str) -> None:
+        if (new_state == "review" and old_state != "review"
+                and get_setting("review_burst_reset_on_return")):
+            self.reset()
         self.refresh_visibility()
 
     def eventFilter(self, _watched: Any, event: Any) -> bool:
@@ -277,6 +293,11 @@ def open_burst_dialog(*_args: Any) -> None:
     goal.setValue(max(1, min(1000, int(get_setting("review_burst_goal") or 10))))
     row.addWidget(goal)
     layout.addLayout(row)
+    reset_on_return = QCheckBox("Reset burst when returning to review")
+    reset_on_return.setChecked(bool(get_setting("review_burst_reset_on_return")))
+    reset_on_return.setToolTip("Start at zero each time you leave review and come back, while Review Burst is on.")
+    reset_on_return.toggled.connect(lambda checked: set_setting("review_burst_reset_on_return", checked))
+    layout.addWidget(reset_on_return)
     if _controller is not None:
         layout.addWidget(QLabel(f"Current burst: {_controller.overlay.count} / {_controller.overlay.goal}"))
     buttons = QHBoxLayout()

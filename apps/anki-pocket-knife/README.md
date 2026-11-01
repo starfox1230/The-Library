@@ -16,12 +16,14 @@ answers-given counter. At the goal the ring erupts into a brief, silent confetti
 burst, then leaves only `10 / 10`. Further answers show `11 / 10`, `12 / 10`, etc.,
 without repeating the celebration. Start a new burst to reset it.
 
-The burst survives moving between decks within the current profile and is visible
-only during review. It starts **off** after launching Anki or changing profiles.
+By default, leaving review and returning resets the enabled burst to zero,
+including after completing or exceeding the goal. Turn off **Reset burst when
+returning to review** in the burst settings to keep the count between visits.
+This preference saves immediately. The burst is visible only during review. It starts **off** after launching Anki or changing profiles.
 Turning it off discards the count, detaches its review/profile/state hooks and
 window event filter, stops the animation timer, and removes both overlays. There
 is no collection query, polling, network access, daily history, or idle animation.
-Only the chosen goal is saved; the counter never changes scheduling or grading.
+Only the chosen goal and reset preference are saved; the counter never changes scheduling or grading.
 
 ## Included tools
 
