@@ -44,14 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-01 08:45 Central Standard Time
-Cards: 13
+Updated: 2026-11-01 15:18 Central Standard Time
+Cards: 14
 
 ## Card 1
 
 Deck: .NEW::Audio
+Flagged: 2026-09-29T13:16:51-05:00
+Last seen: 2026-11-01T15:17:46-06:00
+Card ID: 1765507990137
+Note ID: 1765507990136
+
+Question:
+00:12
+
+The standard treatment for osteoblastoma is [...].
+
+Answer:
+00:12
+
+The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
+
+## Card 2
+
+Deck: .NEW::Audio
 Flagged: 2026-10-29T15:40:56-05:00
-Last seen: 2026-11-01T08:45:06-06:00
+Last seen: 2026-11-01T15:12:19-06:00
 Card ID: 1779484495695
 Note ID: 1779484495693
 
@@ -65,7 +83,7 @@ Answer:
 
 In balloon angioplasty, the law of Laplace explains why pressure and diameter determine balloon wall tension.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -83,7 +101,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Visual
 Flagged: 2026-09-26T07:29:03-05:00
@@ -109,7 +127,7 @@ Coumadin ridge
 
 1/2
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-11-01T07:15:13-06:00
@@ -127,7 +145,7 @@ Answer:
 
 In a cyanotic patient with a left aortic arch, normal heart size, and decreased or normal pulmonary blood flow, the main differential diagnoses are Tetralogy of Fallot, Ebstein anomaly, and tricuspid atresia.
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-08-09T07:22:26-05:00
@@ -149,7 +167,7 @@ What's going on in this cisternography?
 
 Dose extravasation - railroad sign and early kidney activity
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:24:27-05:00
@@ -172,7 +190,7 @@ Notion AIRP Lecture
 Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
 Bone metastases in thyroid cancer
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-08-22T06:38:18-05:00
@@ -196,7 +214,7 @@ D
 
 Source: Visual Cards for nukes session. Original note used lettered locations; this card tests the physiologic localization instead of the answer letters.
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-07-25T19:51:45-05:00
@@ -242,7 +260,7 @@ Normal:
 
 Abnormal:
 
-## Card 9
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-09-05T05:09:58-05:00
@@ -264,7 +282,7 @@ Area postrema involvement produces a characteristic dorsal medullary or floor-of
 
 Source: Notion Radiology entry.
 
-## Card 10
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-19T12:40:50-05:00
@@ -282,7 +300,7 @@ Answer:
 
 The units of measure for radioactivity are the curie (Ci) or becquerel (Bq).
 
-## Card 11
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-11-01T06:43:57-06:00
@@ -304,7 +322,7 @@ The unlabeled MR image is attached on Front; the labeled reference is attached i
 
 Source: Notion Radiology Notes — conjoint tendon, 2026-07-30.
 
-## Card 12
+## Card 13
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -328,7 +346,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 13
+## Card 14
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
