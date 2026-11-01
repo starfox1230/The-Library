@@ -4,8 +4,8 @@
   const editable='input,textarea,select,[contenteditable]:not([contenteditable="false"])';
   const element=node=>node?.nodeType===1?node:node?.parentElement;
   const canEdit=node=>Boolean(element(node)?.closest(editable));
-  const clearUISelection=()=>{const selection=window.getSelection();if(selection?.rangeCount&&!canEdit(selection.anchorNode)&&!canEdit(selection.focusNode))selection.removeAllRanges();};
-  document.addEventListener('selectstart',event=>{if(!canEdit(event.target)&&event.cancelable)event.preventDefault();});
+  const clearUISelection=()=>{if(canEdit(document.activeElement))return;const selection=window.getSelection();if(selection?.rangeCount&&!canEdit(selection.anchorNode)&&!canEdit(selection.focusNode))selection.removeAllRanges();};
+  document.addEventListener('selectstart',event=>{if(!canEdit(document.activeElement)&&!canEdit(event.target)&&event.cancelable)event.preventDefault();});
   document.addEventListener('selectionchange',clearUISelection);
   document.addEventListener('pointerdown',event=>{if(!canEdit(event.target))clearUISelection();},true);
   document.addEventListener('dragstart',event=>{if(!canEdit(event.target)&&event.cancelable)event.preventDefault();});
