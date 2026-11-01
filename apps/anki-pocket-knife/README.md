@@ -2,6 +2,27 @@
 
 Anki Pocket Knife is a multi-tool add-on that bundles together a few focused workflow helpers in one place.
 
+## Review Burst
+
+Start with **Tools -> Anki Pocket Knife -> Start / Configure Review Burst**, or the
+Review Behavior section of the Pocket Knife launcher. Choose a goal (default 10,
+range 1–1000), then **Start New Burst**. **Review Burst On** starts the saved goal
+immediately and toggles the feature off again.
+
+A mint progress ring sits at the bottom right, above the review buttons. Each
+successful answer counts once, including Again and repeat presentations of the
+same card. Revealing an answer does not count; undo does not subtract from this
+answers-given counter. At the goal the ring erupts into a brief, silent confetti
+burst, then leaves only `10 / 10`. Further answers show `11 / 10`, `12 / 10`, etc.,
+without repeating the celebration. Start a new burst to reset it.
+
+The burst survives moving between decks within the current profile and is visible
+only during review. It starts **off** after launching Anki or changing profiles.
+Turning it off discards the count, detaches its review/profile/state hooks and
+window event filter, stops the animation timer, and removes both overlays. There
+is no collection query, polling, network access, daily history, or idle animation.
+Only the chosen goal is saved; the counter never changes scheduling or grading.
+
 ## Included tools
 
 - `Early Review Deck`: reuses the existing early-review behavior and builds a filtered deck from tomorrow's review cards, prioritizing the longest intervals first.

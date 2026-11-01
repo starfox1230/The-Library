@@ -131,6 +131,7 @@ from .visual_card_multitude import (
     set_visual_card_multitude_add_button_enabled,
     set_visual_card_multitude_auto_visual_deck_enabled,
 )
+from .review_burst import add_burst_menu, open_burst_dialog, stop_burst
 from .settings import get_setting, set_setting
 
 
@@ -522,6 +523,14 @@ class PocketKnifeLauncherDialog(QDialog):
         )
         review_copy.setWordWrap(True)
         review_layout.addWidget(review_copy)
+        burst_row = QHBoxLayout()
+        burst_start = QPushButton("Start / Configure Review Burst")
+        burst_start.clicked.connect(open_burst_dialog)
+        burst_row.addWidget(burst_start)
+        burst_stop = QPushButton("Turn Burst Off")
+        burst_stop.clicked.connect(stop_burst)
+        burst_row.addWidget(burst_stop)
+        review_layout.addLayout(burst_row)
         self.auto_scroll_checkbox = QCheckBox("Auto-scroll to the top when answer is revealed")
         self.auto_scroll_checkbox.setChecked(is_auto_scroll_enabled())
         review_layout.addWidget(self.auto_scroll_checkbox)
@@ -1350,6 +1359,7 @@ def _register_menu() -> None:
     _assign_shortcut_if_available(open_action, LAUNCHER_SHORTCUT)
     open_action.triggered.connect(lambda *_args: open_launcher())
     pocket_menu.addAction(open_action)
+    add_burst_menu(pocket_menu, mw)
 
     pocket_menu.addSeparator()
 
