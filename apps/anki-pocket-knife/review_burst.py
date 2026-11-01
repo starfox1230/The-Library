@@ -1,4 +1,4 @@
-"""Opt-in, in-memory review bursts. Off means no review hooks or timers."""
+"""A quiet reviewer start button with opt-in, in-memory review bursts."""
 from __future__ import annotations
 
 from math import cos, pi, sin
@@ -20,6 +20,7 @@ from .settings import get_setting, set_setting
 
 _controller: BurstController | None = None
 _actions: list[QAction] = []
+_presence: BurstButtonController | None = None
 COLORS = ("#77f6ca", "#a99aff", "#ffd378", "#ff89bb", "#88d9ff")
 
 
@@ -123,13 +124,7 @@ class BurstController(QObject):
         self.from_progress = 0.0
         self.to_progress = 0.0
         self.celebration_start: float | None = None
-        self.attachments = (
-            (gui_hooks.reviewer_did_answer_card, self.answered),
-            (gui_hooks.state_did_change, self.state_changed),
-            (gui_hooks.profile_will_close, self.profile_closing),
-        )
-        for hook, callback in self.attachments:
-            hook.append(callback)
+        gui_hooks.reviewer_did_answer_card.append(self.answered)
         mw.installEventFilter(self)
         self.refresh_visibility()
 
@@ -150,25 +145,6 @@ class BurstController(QObject):
             self.overlay.raise_()
         else:
             self.finish_animation()
-
-    def reset(self) -> None:
-        self.timer.stop()
-        self.celebration_start = None
-        self.confetti.hide()
-        self.confetti.elapsed = 0.0
-        self.animation_start = 0.0
-        self.from_progress = self.to_progress = 0.0
-        self.overlay.count = 0
-        self.overlay.progress = self.overlay.pulse = 0.0
-        self.overlay.complete = False
-        self.overlay.setFixedHeight(178)
-        self.overlay.update()
-
-    def state_changed(self, new_state: str, old_state: str) -> None:
-        if (new_state == "review" and old_state != "review"
-                and get_setting("review_burst_reset_on_return")):
-            self.reset()
-        self.refresh_visibility()
 
     def eventFilter(self, _watched: Any, event: Any) -> bool:
         if event.type() in (QEvent.Type.Resize, QEvent.Type.LayoutRequest):
@@ -218,25 +194,14 @@ class BurstController(QObject):
         self.confetti.hide()
         self.overlay.progress = self.to_progress
         self.overlay.pulse = 0
-        # Leaving the reviewer during the final animation still completes the
-        # goal; returning must not replay the celebration.
         if self.overlay.count >= self.overlay.goal:
             self.overlay.complete = True
             self.overlay.setFixedHeight(38)
         self.overlay.update()
 
-    def profile_closing(self) -> None:
-        stop_burst(_profile_closing=True)
-
-    def dispose(self, profile_closing: bool = False) -> None:
+    def dispose(self) -> None:
         self.timer.stop()
-        for hook, callback in self.attachments:
-            if profile_closing and hook is gui_hooks.profile_will_close:
-                # Anki iterates the live hook list. Removing the executing hook
-                # here would skip the next add-on's profile-close callback.
-                QTimer.singleShot(0, lambda h=hook, cb=callback: h.remove(cb))
-            else:
-                hook.remove(callback)
+        gui_hooks.reviewer_did_answer_card.remove(self.answered)
         self.mw.removeEventFilter(self)
         self.overlay.hide()
         self.confetti.hide()
@@ -245,84 +210,177 @@ class BurstController(QObject):
         self.deleteLater()
 
 
+class BurstButtonController(QObject):
+    """Static affordance only: no timer, collection queries, or answer hook."""
+    def __init__(self, mw: Any) -> None:
+        super().__init__(mw)
+        self.mw = mw
+        self.profile_closed = False
+        self.button = QPushButton("Start Burst", mw)
+        self.button.setObjectName("pocketKnifeStartBurst")
+        self.button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.button.setFixedSize(104, 30)
+        self.button.setToolTip("Start a review burst with your saved goal")
+        self.button.setStyleSheet("""
+            QPushButton { color: #b7f9df; background: #19382e;
+                border: 1px solid #456b5d; border-radius: 14px;
+                font-size: 12px; padding: 3px 10px; }
+            QPushButton:hover { background: #24503f; border-color: #77f6ca; }
+            QPushButton:pressed { background: #10271f; }
+        """)
+        self.button.clicked.connect(lambda _checked=False: start_burst())
+        self.attachments = (
+            (gui_hooks.state_did_change, self.state_changed),
+            (gui_hooks.profile_will_close, self.profile_closing),
+            (gui_hooks.profile_did_open, self.profile_opened),
+        )
+        for hook, callback in self.attachments:
+            hook.append(callback)
+        mw.installEventFilter(self)
+        self.refresh()
+
+    def refresh(self) -> None:
+        bottom = self.mw.height() - 16
+        bottom_web = getattr(self.mw, "bottomWeb", None)
+        if bottom_web is not None and bottom_web.isVisible():
+            bottom = bottom_web.mapTo(self.mw, bottom_web.rect().topLeft()).y() - 12
+        self.button.move(max(0, self.mw.width() - self.button.width() - 16),
+                         max(0, bottom - self.button.height()))
+        visible = (not self.profile_closed and self.mw.col is not None
+                   and self.mw.state == "review" and not is_burst_active())
+        self.button.setVisible(visible)
+        if visible:
+            self.button.raise_()
+
+    def state_changed(self, new_state: str, _old_state: str) -> None:
+        if new_state != "review":
+            stop_burst()
+        self.refresh()
+
+    def profile_closing(self) -> None:
+        self.profile_closed = True
+        stop_burst()
+        self.refresh()
+
+    def profile_opened(self, *_args: Any) -> None:
+        self.profile_closed = False
+        self.refresh()
+
+    def eventFilter(self, _watched: Any, event: Any) -> bool:
+        if event.type() in (QEvent.Type.Resize, QEvent.Type.LayoutRequest):
+            self.refresh()
+        return False
+
+    def dispose(self) -> None:
+        for hook, callback in self.attachments:
+            hook.remove(callback)
+        self.mw.removeEventFilter(self)
+        self.button.hide()
+        self.button.deleteLater()
+        self.deleteLater()
+
+
 def is_burst_active() -> bool:
     return _controller is not None
+
+
+def is_burst_present() -> bool:
+    return bool(get_setting("review_burst_present"))
 
 
 def _sync_actions() -> None:
     for action in _actions:
         action.blockSignals(True)
-        action.setChecked(is_burst_active())
+        action.setChecked(is_burst_present())
         action.blockSignals(False)
 
 
-def stop_burst(*_args: Any, _profile_closing: bool = False) -> None:
+def ensure_burst_button(*_args: Any) -> None:
+    global _presence
+    if is_burst_present() and _presence is None and aqt.mw is not None:
+        _presence = BurstButtonController(aqt.mw)
+
+
+def set_burst_present(present: bool) -> None:
+    global _presence
+    set_setting("review_burst_present", bool(present))
+    if present:
+        ensure_burst_button()
+    else:
+        stop_burst()
+        if _presence is not None:
+            _presence.dispose()
+            _presence = None
+    _sync_actions()
+
+
+def stop_burst(*_args: Any) -> None:
     global _controller
     if _controller is not None:
-        _controller.dispose(_profile_closing)
+        _controller.dispose()
         _controller = None
-    _sync_actions()
+    if _presence is not None:
+        _presence.refresh()
 
 
 def start_burst(goal: int | None = None) -> None:
     global _controller
-    if aqt.mw is None or aqt.mw.col is None:
-        showInfo("Open an Anki profile before starting a review burst.")
-        _sync_actions()
+    if aqt.mw is None or aqt.mw.col is None or aqt.mw.state != "review":
+        showInfo("Open a deck in review before starting a burst.")
         return
+    if not is_burst_present():
+        return
+    ensure_burst_button()
     target = max(1, min(1000, int(goal if goal is not None else get_setting("review_burst_goal") or 10)))
     stop_burst()
     set_setting("review_burst_goal", target)
     _controller = BurstController(aqt.mw, target)
-    _sync_actions()
+    _presence.refresh()
 
 
 def open_burst_dialog(*_args: Any) -> None:
     dialog = QDialog(aqt.mw)
     dialog.setWindowTitle("Review Burst · Pocket Knife")
     layout = QVBoxLayout(dialog)
-    copy = QLabel("One small burst. Keep going if you feel like it.\n\n"
+    copy = QLabel("Click Start Burst in the reviewer's bottom-right corner when you want a burst.\n"
+                  "Leaving review ends it; returning waits for another click.\n\n"
                   "Every answer counts, including Again. At your goal, the ring\n"
-                  "erupts into confetti and leaves a counter that keeps climbing.\n"
-                  "Off removes all burst review hooks and stops its animations.")
+                  "erupts into confetti and leaves a counter that keeps climbing.")
     layout.addWidget(copy)
+    present = QCheckBox("Show Start Burst button in reviewer")
+    present.setChecked(is_burst_present())
+    present.toggled.connect(set_burst_present)
+    layout.addWidget(present)
     row = QHBoxLayout()
     row.addWidget(QLabel("Answers per burst"))
     goal = QSpinBox()
     goal.setRange(1, 1000)
     goal.setValue(max(1, min(1000, int(get_setting("review_burst_goal") or 10))))
+    goal.valueChanged.connect(lambda value: set_setting("review_burst_goal", value))
     row.addWidget(goal)
     layout.addLayout(row)
-    reset_on_return = QCheckBox("Reset burst when returning to review")
-    reset_on_return.setChecked(bool(get_setting("review_burst_reset_on_return")))
-    reset_on_return.setToolTip("Start at zero each time you leave review and come back, while Review Burst is on.")
-    reset_on_return.toggled.connect(lambda checked: set_setting("review_burst_reset_on_return", checked))
-    layout.addWidget(reset_on_return)
     if _controller is not None:
         layout.addWidget(QLabel(f"Current burst: {_controller.overlay.count} / {_controller.overlay.goal}"))
     buttons = QHBoxLayout()
-    start = QPushButton("Start New Burst")
-    start.setDefault(True)
-    start.clicked.connect(lambda: (start_burst(goal.value()), dialog.accept()))
-    buttons.addWidget(start)
-    stop = QPushButton("Turn Off")
+    stop = QPushButton("End Current Burst")
     stop.setEnabled(is_burst_active())
     stop.clicked.connect(lambda: (stop_burst(), dialog.accept()))
     buttons.addWidget(stop)
-    cancel = QPushButton("Close")
-    cancel.clicked.connect(dialog.reject)
-    buttons.addWidget(cancel)
+    close = QPushButton("Close")
+    close.clicked.connect(dialog.accept)
+    buttons.addWidget(close)
     layout.addLayout(buttons)
     dialog.exec()
 
 
 def add_burst_menu(menu: QMenu, parent: QWidget) -> None:
-    action = QAction("Review Burst On", parent)
+    action = QAction("Show Review Burst Button", parent)
     action.setCheckable(True)
-    action.setChecked(is_burst_active())
-    action.triggered.connect(lambda checked: start_burst() if checked else stop_burst())
+    action.setChecked(is_burst_present())
+    action.triggered.connect(set_burst_present)
     _actions.append(action)
     menu.addAction(action)
-    configure = QAction("Start / Configure Review Burst…", parent)
+    configure = QAction("Review Burst Settings…", parent)
     configure.triggered.connect(open_burst_dialog)
     menu.addAction(configure)
+    ensure_burst_button()

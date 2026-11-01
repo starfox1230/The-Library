@@ -13,7 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 try:
     import aqt
     from aqt import gui_hooks
-    from aqt.qt import QApplication, QCheckBox, QFont, QFontDatabase, QLabel, QMenu, QVBoxLayout, QWidget
+    from aqt.qt import QApplication, QCheckBox, QFont, QFontDatabase, QLabel, QMenu, QSpinBox, QTimer, QVBoxLayout, QWidget
 except ImportError:
     raise unittest.SkipTest("Run with Anki's Python for native Qt integration")
 
@@ -23,7 +23,7 @@ package = types.ModuleType(PACKAGE)
 package.__path__ = [str(ROOT / "apps/anki-pocket-knife")]
 sys.modules[PACKAGE] = package
 settings = types.ModuleType(f"{PACKAGE}.settings")
-settings.values = {"review_burst_goal": 10, "review_burst_reset_on_return": True}
+settings.values = {"review_burst_goal": 10, "review_burst_present": True}
 settings.get_setting = lambda key: settings.values[key]
 settings.set_setting = lambda key, value: settings.values.update({key: value})
 sys.modules[settings.__name__] = settings
@@ -61,13 +61,14 @@ class ReviewBurstTests(unittest.TestCase):
         self.aqt_patch.start()
         self.clock = patch.object(module, "monotonic", return_value=100.0)
         self.now = self.clock.start()
-        self.hooks = (gui_hooks.reviewer_did_answer_card, gui_hooks.state_did_change, gui_hooks.profile_will_close)
+        self.hooks = (gui_hooks.reviewer_did_answer_card, gui_hooks.state_did_change, gui_hooks.profile_will_close, gui_hooks.profile_did_open)
         self.before = [hook.count() for hook in self.hooks]
         settings.values["review_burst_goal"] = 10
-        settings.values["review_burst_reset_on_return"] = True
+        settings.values["review_burst_present"] = True
+        module.ensure_burst_button()
 
     def tearDown(self):
-        module.stop_burst()
+        module.set_burst_present(False)
         module._actions.clear()
         self.app.processEvents()
         self.assertEqual([hook.count() for hook in self.hooks], self.before)
@@ -121,12 +122,12 @@ class ReviewBurstTests(unittest.TestCase):
         self.assertEqual(controller.overlay.height(), 38)
         self.screenshot("overrun")
 
-    def test_off_removes_callbacks_and_cancels_mid_animation(self):
+    def test_hiding_feature_removes_callbacks_and_cancels_mid_animation(self):
         module.start_burst(1)
         controller = module._controller
         self.answer()
         self.settle()
-        module.stop_burst()
+        module.set_burst_present(False)
         self.assertFalse(module.is_burst_active())
         self.assertFalse(controller.timer.isActive())
         self.assertFalse(controller.overlay.isVisible())
@@ -134,29 +135,6 @@ class ReviewBurstTests(unittest.TestCase):
         self.assertEqual([hook.count() for hook in self.hooks], self.before)
         self.answer()
         self.assertEqual(controller.overlay.count, 1)
-
-    def test_leave_review_return_restart_and_resize(self):
-        settings.values["review_burst_reset_on_return"] = False
-        module.start_burst(2)
-        controller = module._controller
-        self.answer()
-        self.mw.state = "deckBrowser"
-        gui_hooks.state_did_change("deckBrowser", "review")
-        self.assertFalse(controller.overlay.isVisible())
-        self.assertFalse(controller.timer.isActive())
-        self.mw.state = "review"
-        gui_hooks.state_did_change("review", "deckBrowser")
-        self.assertTrue(controller.overlay.isVisible())
-        self.assertEqual(controller.overlay.count, 1)
-        self.mw.resize(500, 420)
-        self.app.processEvents()
-        self.assertLessEqual(controller.overlay.geometry().right(), self.mw.width())
-        bottom = self.mw.bottomWeb.mapTo(self.mw, self.mw.bottomWeb.rect().topLeft()).y()
-        self.assertLess(controller.overlay.geometry().bottom(), bottom)
-        module.start_burst(3)
-        self.assertEqual(module._controller.overlay.count, 0)
-        self.assertEqual(settings.values["review_burst_goal"], 3)
-        self.assertEqual([hook.count() for hook in self.hooks], [x + 1 for x in self.before])
 
     def leave_and_return(self):
         self.mw.state = "overview"
@@ -166,64 +144,88 @@ class ReviewBurstTests(unittest.TestCase):
         self.mw.state = "review"
         gui_hooks.state_did_change("review", "deckBrowser")
 
-    def test_return_resets_partial_burst_every_time_by_default(self):
-        module.start_burst(3)
-        controller = module._controller
-        for _ in range(2):
-            self.answer()
-            self.leave_and_return()
-            self.assertIs(module._controller, controller)
-            self.assertTrue(controller.overlay.isVisible())
-            self.assertEqual(controller.overlay.count, 0)
-            self.assertEqual(controller.overlay.goal, 3)
-            self.assertEqual(controller.overlay.progress, 0)
-            self.assertEqual(controller.from_progress, 0)
-            self.assertEqual(controller.to_progress, 0)
-            self.assertFalse(controller.timer.isActive())
+    def test_default_button_waits_without_counting_or_timers(self):
+        self.assertTrue(module._presence.button.isVisible())
+        self.assertFalse(module.is_burst_active())
+        self.assertEqual(gui_hooks.reviewer_did_answer_card.count(), self.before[0])
+        self.assertEqual(self.mw.findChildren(QTimer), [])
         self.answer()
-        gui_hooks.state_did_change("review", "review")
-        self.assertEqual(controller.overlay.count, 1)
+        self.assertFalse(module.is_burst_active())
+        self.screenshot("idle-button")
+        module._presence.button.click()
+        self.assertTrue(module.is_burst_active())
+        self.assertEqual(module._controller.overlay.count, 0)
+        self.assertFalse(module._presence.button.isVisible())
 
-    def test_return_restores_ring_and_allows_new_celebration(self):
+    def test_leaving_review_ends_burst_and_return_waits_for_click(self):
+        for _ in range(2):
+            module._presence.button.click()
+            controller = module._controller
+            self.answer()
+            gui_hooks.state_did_change("review", "review")
+            self.assertEqual(controller.overlay.count, 1)
+            self.leave_and_return()
+            self.assertFalse(module.is_burst_active())
+            self.assertFalse(controller.overlay.isVisible())
+            self.assertFalse(controller.timer.isActive())
+            self.assertTrue(module._presence.button.isVisible())
+            self.answer()
+            self.assertFalse(module.is_burst_active())
+        module._presence.button.click()
+        self.assertEqual(module._controller.overlay.count, 0)
+
+    def test_leaving_completed_burst_cancels_confetti_and_discards_overrun(self):
         module.start_burst(1)
         controller = module._controller
-        for _ in range(2):
-            self.answer()
-            self.settle()
-            self.assertTrue(controller.confetti.isVisible())
-            self.answer()
-            self.assertEqual(controller.overlay.count, 2)
-            self.leave_and_return()
-            self.assertEqual(controller.overlay.count, 0)
-            self.assertEqual(controller.overlay.height(), 178)
-            self.assertFalse(controller.overlay.complete)
-            self.assertFalse(controller.confetti.isVisible())
-            self.assertIsNone(controller.celebration_start)
-
-    def test_return_preserves_completed_burst_when_setting_off(self):
-        settings.values["review_burst_reset_on_return"] = False
-        module.start_burst(1)
         self.answer()
         self.settle()
         self.answer()
-        self.leave_and_return()
-        controller = module._controller
         self.assertEqual(controller.overlay.count, 2)
-        self.assertTrue(controller.overlay.complete)
-        self.assertEqual(controller.overlay.height(), 38)
+        self.assertTrue(controller.confetti.isVisible())
+        self.leave_and_return()
+        self.assertFalse(module.is_burst_active())
+        self.assertFalse(controller.confetti.isVisible())
         self.assertFalse(controller.timer.isActive())
+        module._presence.button.click()
+        self.assertEqual(module._controller.overlay.count, 0)
+        self.assertEqual(module._controller.overlay.height(), 178)
+        self.answer()
+        self.settle()
+        self.assertTrue(module._controller.confetti.isVisible())
 
-    def test_dialog_setting_saves_without_starting_burst(self):
+    def test_end_burst_restores_button_and_resize_keeps_it_above_controls(self):
+        module.start_burst(2)
+        self.answer()
+        module.stop_burst()
+        self.assertTrue(module._presence.button.isVisible())
+        self.mw.resize(500, 420)
+        self.app.processEvents()
+        button = module._presence.button
+        self.assertLessEqual(button.geometry().right(), self.mw.width())
+        bottom = self.mw.bottomWeb.mapTo(self.mw, self.mw.bottomWeb.rect().topLeft()).y()
+        self.assertLess(button.geometry().bottom(), bottom)
+        self.mw.state = "deckBrowser"
+        gui_hooks.state_did_change("deckBrowser", "review")
+        self.assertFalse(button.isVisible())
+
+    def test_settings_save_presence_and_goal_without_starting_burst(self):
         def configure(dialog):
             checkbox = dialog.findChild(QCheckBox)
             self.assertTrue(checkbox.isChecked())
             checkbox.setChecked(False)
-            self.assertFalse(settings.values["review_burst_reset_on_return"])
+            self.assertFalse(settings.values["review_burst_present"])
+            self.assertIsNone(module._presence)
+            dialog.findChild(QSpinBox).setValue(15)
+            self.assertEqual(settings.values["review_burst_goal"], 15)
+            checkbox.setChecked(True)
+            self.assertTrue(module._presence.button.isVisible())
             self.assertFalse(module.is_burst_active())
         with patch.object(module.QDialog, "exec", configure):
             module.open_burst_dialog()
+        module._presence.button.click()
+        self.assertEqual(module._controller.overlay.goal, 15)
 
-    def test_profile_close_does_not_skip_other_addons(self):
+    def test_profile_close_does_not_skip_other_addons_and_reopen_waits(self):
         module.start_burst()
         called = []
         callback = lambda: called.append(True)
@@ -232,23 +234,43 @@ class ReviewBurstTests(unittest.TestCase):
             gui_hooks.profile_will_close()
             self.assertEqual(called, [True])
             self.assertFalse(module.is_burst_active())
-            self.app.processEvents()
+            self.assertFalse(module._presence.button.isVisible())
+            gui_hooks.profile_did_open()
+            self.assertTrue(module._presence.button.isVisible())
+            self.assertFalse(module.is_burst_active())
         finally:
             gui_hooks.profile_will_close.remove(callback)
 
-    def test_menu_toggle_and_goal_bounds(self):
+    def test_menu_toggles_presence_without_starting_and_disabled_stays_hidden(self):
         menu = QMenu(self.mw)
         module.add_burst_menu(menu, self.mw)
         action = menu.actions()[0]
+        self.assertTrue(action.isChecked())
         action.trigger()
-        self.assertTrue(module.is_burst_active())
-        self.assertEqual(module._controller.overlay.goal, 10)
+        self.assertIsNone(module._presence)
+        self.leave_and_return()
+        self.assertIsNone(module._presence)
+        module.start_burst()
+        self.assertFalse(module.is_burst_active())
+        self.assertEqual([hook.count() for hook in self.hooks], self.before)
         action.trigger()
+        self.assertTrue(module._presence.button.isVisible())
         self.assertFalse(module.is_burst_active())
         module.start_burst(-3)
         self.assertEqual(module._controller.overlay.goal, 1)
         module.start_burst(50000)
         self.assertEqual(module._controller.overlay.goal, 1000)
+
+    def test_start_outside_review_does_not_queue_an_automatic_burst(self):
+        self.mw.state = "deckBrowser"
+        gui_hooks.state_did_change("deckBrowser", "review")
+        with patch.object(module, "showInfo") as info:
+            module.start_burst()
+            info.assert_called_once()
+        self.mw.state = "review"
+        gui_hooks.state_did_change("review", "deckBrowser")
+        self.assertFalse(module.is_burst_active())
+        self.assertTrue(module._presence.button.isVisible())
 
 
 if __name__ == "__main__":

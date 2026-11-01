@@ -4,26 +4,27 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 
 ## Review Burst
 
-Start with **Tools -> Anki Pocket Knife -> Start / Configure Review Burst**, or the
-Review Behavior section of the Pocket Knife launcher. Choose a goal (default 10,
-range 1–1000), then **Start New Burst**. **Review Burst On** starts the saved goal
-immediately and toggles the feature off again.
+A small **Start Burst** button appears at the bottom right of the reviewer by
+default. Click it when you want a burst; entering review never starts one for you.
+Leaving review ends the current burst and discards its count. When you return,
+the button waits for another click. **End Current Burst** also brings it back.
 
-A mint progress ring sits at the bottom right, above the review buttons. Each
-successful answer counts once, including Again and repeat presentations of the
-same card. Revealing an answer does not count; undo does not subtract from this
-answers-given counter. At the goal the ring erupts into a brief, silent confetti
-burst, then leaves only `10 / 10`. Further answers show `11 / 10`, `12 / 10`, etc.,
-without repeating the celebration. Start a new burst to reset it.
+Set the goal (default 10, range 1–1000) in **Tools -> Anki Pocket Knife -> Review
+Burst Settings**, also available under Review Behavior in the launcher. Settings
+save immediately and apply to your next burst. Uncheck **Show Start Burst button
+in reviewer**, or the menu's **Show Review Burst Button**, to hide the feature
+entirely. This replaces the earlier automatic reset-on-return option.
 
-By default, leaving review and returning resets the enabled burst to zero,
-including after completing or exceeding the goal. Turn off **Reset burst when
-returning to review** in the burst settings to keep the count between visits.
-This preference saves immediately. The burst is visible only during review. It starts **off** after launching Anki or changing profiles.
-Turning it off discards the count, detaches its review/profile/state hooks and
-window event filter, stops the animation timer, and removes both overlays. There
-is no collection query, polling, network access, daily history, or idle animation.
-Only the chosen goal and reset preference are saved; the counter never changes scheduling or grading.
+A mint progress ring sits above the review buttons during a burst. Each successful
+answer counts once, including Again and repeat presentations of the same card.
+Revealing an answer does not count; undo does not subtract from this answers-given
+counter. At the goal the ring erupts into brief, silent confetti, then leaves only
+`10 / 10`. Further answers show `11 / 10`, `12 / 10`, etc., without celebrating again.
+
+The idle button has no animation timer, answer hook, collection query, polling,
+network access, or daily history. Hiding the feature detaches all of its hooks
+and window event filters and removes its widgets. Profile changes end the burst.
+Only the goal and button visibility are saved; scheduling and grading are untouched.
 
 ## Included tools
 
