@@ -23,7 +23,7 @@ package = types.ModuleType(PACKAGE)
 package.__path__ = [str(ROOT / "apps/anki-pocket-knife")]
 sys.modules[PACKAGE] = package
 settings = types.ModuleType(f"{PACKAGE}.settings")
-settings.values = {"review_burst_goal": 10, "review_burst_present": True}
+settings.values = {"review_burst_goal": 10, "review_burst_present": True, "review_burst_mode": "cards", "review_burst_minutes": 10}
 settings.get_setting = lambda key: settings.values[key]
 settings.set_setting = lambda key, value: settings.values.update({key: value})
 sys.modules[settings.__name__] = settings
@@ -65,6 +65,8 @@ class ReviewBurstTests(unittest.TestCase):
         self.before = [hook.count() for hook in self.hooks]
         settings.values["review_burst_goal"] = 10
         settings.values["review_burst_present"] = True
+        settings.values["review_burst_mode"] = "cards"
+        settings.values["review_burst_minutes"] = 10
         module.ensure_burst_button()
 
     def tearDown(self):
@@ -271,6 +273,169 @@ class ReviewBurstTests(unittest.TestCase):
         gui_hooks.state_did_change("review", "deckBrowser")
         self.assertFalse(module.is_burst_active())
         self.assertTrue(module._presence.button.isVisible())
+
+    def test_click_remaining_edits_target_and_preserves_answer_count(self):
+        module.start_burst(10)
+        for _ in range(4):
+            self.answer()
+        def edit(dialog):
+            self.assertEqual(dialog.choice.selection(), ("cards", 6))
+            dialog.choice.amount.setValue(3)
+            return module.QDialog.DialogCode.Accepted
+        with patch.object(module.BurstEditDialog, "exec", edit):
+            module._controller.edit_button.click()
+        controller = module._controller
+        self.assertEqual(controller.overlay.count, 4)
+        self.assertEqual(controller.overlay.goal, 7)
+        self.assertAlmostEqual(controller.overlay.progress, 4 / 7)
+        self.assertFalse(controller.timer.isActive())
+        for _ in range(3):
+            self.answer()
+            self.settle()
+        self.assertTrue(controller.overlay.complete)
+
+    def test_editor_default_timer_and_cancel_leave_current_burst_unchanged(self):
+        module.start_burst(10)
+        self.answer()
+        def cancel(dialog):
+            dialog.choice.mode.setCurrentIndex(1)
+            self.assertEqual(dialog.choice.selection(), ("timer", 10))
+            dialog.choice.amount.setValue(2)
+            return module.QDialog.DialogCode.Rejected
+        with patch.object(module.BurstEditDialog, "exec", cancel):
+            module._controller.edit_button.click()
+        self.assertEqual(module._controller.overlay.mode, "cards")
+        self.assertEqual(module._controller.overlay.count, 1)
+        self.assertEqual(module._controller.overlay.goal, 10)
+        self.assertEqual(settings.values["review_burst_mode"], "cards")
+        self.assertEqual(settings.values["review_burst_minutes"], 10)
+
+    def test_timer_uses_elapsed_time_finishes_once_and_ignores_answers(self):
+        module.start_burst()
+        controller = module._controller
+        controller.configure("timer", 10)
+        self.assertEqual(controller.overlay.seconds_remaining, 600)
+        self.assertEqual(controller.timer.interval(), 250)
+        self.answer()
+        self.assertEqual(controller.overlay.count, 0)
+        self.now.return_value += 120.3
+        controller.tick()
+        self.assertEqual(controller.overlay.seconds_remaining, 480)
+        self.assertAlmostEqual(controller.overlay.progress, 120.3 / 600)
+        self.screenshot("timer-running")
+        self.now.return_value += 479.6
+        controller.tick()
+        self.assertEqual(controller.overlay.seconds_remaining, 1)
+        self.assertFalse(controller.overlay.complete)
+        self.now.return_value += 0.1
+        controller.tick()
+        self.assertEqual(controller.overlay.seconds_remaining, 0)
+        self.assertTrue(controller.overlay.complete)
+        self.assertTrue(controller.confetti.isVisible())
+        self.now.return_value += 2
+        controller.tick()
+        self.assertFalse(controller.timer.isActive())
+        self.assertFalse(controller.confetti.isVisible())
+        self.answer()
+        controller.tick()
+        self.assertFalse(controller.confetti.isVisible())
+        self.assertEqual(controller.overlay.seconds_remaining, 0)
+        self.screenshot("timer-complete")
+
+    def test_timer_editor_ok_switches_mode_and_start_reuses_saved_choice(self):
+        module.start_burst()
+        def edit(dialog):
+            dialog.choice.mode.setCurrentIndex(1)
+            dialog.choice.amount.setValue(7)
+            if os.environ.get("BURST_QA_DIR"):
+                dialog.show()
+                self.app.processEvents()
+                out = Path(os.environ["BURST_QA_DIR"])
+                out.mkdir(parents=True, exist_ok=True)
+                dialog.grab().save(str(out / "compact-menu.png"))
+                dialog.hide()
+            return module.QDialog.DialogCode.Accepted
+        with patch.object(module.BurstEditDialog, "exec", edit):
+            module._controller.edit_button.click()
+        self.assertEqual(module._controller.overlay.mode, "timer")
+        self.assertEqual(module._controller.overlay.seconds_remaining, 420)
+        self.assertEqual(settings.values["review_burst_minutes"], 7)
+        self.leave_and_return()
+        self.assertFalse(module.is_burst_active())
+        module._presence.button.click()
+        self.assertEqual(module._controller.overlay.mode, "timer")
+        self.assertEqual(module._controller.overlay.seconds_remaining, 420)
+
+    def test_editing_timer_no_change_preserves_deadline_and_switch_to_cards_stops_clock(self):
+        module.start_burst()
+        controller = module._controller
+        controller.configure("timer", 10)
+        deadline = controller.deadline
+        def keep(dialog):
+            self.now.return_value += 13
+            return module.QDialog.DialogCode.Accepted
+        with patch.object(module.BurstEditDialog, "exec", keep):
+            controller.edit_button.click()
+        self.assertEqual(controller.deadline, deadline)
+        controller.configure("cards", 4)
+        self.assertFalse(controller.timer.isActive())
+        self.assertEqual(controller.overlay.goal, 4)
+        self.assertEqual(controller.overlay.count, 0)
+        self.answer()
+        self.assertEqual(controller.overlay.count, 1)
+
+    def test_leave_or_hide_cancels_running_countdown(self):
+        module.start_burst()
+        controller = module._controller
+        controller.configure("timer", 1)
+        self.leave_and_return()
+        self.assertFalse(controller.timer.isActive())
+        self.assertFalse(controller.edit_button.isVisible())
+        self.assertFalse(module.is_burst_active())
+        module._presence.button.click()
+        controller = module._controller
+        self.assertTrue(controller.timer.isActive())
+        module.set_burst_present(False)
+        self.assertFalse(controller.timer.isActive())
+        self.assertIsNone(module._presence)
+
+    def test_zero_answers_remaining_completes_and_short_clock_formats(self):
+        module.start_burst()
+        self.answer()
+        controller = module._controller
+        controller.configure("cards", 0)
+        self.settle()
+        self.assertTrue(controller.overlay.complete)
+        self.assertTrue(controller.confetti.isVisible())
+        self.assertEqual(module.clock_text(600), "10:00")
+        self.assertEqual(module.clock_text(61), "1:01")
+        self.assertEqual(module.clock_text(-1), "0:00")
+
+    def test_timer_expiring_in_unchanged_editor_does_not_restart(self):
+        module.start_burst()
+        controller = module._controller
+        controller.configure("timer", 1)
+        def keep(dialog):
+            self.now.return_value += 60
+            controller.tick()
+            return module.QDialog.DialogCode.Accepted
+        with patch.object(module.BurstEditDialog, "exec", keep):
+            controller.edit_button.click()
+        self.assertTrue(controller.overlay.complete)
+        self.assertEqual(controller.overlay.seconds_remaining, 0)
+
+    def test_settings_switch_to_timer_sets_default_without_starting(self):
+        def configure(dialog):
+            choice = dialog.findChild(module.BurstChoice)
+            choice.mode.setCurrentIndex(1)
+            self.assertEqual(choice.selection(), ("timer", 10))
+            choice.amount.setValue(3)
+        with patch.object(module.QDialog, "exec", configure):
+            module.open_burst_dialog()
+        self.assertFalse(module.is_burst_active())
+        module._presence.button.click()
+        self.assertEqual(module._controller.overlay.mode, "timer")
+        self.assertEqual(module._controller.overlay.seconds_remaining, 180)
 
 
 if __name__ == "__main__":

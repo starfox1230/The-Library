@@ -24,7 +24,18 @@ counter. At the goal the ring erupts into brief, silent confetti, then leaves on
 The idle button has no animation timer, answer hook, collection query, polling,
 network access, or daily history. Hiding the feature detaches all of its hooks
 and window event filters and removes its widgets. Profile changes end the burst.
-Only the goal and button visibility are saved; scheduling and grading are untouched.
+Click the **remaining number** inside the ring to open a compact matching menu:
+choose **Answers remaining** or **Focus timer**, set one number, then press **OK**.
+Cancel leaves the burst unchanged. Editing answers keeps those already given and
+sets a new target relative to that count. The timer defaults to **10 minutes**;
+its ring fills as the countdown approaches zero, celebrates once, then leaves
+**Focus complete**. It keeps time while you review or edit the menu, using elapsed
+time rather than counting timer callbacks. Answers do not advance the timer.
+Leaving review, closing the profile, or hiding the feature cancels the countdown.
+
+The last chosen mode, answer goal, timer minutes, and button visibility are saved.
+Start Burst uses those defaults next time. The full Review Burst Settings also
+lets you choose the default mode and amount. Scheduling and grading are untouched.
 
 ## Included tools
 
