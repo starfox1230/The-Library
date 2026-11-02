@@ -2,6 +2,28 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## November 2, 2026: lookup scroll and best-available analysis (2026.11.02.1)
+
+- **111 Python tests passed.** The normal form now retains incomplete, flagged
+  and conflicting lookup drafts independently of report preparation. Source
+  crops remain pixel-only, bounded and sanitized; extra fields are excluded.
+- `dev/check-lookup-recovery.cjs` exercises the production template and normal
+  form endpoint with synthetic identifiers. In a 47-row table, repeated View row
+  clicks at rows 21 and 36 preserve both inner-table and page scroll, while the
+  image pane moves to the selected source. A list rebuild preserves its offset.
+  The saved desktop screenshot was visually inspected.
+- Browser checks cover cancel/proceed, flags/conflicts/incomplete rows retained
+  after the actual POST, source-crop viewing after submission, exact-case copying
+  after correction without reanalysis, partial export, continuing during active
+  OCR with completed rows, and clean submission without any confirmation.
+  Competing flagged rows cannot silently yield a first/last-wins accession.
+- Existing pinned-OCR/progress/overlap/export (`check-lookup.cjs`) and queued
+  screenshot/offline correction/title/save/reopen (`check-reader-sources.cjs`)
+  checks passed. Their completion waits now target OCR status and the relevant
+  screenshot's own summary rather than the former Export-disabled proxy.
+- No patient information, paid model calls or live Cloud Run changes were used.
+  Deployment of the replacement `main.py` remains pending.
+
 ## November 2, 2026: dual titles, queued screenshots and editable source images
 
 - **109 Python tests passed.** Added single-call dual-title/schema checks,

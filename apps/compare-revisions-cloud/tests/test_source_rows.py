@@ -76,5 +76,44 @@ class SourceRowTests(unittest.TestCase):
         self.assertEqual(lookup,[row])
         self.assertNotIn('source_row',json.dumps(cases))
 
+    def test_analysis_keeps_incomplete_flagged_and_conflicting_rows_editable(self):
+        rows = [
+            dict(case_number=68, accession='CT000001234', confirmed=True, source_row=png()),
+            dict(case_number=69, accession='CT000001235', caseIssue='Case number may be incomplete', source_row=png()),
+            dict(case_number=70, accession='OT000001236', accessionIssue='Check accession length'),
+            dict(case_number=71, accession='CT000001237'),
+            dict(case_number=71, accession='CT000001238'),
+            dict(case_number=None, accession='CT000001239'),
+            dict(case_number=72, accession=''),
+        ]
+        with self.m.app.test_client() as client:
+            client.get('/')
+            with client.session_transaction() as s:s['comparison_csrf_token']='test-csrf'
+            result=client.post('/',data={'csrf_token':'test-csrf','reports_text':pasted_case(68)+pasted_case(69),
+                'lookup_json':json.dumps(rows)})
+        self.assertEqual(result.status_code,200)
+        lookup=json.loads(re.search(r'<script id="lookup-data" type="application/json">(.*?)</script>',result.text,re.S)[1])
+        cases=json.loads(re.search(r'<script id="review-data" type="application/json">(.*?)</script>',result.text,re.S)[1])
+        self.assertEqual(len(lookup),len(rows))
+        self.assertEqual(lookup[1]['caseIssue'],'Case number may be incomplete')
+        self.assertEqual(lookup[2]['accessionIssue'],'Check accession length')
+        self.assertEqual(lookup[1]['source_row'],png())
+        self.assertEqual([r['accession'] for r in lookup[3:5]],['CT000001237','CT000001238'])
+        self.assertIsNone(lookup[5]['case_number'])
+        self.assertEqual(lookup[6]['accession'],'')
+        self.assertTrue(cases,'lookup warnings must not prevent report preparation')
+        self.assertNotIn('CT000001234',json.dumps(cases))
+        self.assertNotIn('source_row',json.dumps(cases))
+
+    def test_lookup_draft_bounds_and_allowlist_still_apply(self):
+        out=self.m.lookup_draft([dict(case_number='68',accession='CT000001234',
+            caseIssue='x'*200,source_row=png(metadata=True),full_screenshot='PRIVATE_FULL_IMAGE')])[0]
+        self.assertIsNone(out['case_number'])
+        self.assertEqual(len(out['caseIssue']),160)
+        self.assertNotIn('full_screenshot',out)
+        self.assertNotIn(b'PRIVATE_METADATA',base64.b64decode(out['source_row'].split(',')[1]))
+        for rows in ({},[None],[dict(accession=123)],[dict(accession='x'*129)],[{}]*1001):
+            with self.subTest(rows=str(rows)[:30]),self.assertRaises(ValueError):self.m.lookup_draft(rows)
+
 
 if __name__=='__main__':unittest.main()

@@ -2,7 +2,7 @@
 
 ## Screenshot lookup and HTML export — November 2, 2026
 
-Website build **2026.11.02** appears in the footer. This is separate from the
+Website build **2026.11.02.1** appears in the footer. This is separate from the
 PowerScribe extractor executable version (now v0.18).
 
 Implemented in replacement source; Cloud Run deployment is still pending.
@@ -16,7 +16,7 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   Tesseract.js 6.0.1/core 6.0.0/English model assets from its own `/ocr-assets/`
   routes. Cloud Run downloads those public runtime files on first use and caches
   them in process memory; full screenshots remain local during OCR. Only the cropped case/accession row
-  pixels travel with accepted mappings through the normal form/export to the
+  pixels travel with lookup rows through the normal form (usable mappings in an export) to the
   authenticated application; they are never added to model requests. No OCR API key or
   Python dependency is added. Restricted outbound asset access can prevent OCR;
   manual row entry remains available.
@@ -47,13 +47,19 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   first/last source numbers and explicitly verify that every row is present in
   order. The count must match. Neither method changes accession strings.
 - **Analyze reports accepts valid mappings automatically.** There are no per-row
-  confirmation checkboxes. Correct missing numbers or conflicting readings; these
-  remain blocked because a unique case/accession match cannot be established.
-  View row or focus a field to see its highlighted source row in an enlarged
-  image. Leading zeros stay intact. Duplicate-case conflicts block export; missing mappings
-  are reported rather than shifted. No universal recognition-accuracy claim is
-  made. Capture larger source text where possible.
-- Source numbers are exact, batch-local keys. Valid lookup rows survive the
+  confirmation checkboxes. If OCR is running or rows are incomplete, flagged or
+  conflicting, one confirmation lets analysis proceed with available mappings.
+  Only complete, unambiguous mappings attach; uncertain mappings never receive
+  an arbitrary accession. Unresolved rows, flags and bounded source crops survive
+  Analyze for later editing, separately from AI requests. **View or edit lookup
+  rows** reopens them; View row shows the retained crop after submission.
+  Download review likewise offers to proceed with usable mappings, leaving
+  unresolved rows out of that file. Missing mappings are reported rather than
+  shifted. Leading zeros stay intact. No universal recognition-accuracy claim
+  is made. Capture larger source text where possible.
+- **View row preserves list position.** It highlights and scrolls the image pane
+  without reattaching the active editor or resetting the table's scroll offset.
+- Source numbers are exact, batch-local keys. Lookup rows survive the
   normal Analyze form submission without sending them to Azure. Editing report
   input suspends copying/export against the old results until the new batch is
   analyzed. Clear reports clears lookup rows, screenshots and OCR worker memory.

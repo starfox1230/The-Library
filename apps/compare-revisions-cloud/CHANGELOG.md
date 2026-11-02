@@ -1,5 +1,20 @@
 # Changes and rationale — October 4, 2026
 
+## OCR lookup recovery — November 2, 2026 (build 2026.11.02.1)
+
+- Preserve the OCR table's scroll position when View row highlights an image;
+  avoid reattaching the already active editor and preserve offsets on rebuild.
+- Replace the Analyze hard stop with one continue confirmation for flagged,
+  incomplete or conflicting rows, or OCR still running. Analyze uses completed
+  mappings without requiring individual approvals. The server retains unresolved
+  rows and sanitized source crops for later correction, independently of report
+  preparation and model inputs.
+- Attach only complete, unambiguous mappings. Conflicts (including a competing
+  flagged row) never become first/last-wins accessions. Download can likewise
+  proceed with the usable subset after confirmation, omitting unresolved rows.
+- Keep View row available for retained source crops after form submission and
+  show the pending-check count even when lookup editing is collapsed.
+
 ## Both title perspectives and source-row review — November 2, 2026
 
 - Website footer now identifies build 2026.11.02, separately from extractor v0.18.

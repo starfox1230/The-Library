@@ -25,7 +25,7 @@ const out=path.join(__dirname,'qa-output');
   assert.equal(await page.locator('.copy-accession').count(),4,'valid OCR attaches without individual approval');assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
   assert.equal(await page.locator('#export-review').isDisabled(),false);
   await pasteImage(Buffer.from(tableImage,'base64'));
-  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images details').length===2&&!document.querySelector('#export-review').disabled,{},{timeout:90000});
+  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images details').length===2&&[...document.querySelectorAll('.lookup-screenshot summary')].every(n=>n.textContent.includes('6 rows')),{},{timeout:90000});
   assert.equal(await page.locator('#lookup-rows tr').count(),6,'overlapping identical screenshot rows are deduplicated');
   assert.equal(await page.locator('.copy-accession').count(),4);
   await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-rows input').first().focus();await page.screenshot({path:path.join(out,'lookup-preparation-dark.png'),fullPage:true});
@@ -65,7 +65,7 @@ const out=path.join(__dirname,'qa-output');
   await page.locator('#search').fill('');await page.locator('#export-filtered').uncheck();
   // Conflict/manual correction and partial coverage, no positional reassignment.
   await page.locator('#lookup-add').click();let last=page.locator('#lookup-rows tr').last();await last.locator('input').nth(0).fill('68');await last.locator('input').nth(1).fill('DIFFERENT0001');await last.locator('input').nth(1).blur();
-  assert.equal(await page.locator('#export-review').isDisabled(),true);await page.locator('#row-0 .case-copy-accession').click();assert.equal(await page.evaluate(()=>window.copied.at(-1)),'CT901269345');
+  assert.equal(await page.locator('#export-review').isDisabled(),false,'lookup issues allow a best-available export');await page.locator('#row-0 .case-copy-accession').click();assert.equal(await page.evaluate(()=>window.copied.at(-1)),'CT901269345');
   await page.locator('#lookup-rows tr').last().getByRole('button',{name:'Remove'}).click();
   const originalInput=await page.locator('#report-text').inputValue();if(!await page.locator('#report-text').isVisible())await page.locator('#input-disclosure > summary').click();await page.locator('#report-text').fill('Changed report batch');assert.equal(await page.locator('.copy-accession').count(),0);assert.equal(await page.locator('#export-review').isDisabled(),true);await page.locator('#report-text').fill(originalInput);
   // Explicit range fallback must not run without acknowledgement or with a
@@ -109,7 +109,7 @@ const out=path.join(__dirname,'qa-output');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'lookup must not overflow mobile viewport');
   const guardPage=await context.newPage();await guardPage.goto('http://127.0.0.1:8766/qa');const normalPageHTML=await guardPage.content();let invalidDownloads=0;guardPage.on('download',()=>invalidDownloads++);await guardPage.route('**/export-review',route=>route.fulfill({contentType:'text/html',body:normalPageHTML}));await guardPage.locator('#export-review').click();await guardPage.waitForFunction(()=>document.querySelector('#export-status').textContent.includes('sign-in expired'));assert.equal(invalidDownloads,0,'login/main-page HTML must not be downloaded as a review');
   const formPage=await context.newPage();await formPage.goto('http://127.0.0.1:8766/qa');await formPage.locator('#input-disclosure > summary').click();await formPage.locator('#lookup-add').click();await formPage.locator('#lookup-rows input').nth(0).fill('68');
-  await formPage.locator('#report-text').fill('New report batch for intercepted synthetic form test.');await formPage.locator('#analyze-button').click();assert((await formPage.locator('#form-status').innerText()).includes('incomplete or conflicting'));
+  await formPage.locator('#report-text').fill('New report batch for intercepted synthetic form test.');formPage.once('dialog',dialog=>dialog.dismiss());await formPage.locator('#analyze-button').click();assert((await formPage.locator('#form-status').innerText()).includes('Analysis not started'));
   await formPage.locator('#lookup-rows input').nth(1).fill('CT901268345');let submitted;
   await formPage.route('**/qa',route=>{if(route.request().method()==='POST'){submitted=new URLSearchParams(route.request().postData());return route.fulfill({contentType:'text/html',body:'<title>Synthetic submission captured</title>'});}return route.continue();});
   await formPage.locator('#analyze-button').click();await formPage.waitForFunction(()=>document.title==='Synthetic submission captured');assert.deepEqual(JSON.parse(submitted.get('lookup_json')),[{case_number:68,accession:'CT901268345',confirmed:true}]);assert.equal(submitted.get('reports_text'),'New report batch for intercepted synthetic form test.');
