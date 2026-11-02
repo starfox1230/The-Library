@@ -22,14 +22,29 @@ class ModeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.module = helpers.import_offline_app()
 
-    def test_mode_prompts_differ_only_in_title_rule_and_exports_are_exact(self):
+    def test_both_modes_share_dual_title_prompt_and_exports_are_exact(self):
         m = self.module
-        self.assertEqual(m.DEFAULT_PROMPT.count(m.RESIDENT_TITLE_RULE), 1)
-        self.assertNotEqual(m.DEFAULT_PROMPT, m.ATTENDING_PROMPT)
-        self.assertEqual(m.ATTENDING_PROMPT.replace(m.ATTENDING_TITLE_RULE, m.RESIDENT_TITLE_RULE, 1), m.DEFAULT_PROMPT)
+        self.assertEqual(m.DEFAULT_PROMPT.count(m.DUAL_TITLE_RULE), 1)
+        self.assertEqual(m.DEFAULT_PROMPT, m.ATTENDING_PROMPT)
         root = Path(__file__).resolve().parents[1]
         self.assertEqual((root/'ANALYSIS_PROMPT.md').read_text(encoding='utf-8'), m.DEFAULT_PROMPT)
         self.assertEqual((root/'ATTENDING_ANALYSIS_PROMPT.md').read_text(encoding='utf-8'), m.ATTENDING_PROMPT)
+
+    def test_one_call_returns_both_titles_and_shared_inventory(self):
+        payload=self.payload();payload.pop('title')
+        payload.update(title_resident='Indeterminate pelvic mass',title_attending='Favored uterine fibroid')
+        client=self.fake_client(payload)
+        with patch.object(self.module,'get_azure_client',return_value=client):
+            result=self.module.summarize_case(self.pair())
+        self.assertEqual(client.responses.create.call_count,1)
+        self.assertEqual(result['title_resident'],'Indeterminate pelvic mass')
+        self.assertEqual(result['title_attending'],'Favored uterine fibroid')
+        self.assertEqual(result['revisions'],[])
+        required=client.responses.create.call_args.kwargs['tools'][0]['parameters']['required']
+        self.assertIn('title_resident',required);self.assertIn('title_attending',required)
+        for value in ['',None,[], 'x'*3001]:
+            with self.subTest(value_type=type(value).__name__):
+                self.assertEqual(self.module.validate_analysis(dict(payload,title_attending=value),self.pair())['status'],'error')
 
     def test_fresh_visit_defaults_resident_and_toggle_precedes_input(self):
         response = self.client_with_csrf().get('/')

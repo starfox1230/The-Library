@@ -14,9 +14,11 @@ const image=(prefix='CT',middle=false)=>({bitmap:{width:400},words:Array.from({l
  word(String(57+i),5,18,30+i*18),...(middle?[word('9876543',75,125,30+i*18)]:[]),word(prefix+'90000123'+i,180,270,30+i*18)]).flat()});
 let img=image('CT',true);assert(context.detectColumns(img),'headerless accession/case positions should be inferred');assert(img.caseColumn[1]<75,'MRN column must not enter the case-number crop');assert(img.accessionColumn[0]>125,'MRN column must not enter the accession crop');
 img=image('0T');assert(context.detectColumns(img),'ambiguous OT prefix with a visible letter remains detectable');
-img=image('07');assert.equal(context.detectColumns(img),false,'all-numeric rows cannot bootstrap a headerless accession column');
+img=image('07');assert.equal(context.detectColumns(img),true,'known 07-to-OT context supports a headerless accession column');
 img=image();img.words=img.words.slice(0,4);assert.equal(context.detectColumns(img),false,'insufficient rows are not guessed');
 img=image();img.words.push(...image('MR').words.map(w=>({...w,bbox:{...w.bbox,x0:w.bbox.x0+110,x1:w.bbox.x1+110}})));assert.equal(context.detectColumns(img),false,'competing accession columns require a clearer crop');
 let rows=Array.from({length:8},(_,i)=>({accession:'MR90000123'+i,accessionIssue:''}));rows[4].accession+='4';context.markAccessionLengths(rows);assert(rows[4].accessionIssue.includes('9 digits'));assert(rows.filter(r=>r.accessionIssue).length===1);assert(rows[4].accession.endsWith('4'),'extra digits must not be trimmed');
 rows=[{accession:'MR123456',accessionIssue:''},{accession:'MR1234567',accessionIssue:''}];context.markAccessionLengths(rows);assert(rows.every(r=>!r.accessionIssue),'small samples cannot establish a modal digit length');
 console.log('Header-free detection, extra-column exclusion, OT/O context corrections, leading zero digits, and non-destructive length warnings passed.');
+
+assert(context.normalizeAccession('ZZ900001234').issue,'unknown prefixes require inspection, not an invented replacement');

@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.17.0.0")]
-[assembly: AssemblyFileVersion("0.17.0.0")]
+[assembly: AssemblyVersion("0.18.0.0")]
+[assembly: AssemblyFileVersion("0.18.0.0")]
 
 namespace ReportExporter
 {
@@ -128,7 +128,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.17";
+            Text = "PowerScribe Report Exporter v0.18";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -503,6 +503,7 @@ namespace ReportExporter
 
         private void StartExport()
         {
+            if (running) return; // A queued Enter/Click cannot start a second worker.
             string output;
             int firstLabel, lastLabel;
             try
@@ -555,7 +556,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.17...");
+                    reportProgress("Initializing native exporter v0.18; new capture/navigation session for this attempt...");
                     IReportSession session = profile.KeyboardWorkflow ?
                         (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                         (IReportSession)new WindowsSession(profile, reportProgress);
@@ -598,10 +599,8 @@ namespace ReportExporter
                     }
                 }
                 Post(() => {
-                    if (overlay != null) { overlay.Close(); overlay.Dispose(); overlay = null; }
-                    running = false; cancellation.Dispose(); cancellation = null;
-                    foreach (Control control in body.Controls) control.Enabled = true;
-                    start.Enabled = true; stop.Enabled = false;
+                    CompleteRunState(success);
+                    if (!success) result += " Select the first case again, then Go to retry here. The remembered worklist was cleared.";
                     status.Text = result;
                     SetCopiedText(availableText, "Saved export " + DateTime.Now.ToString("g") + " - case labels " + firstLabel + "-" + lastLabel + ", " + runner.Completed + " complete pairs.\r\n" + Path.GetFileName(output));
                     details.Text = diagnostic; detailsButton.Text = "Details"; details.Visible = false; resultActions.Visible = true;
@@ -620,6 +619,25 @@ namespace ReportExporter
             worker.IsBackground = true;
             worker.SetApartmentState(ApartmentState.STA); // Required for Windows clipboard access.
             worker.Start();
+        }
+
+        internal void CompleteRunState(bool success)
+        {
+            // F8 handles are the capture state retained by the launcher across
+            // attempts. A failed/stopped run must not repeatedly reuse them.
+            // Reopening the exporter used to be the only automatic reset.
+            if (!success) lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
+            captureRole = null;
+            var ended = cancellation; cancellation = null; running = false;
+            if (ended != null) ended.Dispose();
+            foreach (Control control in body.Controls) control.Enabled = true;
+            start.Enabled = true; stop.Enabled = false;
+            var finishedOverlay = overlay; overlay = null;
+            if (finishedOverlay != null)
+            {
+                try { finishedOverlay.Close(); finishedOverlay.Dispose(); }
+                catch (ObjectDisposedException) { } // Never leave Go locked by stale UI.
+            }
         }
     }
 

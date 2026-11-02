@@ -25,10 +25,10 @@ const out=path.join(__dirname,'qa-output');
   assert.equal(await page.locator('.copy-accession').count(),4,'valid OCR attaches without individual approval');assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
   assert.equal(await page.locator('#export-review').isDisabled(),false);
   await pasteImage(Buffer.from(tableImage,'base64'));
-  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images button').length===2&&!document.querySelector('#export-review').disabled,{},{timeout:90000});
+  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images details').length===2&&!document.querySelector('#export-review').disabled,{},{timeout:90000});
   assert.equal(await page.locator('#lookup-rows tr').count(),6,'overlapping identical screenshot rows are deduplicated');
   assert.equal(await page.locator('.copy-accession').count(),4);
-  await page.locator('#lookup-rows input').first().focus();await page.screenshot({path:path.join(out,'lookup-preparation-dark.png'),fullPage:true});
+  await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-rows input').first().focus();await page.screenshot({path:path.join(out,'lookup-preparation-dark.png'),fullPage:true});
   await page.evaluate(()=>{window.copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>window.copied.push(value)}});});
   await page.locator('#row-0 .case-copy-accession').click();
   assert.deepEqual(await page.evaluate(()=>window.copied),['CT901268345']);
@@ -70,7 +70,7 @@ const out=path.join(__dirname,'qa-output');
   const originalInput=await page.locator('#report-text').inputValue();if(!await page.locator('#report-text').isVisible())await page.locator('#input-disclosure > summary').click();await page.locator('#report-text').fill('Changed report batch');assert.equal(await page.locator('.copy-accession').count(),0);assert.equal(await page.locator('#export-review').isDisabled(),true);await page.locator('#report-text').fill(originalInput);
   // Explicit range fallback must not run without acknowledgement or with a
   // count mismatch. It changes case labels only, never accession strings.
-  await page.getByRole('button',{name:'Screenshot 1',exact:true}).click();await page.locator('#lookup-range-tools > summary').click();await page.locator('#lookup-range-first').fill('68');await page.locator('#lookup-range-last').fill('73');
+  await page.locator('.lookup-screenshot summary').first().evaluate(n=>{n.parentElement.open=false;});await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-range-tools > summary').click();await page.locator('#lookup-range-first').fill('68');await page.locator('#lookup-range-last').fill('73');
   const beforeRange=await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value));
   await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('Check that every case'));assert.equal(await page.locator('#lookup-rows input[aria-label^="Case number"]').last().inputValue(),'78');
   await page.locator('#lookup-range-checked').check();await page.locator('#lookup-range-last').fill('74');await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('7 cases, but 6'));

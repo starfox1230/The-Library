@@ -2,6 +2,35 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## November 2, 2026: dual titles, queued screenshots and editable source images
+
+- **109 Python tests passed.** Added single-call dual-title/schema checks,
+  invalid-title rejection, legacy compatibility and independently sanitized
+  exported titles. Source-row tests cover PNG dimensions/type/CRC, bounded
+  decompression, metadata removal, exact source joins and selected-only export.
+- The actual pinned-OCR browser test queues two headerless screenshots while
+  recognition is active. Six rows per image with three overlaps become nine
+  mappings. Cards remain collapsed; opening one shows its own rows, including
+  shared overlaps. The fixture includes an intervening numeric column and a
+  right-hand text column that are excluded from the source crops.
+- A fresh offline reader with all networking blocked switches between both
+  titles, copies an accession with its source image visible, accepts a local
+  correction, saves and reopens the corrected file retaining source evidence
+  and selected perspective. The source peek was visually inspected at mobile
+  width; image text is readable and the page does not overflow.
+- Existing actual-OCR/progress/export, mode/in-flight/retry, compact copying,
+  UI, paste, review-control and passage-highlight checks passed. Clipboard
+  operations use synthetic fixtures/injected test implementations. No paid
+  analysis requests or patient reports were used for this update.
+- **117 exporter checks passed.** The new native-control regression resets
+  retained failure/cancellation state twice in the same launcher and verifies
+  Go is restored; successful runs retain valid F8 state. Existing window/focus,
+  clipboard freshness, menu recovery and navigation safeguards remain in place.
+- The user's failed-run log was unavailable. The first-case stall has not been
+  reproduced on PowerScribe; retained worklist state is a plausible contributor,
+  not an established root cause. The hospital trial remains necessary. Website
+  source build 2026.11.02 requires the normal Cloud Run redeployment.
+
 ## October 30, 2026: compact copying and headerless screenshot paste
 
 - **103 Python tests passed.** Export checks now require the standalone-reader

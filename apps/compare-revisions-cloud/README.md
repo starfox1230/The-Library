@@ -1,6 +1,9 @@
 # Compare Revisions: cloud review redesign
 
-## Screenshot lookup and HTML export — October 30, 2026
+## Screenshot lookup and HTML export — November 2, 2026
+
+Website build **2026.11.02** appears in the footer. This is separate from the
+PowerScribe extractor executable version (now v0.18).
 
 Implemented in replacement source; Cloud Run deployment is still pending.
 
@@ -12,7 +15,9 @@ Implemented in replacement source; Cloud Run deployment is still pending.
 - OCR runs in a browser worker. The app supplies pinned, SHA-256-checked public
   Tesseract.js 6.0.1/core 6.0.0/English model assets from its own `/ocr-assets/`
   routes. Cloud Run downloads those public runtime files on first use and caches
-  them in process memory; screenshots are never uploaded. No OCR API key or
+  them in process memory; full screenshots remain local during OCR. Only the cropped case/accession row
+  pixels travel with accepted mappings through the normal form/export to the
+  authenticated application; they are never added to model requests. No OCR API key or
   Python dependency is added. Restricted outbound asset access can prevent OCR;
   manual row entry remains available.
 - Case/accession columns are inferred from repeated row positions and two-letter
@@ -21,13 +26,17 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   numeric columns are excluded from the case/accession crops. Native crop edges
   are snapped to pixels and enlargement adapts to text height. Narrow images
   receive a per-row, per-column pass. Progress counts completed work in each pass.
-- Add screenshots together on the clipboard or paste another after OCR finishes,
-  up to 20 per batch. Identical case/accession overlaps are kept once. Different
+- Use **Paste screenshot of case number and accession** directly below the
+  report text. Each accepted image becomes a collapsed card and the button
+  offers the next screenshot. Additional images queue while OCR runs, up to
+  20 per batch. Expand a card only to inspect or edit that image's rows. Identical case/accession overlaps are kept once. Different
   accessions for one case remain conflicts. Keep original PowerScribe numbers;
   the optional verified range applies to one screenshot's actual source numbers.
 - OCR context corrections normalize 0T/07/O7 to OT, and letter O to zero only in
   the numeric part. Existing numeric digits are never trimmed, padded or guessed.
-  XR, RF, MR, CT, OT and US work; other two-letter prefixes are preserved. Strong
+  XR, RF, MR, CT, OT, US and NM are recognized; other prefixes are flagged
+  for inspection rather than guessed. A stable headerless 07-prefixed column
+  can use the known OT correction without requiring a visible letter. Strong
   same-image digit-length consensus flags unusual lengths for correction.
 - Case numbers are still read by OCR. An incomplete or duplicate reading can
   be repaired when at least 60% of rows provide unique, consistent consecutive
@@ -62,7 +71,8 @@ Implemented in replacement source; Cloud Run deployment is still pending.
 - The download contains validated Findings/Impression/Conclusion, summaries,
   clinical diff/evidence, source numbers and accepted accessions. Context,
   attestations, raw errors/warnings, pasted-input controls, prompts and OCR
-  screenshots/runtime are omitted. The reader supports ordinary review controls
+  runtime are omitted. Only case/accession row crops are embedded as source
+  images; full screenshots and unrelated columns are excluded. The reader supports ordinary review controls
   and copy fallback without a server connection. Reports are embedded in the file,
   not loaded from localStorage; tests also cover unavailable storage. Ambiguous headings/footer
   variants remain a limitation; inspect a representative export before use.
@@ -71,9 +81,18 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   retain the live website's authentication or become anonymous by removing
   headers. The banner is not access control or an institutional sensitivity label.
 
-The existing Resident/Attending prompt modes are unchanged: one selected title
-per analysis. Generating both title perspectives in one response remains a
-separate planned change; this update does not add model calls or alter grading.
+Every new analysis returns both resident-anchored and attending-anchored titles
+in one response. The Resident/Attending toggle changes only the displayed title,
+including in the offline reader, without another model request. Clinical grading
+and the revision inventory are shared. Legacy single-title results keep their
+original title in either view until explicitly reanalyzed.
+
+Copying an accession opens a compact peek beneath its icon, with the recognized
+number and original case/accession row image. Edit and copy a corrected value
+there if needed. Corrections apply in memory to the open review. The offline
+**Save review with corrections** button writes an updated standalone HTML file,
+including the selected title perspective; it does not overwrite the old file or
+contact a server. Image imports accept bounded PNG pixels and discard metadata.
 
 ## Overlay comparison experiment — October 30, 2026
 
@@ -125,7 +144,12 @@ The existing `AUTHORITY`, `CLIENT_ID`, `CLIENT_SECRET`, `REDIRECT_URI`, `AZURE_O
 
 Use the sun/moon switch at the upper right to select normal or night mode. It starts with your device's appearance, keeps a manual selection through report submissions and Clear reports, and returns to the device default on a fresh visit. It changes the entire page without rerunning analysis.
 
-Choose **Resident** or **Attending** in the pill control directly above Report input. Resident is the default on a fresh visit. Resident titles recall the resident's original interpretation; Attending titles follow the attending's final interpretation and its uncertainty. Both modes share the same Findings/Impression scope, importance criteria, Resident → Attending summaries, case grouping, filters, sorting and display. Mode changes send no requests and do not retitle existing results. A short hint explains when older results belong to the other mode, and each title's tooltip identifies its accepted review mode. Analyze again (or explicitly retry an eligible case) to generate a title in the other mode.
+Choose **Resident** or **Attending** above Report input, or in the downloaded
+reader. A fresh live visit defaults to Resident. Both titles are generated in the
+same request, and switching instantly retitles results without new analysis.
+Both modes share Findings/Impression scope, importance, Resident → Attending
+summaries, grouping and filters. Older results with one title retain that title.
+
 
 Extractor v0.11 copies completed pairs automatically after a successful export. Select **Paste** beside the report box, or click the box and press **Ctrl+V**, then select **Analyze reports**. Paste fills the box without submitting it; clipboard access is requested only on click and denied/empty reads preserve existing text. The input collapses after a valid submission. Cases appear immediately. The page sends up to 100 review entries (one representative full pair per group) in one server batch, and the server runs their independent Azure requests concurrently, restoring the original app's 100-worker approach. Summaries stream back as each case finishes. **Summary + text changes** is on by default: opening a case displays both panels together. Switch it off for the separate Summary/Text changes tabs. **Full reports** remains available in either mode.
 
@@ -163,7 +187,13 @@ The **analysis needs attention** and **not submitted for analysis** notices are 
 
 See [ATTENDING_VIEW_PROPOSAL.md](ATTENDING_VIEW_PROPOSAL.md) for the implemented title-mode contract and deferred ideas. Feedback tracking remains deferred, and [STUDY_PLAN.md](STUDY_PLAN.md) keeps proposed QI/research outcomes and measurement outside the website. No study data collection is implemented.
 
-**Customize instructions** shows the selected mode's full default prompt, prefilled and editable. Resident and Attending defaults differ only in title instructions. Switching modes keeps separate editable drafts on the current page; Restore default instructions resets only the selected mode. Edits replace the model's system instructions; no hidden default rubric is appended. **Analyze reports** sends the edited prompt for the next batch, and **Retry analysis** uses the current editor contents for that case. An already-running batch keeps its original prompt. **Restore default instructions** restores the supplied prompt without changing existing results. The response fields, clinical-section boundaries, source-quotation checks, and Major/wording validation remain enforced by code; the editor explains those fixed requirements. Instructions have an explicit 40,000-character limit.
+**Customize instructions** shows one shared, editable default prompt. Switching
+title perspective leaves edits intact. Analyze and explicit Retry use the current
+instructions; in-flight analyses keep the prompt they started with. Restore default
+instructions resets the shared draft. Responses require both titles plus one shared
+revision inventory; legacy single-title results remain readable. Existing quotation,
+section and category validation still applies. Instructions are limited to 40,000
+characters.
 
 The top **Summary + text changes** switch widens the review area and shows the summary on the left and clinical diff on the right in every expanded case, with a clear divider and matching top/bottom edges. On narrower screens, the two labeled panels stack. Full reports remain accessible. The preference stays set through a new batch submission and clearing reports on the current page; it is not saved across a fresh visit. Changing the view sends no model requests.
 
@@ -173,7 +203,7 @@ The text-change view retains and bolds the original clinical headings, including
 
 Links use the model's already-required exact quotations and section IDs. The server calculates positions against the same text used by the diff; the AI never invents character positions. Findings and Impression are distinguished, including a separate eligible impression anchor for Major changes. If a quotation occurs more than once within its named section, all occurrences are highlighted and **Next passage** cycles between them. The prompt requests specific surrounding wording to reduce ambiguity. Missing/invalid quotations cannot create a guessed link. Only the side with quoted evidence is marked; added findings do not fabricate resident passages. Overlapping quotations and Unicode are supported without changing report text. This adds no model calls.
 
-Clear reports removes reports, results and both edited prompt drafts from the current page, keeps the selected mode, and restores its default prompt. A request already received by the server may finish even after the browser cancels it.
+Clear reports removes reports, results and the edited prompt draft from the current page, keeps the selected mode, and restores its default prompt. A request already received by the server may finish even after the browser cancels it.
 
 ## Long reports and uncertainty
 
@@ -187,7 +217,7 @@ Clear reports removes reports, results and both edited prompt drafts from the cu
 
 ## What was verified
 
-For the complete current importance criteria, the Major section rule, calibration examples and the limits of mechanical validation, read [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md). [ANALYSIS_PROMPT.md](ANALYSIS_PROMPT.md) and [ATTENDING_ANALYSIS_PROMPT.md](ATTENDING_ANALYSIS_PROMPT.md) export the exact Resident and Attending defaults. `dev/assemble.py` produces both without importing authentication or contacting the provider; regression tests verify equality and that only the title rule differs. Customized instructions replace this default; the current editor contents are what the model receives.
+For the complete current importance criteria, the Major section rule, calibration examples and the limits of mechanical validation, read [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md). [ANALYSIS_PROMPT.md](ANALYSIS_PROMPT.md) and [ATTENDING_ANALYSIS_PROMPT.md](ATTENDING_ANALYSIS_PROMPT.md) export the identical shared defaults for both views. `dev/assemble.py` produces both without importing authentication or contacting the provider; regression tests verify equality and that only the title rule differs. Customized instructions replace this default; the current editor contents are what the model receives.
 
 Local regression tests use synthetic reports and mocked Azure responses. A 100-party barrier proves that 100 server workers reach the model call concurrently. Browser checks cover 100-case progressive results, 205-case grouping, UTF-8 byte limits, interrupted connections, prompt-specific retries, exact/repeated/overlapping passage links, keyboard pinning, page-stable sticky report scrolling, and responsive layout/report fidelity. No live latency measurement is claimed.
 

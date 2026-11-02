@@ -251,6 +251,12 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .case-copy-accession svg {width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7;}
 #cr-app .accession-copy-feedback {display:none; position:absolute; left:46px; top:8px; width:max-content; max-width:220px; padding:5px 9px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); font-size:12px; box-shadow:0 3px 12px #0002; pointer-events:none;}
 #cr-app .show-copy-feedback .accession-copy-feedback {display:block;}
+#cr-app .accession-peek {position:absolute; z-index:5; top:54px; left:10px; width:min(380px,calc(100% - 20px)); padding:12px; display:flex; flex-wrap:wrap; gap:8px; border:1px solid var(--line); border-radius:10px; background:var(--panel); box-shadow:0 6px 24px #0005;}
+#cr-app .accession-peek label {width:100%; font-size:12px;}
+#cr-app .accession-peek input {margin-top:5px;}
+#cr-app .accession-source-row {width:100%; height:auto; background:white; border-radius:3px;}
+#cr-app .lookup-screenshot {margin:8px 0; padding:10px; border:1px solid var(--line); border-radius:8px;}
+#cr-app .lookup-screenshot summary {cursor:pointer; font-size:12px; font-weight:600;}
 #cr-app .accession-tools {margin-top:20px; padding-top:16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; font-size:12px;}
 #cr-app .accession-line {display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
 #cr-app .accession-value {font-variant-numeric:tabular-nums; overflow-wrap:anywhere; color:var(--muted);}
@@ -269,10 +275,12 @@ html[data-theme="dark"] {color-scheme:dark;}
 <main>
 {% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
+{% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
 <label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
 <label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('resident') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
-</div><p class="mode-help" id="mode-help" role="status">Titles use the {{ review_mode | default('resident') }} report.</p></fieldset>
+</div><p class="mode-help" id="mode-help" role="status">Both title perspectives are generated together.</p></fieldset>
+{% if not exported_review | default(false) %}
 <details class="input-card" id="input-disclosure" {% if not cases %}open{% endif %}><summary>Report input</summary>
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -285,16 +293,19 @@ html[data-theme="dark"] {color-scheme:dark;}
 <span class="hint" id="paste-status" role="status"></span>
 <section class="lookup-card" id="lookup-panel" aria-label="Screenshot lookup">
 <div class="lookup-heading">Accession screenshots <span class="muted" id="lookup-count"></span></div>
-<div id="lookup-paste-zone" class="lookup-paste-zone" tabindex="0" role="group" aria-label="Paste screenshot here"><span>Paste screenshot here</span><span class="hint">Click here and press Ctrl+V. Include case numbers and accessions; a column header is optional.</span><button type="button" id="lookup-paste">Paste screenshot</button></div>
-<div class="lookup-tools"><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button><span class="hint">Screenshots stay in this browser.</span></div>
+<div id="lookup-images"></div>
+<div id="lookup-paste-zone" class="lookup-paste-zone" tabindex="0" role="group" aria-label="Paste screenshot here"><span>Paste screenshot here</span><span class="hint">Click here and press Ctrl+V. Include case numbers and accessions; a column header is optional.</span><button type="button" id="lookup-paste">Paste screenshot of case number and accession</button></div>
+<div class="lookup-tools"><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button><span class="hint">Source row images are retained in the review export.</span></div>
 <p class="hint" id="ocr-status" role="status"></p>
-<div class="lookup-tools" id="lookup-images"></div>
+<details id="lookup-manual"><summary>Manual mappings</summary></details>
+<div id="lookup-editor" hidden>
 <div class="lookup-tools" id="lookup-column-tools" hidden><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select></div>
 <details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; accession strings stay unchanged.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
 <p class="hint" id="lookup-coverage" role="status"></p>
 <div class="lookup-workspace">
 <div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
 <div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+</div>
 </div>
 <p class="hint">Each valid mapping attaches only to its exact source case number. No individual approval is required. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
 </section>
@@ -312,6 +323,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
+{% if exported_review | default(false) %}<button type="button" id="save-review" class="plain">Save review with corrections</button>{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
 {% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
@@ -332,7 +344,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="summary-direction"><span class="resident-summary">Resident</span><span class="attending-summary"> → Attending</span></p>
 <div class="case-list" id="case-list"></div>
 <div id="wording-scroll-space" aria-hidden="true"></div>
-<footer><span>Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
+<footer><span>Build {{ review_build }} · Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
@@ -358,26 +370,21 @@ const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new 
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
 let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
-let reviewMode={{ review_mode | default('resident') | tojson }};
-{% if not exported_review | default(false) %}
+let reviewMode=$('cr-app').dataset.reviewMode||{{ review_mode | default('resident') | tojson }};
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
+{% if not exported_review | default(false) %}
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
-let defaultPrompt=reviewPrompts[reviewMode];
-const promptDrafts={...reviewPrompts,[reviewMode]:$('custom-prompt').value};
+let defaultPrompt=reviewPrompts.resident;
+const promptDrafts={...reviewPrompts};
+{% endif %}
 function describeMode(){
  $('mode-subtitle').textContent=(reviewMode==='attending'?'Attending':'Resident')+' report review';
- $('mode-help').textContent=cases.some(c=>c.review_mode&&c.review_mode!==reviewMode)?(reviewMode==='attending'?'Attending':'Resident')+' titles for new analyses and retries. Existing results stay unchanged.':'Titles use the '+reviewMode+' report.';
+ $('mode-help').textContent='Switch title perspective at any time. Both are generated together; legacy results keep their original title.';
 }
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.addEventListener('change',()=>{
  if(!radio.checked||radio.value===reviewMode)return;
- promptDrafts[reviewMode]=$('custom-prompt').value;reviewMode=radio.value;
- defaultPrompt=reviewPrompts[reviewMode];$('custom-prompt').value=promptDrafts[reviewMode];
- $('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Instructions switched to '+reviewMode+' mode.';
- $('default-prompt').textContent=JSON.stringify(defaultPrompt);describeMode();
+ reviewMode=radio.value;$('cr-app').dataset.reviewMode=reviewMode;render();
 });
-{% else %}
-function describeMode(){}
-{% endif %}
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
 let themeChoice=$('theme-value').value;
 function applyTheme(){
@@ -402,6 +409,7 @@ const members = c => Array.isArray(c.source_numbers) ? c.source_numbers : [];
 const firstNumber = c => members(c).length ? Math.min(...members(c)) : Number.MAX_SAFE_INTEGER;
 const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
+const displayTitle = c => c['title_'+reviewMode] || c.title || 'Untitled case';
 const caseLabel = c => c.case_label || members(c).join(', ');
 /* LOOKUP AUTHORING SOURCE */
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
@@ -681,7 +689,7 @@ function caseRow(c,key) {
  head.id='case-'+key;head.setAttribute('aria-expanded',String(isOpen));head.setAttribute('aria-controls','body-'+key);
  const chevron=el('span','chevron');chevron.setAttribute('aria-hidden','true');head.append(chevron);
  const number=el('span','case-number');number.append(el('small','',members(c).length>1?'Cases':'Case'),document.createTextNode(caseLabel(c)));head.append(number);
- const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));const title=el('span','case-title',prose(c.title) || 'Untitled case');title.title='Review mode: '+(c.review_mode==='attending'?'Attending':'Resident');name.append(title);
+ const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));const title=el('span','case-title',prose(displayTitle(c)));title.title='Title perspective: '+reviewMode;name.append(title);
  const ordered=revisions(c).slice().sort((a,b)=>groupOrder.indexOf(a.importance)-groupOrder.indexOf(b.importance));
  const clinical=ordered.filter(r=>r.importance!=='wording'), previewItems=(clinical.length?clinical:ordered).slice(0,2);
  const preview=el('span','change-preview');
@@ -725,7 +733,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.title_resident,c.title_attending,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}
@@ -859,7 +867,7 @@ $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleC
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
- for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
+ for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();
@@ -868,7 +876,7 @@ $('clear-button').addEventListener('click',()=>{
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('input-disclosure').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('input-disclosure').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(lookupPayload));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
 {% endif %}
 render();
 {% if not exported_review | default(false) %}

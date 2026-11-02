@@ -34,18 +34,18 @@ const prompts=JSON.parse(empty.match(/<script id="review-prompts" type="applicat
   assert((await attending.boundingBox()).y<(await page.locator('#report-text').boundingBox()).y);
   assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.resident);
   await page.locator('.customize > summary').click();
-  // Native radio keys, associated form values, and independent custom drafts.
+  // Native radio keys, associated form values, and one shared custom draft.
   await resident.focus();await page.keyboard.press('ArrowRight');assert(await attending.isChecked());
   assert.notEqual(await attending.locator('+ .mode-label').evaluate(node=>getComputedStyle(node).outlineStyle),'none','Keyboard mode selection needs a visible focus indicator');
   assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.attending);
   assert.equal(await page.evaluate(()=>new FormData(document.getElementById('report-form')).get('review_mode')),'attending');
   await page.locator('#custom-prompt').fill('Attending custom draft');
-  await resident.check();assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.resident);
+  await resident.check();assert.equal(await page.locator('#custom-prompt').inputValue(),'Attending custom draft');
   await page.locator('#custom-prompt').fill('Resident custom draft');
-  await attending.check();assert.equal(await page.locator('#custom-prompt').inputValue(),'Attending custom draft');
+  await attending.check();assert.equal(await page.locator('#custom-prompt').inputValue(),'Resident custom draft');
   await page.locator('#restore-prompt').click();
   assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.attending);
-  await resident.check();assert.equal(await page.locator('#custom-prompt').inputValue(),'Resident custom draft');
+  await resident.check();assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.resident);
   await attending.check();
   await page.locator('.customize > summary').click();
   assert.equal(batches.length+retries.length,0,'Switching modes must not analyze');
@@ -65,8 +65,8 @@ const prompts=JSON.parse(empty.match(/<script id="review-prompts" type="applicat
   await held.fulfill({contentType:'application/x-ndjson',body:[{type:'started',total:1},{type:'case',id:result.id,result},{type:'done',total:1}].map(e=>JSON.stringify(e)).join('\n')+'\n'});
   await page.waitForFunction(()=>document.getElementById('progress-track').getAttribute('aria-valuenow')==='100');
   assert.equal(await page.locator('.case-title').textContent(),'Moderate effusion');
-  assert.equal(await page.locator('.case-title').getAttribute('title'),'Review mode: Attending');
-  assert.match(await page.locator('#mode-help').textContent(),/Existing results stay unchanged/);
+  assert.equal(await page.locator('.case-title').getAttribute('title'),'Title perspective: resident');
+  assert.match(await page.locator('#mode-help').textContent(),/legacy results keep their original title/);
   await attending.check();await resident.check();
   assert.equal(await page.locator('.case-title').textContent(),'Moderate effusion');assert.equal(batches.length,1);
   await page.locator('#case-0').click();
@@ -76,12 +76,12 @@ const prompts=JSON.parse(empty.match(/<script id="review-prompts" type="applicat
   await page.locator('#row-0').getByRole('button',{name:'Retry analysis',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('#row-0').textContent.includes('Analysis could not be completed.'));
   assert.equal(await page.locator('.case-title').textContent(),'Moderate effusion');
-  assert.equal(await page.locator('.case-title').getAttribute('title'),'Review mode: Attending','Failed retry must not relabel the retained title');
+  assert.equal(await page.locator('.case-title').getAttribute('title'),'Title perspective: resident','Failed retry preserves the displayed legacy title');
   const retried=page.waitForResponse(response=>response.url().endsWith('/analyze'));
   await page.locator('#row-0').getByRole('button',{name:'Retry analysis',exact:true}).click();await retried;
   await page.waitForFunction(()=>document.querySelector('.case-title')?.textContent==='Small effusion');
   assert.equal(retries.length,2);assert(retries.every(record=>record.review_mode==='resident'&&record.custom_prompt==='Edited resident retry prompt'));
-  assert.equal(await page.locator('.case-title').getAttribute('title'),'Review mode: Resident');
+  assert.equal(await page.locator('.case-title').getAttribute('title'),'Title perspective: resident');
   assert.equal(await page.locator('.case-number').textContent(),'Cases68–69');
   assert.equal(await page.locator('#filter-minor').textContent(),'1 minor');
   await attending.check();
@@ -91,6 +91,6 @@ const prompts=JSON.parse(empty.match(/<script id="review-prompts" type="applicat
   await resident.check();assert.equal(await page.locator('#custom-prompt').inputValue(),prompts.resident,'Clear must discard both private custom drafts');
   await attending.check();await page.goto('https://synthetic.invalid/');assert(await resident.isChecked(),'A fresh visit defaults to Resident');
   assert.deepEqual(errors,[]);assert.deepEqual(unexpected,[]);
-  console.log('Mode browser checks passed: Resident default, native keyboard toggle, drafts/reset, form submission, attending request/title, in-flight snapshot, no implicit calls, explicit resident retry, source membership, Clear and mobile layout.');
+  console.log('Mode browser checks passed: Resident default, native keyboard toggle, shared instructions/reset, form submission, attending request/title, in-flight snapshot, no implicit calls, explicit resident retry, source membership, Clear and mobile layout.');
  }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exit(1);});

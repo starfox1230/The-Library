@@ -40,6 +40,33 @@ namespace ReportExporter
             }
         }
 
+        public static void VerifyRetryState()
+        {
+            using (var form = new ExportForm(true))
+            {
+                var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                var type = typeof(ExportForm);
+                for (int attempt = 0; attempt < 2; attempt++)
+                {
+                    type.GetField("lockedWorklistMain", flags).SetValue(form, new IntPtr(123));
+                    type.GetField("lockedWorklistChild", flags).SetValue(form, new IntPtr(456));
+                    type.GetField("captureRole", flags).SetValue(form, "WorklistFocus");
+                    type.GetField("running", flags).SetValue(form, true);
+                    var token = new System.Threading.CancellationTokenSource();
+                    token.Cancel(); type.GetField("cancellation", flags).SetValue(form, token);
+                    Find(form, "Go").Enabled = false;
+                    form.CompleteRunState(false);
+                    Require((IntPtr)type.GetField("lockedWorklistChild", flags).GetValue(form) == IntPtr.Zero, "Stopped attempt retained an F8 handle");
+                    Require((IntPtr)type.GetField("lockedWorklistMain", flags).GetValue(form) == IntPtr.Zero, "Stopped attempt retained a PowerScribe handle");
+                    Require(type.GetField("captureRole", flags).GetValue(form) == null && type.GetField("cancellation", flags).GetValue(form) == null, "Retry retained capture/cancellation state");
+                    Require(!(bool)type.GetField("running", flags).GetValue(form) && Find(form, "Go").Enabled, "Retry requires reopening launcher");
+                }
+                type.GetField("lockedWorklistChild", flags).SetValue(form, new IntPtr(456));
+                form.CompleteRunState(true);
+                Require((IntPtr)type.GetField("lockedWorklistChild", flags).GetValue(form) == new IntPtr(456), "Successful run lost valid remembered worklist");
+            }
+        }
+
         public static void VerifyTypedRange()
         {
             using (var form = new ExportForm(true))

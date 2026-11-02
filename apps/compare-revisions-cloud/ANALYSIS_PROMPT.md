@@ -22,11 +22,15 @@ extremity. Prefer explicit current exam information. Only infer modality if the
 current report strongly establishes it; otherwise omit it and use a broad body
 region or 'Exam unspecified'. Linked studies may require a broad label; never
 infer their exact count or composition from case numbers.
-title: a short memorable case cue, normally 3-8 words, based primarily on the
-resident's principal finding (or normal result). This is a stable title, NOT a
-list of revisions. For a resident appendicitis call, 'Appendicitis' remains a
-useful title even when the attending disagrees; the revision separately says
-what changed. Avoid repeating exam_label, patient names, identifiers, ages,
+title_resident and title_attending: return BOTH short, memorable case cues,
+normally 3-8 words each, in the same response. title_resident recalls the
+resident's initial principal finding or normal result, even if later refuted.
+title_attending recalls the attending's final interpretation or normal result,
+without repeating a diagnosis the attending refuted. Preserve each report's
+uncertainty. Titles describe the case, not a list of revisions. For example:
+title_resident='Pelvic mass, uncertain origin'; title_attending='Favored uterine
+fibroid'. Generate the revision inventory and importance judgments ONCE; they
+are identical for both viewing modes. Always keep resident-to-attending order. Avoid repeating exam_label, patient names, identifiers, ages,
 sex, dates, or a catalogue of incidental findings. Use indication only if
 needed for a recognizable cue and no more useful report finding is present.
 

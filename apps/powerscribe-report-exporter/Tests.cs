@@ -951,6 +951,7 @@ namespace ReportExporter
                 });
                 Test("compact launcher hides setup, expands Options and keeps Go visible", LauncherChecks.Verify);
                 Test("live progress is shown only in the external overlay without resizing the launcher", LauncherChecks.VerifyProgressRouting);
+                Test("failed and cancelled attempts clear retained capture state and permit retry without reopening", LauncherChecks.VerifyRetryState);
                 Test("typed case fields preserve valid ranges and reject blank, malformed, overflow and reversed input", LauncherChecks.VerifyTypedRange);
                 Test("manual recovery reads complete pairs after a stopped run, never the archival file", () => {
                     var runner = new ExportRunner(); string output = path();

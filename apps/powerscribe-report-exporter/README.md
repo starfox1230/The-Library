@@ -1,4 +1,23 @@
-# PowerScribe Report Exporter v0.17
+# PowerScribe Report Exporter v0.18
+
+## v0.18: reset retained capture state after a failed or stopped attempt
+
+A failed/stopped run now clears the launcher's remembered F8 worklist handles,
+capture mode and cancellation state, restores Go, and starts the next attempt with
+a new session. Duplicate queued Go/Enter events cannot launch another active worker.
+Select the intended first row again before retrying. A successful run retains its
+valid remembered worklist. Existing focus, clipboard, menu, comparison-window and
+navigation checks remain in place; retries do not send an automatic extra Down.
+
+Validation: 117 synthetic/native-control tests passed, including two successive
+failed/cancelled-state resets without recreating the launcher and successful-state
+retention. No failed-run diagnostic was available for the reported first-case
+stall. Retained F8 state is a plausible contributor, not an established root cause;
+a UAB workstation trial is still needed. A genuinely running or blocked provider
+cannot safely be bypassed by launching a concurrent capture.
+
+The website is a separate deployment. Its build 2026.11.02 handles OCR, source-row
+images and both title perspectives; installing this executable does not update it.
 
 ## v0.17: one live progress window
 
@@ -52,7 +71,7 @@ Stopped runs keep saved captures and show a brief result with an actionable next
 
 Validation: executable compiled and **111 tests passed**, including the existing 103 capture/navigation checks plus adaptive timing, migration, unique filenames, stopped-run recovery, and a native launcher layout check. Launcher previews were inspected with Options collapsed and expanded. Tests use synthetic reports and test-owned controls; they do not operate on PowerScribe or the real clipboard. The UAB workstation still needs a short trial to verify the actual range, report contents, and case order.
 
-The following release notes describe earlier changes; the current use instructions below reflect v0.16.
+The following release notes describe earlier changes; the current use instructions below reflect v0.18.
 
 ## v0.12: retain worklist focus before activation
 
@@ -131,7 +150,7 @@ The first version's accessibility approach did not work on Sterling's workstatio
 
 ## Use it — no PowerShell required
 
-1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.16**.
+1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.18**.
 2. Close any open Compare Report Revisions dialog and **click the first case row in PowerScribe's worklist**. Leave focus on that row. Keep the comparison-window size that works with the AHK.
 3. Enter **First case** and **Last case**, then **Go**. These labels determine the count; they do not select numbered rows. Start with one case, then a small batch. Options is unnecessary for a normally configured workstation.
 4. A small progress window shows the current action, elapsed time, saved count, and available stop shortcut (**Numpad \*** or **Ctrl+Shift+F12**). Use its Stop button to cancel.

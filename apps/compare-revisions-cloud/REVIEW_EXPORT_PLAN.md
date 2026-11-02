@@ -1,26 +1,24 @@
 # Shared review, two title perspectives, standalone HTML
 
-Updated October 30, 2026. Screenshot OCR, action-accepted accession lookup, grouped
+Updated November 2, 2026. Screenshot OCR, action-accepted accession lookup, grouped
 copy actions and standalone HTML export are now implemented in source. The PHI
 banner appears only in the downloaded reader. Cloud Run deployment is pending.
-See README.md for the implemented workflow. Dual-title generation remains planned.
+See README.md for the implemented workflow. Dual-title generation is now implemented in the same analysis response.
 
 ## Current source behavior
 
-`main.py` defines a shared assessment prompt and an attending variant made by
-replacing the resident title rule. Each AI response generates one title. The
-mode selector chooses the prompt used for a new analysis; it does not generate
-both titles or retitle existing results. All other assessment rules are shared.
-
+`main.py` uses one shared assessment prompt requesting both title perspectives.
+The viewing toggle changes only the displayed title, including after export;
+clinical assessment and the revision inventory are generated once.
 Full reports are used for context and exact-pair grouping. Clinical sections
 are parsed for evidence and displayed diff. That parser is not yet a complete
 export filter: unfamiliar headings, mixed sections and footer variants need
 explicit handling. Removing headers alone does not de-identify clinical text.
 
-## Planned dual-title response
+## Dual-title response (implemented)
 
-Request both `title_resident` and `title_attending` in a single AI response for
-each grouped pair. Generate revisions, evidence, importance and summaries once.
+The shared prompt requests both `title_resident` and `title_attending` in a single AI response for
+each grouped pair. Revisions, evidence, importance and summaries are generated once.
 
 - Resident title: memorable cue from the initial interpretation, preserving
   uncertainty. A removed resident diagnosis may still be an appropriate cue.
@@ -45,7 +43,7 @@ fields with CSS.
 | Include | Exclude from the entire file |
 | --- | --- |
 | Original source case numbers and group labels | Full pasted input or full report strings |
-| Valid accessions accepted by Analyze/Download, keyed to source numbers | MRN lookup fields, raw lookup screenshots or invalid or conflicting lookup rows |
+| Valid accessions and case/accession-only source row images, keyed to source numbers | MRN lookup fields, full original screenshots or invalid or conflicting lookup rows |
 | Both titles, modality if retained/validated | Indication/history, comparison, technique |
 | Shared clinical revision summaries and categories | Attestations, signatures, administrative metadata |
 | Parsed Findings/Impression/Conclusion text on both sides | Original context in hidden JSON, scripts, comments or attributes |
@@ -103,8 +101,10 @@ Generate each recipient's file from only their assigned cases. A filter hiding
 other recipients' cases is not equivalent to omitting those cases from the file.
 
 Include the accepted lookup in the review HTML, with copyable identifiers;
-recipients do not need a separate mapping file. The exported reader does not
-need the original screenshots or OCR runtime. Adding these locator fields does
+recipients do not need a separate mapping file. The exported reader embeds the selected cases' source row crops, not full
+worklist screenshots, and needs no OCR runtime. Accession copying shows its
+source crop and permits a local correction. Save review with corrections writes
+a new offline file retaining corrected values, source crops and title perspective. Adding these locator fields does
 not permit export of excluded report context such as technique or comparison.
 
 ## Persistent PHI notice (exported reader only)
@@ -167,7 +167,7 @@ app or any particular deployment for PHI.
 ## Sequence before the pilot
 
 Review survey drafts and measurement choices; confirm roster, operators and
-institutional determination; implement the two-title response; implement/test
-the clinical-only HTML export; dry-run preparation and approved delivery;
+institutional determination; deploy the implemented two-title response and
+clinical-only HTML export with source-row images; dry-run preparation and approved delivery;
 record versions and launch the agreed 3-usual/4-tool sequence. Keep the survey
 and operational log separate from the product. See [STUDY_PLAN.md](STUDY_PLAN.md).

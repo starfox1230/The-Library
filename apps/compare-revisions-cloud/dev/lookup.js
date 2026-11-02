@@ -10,6 +10,28 @@ function lookupConflicts(){
 }
 function caseAccessions(c){if(!lookupMatchesReview())return [];const conflicts=lookupConflicts();return [...new Map(lookupRows.filter(r=>validLookup(r)&&!conflicts.has(r.case_number)&&members(c).includes(r.case_number)).sort((a,b)=>a.case_number-b.case_number).map(r=>[r.accession,r])).values()];}
 const accessionCopyTimers=new WeakMap();
+const lookupPayload = r => ({case_number:r.case_number,accession:r.accession,confirmed:true,...(r.source_row?{source_row:r.source_row}:{})});
+function showAccessionPeek(target,entry){
+ document.querySelector('.accession-peek')?.remove();
+ const host=target.closest('.case'),peek=el('div','accession-peek');
+ peek.setAttribute('role','region');peek.setAttribute('aria-label','Check or edit accession');
+ const label=el('label','','Case '+entry.case_number+' accession'),input=el('input');input.type='text';input.value=entry.accession;input.spellcheck=false;input.autocomplete='off';input.setAttribute('aria-label','Correct accession for case '+entry.case_number);label.append(input);peek.append(label);
+ if(entry.source_row){const image=el('img','accession-source-row');image.src=entry.source_row;image.alt='Original case number and accession from screenshot';peek.append(image);}
+ else peek.append(el('span','hint','Source image unavailable for this mapping.'));
+ const note=el('span','hint');
+ const apply=button('Copy corrected accession','',async()=>{
+  const value=input.value.trim();if(!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(value)){note.textContent='Enter the accession exactly as shown in the source.';return;}
+  const previous=entry.accession;for(const row of lookupRows)if(row.case_number===entry.case_number&&row.accession===previous){row.accession=value;row.accessionIssue='';row.originalAccession=null;}
+  await copyAccession(apply,value);note.textContent='Correction applies to this open review.';
+  if(!exportedReview){lookupTable();updateLookupCoverage();}
+  // Keep focus and the source visible while refreshing only case controls.
+  const saved=peek;peek.remove();render();const next=document.querySelector('#'+host.id);(next||document.body).append(saved);
+ });
+ const close=button('Close','plain',()=>{peek.remove();target.focus({preventScroll:true});});peek.append(apply,close,note);host.append(peek);
+ if(peek.getBoundingClientRect().bottom>innerHeight)window.scrollBy({top:peek.getBoundingClientRect().bottom-innerHeight+12,behavior:'instant'});
+}
+document.addEventListener('pointerdown',event=>{const peek=document.querySelector('.accession-peek');if(peek&&!peek.contains(event.target)&&!event.target.closest('.case-copy-accession'))peek.remove();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelector('.accession-peek')?.remove();});
 async function copyAccession(target,value){
  const iconOnly=target.classList.contains('case-copy-accession'),original=iconOnly?'':(target.dataset.copyLabel||target.textContent);
  if(!iconOnly)target.dataset.copyLabel=original;
@@ -27,7 +49,7 @@ async function copyAccession(target,value){
 }
 function accessionIcon(c){
  const entries=caseAccessions(c);if(!entries.length)return null;
- const copy=button('','copy-accession case-copy-accession',()=>copyAccession(copy,entries[0].accession));
+ const copy=button('','copy-accession case-copy-accession',async()=>{await copyAccession(copy,entries[0].accession);showAccessionPeek(copy,entries[0]);});
  copy.title='Copy accession';copy.setAttribute('aria-label','Copy accession for '+(members(c).length>1?'cases ':'case ')+caseLabel(c));
  copy.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></svg><span class="accession-copy-feedback" aria-hidden="true"></span>';
  return copy;
@@ -35,7 +57,7 @@ function accessionIcon(c){
 function appendAccessionTools(body,c){
  const entries=caseAccessions(c);if(!entries.length){if(lookupRows.length){const missing=el('div','accession-tools');missing.append(el('span','muted','Accession not attached'));body.append(missing);}return;}
  const tools=el('div','accession-tools');
- for(const entry of entries){const line=el('div','accession-line'),copy=button('Copy accession','copy-accession',()=>copyAccession(copy,entry.accession));copy.title='Copy '+entry.accession+' (source case '+entry.case_number+')';line.append(copy,el('span','accession-value',(entries.length>1?'Case '+entry.case_number+' · ':'')+entry.accession));tools.append(line);}
+ for(const entry of entries){const line=el('div','accession-line'),copy=button('Copy accession','copy-accession',async()=>{await copyAccession(copy,entry.accession);showAccessionPeek(copy,entry);});copy.title='Copy '+entry.accession+' (source case '+entry.case_number+')';line.append(copy,el('span','accession-value',(entries.length>1?'Case '+entry.case_number+' · ':'')+entry.accession));tools.append(line);}
  const mapped=new Set(lookupRows.filter(r=>validLookup(r)&&!lookupConflicts().has(r.case_number)).map(r=>r.case_number));
  const missing=members(c).filter(n=>!mapped.has(n));if(missing.length)tools.append(el('span','lookup-warning','Lookup missing: '+missing.join(', ')));
  body.append(tools);
@@ -48,36 +70,67 @@ function updateLookupCoverage(){
  const missing=[...source].filter(n=>!matched.has(n));
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
  $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>r.caseIssue)?'Some case numbers may be incomplete. Correct them or use a verified consecutive range. ':'');
- $('lookup-value').value=JSON.stringify(valid.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));
+ $('lookup-value').value=JSON.stringify(valid.map(lookupPayload));
  $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!validLookup(r))||conflicts.size>0;
  {% endif %}
 }
+{% if exported_review | default(false) %}
+$('save-review').addEventListener('click',()=>{
+ const clone=document.documentElement.cloneNode(true);
+ clone.querySelector('#lookup-data').textContent=JSON.stringify(lookupRows.map(lookupPayload)).replaceAll('<','\\u003c');
+ clone.querySelector('#review-data').textContent=JSON.stringify(cases).replaceAll('<','\\u003c');
+ clone.querySelector('#cr-app').dataset.reviewMode=reviewMode;
+ clone.querySelector('#case-list').replaceChildren();clone.querySelectorAll('.accession-peek').forEach(n=>n.remove());
+ const url=URL.createObjectURL(new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'})),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+});
+{% endif %}
 {% if not exported_review | default(false) %}
-let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null;
+let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null,ocrQueue=[];
 const lookupImages=[];
 function paintLookup(){
  const canvas=$('lookup-canvas');if(!currentImage)return;const ctx=canvas.getContext('2d');canvas.width=currentImage.bitmap.width;canvas.height=currentImage.bitmap.height;ctx.drawImage(currentImage.bitmap,0,0);
  for(const [name,color] of [['caseColumn','#2689df'],['accessionColumn','#dba72a']]){const col=currentImage[name];if(!col)continue;ctx.fillStyle=color+'33';ctx.fillRect(col[0],0,col[1]-col[0],canvas.height);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(col[0],1,col[1]-col[0],canvas.height-2);}
  if(Number.isFinite(currentImage.focusY)){ctx.strokeStyle='#e14c79';ctx.lineWidth=2;ctx.strokeRect(1,currentImage.focusY-9,canvas.width-2,18);}
 }
-function showLookupImage(img){if(currentImage!==img){$('lookup-range-first').value='';$('lookup-range-last').value='';$('lookup-range-checked').checked=false;$('lookup-range-status').textContent='';}currentImage=img;$('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;$('lookup-range-tools').hidden=false;const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth):img.bitmap.width*Number(zoom))+'px';paintLookup();}
+function showLookupImage(img,reveal=false){
+ if(!img?.bitmap)return;
+ if(!reveal&&!img.details.open)return;
+ if(currentImage!==img){$('lookup-range-first').value='';$('lookup-range-last').value='';$('lookup-range-checked').checked=false;$('lookup-range-status').textContent='';}
+ currentImage=img;if(reveal)img.details.open=true;
+ for(const other of lookupImages)if(other!==img)other.details.open=false;
+ $('lookup-manual').open=false;
+ if(img.details.open){img.details.append($('lookup-editor'));$('lookup-editor').hidden=false;}
+ $('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;$('lookup-range-tools').hidden=false;
+ const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth||700):img.bitmap.width*Number(zoom))+'px';paintLookup();
+}
+function updateImageCard(img,status){img.status=status;img.summary.textContent=img.label+' · '+status;}
+function rowCrop(img,row,line){
+ const columns=[img.caseColumn,img.accessionColumn],top=Math.max(0,Math.floor(Math.min(...line.words.map(w=>w.bbox.y0))-3)),bottom=Math.min(img.bitmap.height,Math.ceil(Math.max(...line.words.map(w=>w.bbox.y1))+3));
+ const width=columns.reduce((sum,[l,r])=>sum+Math.ceil(r)-Math.floor(l),0)+12,h=bottom-top;if(h<1)return;
+ const scale=Math.min(2,1100/width,110/h),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(width*scale));canvas.height=Math.max(1,Math.ceil(h*scale));
+ const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);let x=0;
+ for(const [l,r] of columns){ctx.drawImage(img.bitmap,Math.floor(l),top,Math.ceil(r)-Math.floor(l),h,x*scale,0,(Math.ceil(r)-Math.floor(l))*scale,h*scale);x+=Math.ceil(r)-Math.floor(l)+12;}
+ const data=canvas.toDataURL('image/png');if(data.length<=90000)row.source_row=data;canvas.width=canvas.height=1;
+}
 function lookupRowMessage(r,conflicts){return r.caseIssue||r.accessionIssue|| (conflicts.has(r.case_number)?'Duplicate case '+r.case_number+' · check OCR':!validLookup(r)?'Check case / accession':(r.source||'Manual')+(r.originalAccession?' · OCR characters corrected':'')+(r.numberSource==='sequence'?' · case repaired from '+(r.originalCase??'unread'):r.numberSource==='range'?' · verified range':r.confidence!==undefined?' · read score '+Math.round(r.confidence):''));}
 function lookupTable(){
  const conflicts=lookupConflicts();$('lookup-rows').replaceChildren();
  lookupRows.forEach((r,index)=>{
+  if(currentImage&&currentImage.details.open&&!r.imageIds?.includes(currentImage.id)&&r.imageId!==currentImage.id)return;
   const tr=el('tr'),n=el('input'),a=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;if(r.originalAccession){a.classList.add('lookup-repaired');a.title='OCR read '+r.originalAccession+'. Context-corrected to '+r.accession+' (two letters, then digits).';}a.setAttribute('aria-label','Accession row '+(index+1));
+  tr.dataset.lookupIndex=index;
   if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Compare with the source if needed.';}
   const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',lookupRowMessage(r,conflicts));status.title='A duplicate case warning means the lookup assigns different accessions to one case number. OCR read scores are engine confidence, not measured accuracy.';
-  const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));n.addEventListener('focus',reveal);a.addEventListener('focus',reveal);}
-  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
+  const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img,true);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));}
+  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const row of $('lookup-rows').children){const item=lookupRows[Number(row.dataset.lookupIndex)],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
   n.addEventListener('input',()=>changed(true));a.addEventListener('input',()=>changed(false));
   for(const child of [n,a,source,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
  });updateLookupCoverage();
 }
 function clearLookup(){
- lookupEpoch++;lookupRows=[];for(const img of lookupImages)img.bitmap.close();lookupImages.length=0;currentImage=null;
+ lookupEpoch++;lookupRows=[];ocrQueue=[];for(const img of lookupImages)img.bitmap?.close();lookupImages.length=0;currentImage=null;
  if(ocrWorker){ocrWorker.terminate().catch(()=>{});ocrWorker=null;}
- ocrLoading=null;ocrBusy=false;$('lookup-images').replaceChildren();$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;$('lookup-range-status').textContent='';$('ocr-status').textContent='';lookupTable();
+ ocrLoading=null;ocrBusy=false;$('lookup-panel').append($('lookup-editor'));$('lookup-editor').hidden=true;$('lookup-images').replaceChildren();$('lookup-paste').textContent='Paste screenshot of case number and accession';$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;$('lookup-range-status').textContent='';$('ocr-status').textContent='';lookupTable();
 }
 async function getOCR(epoch){
  if(ocrWorker)return ocrWorker;
@@ -87,7 +140,7 @@ async function getOCR(epoch){
   const worker=await window.Tesseract.createWorker('eng',1,{workerPath:base+'worker.min.js',corePath:base+'tesseract-core-lstm.wasm.js',langPath:base,workerBlobURL:false,cacheMethod:'none'});
   if(epoch!==lookupEpoch){await worker.terminate();throw Error('cleared');}
   await worker.setParameters({tessedit_pageseg_mode:'6'});ocrWorker=worker;return worker;
- })().catch(error=>{ocrLoading=null;throw error;});
+ })().catch(error=>{if(epoch===lookupEpoch)ocrLoading=null;throw error;});
  return ocrLoading;
 }
 function showOCRProgress(img,phase,completed,total,epoch){
@@ -95,6 +148,7 @@ function showOCRProgress(img,phase,completed,total,epoch){
  // rows/columns instead, so the visible percentage never resets within a pass.
  if(epoch!==lookupEpoch||!ocrBusy)return;
  $('ocr-status').textContent=img.label+' · '+phase+'… '+completed+' of '+total+' ('+Math.floor(completed/total*100)+'%)';
+ updateImageCard(img,phase+' '+Math.floor(completed/total*100)+'%');
 }
 function imageLines(words){
  const lines=[];
@@ -109,7 +163,7 @@ function normalizeAccession(text){
  const value=text.trim().replace(/\s+/g,'').toUpperCase(),match=value.match(/^([A-Z07]{2})([0-9O]{6,14})$/);
  if(!match)return {value,issue:'Check accession: expected two letters followed by digits'};
  const prefix=['0T','07','O7'].includes(match[1])?'OT':match[1];
- if(!/^[A-Z]{2}$/.test(prefix))return {value,issue:'Check accession prefix'};
+ if(!['XR','MR','RF','OT','CT','US','NM'].includes(prefix))return {value,issue:'Check accession prefix'};
  const normalized=prefix+match[2].replace(/O/g,'0');
  return {value:normalized,issue:'',original:normalized!==value?value:null};
 }
@@ -131,12 +185,12 @@ function detectColumns(img){
  }
  // Require multiple stable rows and at least one visibly alphabetic prefix.
  // A numeric-only MRN column is not sufficient evidence for an accession.
- if(pairs.length>=3&&pairs.some(p=>/[A-Za-z]/.test(p.a.text.slice(0,2)))){
+ if(pairs.length>=3&&pairs.some(p=>/[A-Za-z]/.test(p.a.text.slice(0,2))||/^07[0-9O]{6,14}$/.test(p.a.text))){
   const starts=pairs.map(p=>p.a.bbox.x0).sort((a,b)=>a-b),median=starts[Math.floor(starts.length/2)],tolerance=Math.max(5,img.bitmap.width*.05);
   const stable=pairs.filter(p=>Math.abs(p.a.bbox.x0-median)<=tolerance);
   if(stable.length>=3&&stable.length/pairs.length>=.8){
    const edge=Math.max(...stable.map(p=>p.n.bbox.x1)),left=Math.min(...stable.map(p=>p.a.bbox.x0));
-   if(edge<left){const margin=Math.max(2,Math.min((left-edge)/3,Math.max(...stable.map(p=>p.n.bbox.y1-p.n.bbox.y0))/2));img.caseColumn=[Math.max(0,Math.floor(Math.min(...stable.map(p=>p.n.bbox.x0))-margin)),Math.ceil(edge+margin)];img.accessionColumn=[Math.max(0,Math.floor(left-margin)),img.bitmap.width];img.headerY=header?header.word.bbox.y1:0;return true;}
+   if(edge<left){const margin=Math.max(2,Math.min((left-edge)/3,Math.max(...stable.map(p=>p.n.bbox.y1-p.n.bbox.y0))/2));img.caseColumn=[Math.max(0,Math.floor(Math.min(...stable.map(p=>p.n.bbox.x0))-margin)),Math.ceil(edge+margin)];img.accessionColumn=[Math.max(0,Math.floor(left-margin)),Math.min(img.bitmap.width,Math.ceil(Math.max(...stable.map(p=>p.a.bbox.x1))+margin))];img.headerY=header?header.word.bbox.y1:0;return true;}
   }
  }
  // Preserve support for an explicitly labeled, simple two-column table even
@@ -157,7 +211,8 @@ function markAccessionLengths(rows){
 async function recognizeColumns(img,worker,epoch){
  const words=[];
  img.caseChecks=[];
- if(img.accessionColumn[1]-img.accessionColumn[0]<240){
+ const nativeHeights=img.words.map(w=>w.bbox.y1-w.bbox.y0).filter(h=>h>0).sort((a,b)=>a-b),nativeHeight=nativeHeights[Math.floor(nativeHeights.length/2)]||10;
+ if(img.accessionColumn[1]-img.accessionColumn[0]<240&&nativeHeight<=14){
   // Tiny table screenshots lose whole rows in page OCR. Segment by visible ink
   // in the accession column, then recognize each actual row and both columns.
   // Keep actual row positions; sequence repair runs only after OCR validation.
@@ -177,7 +232,7 @@ async function recognizeColumns(img,worker,epoch){
    if(begin!==null)components.push(lastX-begin+1);
    if(components.length&&components.length<=7&&components.every(w=>w<=bottom-top+5))img.caseChecks.push({y:(top+bottom)/2,digits:components.length});
    for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
-    const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=4,canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
+    const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=Math.min(4,Math.max(1,40/(bottom-top+1))),canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
     await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:name==='caseColumn'?'13':'7'});const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
     for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:(w.bbox.x0-8)/scale+x0,x1:(w.bbox.x1-8)/scale+x0,y0:(w.bbox.y0-8)/scale+y0,y1:(w.bbox.y1-8)/scale+y0}});
    }
@@ -214,12 +269,14 @@ function readImageRows(img){
   const check=(img.caseChecks||[]).find(c=>Math.abs(c.y-line.y)<=5);
   const caseIssue=!number?'Case number not read':check&&n.length<check.digits?'Case number may be incomplete':'';
   const candidate={case_number:number,accession,confirmed:false,source:img.label,imageId:img.id,rowY:line.y,caseIssue,accessionIssue:normalized.issue,originalAccession:normalized.original,confidence:Math.min(...[...ns,...as].map(w=>w.confidence??0))};
+  rowCrop(img,candidate,line);
   img.rows.push(candidate);
   found++;
  }
  markAccessionLengths(img.rows);
  const repairs=repairCaseSequence(img.rows);
- for(const candidate of img.rows)if(!candidate.case_number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
+ for(const candidate of img.rows){const existing=candidate.case_number&&lookupRows.find(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession);if(existing){existing.imageIds=[...new Set([...(existing.imageIds||[existing.imageId]),img.id])];}else lookupRows.push(candidate);}
+ updateImageCard(img,found+' rows'+(img.rows.some(r=>!validLookup(r))?' · needs correction':' · ready'));
  lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; suggested numbers are highlighted. ':'')+'Analyze reports accepts these mappings. You can correct any number against its source row.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Paste a clearer crop or add rows manually.';
 }
 function regularImageRows(rows){
@@ -244,18 +301,26 @@ function repairCaseSequence(rows){
  return changed;
 }
 async function addLookupImages(files){
- if(ocrBusy){$('ocr-status').textContent='Wait for the current screenshots to finish, then paste the next one.';return;}
  if(lookupImages.length+files.length>20){$('ocr-status').textContent='Use at most 20 screenshots per batch.';return;}
+ for(const file of files){
+  if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){$('ocr-status').textContent='Use a PNG, JPEG or WebP screenshot under 15 MB.';continue;}
+  const img={id:crypto.randomUUID(),file,label:'Screenshot '+(lookupImages.length+1),words:[]},details=el('details','lookup-screenshot'),summary=el('summary');
+  img.details=details;img.summary=summary;details.dataset.imageId=img.id;details.append(summary);lookupImages.push(img);ocrQueue.push(img);$('lookup-images').append(details);updateImageCard(img,'Queued');
+  details.addEventListener('toggle',()=>{if(details.open){showLookupImage(img);lookupTable();}else if($('lookup-editor').parentElement===details)$('lookup-editor').hidden=true;});
+ }
+ $('lookup-paste').textContent='Paste next screenshot ('+(lookupImages.length+1)+')';
+ if(ocrBusy)return;
  const epoch=lookupEpoch;ocrBusy=true;updateLookupCoverage();
  try{
-  for(const file of files){
-   if(epoch!==lookupEpoch)return;
-   if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024)throw Error('image');
-   const bitmap=await createImageBitmap(file);if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('image');}
-   if(epoch!==lookupEpoch){bitmap.close();return;}
-   const img={id:crypto.randomUUID(),bitmap,label:'Screenshot '+(lookupImages.length+1),words:[]};lookupImages.push(img);
-   const choose=button(img.label,'',()=>showLookupImage(img));$('lookup-images').append(choose);showLookupImage(img);
-   $('ocr-status').textContent='Loading local OCR…';const worker=await getOCR(epoch);if(epoch!==lookupEpoch)return;
+  while(ocrQueue.length&&epoch===lookupEpoch){
+   const img=ocrQueue.shift();
+   try{
+    updateImageCard(img,'Loading');
+    const bitmap=await createImageBitmap(img.file);img.file=null;
+    if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('image');}
+    if(epoch!==lookupEpoch){bitmap.close();return;}
+    img.bitmap=bitmap;showLookupImage(img);
+    $('ocr-status').textContent=img.label+' · Loading local OCR…';const worker=await getOCR(epoch);if(epoch!==lookupEpoch)return;
    // A canvas supplies only image pixels to the browser worker. No screenshot request is made.
    const scale=Math.min(4,Math.max(1,1600/bitmap.width),Math.sqrt(16000000/(bitmap.width*bitmap.height)));
    const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
@@ -267,12 +332,13 @@ async function addLookupImages(files){
    img.words=(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
    if(!img.words.length&&Array.isArray(data.words))img.words=data.words;
    if(scale!==1)img.words=img.words.map(w=>({...w,bbox:Object.fromEntries(Object.entries(w.bbox).map(([k,v])=>[k,v/scale]))}));
-   if(detectColumns(img))await recognizeColumns(img,worker,epoch);else $('ocr-status').textContent='Could not identify the columns. Paste a clearer screenshot cropped to case numbers and accessions, or add rows manually.';
+   if(detectColumns(img))await recognizeColumns(img,worker,epoch);else{updateImageCard(img,'Could not identify columns');$('ocr-status').textContent='Could not identify the columns. Paste a clearer crop with case numbers and accessions, or add rows manually.';}
    showLookupImage(img);
+   }catch{if(epoch===lookupEpoch){updateImageCard(img,'Could not read · paste a clearer crop');$('ocr-status').textContent='Could not read '+img.label+'. Paste a clearer crop or add rows manually.';}}
   }
- }catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read this screenshot. Check the image size/format or retry. You can add rows manually.';}
- finally{if(epoch===lookupEpoch){ocrBusy=false;updateLookupCoverage();}}
+ }finally{if(epoch===lookupEpoch){ocrBusy=false;updateLookupCoverage();}}
 }
+$('lookup-manual').addEventListener('toggle',()=>{if($('lookup-manual').open){for(const img of lookupImages)img.details.open=false;currentImage=null;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;lookupTable();}});
 $('lookup-zoom').addEventListener('change',()=>{if(currentImage)showLookupImage(currentImage);});
 $('lookup-range-apply').addEventListener('click',()=>{
  const status=$('lookup-range-status'),first=$('lookup-range-first').value.trim(),last=$('lookup-range-last').value.trim(),img=currentImage;
@@ -290,15 +356,15 @@ $('lookup-range-apply').addEventListener('click',()=>{
 $('report-text').addEventListener('input',updateReview);
 $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length){event.preventDefault();addLookupImages(files);}});
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Copy a screenshot, then click Paste screenshot here and press Ctrl+V.';}});
-$('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});lookupTable();});
+$('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});currentImage=null;$('lookup-manual').open=true;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;lookupTable();});
 $('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
 $('export-review').addEventListener('click',async()=>{
  const target=$('export-review');target.disabled=true;$('export-status').textContent='Preparing clinical review…';
  try{
   if(ocrBusy||!lookupMatchesReview())throw Error('batch');
   const selected=$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
-  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,status:c.status,revisions:revisions(c)}));
-  const lookup=lookupRows.filter(r=>validLookup(r)).map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true}));
+  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c)}));
+  const lookup=lookupRows.filter(r=>validLookup(r)).map(lookupPayload);
   const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_mode:reviewMode,theme:themeChoice,combined_view:combinedView,show_report_wording:showReportWording})});
   if(response.redirected||response.status===401||response.status===403)throw Error('session');
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('export');

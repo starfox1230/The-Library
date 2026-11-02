@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template_string, session, abort, Response
-import difflib, re, os, json, logging
+import difflib, re, os, json, logging, base64, struct, zlib
 import hashlib
 from urllib.request import urlopen
 # UAB sign-in uses the same identity library as Ben's handoff.
@@ -185,7 +185,7 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.5'
+PROMPT_VERSION = 'deltarad-review-1.6'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
 IMPRESSION_EMPHASIS_SUMMARY = 'Added to Impression; finding unchanged'
@@ -213,11 +213,15 @@ extremity. Prefer explicit current exam information. Only infer modality if the
 current report strongly establishes it; otherwise omit it and use a broad body
 region or 'Exam unspecified'. Linked studies may require a broad label; never
 infer their exact count or composition from case numbers.
-title: a short memorable case cue, normally 3-8 words, based primarily on the
-resident's principal finding (or normal result). This is a stable title, NOT a
-list of revisions. For a resident appendicitis call, 'Appendicitis' remains a
-useful title even when the attending disagrees; the revision separately says
-what changed. Avoid repeating exam_label, patient names, identifiers, ages,
+title_resident and title_attending: return BOTH short, memorable case cues,
+normally 3-8 words each, in the same response. title_resident recalls the
+resident's initial principal finding or normal result, even if later refuted.
+title_attending recalls the attending's final interpretation or normal result,
+without repeating a diagnosis the attending refuted. Preserve each report's
+uncertainty. Titles describe the case, not a list of revisions. For example:
+title_resident='Pelvic mass, uncertain origin'; title_attending='Favored uterine
+fibroid'. Generate the revision inventory and importance judgments ONCE; they
+are identical for both viewing modes. Always keep resident-to-attending order. Avoid repeating exam_label, patient names, identifiers, ages,
 sex, dates, or a catalogue of incidental findings. Use indication only if
 needed for a recognizable cue and no more useful report finding is present.
 
@@ -414,15 +418,24 @@ NOT a list of revisions. If the attending favors an exophytic uterine fibroid
 for a resident's indeterminate pelvic mass, use 'Favored uterine fibroid'.
 Preserve the attending's uncertainty; do not repeat a resident diagnosis that
 the attending removed or refuted. The revisions separately say what changed."""
-ATTENDING_PROMPT_VERSION = 'deltarad-review-attending-1.0'
-ATTENDING_PROMPT = DEFAULT_PROMPT.replace(RESIDENT_TITLE_RULE, ATTENDING_TITLE_RULE, 1)
+DUAL_TITLE_RULE = """title_resident and title_attending: return BOTH short, memorable case cues,
+normally 3-8 words each, in the same response. title_resident recalls the
+resident's initial principal finding or normal result, even if later refuted.
+title_attending recalls the attending's final interpretation or normal result,
+without repeating a diagnosis the attending refuted. Preserve each report's
+uncertainty. Titles describe the case, not a list of revisions. For example:
+title_resident='Pelvic mass, uncertain origin'; title_attending='Favored uterine
+fibroid'. Generate the revision inventory and importance judgments ONCE; they
+are identical for both viewing modes. Always keep resident-to-attending order."""
+ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.0'
+ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
 
 
 @app.context_processor
 def review_prompt_context():
     # Also available to local synthetic renders; no credentials or requests.
-    return {'review_prompts': REVIEW_PROMPTS}
+    return {'review_prompts': REVIEW_PROMPTS, 'review_build': '2026.11.02'}
 
 
 _REVISION_STRINGS = ('resident_summary', 'attending_summary',
@@ -440,12 +453,13 @@ RADIOLOGY_SUMMARY_TOOL = [{
     'description': 'Return the complete evidence-supported revision inventory and a stable case title.',
     'parameters': {'type': 'object', 'additionalProperties': False,
         'properties': {
-            'exam_label': {'type': 'string'}, 'title': {'type': 'string'},
+            'exam_label': {'type': 'string'}, 'title_resident': {'type': 'string'},
+            'title_attending': {'type': 'string'},
             'revisions': {'type': 'array', 'items': {'type': 'object',
                 'properties': _revision_properties,
                 'required': list(_revision_properties), 'additionalProperties': False}},
             'warnings': {'type': 'array', 'items': {'type': 'string'}},
-        }, 'required': ['exam_label', 'title', 'revisions', 'warnings']}
+        }, 'required': ['exam_label', 'title_resident', 'title_attending', 'revisions', 'warnings']}
 }]
 
 # Conservative section boundaries; anatomy subheadings stay inside Findings.
@@ -673,6 +687,45 @@ def ocr_asset(name):
     return Response(data, mimetype=content_type, headers={'X-Content-Type-Options': 'nosniff'})
 
 
+def safe_source_row(value):
+    """Accept bounded canvas PNG pixels only; discard metadata and trailing data."""
+    if not isinstance(value, str) or not value.startswith('data:image/png;base64,') or len(value) > 90_000:
+        raise ValueError('Invalid source-row image.')
+    try:
+        raw = base64.b64decode(value.split(',', 1)[1], validate=True)
+        if raw[:8] != b'\x89PNG\r\n\x1a\n': raise ValueError()
+        offset, chunks, compressed, header = 8, [], b'', None
+        ended = False
+        while offset + 12 <= len(raw):
+            size = struct.unpack('>I', raw[offset:offset+4])[0]
+            kind, body = raw[offset+4:offset+8], raw[offset+8:offset+8+size]
+            if offset + 12 + size > len(raw): raise ValueError()
+            if zlib.crc32(kind + body) & 0xffffffff != struct.unpack('>I', raw[offset+8+size:offset+12+size])[0]: raise ValueError()
+            if kind == b'IHDR':
+                if header is not None or offset != 8 or size != 13: raise ValueError()
+                width, height, depth, color, compression, filtering, interlace = struct.unpack('>IIBBBBB', body)
+                if not (1 <= width <= 1200 and 1 <= height <= 120 and depth == 8 and color in (2,6)
+                        and compression == filtering == interlace == 0): raise ValueError()
+                header = body
+            elif kind == b'IDAT': compressed += body
+            elif kind == b'IEND':
+                if size: raise ValueError()
+                ended = True
+                break
+            elif kind[:1].isupper(): raise ValueError()
+            offset += size + 12
+        if header is None or not ended: raise ValueError()
+        limit = height * (1 + width * (4 if color == 6 else 3))
+        decoder = zlib.decompressobj()
+        pixels = decoder.decompress(compressed, limit + 1)
+        if len(pixels) != limit or not decoder.eof or decoder.unused_data: raise ValueError()
+        for kind, body in ((b'IHDR', header), (b'IDAT', compressed), (b'IEND', b'')):
+            chunks.append(struct.pack('>I', len(body)) + kind + body + struct.pack('>I', zlib.crc32(kind+body)&0xffffffff))
+        return 'data:image/png;base64,' + base64.b64encode(raw[:8]+b''.join(chunks)).decode('ascii')
+    except (ValueError, zlib.error, struct.error):
+        raise ValueError('Invalid source-row image.') from None
+
+
 def confirmed_lookup(rows):
     """No inference, numeric coercion of identifiers, or positional row matching."""
     if not isinstance(rows, list) or len(rows) > 1000:
@@ -685,10 +738,14 @@ def confirmed_lookup(rows):
                 or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{1,63}', row['accession'])):
             raise ValueError('Provide a valid case number and accession for every lookup row.')
         number, accession = row['case_number'], row['accession']
-        if number in result and result[number] != accession:
+        if number in result and result[number]['accession'] != accession:
             raise ValueError(f'Case {number} is assigned more than one accession. Check the source case numbers.')
-        result[number] = accession
-    return [dict(case_number=n, accession=a, confirmed=True) for n, a in sorted(result.items())]
+        entry = dict(case_number=number, accession=accession, confirmed=True)
+        if row.get('source_row'):
+            entry['source_row'] = safe_source_row(row['source_row'])
+        if number not in result or 'source_row' in entry:
+            result[number] = entry
+    return [entry for _, entry in sorted(result.items())]
 
 
 _EXPORT_FOOTER = re.compile(r'(?im)^\s*(?:attestations?\b|(?:electronically\s+)?signed\b|dictated\b|verified\s+by\b|as\s+the\s+attending\b|i\s+(?:have\s+)?(?:personally\s+)?reviewed\b|report\s+(?:status|finalized)\b|interpreted\s+by\b)')
@@ -737,6 +794,8 @@ def export_review_cases(records):
         case['review_mode'] = raw.get('review_mode') if raw.get('review_mode') in REVIEW_PROMPTS else 'resident'
         case['exam_label'] = safe_prose(raw.get('exam_label'), 'Exam')
         case['title'] = safe_prose(raw.get('title'), 'Clinical report review')
+        for role in ('resident', 'attending'):
+            case['title_' + role] = safe_prose(raw.get('title_' + role), case['title'])
         status = raw.get('status')
         if status in ('queued', 'processing'):
             raise ValueError('Wait for analysis to finish before exporting.')
@@ -753,7 +812,8 @@ def export_review_cases(records):
                 for key in ('resident_summary', 'attending_summary', 'reason'):
                     picked[key] = safe_prose(picked[key])
                 clean.append(picked)
-            case = validate_analysis(dict(exam_label=case['exam_label'], title=case['title'],
+            case = validate_analysis(dict(exam_label=case['exam_label'],
+                title_resident=case['title_resident'], title_attending=case['title_attending'],
                 revisions=clean, warnings=[]), case)
             if status == 'partial' or case['status'] != 'complete':
                 case.update(status='partial', status_message='Review analysis limitations',
@@ -796,11 +856,14 @@ def _analysis_error(case, message):
 
 def validate_analysis(payload, case):
     """Validate evidence fidelity and mechanical rubric gates, not clinical truth."""
-    if (not isinstance(payload, dict) or set(payload) != {'exam_label', 'title', 'revisions', 'warnings'}
+    legacy = isinstance(payload, dict) and set(payload) == {'exam_label', 'title', 'revisions', 'warnings'}
+    title_keys = ('title',) if legacy else ('title_resident', 'title_attending')
+    expected = {'exam_label', 'revisions', 'warnings', *title_keys}
+    if (not isinstance(payload, dict) or set(payload) != expected
         or not isinstance(payload.get('revisions'), list)
         or not isinstance(payload.get('warnings'), list)
         or not all(isinstance(v, str) for v in payload['warnings'])
-        or not all(isinstance(payload.get(k), str) and payload[k].strip() for k in ('exam_label', 'title'))):
+        or not all(isinstance(payload.get(k), str) and payload[k].strip() and len(payload[k]) <= 3000 for k in ('exam_label', *title_keys))):
         return _analysis_error(case, 'AI response did not match the required format. Retry this case.')
     parsed = {side: parse_sections(case[side + '_report'], side) for side in ('resident', 'attending')}
     sections = {side: {s['id']: s for s in parsed[side]['sections']}
@@ -855,7 +918,11 @@ def validate_analysis(payload, case):
         item['source_links'] = link_revision_sources(item, parsed)
         accepted.append(item)
     warnings = list(dict.fromkeys(warnings))
-    return dict(case, exam_label=payload['exam_label'], title=payload['title'],
+    resident_title = payload['title'] if legacy else payload['title_resident']
+    attending_title = payload['title'] if legacy else payload['title_attending']
+    return dict(case, exam_label=payload['exam_label'],
+                title=attending_title if case.get('review_mode') == 'attending' else resident_title,
+                title_resident=resident_title, title_attending=attending_title,
                 revisions=accepted, analysis_warnings=warnings,
                 status='partial' if warnings else 'complete',
                 status_message='Review analysis limitations' if warnings else 'Analysis complete')
@@ -1302,6 +1369,12 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .case-copy-accession svg {width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7;}
 #cr-app .accession-copy-feedback {display:none; position:absolute; left:46px; top:8px; width:max-content; max-width:220px; padding:5px 9px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); font-size:12px; box-shadow:0 3px 12px #0002; pointer-events:none;}
 #cr-app .show-copy-feedback .accession-copy-feedback {display:block;}
+#cr-app .accession-peek {position:absolute; z-index:5; top:54px; left:10px; width:min(380px,calc(100% - 20px)); padding:12px; display:flex; flex-wrap:wrap; gap:8px; border:1px solid var(--line); border-radius:10px; background:var(--panel); box-shadow:0 6px 24px #0005;}
+#cr-app .accession-peek label {width:100%; font-size:12px;}
+#cr-app .accession-peek input {margin-top:5px;}
+#cr-app .accession-source-row {width:100%; height:auto; background:white; border-radius:3px;}
+#cr-app .lookup-screenshot {margin:8px 0; padding:10px; border:1px solid var(--line); border-radius:8px;}
+#cr-app .lookup-screenshot summary {cursor:pointer; font-size:12px; font-weight:600;}
 #cr-app .accession-tools {margin-top:20px; padding-top:16px; border-top:1px solid var(--line); display:flex; flex-direction:column; gap:8px; font-size:12px;}
 #cr-app .accession-line {display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
 #cr-app .accession-value {font-variant-numeric:tabular-nums; overflow-wrap:anywhere; color:var(--muted);}
@@ -1320,10 +1393,12 @@ html[data-theme="dark"] {color-scheme:dark;}
 <main>
 {% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
+{% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
 <label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
 <label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('resident') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
-</div><p class="mode-help" id="mode-help" role="status">Titles use the {{ review_mode | default('resident') }} report.</p></fieldset>
+</div><p class="mode-help" id="mode-help" role="status">Both title perspectives are generated together.</p></fieldset>
+{% if not exported_review | default(false) %}
 <details class="input-card" id="input-disclosure" {% if not cases %}open{% endif %}><summary>Report input</summary>
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -1336,16 +1411,19 @@ html[data-theme="dark"] {color-scheme:dark;}
 <span class="hint" id="paste-status" role="status"></span>
 <section class="lookup-card" id="lookup-panel" aria-label="Screenshot lookup">
 <div class="lookup-heading">Accession screenshots <span class="muted" id="lookup-count"></span></div>
-<div id="lookup-paste-zone" class="lookup-paste-zone" tabindex="0" role="group" aria-label="Paste screenshot here"><span>Paste screenshot here</span><span class="hint">Click here and press Ctrl+V. Include case numbers and accessions; a column header is optional.</span><button type="button" id="lookup-paste">Paste screenshot</button></div>
-<div class="lookup-tools"><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button><span class="hint">Screenshots stay in this browser.</span></div>
+<div id="lookup-images"></div>
+<div id="lookup-paste-zone" class="lookup-paste-zone" tabindex="0" role="group" aria-label="Paste screenshot here"><span>Paste screenshot here</span><span class="hint">Click here and press Ctrl+V. Include case numbers and accessions; a column header is optional.</span><button type="button" id="lookup-paste">Paste screenshot of case number and accession</button></div>
+<div class="lookup-tools"><button type="button" id="lookup-add">Add row</button><button type="button" id="lookup-clear">Clear lookup</button><span class="hint">Source row images are retained in the review export.</span></div>
 <p class="hint" id="ocr-status" role="status"></p>
-<div class="lookup-tools" id="lookup-images"></div>
+<details id="lookup-manual"><summary>Manual mappings</summary></details>
+<div id="lookup-editor" hidden>
 <div class="lookup-tools" id="lookup-column-tools" hidden><label for="lookup-zoom">Image scale</label><select id="lookup-zoom" style="width:auto"><option value="fit">Fit</option><option value="1">100%</option><option value="2">200%</option><option value="3">300%</option></select></div>
 <details id="lookup-range-tools" hidden><summary>Use verified consecutive case numbers</summary><p class="hint">For a screenshot with every case in order, enter its first and last source numbers. The count must match the detected rows. This assigns case numbers only; accession strings stay unchanged.</p><div class="lookup-tools"><label for="lookup-range-first">First case</label><input id="lookup-range-first" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label for="lookup-range-last">Last case</label><input id="lookup-range-last" type="text" inputmode="numeric" style="width:90px" autocomplete="off"><label class="lookup-range-confirm"><input id="lookup-range-checked" type="checkbox"><span>I checked that every case is present and in order.</span></label><button type="button" id="lookup-range-apply">Apply verified range</button></div><p class="hint" id="lookup-range-status" role="status"></p></details>
 <p class="hint" id="lookup-coverage" role="status"></p>
 <div class="lookup-workspace">
 <div class="lookup-image" id="lookup-image" hidden><canvas id="lookup-canvas"></canvas></div>
 <div class="lookup-table-wrap"><table class="lookup-table"><thead><tr><th>Case</th><th>Accession</th><th>Source / check</th><th></th></tr></thead><tbody id="lookup-rows"></tbody></table></div>
+</div>
 </div>
 <p class="hint">Each valid mapping attaches only to its exact source case number. No individual approval is required. Overlapping screenshots with the same match are deduplicated; conflicts must be corrected. Lookup accessions are not added to AI requests.</p>
 </section>
@@ -1363,6 +1441,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
+{% if exported_review | default(false) %}<button type="button" id="save-review" class="plain">Save review with corrections</button>{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
 {% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
@@ -1383,7 +1462,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="summary-direction"><span class="resident-summary">Resident</span><span class="attending-summary"> → Attending</span></p>
 <div class="case-list" id="case-list"></div>
 <div id="wording-scroll-space" aria-hidden="true"></div>
-<footer><span>Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
+<footer><span>Build {{ review_build }} · Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
@@ -1409,26 +1488,21 @@ const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new 
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
 let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
-let reviewMode={{ review_mode | default('resident') | tojson }};
-{% if not exported_review | default(false) %}
+let reviewMode=$('cr-app').dataset.reviewMode||{{ review_mode | default('resident') | tojson }};
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
+{% if not exported_review | default(false) %}
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
-let defaultPrompt=reviewPrompts[reviewMode];
-const promptDrafts={...reviewPrompts,[reviewMode]:$('custom-prompt').value};
+let defaultPrompt=reviewPrompts.resident;
+const promptDrafts={...reviewPrompts};
+{% endif %}
 function describeMode(){
  $('mode-subtitle').textContent=(reviewMode==='attending'?'Attending':'Resident')+' report review';
- $('mode-help').textContent=cases.some(c=>c.review_mode&&c.review_mode!==reviewMode)?(reviewMode==='attending'?'Attending':'Resident')+' titles for new analyses and retries. Existing results stay unchanged.':'Titles use the '+reviewMode+' report.';
+ $('mode-help').textContent='Switch title perspective at any time. Both are generated together; legacy results keep their original title.';
 }
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.addEventListener('change',()=>{
  if(!radio.checked||radio.value===reviewMode)return;
- promptDrafts[reviewMode]=$('custom-prompt').value;reviewMode=radio.value;
- defaultPrompt=reviewPrompts[reviewMode];$('custom-prompt').value=promptDrafts[reviewMode];
- $('custom-prompt').setCustomValidity('');$('prompt-status').textContent='Instructions switched to '+reviewMode+' mode.';
- $('default-prompt').textContent=JSON.stringify(defaultPrompt);describeMode();
+ reviewMode=radio.value;$('cr-app').dataset.reviewMode=reviewMode;render();
 });
-{% else %}
-function describeMode(){}
-{% endif %}
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
 let themeChoice=$('theme-value').value;
 function applyTheme(){
@@ -1453,6 +1527,7 @@ const members = c => Array.isArray(c.source_numbers) ? c.source_numbers : [];
 const firstNumber = c => members(c).length ? Math.min(...members(c)) : Number.MAX_SAFE_INTEGER;
 const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
+const displayTitle = c => c['title_'+reviewMode] || c.title || 'Untitled case';
 const caseLabel = c => c.case_label || members(c).join(', ');
 // Valid, batch-local mappings are accepted by Analyze/Download; no per-row approval.
 let lookupRows=JSON.parse($('lookup-data').textContent||'[]');
@@ -1466,6 +1541,28 @@ function lookupConflicts(){
 }
 function caseAccessions(c){if(!lookupMatchesReview())return [];const conflicts=lookupConflicts();return [...new Map(lookupRows.filter(r=>validLookup(r)&&!conflicts.has(r.case_number)&&members(c).includes(r.case_number)).sort((a,b)=>a.case_number-b.case_number).map(r=>[r.accession,r])).values()];}
 const accessionCopyTimers=new WeakMap();
+const lookupPayload = r => ({case_number:r.case_number,accession:r.accession,confirmed:true,...(r.source_row?{source_row:r.source_row}:{})});
+function showAccessionPeek(target,entry){
+ document.querySelector('.accession-peek')?.remove();
+ const host=target.closest('.case'),peek=el('div','accession-peek');
+ peek.setAttribute('role','region');peek.setAttribute('aria-label','Check or edit accession');
+ const label=el('label','','Case '+entry.case_number+' accession'),input=el('input');input.type='text';input.value=entry.accession;input.spellcheck=false;input.autocomplete='off';input.setAttribute('aria-label','Correct accession for case '+entry.case_number);label.append(input);peek.append(label);
+ if(entry.source_row){const image=el('img','accession-source-row');image.src=entry.source_row;image.alt='Original case number and accession from screenshot';peek.append(image);}
+ else peek.append(el('span','hint','Source image unavailable for this mapping.'));
+ const note=el('span','hint');
+ const apply=button('Copy corrected accession','',async()=>{
+  const value=input.value.trim();if(!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(value)){note.textContent='Enter the accession exactly as shown in the source.';return;}
+  const previous=entry.accession;for(const row of lookupRows)if(row.case_number===entry.case_number&&row.accession===previous){row.accession=value;row.accessionIssue='';row.originalAccession=null;}
+  await copyAccession(apply,value);note.textContent='Correction applies to this open review.';
+  if(!exportedReview){lookupTable();updateLookupCoverage();}
+  // Keep focus and the source visible while refreshing only case controls.
+  const saved=peek;peek.remove();render();const next=document.querySelector('#'+host.id);(next||document.body).append(saved);
+ });
+ const close=button('Close','plain',()=>{peek.remove();target.focus({preventScroll:true});});peek.append(apply,close,note);host.append(peek);
+ if(peek.getBoundingClientRect().bottom>innerHeight)window.scrollBy({top:peek.getBoundingClientRect().bottom-innerHeight+12,behavior:'instant'});
+}
+document.addEventListener('pointerdown',event=>{const peek=document.querySelector('.accession-peek');if(peek&&!peek.contains(event.target)&&!event.target.closest('.case-copy-accession'))peek.remove();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelector('.accession-peek')?.remove();});
 async function copyAccession(target,value){
  const iconOnly=target.classList.contains('case-copy-accession'),original=iconOnly?'':(target.dataset.copyLabel||target.textContent);
  if(!iconOnly)target.dataset.copyLabel=original;
@@ -1483,7 +1580,7 @@ async function copyAccession(target,value){
 }
 function accessionIcon(c){
  const entries=caseAccessions(c);if(!entries.length)return null;
- const copy=button('','copy-accession case-copy-accession',()=>copyAccession(copy,entries[0].accession));
+ const copy=button('','copy-accession case-copy-accession',async()=>{await copyAccession(copy,entries[0].accession);showAccessionPeek(copy,entries[0]);});
  copy.title='Copy accession';copy.setAttribute('aria-label','Copy accession for '+(members(c).length>1?'cases ':'case ')+caseLabel(c));
  copy.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3"/></svg><span class="accession-copy-feedback" aria-hidden="true"></span>';
  return copy;
@@ -1491,7 +1588,7 @@ function accessionIcon(c){
 function appendAccessionTools(body,c){
  const entries=caseAccessions(c);if(!entries.length){if(lookupRows.length){const missing=el('div','accession-tools');missing.append(el('span','muted','Accession not attached'));body.append(missing);}return;}
  const tools=el('div','accession-tools');
- for(const entry of entries){const line=el('div','accession-line'),copy=button('Copy accession','copy-accession',()=>copyAccession(copy,entry.accession));copy.title='Copy '+entry.accession+' (source case '+entry.case_number+')';line.append(copy,el('span','accession-value',(entries.length>1?'Case '+entry.case_number+' · ':'')+entry.accession));tools.append(line);}
+ for(const entry of entries){const line=el('div','accession-line'),copy=button('Copy accession','copy-accession',async()=>{await copyAccession(copy,entry.accession);showAccessionPeek(copy,entry);});copy.title='Copy '+entry.accession+' (source case '+entry.case_number+')';line.append(copy,el('span','accession-value',(entries.length>1?'Case '+entry.case_number+' · ':'')+entry.accession));tools.append(line);}
  const mapped=new Set(lookupRows.filter(r=>validLookup(r)&&!lookupConflicts().has(r.case_number)).map(r=>r.case_number));
  const missing=members(c).filter(n=>!mapped.has(n));if(missing.length)tools.append(el('span','lookup-warning','Lookup missing: '+missing.join(', ')));
  body.append(tools);
@@ -1504,36 +1601,67 @@ function updateLookupCoverage(){
  const missing=[...source].filter(n=>!matched.has(n));
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
  $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>r.caseIssue)?'Some case numbers may be incomplete. Correct them or use a verified consecutive range. ':'');
- $('lookup-value').value=JSON.stringify(valid.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));
+ $('lookup-value').value=JSON.stringify(valid.map(lookupPayload));
  $('export-review').disabled=ocrBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status))||lookupRows.some(r=>!validLookup(r))||conflicts.size>0;
  {% endif %}
 }
+{% if exported_review | default(false) %}
+$('save-review').addEventListener('click',()=>{
+ const clone=document.documentElement.cloneNode(true);
+ clone.querySelector('#lookup-data').textContent=JSON.stringify(lookupRows.map(lookupPayload)).replaceAll('<','\\u003c');
+ clone.querySelector('#review-data').textContent=JSON.stringify(cases).replaceAll('<','\\u003c');
+ clone.querySelector('#cr-app').dataset.reviewMode=reviewMode;
+ clone.querySelector('#case-list').replaceChildren();clone.querySelectorAll('.accession-peek').forEach(n=>n.remove());
+ const url=URL.createObjectURL(new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'})),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+});
+{% endif %}
 {% if not exported_review | default(false) %}
-let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null;
+let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null,ocrQueue=[];
 const lookupImages=[];
 function paintLookup(){
  const canvas=$('lookup-canvas');if(!currentImage)return;const ctx=canvas.getContext('2d');canvas.width=currentImage.bitmap.width;canvas.height=currentImage.bitmap.height;ctx.drawImage(currentImage.bitmap,0,0);
  for(const [name,color] of [['caseColumn','#2689df'],['accessionColumn','#dba72a']]){const col=currentImage[name];if(!col)continue;ctx.fillStyle=color+'33';ctx.fillRect(col[0],0,col[1]-col[0],canvas.height);ctx.strokeStyle=color;ctx.lineWidth=2;ctx.strokeRect(col[0],1,col[1]-col[0],canvas.height-2);}
  if(Number.isFinite(currentImage.focusY)){ctx.strokeStyle='#e14c79';ctx.lineWidth=2;ctx.strokeRect(1,currentImage.focusY-9,canvas.width-2,18);}
 }
-function showLookupImage(img){if(currentImage!==img){$('lookup-range-first').value='';$('lookup-range-last').value='';$('lookup-range-checked').checked=false;$('lookup-range-status').textContent='';}currentImage=img;$('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;$('lookup-range-tools').hidden=false;const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth):img.bitmap.width*Number(zoom))+'px';paintLookup();}
+function showLookupImage(img,reveal=false){
+ if(!img?.bitmap)return;
+ if(!reveal&&!img.details.open)return;
+ if(currentImage!==img){$('lookup-range-first').value='';$('lookup-range-last').value='';$('lookup-range-checked').checked=false;$('lookup-range-status').textContent='';}
+ currentImage=img;if(reveal)img.details.open=true;
+ for(const other of lookupImages)if(other!==img)other.details.open=false;
+ $('lookup-manual').open=false;
+ if(img.details.open){img.details.append($('lookup-editor'));$('lookup-editor').hidden=false;}
+ $('lookup-image').hidden=false;$('lookup-column-tools').hidden=false;$('lookup-range-tools').hidden=false;
+ const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth||700):img.bitmap.width*Number(zoom))+'px';paintLookup();
+}
+function updateImageCard(img,status){img.status=status;img.summary.textContent=img.label+' · '+status;}
+function rowCrop(img,row,line){
+ const columns=[img.caseColumn,img.accessionColumn],top=Math.max(0,Math.floor(Math.min(...line.words.map(w=>w.bbox.y0))-3)),bottom=Math.min(img.bitmap.height,Math.ceil(Math.max(...line.words.map(w=>w.bbox.y1))+3));
+ const width=columns.reduce((sum,[l,r])=>sum+Math.ceil(r)-Math.floor(l),0)+12,h=bottom-top;if(h<1)return;
+ const scale=Math.min(2,1100/width,110/h),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(width*scale));canvas.height=Math.max(1,Math.ceil(h*scale));
+ const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);let x=0;
+ for(const [l,r] of columns){ctx.drawImage(img.bitmap,Math.floor(l),top,Math.ceil(r)-Math.floor(l),h,x*scale,0,(Math.ceil(r)-Math.floor(l))*scale,h*scale);x+=Math.ceil(r)-Math.floor(l)+12;}
+ const data=canvas.toDataURL('image/png');if(data.length<=90000)row.source_row=data;canvas.width=canvas.height=1;
+}
 function lookupRowMessage(r,conflicts){return r.caseIssue||r.accessionIssue|| (conflicts.has(r.case_number)?'Duplicate case '+r.case_number+' · check OCR':!validLookup(r)?'Check case / accession':(r.source||'Manual')+(r.originalAccession?' · OCR characters corrected':'')+(r.numberSource==='sequence'?' · case repaired from '+(r.originalCase??'unread'):r.numberSource==='range'?' · verified range':r.confidence!==undefined?' · read score '+Math.round(r.confidence):''));}
 function lookupTable(){
  const conflicts=lookupConflicts();$('lookup-rows').replaceChildren();
  lookupRows.forEach((r,index)=>{
+  if(currentImage&&currentImage.details.open&&!r.imageIds?.includes(currentImage.id)&&r.imageId!==currentImage.id)return;
   const tr=el('tr'),n=el('input'),a=el('input');n.type='text';n.inputMode='numeric';n.value=r.case_number||'';n.setAttribute('aria-label','Case number row '+(index+1));a.type='text';a.value=r.accession;a.autocomplete='off';a.spellcheck=false;if(r.originalAccession){a.classList.add('lookup-repaired');a.title='OCR read '+r.originalAccession+'. Context-corrected to '+r.accession+' (two letters, then digits).';}a.setAttribute('aria-label','Accession row '+(index+1));
+  tr.dataset.lookupIndex=index;
   if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Compare with the source if needed.';}
   const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',lookupRowMessage(r,conflicts));status.title='A duplicate case warning means the lookup assigns different accessions to one case number. OCR read scores are engine confidence, not measured accuracy.';
-  const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));n.addEventListener('focus',reveal);a.addEventListener('focus',reveal);}
-  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const [i,row] of [...$('lookup-rows').children].entries()){const item=lookupRows[i],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
+  const source=el('div');source.append(status);if(r.imageId){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img)return;img.focusY=r.rowY;showLookupImage(img,true);const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));}
+  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const row of $('lookup-rows').children){const item=lookupRows[Number(row.dataset.lookupIndex)],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
   n.addEventListener('input',()=>changed(true));a.addEventListener('input',()=>changed(false));
   for(const child of [n,a,source,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
  });updateLookupCoverage();
 }
 function clearLookup(){
- lookupEpoch++;lookupRows=[];for(const img of lookupImages)img.bitmap.close();lookupImages.length=0;currentImage=null;
+ lookupEpoch++;lookupRows=[];ocrQueue=[];for(const img of lookupImages)img.bitmap?.close();lookupImages.length=0;currentImage=null;
  if(ocrWorker){ocrWorker.terminate().catch(()=>{});ocrWorker=null;}
- ocrLoading=null;ocrBusy=false;$('lookup-images').replaceChildren();$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;$('lookup-range-status').textContent='';$('ocr-status').textContent='';lookupTable();
+ ocrLoading=null;ocrBusy=false;$('lookup-panel').append($('lookup-editor'));$('lookup-editor').hidden=true;$('lookup-images').replaceChildren();$('lookup-paste').textContent='Paste screenshot of case number and accession';$('lookup-canvas').width=1;$('lookup-canvas').height=1;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;$('lookup-range-status').textContent='';$('ocr-status').textContent='';lookupTable();
 }
 async function getOCR(epoch){
  if(ocrWorker)return ocrWorker;
@@ -1543,7 +1671,7 @@ async function getOCR(epoch){
   const worker=await window.Tesseract.createWorker('eng',1,{workerPath:base+'worker.min.js',corePath:base+'tesseract-core-lstm.wasm.js',langPath:base,workerBlobURL:false,cacheMethod:'none'});
   if(epoch!==lookupEpoch){await worker.terminate();throw Error('cleared');}
   await worker.setParameters({tessedit_pageseg_mode:'6'});ocrWorker=worker;return worker;
- })().catch(error=>{ocrLoading=null;throw error;});
+ })().catch(error=>{if(epoch===lookupEpoch)ocrLoading=null;throw error;});
  return ocrLoading;
 }
 function showOCRProgress(img,phase,completed,total,epoch){
@@ -1551,6 +1679,7 @@ function showOCRProgress(img,phase,completed,total,epoch){
  // rows/columns instead, so the visible percentage never resets within a pass.
  if(epoch!==lookupEpoch||!ocrBusy)return;
  $('ocr-status').textContent=img.label+' · '+phase+'… '+completed+' of '+total+' ('+Math.floor(completed/total*100)+'%)';
+ updateImageCard(img,phase+' '+Math.floor(completed/total*100)+'%');
 }
 function imageLines(words){
  const lines=[];
@@ -1565,7 +1694,7 @@ function normalizeAccession(text){
  const value=text.trim().replace(/\s+/g,'').toUpperCase(),match=value.match(/^([A-Z07]{2})([0-9O]{6,14})$/);
  if(!match)return {value,issue:'Check accession: expected two letters followed by digits'};
  const prefix=['0T','07','O7'].includes(match[1])?'OT':match[1];
- if(!/^[A-Z]{2}$/.test(prefix))return {value,issue:'Check accession prefix'};
+ if(!['XR','MR','RF','OT','CT','US','NM'].includes(prefix))return {value,issue:'Check accession prefix'};
  const normalized=prefix+match[2].replace(/O/g,'0');
  return {value:normalized,issue:'',original:normalized!==value?value:null};
 }
@@ -1587,12 +1716,12 @@ function detectColumns(img){
  }
  // Require multiple stable rows and at least one visibly alphabetic prefix.
  // A numeric-only MRN column is not sufficient evidence for an accession.
- if(pairs.length>=3&&pairs.some(p=>/[A-Za-z]/.test(p.a.text.slice(0,2)))){
+ if(pairs.length>=3&&pairs.some(p=>/[A-Za-z]/.test(p.a.text.slice(0,2))||/^07[0-9O]{6,14}$/.test(p.a.text))){
   const starts=pairs.map(p=>p.a.bbox.x0).sort((a,b)=>a-b),median=starts[Math.floor(starts.length/2)],tolerance=Math.max(5,img.bitmap.width*.05);
   const stable=pairs.filter(p=>Math.abs(p.a.bbox.x0-median)<=tolerance);
   if(stable.length>=3&&stable.length/pairs.length>=.8){
    const edge=Math.max(...stable.map(p=>p.n.bbox.x1)),left=Math.min(...stable.map(p=>p.a.bbox.x0));
-   if(edge<left){const margin=Math.max(2,Math.min((left-edge)/3,Math.max(...stable.map(p=>p.n.bbox.y1-p.n.bbox.y0))/2));img.caseColumn=[Math.max(0,Math.floor(Math.min(...stable.map(p=>p.n.bbox.x0))-margin)),Math.ceil(edge+margin)];img.accessionColumn=[Math.max(0,Math.floor(left-margin)),img.bitmap.width];img.headerY=header?header.word.bbox.y1:0;return true;}
+   if(edge<left){const margin=Math.max(2,Math.min((left-edge)/3,Math.max(...stable.map(p=>p.n.bbox.y1-p.n.bbox.y0))/2));img.caseColumn=[Math.max(0,Math.floor(Math.min(...stable.map(p=>p.n.bbox.x0))-margin)),Math.ceil(edge+margin)];img.accessionColumn=[Math.max(0,Math.floor(left-margin)),Math.min(img.bitmap.width,Math.ceil(Math.max(...stable.map(p=>p.a.bbox.x1))+margin))];img.headerY=header?header.word.bbox.y1:0;return true;}
   }
  }
  // Preserve support for an explicitly labeled, simple two-column table even
@@ -1613,7 +1742,8 @@ function markAccessionLengths(rows){
 async function recognizeColumns(img,worker,epoch){
  const words=[];
  img.caseChecks=[];
- if(img.accessionColumn[1]-img.accessionColumn[0]<240){
+ const nativeHeights=img.words.map(w=>w.bbox.y1-w.bbox.y0).filter(h=>h>0).sort((a,b)=>a-b),nativeHeight=nativeHeights[Math.floor(nativeHeights.length/2)]||10;
+ if(img.accessionColumn[1]-img.accessionColumn[0]<240&&nativeHeight<=14){
   // Tiny table screenshots lose whole rows in page OCR. Segment by visible ink
   // in the accession column, then recognize each actual row and both columns.
   // Keep actual row positions; sequence repair runs only after OCR validation.
@@ -1633,7 +1763,7 @@ async function recognizeColumns(img,worker,epoch){
    if(begin!==null)components.push(lastX-begin+1);
    if(components.length&&components.length<=7&&components.every(w=>w<=bottom-top+5))img.caseChecks.push({y:(top+bottom)/2,digits:components.length});
    for(const [name,alphabet] of [['caseColumn','0123456789'],['accessionColumn','0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._-']]){
-    const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=4,canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
+    const [x0,x1]=img[name],y0=Math.max(0,top-2),h=Math.min(img.bitmap.height-y0,bottom-top+5),scale=Math.min(4,Math.max(1,40/(bottom-top+1))),canvas=document.createElement('canvas');canvas.width=Math.ceil((x1-x0)*scale)+16;canvas.height=h*scale+16;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img.bitmap,x0,y0,x1-x0,h,8,8,(x1-x0)*scale,h*scale);
     await worker.setParameters({tessedit_char_whitelist:alphabet,tessedit_pageseg_mode:name==='caseColumn'?'13':'7'});const {data}=await worker.recognize(canvas,{}, {blocks:true,text:true});canvas.width=1;canvas.height=1;
     for(const w of (data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[]))))words.push({...w,bbox:{x0:(w.bbox.x0-8)/scale+x0,x1:(w.bbox.x1-8)/scale+x0,y0:(w.bbox.y0-8)/scale+y0,y1:(w.bbox.y1-8)/scale+y0}});
    }
@@ -1670,12 +1800,14 @@ function readImageRows(img){
   const check=(img.caseChecks||[]).find(c=>Math.abs(c.y-line.y)<=5);
   const caseIssue=!number?'Case number not read':check&&n.length<check.digits?'Case number may be incomplete':'';
   const candidate={case_number:number,accession,confirmed:false,source:img.label,imageId:img.id,rowY:line.y,caseIssue,accessionIssue:normalized.issue,originalAccession:normalized.original,confidence:Math.min(...[...ns,...as].map(w=>w.confidence??0))};
+  rowCrop(img,candidate,line);
   img.rows.push(candidate);
   found++;
  }
  markAccessionLengths(img.rows);
  const repairs=repairCaseSequence(img.rows);
- for(const candidate of img.rows)if(!candidate.case_number||!lookupRows.some(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession))lookupRows.push(candidate);
+ for(const candidate of img.rows){const existing=candidate.case_number&&lookupRows.find(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession);if(existing){existing.imageIds=[...new Set([...(existing.imageIds||[existing.imageId]),img.id])];}else lookupRows.push(candidate);}
+ updateImageCard(img,found+' rows'+(img.rows.some(r=>!validLookup(r))?' · needs correction':' · ready'));
  lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; suggested numbers are highlighted. ':'')+'Analyze reports accepts these mappings. You can correct any number against its source row.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Paste a clearer crop or add rows manually.';
 }
 function regularImageRows(rows){
@@ -1700,18 +1832,26 @@ function repairCaseSequence(rows){
  return changed;
 }
 async function addLookupImages(files){
- if(ocrBusy){$('ocr-status').textContent='Wait for the current screenshots to finish, then paste the next one.';return;}
  if(lookupImages.length+files.length>20){$('ocr-status').textContent='Use at most 20 screenshots per batch.';return;}
+ for(const file of files){
+  if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024){$('ocr-status').textContent='Use a PNG, JPEG or WebP screenshot under 15 MB.';continue;}
+  const img={id:crypto.randomUUID(),file,label:'Screenshot '+(lookupImages.length+1),words:[]},details=el('details','lookup-screenshot'),summary=el('summary');
+  img.details=details;img.summary=summary;details.dataset.imageId=img.id;details.append(summary);lookupImages.push(img);ocrQueue.push(img);$('lookup-images').append(details);updateImageCard(img,'Queued');
+  details.addEventListener('toggle',()=>{if(details.open){showLookupImage(img);lookupTable();}else if($('lookup-editor').parentElement===details)$('lookup-editor').hidden=true;});
+ }
+ $('lookup-paste').textContent='Paste next screenshot ('+(lookupImages.length+1)+')';
+ if(ocrBusy)return;
  const epoch=lookupEpoch;ocrBusy=true;updateLookupCoverage();
  try{
-  for(const file of files){
-   if(epoch!==lookupEpoch)return;
-   if(!/^image\/(png|jpeg|webp)$/.test(file.type)||file.size>15*1024*1024)throw Error('image');
-   const bitmap=await createImageBitmap(file);if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('image');}
-   if(epoch!==lookupEpoch){bitmap.close();return;}
-   const img={id:crypto.randomUUID(),bitmap,label:'Screenshot '+(lookupImages.length+1),words:[]};lookupImages.push(img);
-   const choose=button(img.label,'',()=>showLookupImage(img));$('lookup-images').append(choose);showLookupImage(img);
-   $('ocr-status').textContent='Loading local OCR…';const worker=await getOCR(epoch);if(epoch!==lookupEpoch)return;
+  while(ocrQueue.length&&epoch===lookupEpoch){
+   const img=ocrQueue.shift();
+   try{
+    updateImageCard(img,'Loading');
+    const bitmap=await createImageBitmap(img.file);img.file=null;
+    if(bitmap.width*bitmap.height>16000000){bitmap.close();throw Error('image');}
+    if(epoch!==lookupEpoch){bitmap.close();return;}
+    img.bitmap=bitmap;showLookupImage(img);
+    $('ocr-status').textContent=img.label+' · Loading local OCR…';const worker=await getOCR(epoch);if(epoch!==lookupEpoch)return;
    // A canvas supplies only image pixels to the browser worker. No screenshot request is made.
    const scale=Math.min(4,Math.max(1,1600/bitmap.width),Math.sqrt(16000000/(bitmap.width*bitmap.height)));
    const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);canvas.getContext('2d').drawImage(bitmap,0,0,canvas.width,canvas.height);
@@ -1723,12 +1863,13 @@ async function addLookupImages(files){
    img.words=(data.blocks||[]).flatMap(b=>(b.paragraphs||[]).flatMap(p=>(p.lines||[]).flatMap(l=>l.words||[])));
    if(!img.words.length&&Array.isArray(data.words))img.words=data.words;
    if(scale!==1)img.words=img.words.map(w=>({...w,bbox:Object.fromEntries(Object.entries(w.bbox).map(([k,v])=>[k,v/scale]))}));
-   if(detectColumns(img))await recognizeColumns(img,worker,epoch);else $('ocr-status').textContent='Could not identify the columns. Paste a clearer screenshot cropped to case numbers and accessions, or add rows manually.';
+   if(detectColumns(img))await recognizeColumns(img,worker,epoch);else{updateImageCard(img,'Could not identify columns');$('ocr-status').textContent='Could not identify the columns. Paste a clearer crop with case numbers and accessions, or add rows manually.';}
    showLookupImage(img);
+   }catch{if(epoch===lookupEpoch){updateImageCard(img,'Could not read · paste a clearer crop');$('ocr-status').textContent='Could not read '+img.label+'. Paste a clearer crop or add rows manually.';}}
   }
- }catch{if(epoch===lookupEpoch)$('ocr-status').textContent='Could not read this screenshot. Check the image size/format or retry. You can add rows manually.';}
- finally{if(epoch===lookupEpoch){ocrBusy=false;updateLookupCoverage();}}
+ }finally{if(epoch===lookupEpoch){ocrBusy=false;updateLookupCoverage();}}
 }
+$('lookup-manual').addEventListener('toggle',()=>{if($('lookup-manual').open){for(const img of lookupImages)img.details.open=false;currentImage=null;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;$('lookup-column-tools').hidden=true;$('lookup-range-tools').hidden=true;lookupTable();}});
 $('lookup-zoom').addEventListener('change',()=>{if(currentImage)showLookupImage(currentImage);});
 $('lookup-range-apply').addEventListener('click',()=>{
  const status=$('lookup-range-status'),first=$('lookup-range-first').value.trim(),last=$('lookup-range-last').value.trim(),img=currentImage;
@@ -1746,15 +1887,15 @@ $('lookup-range-apply').addEventListener('click',()=>{
 $('report-text').addEventListener('input',updateReview);
 $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipboardData?.files||[])].filter(f=>f.type.startsWith('image/'));if(files.length){event.preventDefault();addLookupImages(files);}});
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Copy a screenshot, then click Paste screenshot here and press Ctrl+V.';}});
-$('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});lookupTable();});
+$('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});currentImage=null;$('lookup-manual').open=true;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;lookupTable();});
 $('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
 $('export-review').addEventListener('click',async()=>{
  const target=$('export-review');target.disabled=true;$('export-status').textContent='Preparing clinical review…';
  try{
   if(ocrBusy||!lookupMatchesReview())throw Error('batch');
   const selected=$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
-  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,status:c.status,revisions:revisions(c)}));
-  const lookup=lookupRows.filter(r=>validLookup(r)).map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true}));
+  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c)}));
+  const lookup=lookupRows.filter(r=>validLookup(r)).map(lookupPayload);
   const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_mode:reviewMode,theme:themeChoice,combined_view:combinedView,show_report_wording:showReportWording})});
   if(response.redirected||response.status===401||response.status===403)throw Error('session');
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('export');
@@ -2043,7 +2184,7 @@ function caseRow(c,key) {
  head.id='case-'+key;head.setAttribute('aria-expanded',String(isOpen));head.setAttribute('aria-controls','body-'+key);
  const chevron=el('span','chevron');chevron.setAttribute('aria-hidden','true');head.append(chevron);
  const number=el('span','case-number');number.append(el('small','',members(c).length>1?'Cases':'Case'),document.createTextNode(caseLabel(c)));head.append(number);
- const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));const title=el('span','case-title',prose(c.title) || 'Untitled case');title.title='Review mode: '+(c.review_mode==='attending'?'Attending':'Resident');name.append(title);
+ const name=el('span');if(c.exam_label)name.append(el('span','case-exam',prose(c.exam_label)));const title=el('span','case-title',prose(displayTitle(c)));title.title='Title perspective: '+reviewMode;name.append(title);
  const ordered=revisions(c).slice().sort((a,b)=>groupOrder.indexOf(a.importance)-groupOrder.indexOf(b.importance));
  const clinical=ordered.filter(r=>r.importance!=='wording'), previewItems=(clinical.length?clinical:ordered).slice(0,2);
  const preview=el('span','change-preview');
@@ -2087,7 +2228,7 @@ function render() {
  const query=$('search').value.trim().toLowerCase(), order=$('order').value;
  let filtered=cases.map((c,index)=>({c,key:String(index)})).filter(({c})=>{
   const matches=selectedFilters.size===0||[...selectedFilters].some(filter=>matchesFilter(c,filter));
-  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
+  const text=[caseLabel(c),...members(c),...caseAccessions(c).map(r=>r.accession),c.exam_label,c.title,c.title_resident,c.title_attending,c.resident_report,c.attending_report,...revisions(c).map(summaryText)].join(' ').toLowerCase();return matches&&(!query||text.includes(query));
  });
  filtered.sort((a,b)=>{
   if(order.startsWith('change-')){const aa=textChange(a.c),bb=textChange(b.c);if(aa===null&&bb!==null)return 1;if(bb===null&&aa!==null)return -1;if(aa!==null&&bb!==null&&aa!==bb)return order==='change-high'?bb-aa:aa-bb;}
@@ -2221,7 +2362,7 @@ $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleC
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
- for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
+ for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();
@@ -2230,7 +2371,7 @@ $('clear-button').addEventListener('click',()=>{
  $('analysis-error')?.remove();$('search').value='';$('order').value='oldest';$('form-status').textContent='';
  $('case-list').replaceChildren();$('totals').textContent='';$('results').textContent='';$('input-disclosure').open=true;render();$('report-text').focus();$('announcement').textContent='Reports and review results cleared from this page.';
 });
-$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('input-disclosure').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(r=>({case_number:r.case_number,accession:r.accession,confirmed:true})));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
+$('report-form').addEventListener('submit',event=>{if(ocrBusy||lookupRows.some(r=>!validLookup(r))||lookupConflicts().size){event.preventDefault();$('input-disclosure').open=true;$('form-status').textContent='Wait for OCR to finish, then correct or remove any incomplete or conflicting lookup rows before analyzing.';return;}$('lookup-value').value=JSON.stringify(lookupRows.map(lookupPayload));$('analyze-button').disabled=true;$('analyze-button').textContent='Analyzing…';$('clear-button').disabled=true;$('form-status').textContent='Preparing your review. Keep this page open.';});
 {% endif %}
 render();
 {% if not exported_review | default(false) %}

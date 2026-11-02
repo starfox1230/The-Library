@@ -1,5 +1,30 @@
 # Changes and rationale — October 4, 2026
 
+## Both title perspectives and source-row review — November 2, 2026
+
+- Website footer now identifies build 2026.11.02, separately from extractor v0.18.
+- One shared prompt/schema requests both title_resident and title_attending in
+  the existing single analysis call. The live/offline toggle retitles immediately
+  without changing shared revisions, edited instructions or sending another call.
+  Legacy single-title results remain readable in both views.
+- Pasted screenshots immediately become collapsed per-image cards. The next
+  paste button stays available while a FIFO queue processes earlier images.
+  Editing is optional; exact overlap joins and conflict safeguards are retained.
+- Preserve case/accession-only row crops with mappings through Analyze and
+  export. Copy opens a source peek with an editable accession. Offline readers
+  can save a corrected copy with both titles, current perspective and source
+  images. Crops exclude intervening numeric/right-hand columns; export omits
+  unselected mappings and strips PNG metadata/trailing data with bounded decoding.
+  Crops are sent only to this application, never to the analysis provider.
+- Retain prior OT corrections/headerless detection. Constrain automatic prefix
+  acceptance to XR/MR/RF/OT/CT/US/NM, permit known 07-to-OT headerless evidence,
+  and choose row/column OCR based on native text height as well as crop width.
+  Existing identifier digits are never completed or shortened by these rules.
+- Extractor v0.18 clears retained F8/capture/cancellation state after a stopped
+  or failed attempt and restores Go; successful runs retain valid F8 focus.
+  This is a targeted retry improvement, not a reproduced diagnosis of the user's
+  first-case stall. Workstation trial and live website deployment remain pending.
+
 ## Compact accession controls and simpler screenshot paste — October 30, 2026
 
 - Put an icon-only Copy accession action immediately left of the case caret,
