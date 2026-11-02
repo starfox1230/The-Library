@@ -44,194 +44,78 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-01 15:18 Central Standard Time
-Cards: 14
+Updated: 2026-11-02 06:20 Central Standard Time
+Cards: 3
 
 ## Card 1
 
 Deck: .NEW::Audio
-Flagged: 2026-09-29T13:16:51-05:00
-Last seen: 2026-11-01T15:17:46-06:00
-Card ID: 1765507990137
-Note ID: 1765507990136
+Flagged: 2026-04-27T05:55:17-05:00
+Last seen: 2026-11-02T06:11:13-06:00
+Card ID: 1763769382858
+Note ID: 1763769382857
 
 Question:
 00:12
 
-The standard treatment for osteoblastoma is [...].
+For solitary fibrous tumor of the pleura, the [...] morphology is associated with the highest risk of local recurrence.
 
 Answer:
 00:12
 
-The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
+For solitary fibrous tumor of the pleura, the sessile morphology is associated with the highest risk of local recurrence.
 
 ## Card 2
 
-Deck: .NEW::Audio
-Flagged: 2026-10-29T15:40:56-05:00
-Last seen: 2026-11-01T15:12:19-06:00
-Card ID: 1779484495695
-Note ID: 1779484495693
+Deck: Saved Cards
+Flagged: 2026-11-02T06:10:55-06:00
+Last seen: 2026-11-02T06:10:55-06:00
+Card ID: 1789015833796
+Note ID: 1789015833795
 
 Question:
 00:12
 
-In balloon angioplasty, the law of Laplace explains why [...] determine balloon wall tension.
+Standard treatment for a symptomatic chondroblastoma is usually [...].
 
 Answer:
 00:12
 
-In balloon angioplasty, the law of Laplace explains why pressure and diameter determine balloon wall tension.
+Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
 ## Card 3
 
-Deck: .NEW::Audio
-Flagged: 2026-10-29T06:51:25-05:00
-Last seen: 2026-11-01T08:44:54-06:00
-Card ID: 1776434006758
-Note ID: 1776434006758
+Deck: .NEW::Visual
+Flagged: 2026-09-10T05:44:13-05:00
+Last seen: 2026-11-02T06:07:49-06:00
+Card ID: 1775678781115
+Note ID: 1775678781115
 
 Question:
 00:12
 
-The [...] dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+Diagnosis?
+
+[...]
 
 Answer:
 00:08
 
-The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
+Diagnosis?
 
-## Card 4
+tricuspid regurgitation
 
-Deck: .NEW::Visual
-Flagged: 2026-09-26T07:29:03-05:00
-Last seen: 2026-11-01T07:58:54-06:00
-Card ID: 1790272665570
-Note ID: 1790272665569
+Normal Hepatic Vein:
 
-Question:
-00:12
+Pulsatile Portal Vein:
 
-What’s the black structure in the left atrium?
+Pulsatile Hepatic Vein due to Tricuspid Regurgitation:
 
-[...]
+Pulsatile Hepatic Vein due to Right Heart Failure:
 
-1/2
+Normal:
 
-Answer:
-00:12
-
-What’s the black structure in the left atrium?
-
-Coumadin ridge
-
-1/2
-
-## Card 5
-
-Deck: .NEW::Audio
-Flagged: 2026-11-01T07:15:13-06:00
-Last seen: 2026-11-01T07:58:03-06:00
-Card ID: 1765507990280
-Note ID: 1765507990278
-
-Question:
-00:12
-
-In a cyanotic patient with a left aortic arch, normal heart size, and [...] pulmonary blood flow, the main differential diagnoses are Tetralogy of Fallot, Ebstein anomaly, and tricuspid atresia.
-
-Answer:
-00:12
-
-In a cyanotic patient with a left aortic arch, normal heart size, and decreased or normal pulmonary blood flow, the main differential diagnoses are Tetralogy of Fallot, Ebstein anomaly, and tricuspid atresia.
-
-## Card 6
-
-Deck: .NEW::Visual
-Flagged: 2026-08-09T07:22:26-05:00
-Last seen: 2026-11-01T07:57:44-06:00
-Card ID: 1776176867641
-Note ID: 1776176867641
-
-Question:
-00:12
-
-What's going on in this cisternography?
-
-[...]
-
-Answer:
-00:12
-
-What's going on in this cisternography?
-
-Dose extravasation - railroad sign and early kidney activity
-
-## Card 7
-
-Deck: .NEW::Audio
-Flagged: 2026-10-25T08:24:27-05:00
-Last seen: 2026-11-01T07:17:11-06:00
-Card ID: 1762544589813
-Note ID: 1762544589812
-
-Question:
-00:12
-
-Classic causes of expansile, predominantly lytic skeletal metastases include [...].
-
-Answer:
-00:12
-
-Classic causes of expansile, predominantly lytic skeletal metastases include renal cell carcinoma and thyroid carcinoma, especially follicular carcinoma.
-
-Notion AIRP Lecture
-
-Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
-Bone metastases in thyroid cancer
-
-## Card 8
-
-Deck: .NEW::Visual
-Flagged: 2026-08-22T06:38:18-05:00
-Last seen: 2026-11-01T07:16:46-06:00
-Card ID: 1778846498646
-Note ID: 1778846498645
-
-Question:
-00:12
-
-Where does MIBG localize?
-
-[...]
-
-Answer:
-00:12
-
-Where does MIBG localize?
-
-D
-
-Source: Visual Cards for nukes session. Original note used lettered locations; this card tests the physiologic localization instead of the answer letters.
-
-## Card 9
-
-Deck: .NEW::Visual
-Flagged: 2026-07-25T19:51:45-05:00
-Last seen: 2026-11-01T07:02:03-06:00
-Card ID: 1775672719080
-Note ID: 1775672719080
-
-Question:
-D = direction , P = phasicity, Q = number of phases (phase quantification), I = number of inflections
-
-Answer:
-D = direction , P = phasicity, Q = number of phases (phase quantification), I = number of inflections
-
-SHOW ALL
-
-Remarks
-We all this MONOPHASIC at UAB.
+Abnormal:
 
 Any waveform can be systematically described
 or may be named with conventional terms. The
@@ -255,111 +139,3 @@ waveform concepts are best reviewed by perusing
 multiple normal (Fig 11) and abnormal (Fig 12)
 waveforms, each with its corresponding identifying
 characteristics and conventional name.
-
-Normal:
-
-Abnormal:
-
-## Card 10
-
-Deck: Saved Cards
-Flagged: 2026-09-05T05:09:58-05:00
-Last seen: 2026-11-01T07:01:53-06:00
-Card ID: 1787199507850
-Note ID: 1787199507848
-
-Question:
-00:12
-
-Area postrema involvement in aquaporin-4-positive NMOSD can cause [what classic symptoms].
-
-Answer:
-00:12
-
-Area postrema involvement in aquaporin-4-positive NMOSD can cause intractable nausea and vomiting/hiccups.
-
-Area postrema involvement produces a characteristic dorsal medullary or floor-of-the-fourth-ventricle T2 abnormality.
-
-Source: Notion Radiology entry.
-
-## Card 11
-
-Deck: .NEW::Audio
-Flagged: 2026-10-19T12:40:50-05:00
-Last seen: 2026-11-01T06:44:05-06:00
-Card ID: 1761622373549
-Note ID: 1761622373547
-
-Question:
-00:12
-
-The units of measure for radioactivity are [...].
-
-Answer:
-00:12
-
-The units of measure for radioactivity are the curie (Ci) or becquerel (Bq).
-
-## Card 12
-
-Deck: Saved Cards
-Flagged: 2026-11-01T06:43:57-06:00
-Last seen: 2026-11-01T06:43:57-06:00
-Card ID: 1785635742664
-Note ID: 1785635742662
-
-Question:
-00:12
-
-At the proximal hamstring origin, the [...] form a conjoint tendon.
-
-Answer:
-00:12
-
-At the proximal hamstring origin, the semitendinosus and long head of the biceps femoris form a conjoint tendon.
-
-The unlabeled MR image is attached on Front; the labeled reference is attached in Extra.
-
-Source: Notion Radiology Notes — conjoint tendon, 2026-07-30.
-
-## Card 13
-
-Deck: Saved Cards
-Flagged: 2026-10-01T13:11:39-05:00
-Last seen: 2026-11-01T06:38:52-06:00
-Card ID: 1787199507814
-Note ID: 1787199507813
-
-Question:
-00:12
-
-What is the most likely diagnosis in adult?
-
-[...]
-
-Answer:
-00:12
-
-What is the most likely diagnosis in adult?
-
-Subependymoma
-
-Source: Notion Radiology entry.
-
-## Card 14
-
-Deck: Saved Cards
-Flagged: 2026-10-28T12:57:00-05:00
-Last seen: 2026-11-01T06:35:01-06:00
-Card ID: 1789015833853
-Note ID: 1789015833852
-
-Question:
-00:12
-
-In classic pancreas divisum, most pancreatic drainage occurs through the [...].
-
-Answer:
-00:12
-
-In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
