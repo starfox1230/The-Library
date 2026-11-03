@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.20.0.0")]
-[assembly: AssemblyFileVersion("0.20.0.0")]
+[assembly: AssemblyVersion("0.21.0.0")]
+[assembly: AssemblyFileVersion("0.21.0.0")]
 
 namespace ReportExporter
 {
@@ -22,8 +22,8 @@ namespace ReportExporter
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(12, 20, 11,
-                    "Both full reports still match case 11. The next study may not have loaded, or these may be distinct linked studies.", 11), CancellationToken.None) :
+                using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(11, 20, 10,
+                    "The PowerScribe worklist control could not be identified. No comparison shortcut or Down key was sent."), CancellationToken.None, () => true) :
                     args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
@@ -94,6 +94,8 @@ namespace ReportExporter
         private string captureRole;
         // Session-only native handles: never serialize them to controls.json.
         private IntPtr lockedWorklistMain, lockedWorklistChild;
+        internal WorklistFocusMemory FocusMemory { get; set; }
+        private System.Windows.Forms.Timer worklistTimer;
         private CancellationTokenSource cancellation;
         private bool running;
         private bool captureHotkey, stopHotkey;
@@ -130,7 +132,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.20";
+            Text = "PowerScribe Report Exporter v0.21";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -167,12 +169,14 @@ namespace ReportExporter
             rememberWorklist.Click += (sender, args) => {
                 if (!captureHotkey) { ShowError("F8 is in use", "Close the other program using F8 and reopen this exporter."); return; }
                 lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
+                if (FocusMemory != null) FocusMemory.Clear();
                 captureRole = "WorklistFocus";
                 status.Text = "Click the FIRST CASE ROW in PowerScribe, then press F8 while PowerScribe is active. This remembers keyboard focus; no accessibility capture is used.";
             };
             var clearWorklist = new NightButton { Text = "Clear remembered worklist", AutoSize = true };
             clearWorklist.Click += (sender, args) => {
                 lockedWorklistMain = lockedWorklistChild = IntPtr.Zero; captureRole = null;
+                if (FocusMemory != null) FocusMemory.Clear();
                 status.Text = "Remembered worklist cleared. The next export will detect focus automatically.";
             };
             worklistButtons.Controls.Add(rememberWorklist); worklistButtons.Controls.Add(clearWorklist);
@@ -265,6 +269,15 @@ namespace ReportExporter
                 if (running && cancellation != null && !cancellation.IsCancellationRequested)
                 { CancelExport(); args.Cancel = true; status.Text = "Stopping... close again to exit immediately if PowerScribe's accessibility provider is stuck."; }
             };
+            if (!previewMode)
+            {
+                FocusMemory = new WorklistFocusMemory(new Win32Desktop());
+                FocusMemory.Observe(profile.MainTitle);
+                worklistTimer = new System.Windows.Forms.Timer { Interval = 75 };
+                worklistTimer.Tick += (sender, args) => { if (keyboard.Checked && !running && FocusMemory != null) FocusMemory.Observe(profile.MainTitle); };
+                worklistTimer.Start();
+                FormClosed += (sender, args) => { worklistTimer.Stop(); worklistTimer.Dispose(); };
+            }
         }
 
         private void ApplyMode()
@@ -389,6 +402,7 @@ namespace ReportExporter
                     IntPtr child = Native.NavigationFocus(main, text => diagnostic = text);
                     if (child == IntPtr.Zero) throw new InvalidOperationException(diagnostic + " No worklist was remembered. This version cannot automatically navigate a grid without a separate usable control.");
                     lockedWorklistMain = main; lockedWorklistChild = child; captureRole = null;
+                    if (FocusMemory != null) FocusMemory.Remember(main, child);
                     status.Text = "Worklist remembered for this exporter session. Return here and export. If PowerScribe is restarted or its layout changes, remember the worklist again.";
                     return;
                 }
@@ -527,6 +541,7 @@ namespace ReportExporter
             }
             catch (Exception error) { ShowError("Export has not started", error.Message); return; }
             bool openWebsite = website.Checked;
+            UseObservedWorklist();
             bool openTextFile = openText.Checked;
             lastOutput = output; resumeCase = null; resultActions.Visible = false; details.Visible = false;
             SetCopiedTextVisible(false);
@@ -558,14 +573,10 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.20; stable clipboard snapshots and verified capture-to-file records...");
-                    bool initialSession = true;
+                    reportProgress("Initializing native exporter v0.21; retaining validated worklist focus across Go and Continue...");
                     runner.RestartSession = () => {
-                        IntPtr worklistMain = initialSession ? lockedWorklistMain : IntPtr.Zero;
-                        IntPtr worklistChild = initialSession ? lockedWorklistChild : IntPtr.Zero;
-                        initialSession = false;
                         return profile.KeyboardWorkflow ?
-                            (IReportSession)new KeyboardSession(profile, new Win32Desktop(worklistMain, worklistChild, reportProgress), reportProgress) :
+                            (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
                             (IReportSession)new WindowsSession(profile, reportProgress);
                     };
                     runner.Recovery = ShowRecovery;
@@ -609,7 +620,11 @@ namespace ReportExporter
                 }
                 Post(() => {
                     CompleteRunState(success);
-                    if (!success) result += " Select the first case again, then Go to retry here. The remembered worklist was cleared.";
+                    if (!success)
+                    {
+                        int? remaining = RunSummary.ResumeAt(runner, firstLabel, lastLabel);
+                        result += remaining.HasValue ? " To resume, select case " + remaining.Value + " in PowerScribe and set First case to " + remaining.Value + " before Go." : " The requested entries are already saved; close any comparison before another run.";
+                    }
                     status.Text = result;
                     SetCopiedText(availableText, "Saved export " + DateTime.Now.ToString("g") + " - case labels " + firstLabel + "-" + lastLabel + ", " + runner.Completed + " complete pairs.\r\n" + Path.GetFileName(output));
                     details.Text = diagnostic; detailsButton.Text = "Details"; details.Visible = false; resultActions.Visible = true;
@@ -637,11 +652,18 @@ namespace ReportExporter
             Invoke((Action)(() => {
                 if (token.IsCancellationRequested || IsDisposed) return;
                 if (overlay != null) overlay.SetPhase("Paused at case " + request.CaseNumber + ". Follow the Continue dialog.", 0, 1);
-                using (var dialog = new RecoveryDialog(request, token)) { dialog.ShowDialog(this); choice = dialog.Choice; }
-                if (choice == RecoveryChoice.Continue) lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
+                Func<bool> readiness = profile.KeyboardWorkflow ? (Func<bool>)(() => { FocusMemory.Observe(profile.MainTitle); return UseObservedWorklist(); }) : null;
+                using (var dialog = new RecoveryDialog(request, token, readiness)) { dialog.ShowDialog(this); choice = dialog.Choice; }
             }));
             token.ThrowIfCancellationRequested();
             return choice;
+        }
+
+        internal bool UseObservedWorklist()
+        {
+            IntPtr main, child;
+            if (FocusMemory == null || !FocusMemory.TryGet(out main, out child)) return false;
+            lockedWorklistMain = main; lockedWorklistChild = child; return true;
         }
 
         internal void CompleteRunState(bool success)
@@ -649,7 +671,7 @@ namespace ReportExporter
             // F8 handles are the capture state retained by the launcher across
             // attempts. A failed/stopped run must not repeatedly reuse them.
             // Reopening the exporter used to be the only automatic reset.
-            if (!success) lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
+            if (!success) { lockedWorklistMain = lockedWorklistChild = IntPtr.Zero; if (FocusMemory != null) FocusMemory.Clear(); }
             captureRole = null;
             var ended = cancellation; cancellation = null; running = false;
             if (ended != null) ended.Dispose();

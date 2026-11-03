@@ -16,6 +16,7 @@ namespace ReportExporter
         bool Visible(IntPtr hwnd);
         bool Activate(IntPtr hwnd);
         IntPtr NavigationFocus(IntPtr main);
+        bool IsNavigationControl(IntPtr main, IntPtr child);
         bool RestoreNavigationFocus(IntPtr main, IntPtr child);
         bool MenuActive(IntPtr main);
         IntPtr[] MenuPopupWindows(IntPtr main);
@@ -48,13 +49,14 @@ namespace ReportExporter
             if (lockedChild != IntPtr.Zero)
             {
                 if (main != lockedMain || !Native.IsNavigationChild(main, lockedChild))
-                    throw new InvalidOperationException("The F8 worklist control is no longer valid. Use Remember worklist (F8) again after selecting the first case row.");
-                progress("Using the worklist control remembered with F8 for this exporter session.");
+                    throw new InvalidOperationException("The remembered PowerScribe worklist control is no longer valid. No navigation input was sent.");
+                progress("Using the validated worklist control remembered while PowerScribe was active.");
                 return lockedChild;
             }
             return Native.NavigationFocus(main, progress);
         }
         public bool RestoreNavigationFocus(IntPtr main, IntPtr child) { return Native.RestoreChildFocus(main, child); }
+        public bool IsNavigationControl(IntPtr main, IntPtr child) { return Native.IsNavigationChild(main, child); }
         public bool MenuActive(IntPtr main) { return Native.MenuActive(main); }
         public IntPtr[] MenuPopupWindows(IntPtr main) { return Native.MenuPopupWindows(main); }
         public string NavigationRow(IntPtr child) { return Native.SelectedRowIndex(child); }
@@ -149,7 +151,7 @@ namespace ReportExporter
             // appear during this run, including managed menus with no native menu flags.
             existingPopups = new HashSet<IntPtr>(desktop.MenuPopupWindows(main));
             if (desktop.FindWindow(profile.ComparisonTitle, pid) != IntPtr.Zero)
-                throw new InvalidOperationException("Close Compare Report Revisions and select your first case before starting.");
+                throw new InvalidOperationException("A Compare Report Revisions window is still open.");
             // Reactivating PowerScribe can reset its child focus to the report editor.
             // Read the retained worklist focus before any activation, then verify/restore it.
             navigationFocus = desktop.NavigationFocus(main);
@@ -252,7 +254,7 @@ namespace ReportExporter
             {
                 navigationFocus = desktop.NavigationFocus(main);
                 if (navigationFocus == IntPtr.Zero)
-                    throw new InvalidOperationException("PowerScribe did not expose usable worklist focus. Use Remember worklist (F8), click the first CASE ROW in PowerScribe, then press F8 while PowerScribe is active. If capture is rejected, the status/progress log gives the focus reason. No comparison shortcut or Down was sent.");
+                    throw new InvalidOperationException("The PowerScribe worklist control could not be identified. No comparison shortcut or Down key was sent.");
                 progress("Remembered the focused worklist control for this run; it will be restored before Down.");
             }
             ExitToolsMenu(token);
@@ -260,7 +262,7 @@ namespace ReportExporter
             {
                 Guard(main, token);
                 if (!desktop.RestoreNavigationFocus(main, navigationFocus))
-                    throw new InvalidOperationException("The remembered worklist could not regain focus before export. Use Remember worklist (F8) again. No comparison shortcut or Down was sent.");
+                    throw new InvalidOperationException("The remembered worklist control could not regain focus. No comparison shortcut or Down key was sent.");
                 navigationInitialized = true;
             }
             progress("Opening Tools with Alt+T, then I...");

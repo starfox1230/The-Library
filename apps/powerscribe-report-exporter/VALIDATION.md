@@ -1,3 +1,58 @@
+# Worklist focus and recovery — November 3, 2026 (v0.21)
+
+The case-10 screenshot identifies an initialization failure before any report
+copy. The recovery path discarded remembered worklist handles and rediscovered
+focus after the popup took focus; inactive focus queries and activation into the
+report editor can then reproduce the pause repeatedly.
+
+Microsoft's [GetGUIThreadInfo documentation](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguithreadinfo)
+also notes that window handles can be invalid while a window loses activation.
+The relevant control is now captured before that transition rather than relying
+on its previous focus being discoverable afterward.
+
+The exporter now remembers a validated worklist control while PowerScribe is
+active and hands it to each new session, across Go and Continue. A readiness
+indicator gates Continue until a valid control is available. This retains the
+navigation safeguards and does not infer which study is selected. The requested
+source label remains explicit and can start at any valid number.
+
+**142 synthetic/native-control tests passed.** Eight new regressions cover:
+
+- The original failure at case 10 with inactive focus unavailable and activation
+  resetting child focus: zero report reads, shortcuts or Down before the failure.
+- Observation before Go followed by focus loss and activation reset: cases 10,
+  11 and 12 preserve their labels and distinct source reports.
+- Retention through inactive focus, editor focus and temporary modals, with
+  rejection of menus, foreign roots and invalid native handles.
+- Saved case 10 followed by a navigation interruption: one Continue resumes at
+  case 11 with three complete entries, no duplicate save and no extra Down.
+- Disabled Continue before worklist detection, enabled Continue after selection,
+  successful handoff after the popup regains focus, and ignored queued clicks.
+- Launcher handle handoff, retained success state and cleared stopped-run state.
+- Known non-navigation control classes rejected while native/custom grids remain
+  eligible for validation.
+- Exact stopped-run instructions: case 10 if unsaved and case 11 if 10 was saved.
+
+The 0.18-versus-current clipboard-race replay remains passing. Dialog preview
+inspection and release delivery are recorded below. These tests use synthetic
+reports and test-owned controls, not PowerScribe or the real clipboard. The
+hospital-workstation trial is still required.
+
+## v0.21 portable delivery
+
+- [PowerScribeReportExporter-v0.21.zip](https://drive.google.com/file/d/1VwoQyJ3izf6mnocLg06M3dwbrhbtRUZ_/view?usp=drivesdk)
+- ZIP: **74,044 bytes**; SHA-256
+  `0066d1e3d5b24d2941fc4491bd3256ec05105c9936a478e73175eceae2380542`.
+- Tested EXE SHA-256:
+  `d3f29bee1d719580c2116b68c536a98ebc40efd12518fa44d78d83b173421614`.
+- Recovery-dialog preview was inspected: readiness, exact case-11 instructions
+  after saved case 10, readable cause text and unclipped Continue/Stop controls.
+- Archive contains only the tested EXE, README and quick start. Embedded EXE and
+  mounted-Drive copy hashes match. Connector readback confirmed synced name,
+  size, ID and release-folder parent; previous versions/sharing were preserved.
+- The final native-control integration test was compiled/run without rebuilding
+  the packaged production EXE; its hash remained unchanged. All 142 checks pass.
+
 # First-pair investigation — November 2, 2026
 
 The user confirmed the duplicate is already in the saved comparison text, before

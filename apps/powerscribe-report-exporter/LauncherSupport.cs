@@ -46,20 +46,20 @@ namespace ReportExporter
         public static string NextStep(Exception error, ExportRunner runner, int first, int last)
         {
             string message = error == null ? "" : error.Message;
+            int? next = ResumeAt(runner, first, last);
+            if (!next.HasValue) return "The requested entries were saved. Close any comparison before starting another run.";
             if (message.IndexOf("worklist", StringComparison.OrdinalIgnoreCase) >= 0)
-                return "Close any comparison, select the first case row in PowerScribe, and try again. If needed, use Options > Remember worklist (F8).";
+                return "Close any comparison and select case " + next.Value + " in the same PowerScribe worklist before continuing.";
             if (message.IndexOf("report body", StringComparison.OrdinalIgnoreCase) >= 0 || message.IndexOf("not copied", StringComparison.OrdinalIgnoreCase) >= 0)
                 return "Check that both report panes are ready. Use Options > Capture report click if the click lands outside the report body. Copying has already been retried where safe.";
             if (message.IndexOf("not found", StringComparison.OrdinalIgnoreCase) >= 0)
-                return "Open PowerScribe and select the first case row before choosing Go.";
-            if (!ResumeAt(runner, first, last).HasValue)
-                return "The requested entries were saved. Check the comparison window and the details before starting another run.";
+                return "Open PowerScribe and select case " + next.Value + " before continuing.";
             return "Check the last step in Details. Close any comparison before selecting the resume case in PowerScribe. Saved results are kept.";
         }
         public static string Build(ExportRunner runner, int first, int last, string outcome, string detail, string output)
         {
             int? resume = ResumeAt(runner, first, last);
-            return "PowerScribe Report Exporter v0.20\r\n" + outcome + "\r\n" +
+            return "PowerScribe Report Exporter v0.21\r\n" + outcome + "\r\n" +
                 "Requested case labels: " + first + "–" + last + "\r\n" +
                 "Complete report pairs: " + runner.Completed + "\r\n" +
                 "Unconfirmed pending: " + runner.Pending + "\r\nUnavailable comparisons: " + runner.Skipped + "\r\n" +

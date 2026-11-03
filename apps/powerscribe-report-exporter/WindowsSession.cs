@@ -470,6 +470,8 @@ namespace ReportExporter
             { progress("Worklist focus rejected: the focused control is outside the reporting window."); return IntPtr.Zero; }
             if (IsTextEditor(info.Focus))
             { progress("Worklist focus rejected: an editor control has focus (class: " + WindowClass(info.Focus) + ")."); return IntPtr.Zero; }
+            if (IsNonNavigationControlClass(WindowClass(info.Focus)))
+            { progress("Worklist focus rejected: a button, menu or other non-worklist control has focus."); return IntPtr.Zero; }
             if (!IsNavigationChild(parent, info.Focus))
             { progress("Worklist focus rejected: child control is hidden, disabled, invalid, or belongs to another process."); return IntPtr.Zero; }
             progress("Worklist focus accepted (control class: " + WindowClass(info.Focus) + ").");
@@ -480,7 +482,7 @@ namespace ReportExporter
             uint parentPid, childPid;
             GetWindowThreadProcessId(parent, out parentPid); GetWindowThreadProcessId(child, out childPid);
             return parentPid != 0 && parentPid == childPid && IsWindow(child) && IsChild(parent, child) &&
-                IsWindowEnabled(child) && IsWindowVisible(child) && !IsTextEditor(child);
+                IsWindowEnabled(child) && IsWindowVisible(child) && !IsNonNavigationControlClass(WindowClass(child));
         }
         public static bool MenuActive(IntPtr parent)
         {
@@ -560,6 +562,15 @@ namespace ReportExporter
                 name.IndexOf("TextBox", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 name.IndexOf("Editor", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 name.Equals("Scintilla", StringComparison.OrdinalIgnoreCase);
+        }
+        internal static bool IsNonNavigationControlClass(string name)
+        {
+            return IsTextEditorClass(name) || name.Equals("Button", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("WindowsForms10.BUTTON.", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("ComboBox", StringComparison.OrdinalIgnoreCase) ||
+                name.StartsWith("WindowsForms10.COMBOBOX.", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("ScrollBar", StringComparison.OrdinalIgnoreCase) || name.Equals("ToolbarWindow32", StringComparison.OrdinalIgnoreCase) ||
+                name.Equals("msctls_statusbar32", StringComparison.OrdinalIgnoreCase) || name.Equals("SysTabControl32", StringComparison.OrdinalIgnoreCase) || name == "#32768";
         }
         public static bool RestoreChildFocus(IntPtr parent, IntPtr child)
         {

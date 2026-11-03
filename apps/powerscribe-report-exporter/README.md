@@ -1,4 +1,39 @@
-# PowerScribe Report Exporter v0.20
+# PowerScribe Report Exporter v0.21
+
+## v0.21: retain worklist focus across Go and Continue
+
+The reported case-10 pause happens before any report copy: the exporter cannot
+identify the worklist's keyboard control. Starting at 10 or another non-1 label
+is supported. The repeating Continue failure is distinct from report duplication.
+
+The old recovery discarded remembered worklist handles and restarted discovery
+after the popup had taken focus. Some PowerScribe layouts expose no focused
+worklist child when inactive, and activation may put focus into the report editor.
+Repeatedly clicking Continue could occasionally win that timing race.
+
+While PowerScribe is active, the exporter now observes and remembers its valid
+worklist control. Go and Continue retain that control and restore it before any
+comparison shortcut or Down. Recovery no longer discards a valid observed
+control on every retry. Handles are revalidated against their reporting window;
+editors, buttons, menus, wrong roots and invalid controls are not accepted.
+
+The recovery dialog shows whether a worklist control has been detected and enables
+Continue when one is usable. Click the requested row in PowerScribe, then Continue
+once. Detection identifies the control, not the study number: the requested row
+still must be selected in the same worklist/order. Finish remains available when
+all entries were already saved. A queued second click cannot replace the choice.
+
+Error details describe the actual focus failure without a conflicting "first
+case" instruction. Recovery and stopped-run guidance name the exact next source
+label: case 10 if unsaved, or case 11 after case 10 was saved. Source numbers are
+never reset to 1. Existing verified clipboard/capture/file checks are retained.
+
+Validation: **142 synthetic/native-control tests passed**, including the missing
+focus failure at case 10 before any input, successful 10–12 capture after Go
+takes focus and activation resets it, exact case-11 recovery after saving case
+10, readiness gating, repeated clicks, stale/foreign control rejection and state
+reset. The previous clipboard-race binary replay still passes. These checks do
+not operate PowerScribe; a short workstation run remains necessary.
 
 ## v0.20: stable clipboard reads and capture-to-file verification
 

@@ -55,6 +55,9 @@ namespace ReportExporter
             private string readReplacement;
             private int loadedRow, comparisonOpens;
             public bool ResetFocusOnActivation, RejectInitialNavigationFocus, NavigationOnlyAfterActivation;
+            public bool FocusUnavailableWhileInactive, NavigationHandleInvalid;
+            public bool ResetFocusOnEveryActivation;
+            public IntPtr RememberedFocus;
             private bool activated;
             public int UnavailableRow = -1;
             public int MenuDepth, MenuDownCount, AltCancelCount;
@@ -90,10 +93,11 @@ namespace ReportExporter
             {
                 Events.Add("activate");
                 if (Active == new IntPtr(999) && (BlockActivation || RejectRecoveryAttempts-- > 0)) return false;
-                if (!activated && window == new IntPtr(1) && ResetFocusOnActivation) focused = new IntPtr(11);
+                if (window == new IntPtr(1) && (ResetFocusOnEveryActivation || (!activated && ResetFocusOnActivation))) focused = new IntPtr(11);
                 activated = true; Active = window; return true;
             }
-            public IntPtr NavigationFocus(IntPtr main) { return NoNavigationControl || (NavigationOnlyAfterActivation && !activated) || focused == new IntPtr(11) ? IntPtr.Zero : focused; }
+            public IntPtr NavigationFocus(IntPtr main) { if (RememberedFocus != IntPtr.Zero) return RememberedFocus; return NoNavigationControl || (FocusUnavailableWhileInactive && Active != main) || (NavigationOnlyAfterActivation && !activated) || focused == new IntPtr(11) ? IntPtr.Zero : focused; }
+            public bool IsNavigationControl(IntPtr main, IntPtr child) { return !NavigationHandleInvalid && main == new IntPtr(1) && child == new IntPtr(10); }
             public bool RestoreNavigationFocus(IntPtr main, IntPtr child)
             { Events.Add("restore-list"); if (RejectInitialNavigationFocus || (RejectNavigationFocus && CopyCount > 0) || child != new IntPtr(10)) return false; focused = child; return true; }
             public bool MenuActive(IntPtr main)
@@ -616,6 +620,102 @@ namespace ReportExporter
                     Assert(runner.Completed == 2 && runner.Skipped == 1 && desktop.Row == 2 && desktop.CopyCount == 4, "Skip aborted or corrupted navigation");
                     Assert(analysis.Contains("Case 3\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1") && analysis.Contains("Case 4") && !analysis.Contains("UNAVAILABLE") && !analysis.Contains("Case 2"), "Wrong webapp input or labels");
                     Assert(File.ReadAllLines(output + ".timings.csv").Length == 4, "Skipped timing row missing");
+                });
+                Test("focus lost to Go reproduces the missing-worklist error before any read", () => {
+                    var desktop = new FakeKeyboardDesktop { Active = new IntPtr(999), FocusUnavailableWhileInactive = true, ResetFocusOnEveryActivation = true };
+                    var runner = new ExportRunner(); string output = path();
+                    try { runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 10, 12, output, CancellationToken.None, m => {}); throw new Exception("Missing focus unexpectedly succeeded"); }
+                    catch (InvalidOperationException error) { Assert(error.Message.Contains("worklist control") && !error.Message.Contains("first CASE"), "Wrong failure or stale row instruction"); }
+                    Assert(runner.Saved == 0 && desktop.CopyCount == 0 && !desktop.Events.Contains("key:49") && !desktop.Events.Contains("key:28"), "Failed focus sent capture/navigation input");
+                });
+                Test("worklist observed before Go survives inactive focus and activation reset at case 10", () => {
+                    var desktop = new FakeKeyboardDesktop { FocusUnavailableWhileInactive = true, ResetFocusOnEveryActivation = true };
+                    desktop.SelectWorklistRow(9); var memory = new WorklistFocusMemory(desktop); Assert(memory.Observe("PowerScribe"), "Active list was not observed");
+                    desktop.Active = new IntPtr(999); IntPtr main, child; Assert(memory.TryGet(out main, out child), "Go discarded active worklist memory");
+                    desktop.RememberedFocus = child;
+                    var session = new KeyboardSession(KeyboardSettings(), desktop, m => {}); desktop.RememberedFocus = IntPtr.Zero;
+                    var runner = new ExportRunner(); string output = path(); runner.Run(session, 10, 12, output, CancellationToken.None, m => {});
+                    string text = File.ReadAllText(output + ".for-comparison.txt");
+                    Assert(runner.Completed == 3 && desktop.CopyCount == 6 && desktop.Row == 11, "Observed focus did not survive initial activation");
+                    Assert(text.Contains("Case 10\r\nAttending Report:\r\nHEADER 9") && text.Contains("Case 11\r\nAttending Report:\r\nHEADER 10") && text.Contains("Case 12\r\nAttending Report:\r\nHEADER 11"), "Non-1 source labels shifted");
+                });
+                Test("worklist memory retains valid controls through editors dialogs and menus but rejects stale or foreign controls", () => {
+                    var desktop = new FakeKeyboardDesktop(); var memory = new WorklistFocusMemory(desktop); IntPtr main, child;
+                    Assert(memory.Observe("PowerScribe"), "Initial focus missing");
+                    desktop.Active = new IntPtr(999); Assert(!memory.Observe("PowerScribe") && memory.TryGet(out main, out child), "Inactive exporter replaced valid memory");
+                    Assert(!memory.Remember(new IntPtr(123), new IntPtr(10)) && memory.TryGet(out main, out child), "Foreign root replaced known worklist");
+                    desktop.SelectWorklistRow(9); desktop.MenuDepth = 2; Assert(!memory.Observe("PowerScribe"), "Menu focus was captured"); desktop.MenuDepth = 0;
+                    desktop.Key(0x0D); Assert(!memory.Observe("PowerScribe") && memory.TryGet(out main, out child), "Editor focus erased known worklist");
+                    desktop.MainModal = true; Assert(!memory.TryGet(out main, out child), "Disabled reporting window was ready"); desktop.MainModal = false;
+                    Assert(memory.TryGet(out main, out child), "Temporary modal erased worklist memory");
+                    desktop.NavigationHandleInvalid = true; Assert(!memory.TryGet(out main, out child), "Invalid native control was reused"); desktop.NavigationHandleInvalid = false;
+                    Assert(!memory.TryGet(out main, out child), "Destroyed control reappeared without observation");
+                });
+                Test("Continue retains observed worklist for exact case 11 after case 10 was saved", () => {
+                    var desktop = new FakeKeyboardDesktop { FocusUnavailableWhileInactive = true, ResetFocusOnEveryActivation = true, RejectNavigationFocus = true };
+                    desktop.SelectWorklistRow(9); var memory = new WorklistFocusMemory(desktop); Assert(memory.Observe("PowerScribe"), "Initial worklist missing");
+                    var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => { IntPtr main, child; Assert(memory.TryGet(out main, out child), "Continue discarded observed control"); desktop.RememberedFocus = child; try { return new KeyboardSession(KeyboardSettings(), desktop, m => {}); } finally { desktop.RememberedFocus = IntPtr.Zero; } };
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 11 && request.LastSavedCase == 10, "Saved case 10 resumed on wrong label"); desktop.RejectNavigationFocus = false; desktop.SelectWorklistRow(10); Assert(memory.Observe("PowerScribe"), "Selected recovery worklist was not observed"); desktop.Active = new IntPtr(999); return RecoveryChoice.Continue; };
+                    desktop.Active = new IntPtr(999); runner.Run(null, 10, 12, output, CancellationToken.None, m => {});
+                    string text = File.ReadAllText(output + ".for-comparison.txt");
+                    Assert(prompts == 1 && runner.Completed == 3 && desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Recovery loops, repeats saves or sends extra Down");
+                    Assert(text.Contains("Case 11\r\nAttending Report:\r\nHEADER 10") && text.Split(new string[] { "Case 10\r\n" }, StringSplitOptions.None).Length == 2, "Recovery renumbered or duplicated saved data");
+                });
+                Test("Continue waits for one observed worklist then succeeds after popup steals focus", () => {
+                    foreach (int number in new int[] { 10, 11 })
+                    {
+                        var desktop = new FakeKeyboardDesktop { Active = new IntPtr(999), FocusUnavailableWhileInactive = true }; var memory = new WorklistFocusMemory(desktop);
+                        Func<bool> ready = () => { memory.Observe("PowerScribe"); IntPtr main, child; return memory.TryGet(out main, out child); };
+                        using (var dialog = new RecoveryDialog(new RecoveryRequest(number, 12, number == 10 ? (int?)null : 10, "The worklist control could not be identified."), CancellationToken.None, ready))
+                        {
+                            var button = dialog.Controls.Find("RecoveryContinue", true)[0];
+                            Assert(!button.Enabled && dialog.DialogResult == System.Windows.Forms.DialogResult.None, "Continue is active without a detected worklist");
+                            for (int i = 0; i < 5; i++) dialog.ChooseRecovery(RecoveryChoice.Continue);
+                            Assert(dialog.DialogResult == System.Windows.Forms.DialogResult.None, "Rapid Continue bypassed readiness");
+                            desktop.SelectWorklistRow(number - 1); Assert(dialog.RefreshReadiness() && button.Enabled, "Selecting the worklist did not enable Continue");
+                            desktop.Active = new IntPtr(999); dialog.ChooseRecovery(RecoveryChoice.Continue);
+                            Assert(dialog.Choice == RecoveryChoice.Continue && dialog.DialogResult == System.Windows.Forms.DialogResult.OK, "Clicking Continue lost the remembered control");
+                            dialog.ChooseRecovery(RecoveryChoice.Stop); Assert(dialog.Choice == RecoveryChoice.Continue, "A queued second click replaced the choice");
+                        }
+                    }
+                });
+                Test("observed worklist handoff reaches launcher handles and failed-run reset clears it", () => {
+                    var desktop = new FakeKeyboardDesktop(); var memory = new WorklistFocusMemory(desktop); Assert(memory.Observe("PowerScribe"), "No observed focus");
+                    using (var form = new ExportForm(true))
+                    {
+                        form.FocusMemory = memory; Assert(form.UseObservedWorklist(), "Launcher did not retain observed worklist");
+                        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                        Assert((IntPtr)typeof(ExportForm).GetField("lockedWorklistMain", flags).GetValue(form) == new IntPtr(1) && (IntPtr)typeof(ExportForm).GetField("lockedWorklistChild", flags).GetValue(form) == new IntPtr(10), "Launcher handed off wrong handles");
+                        form.CompleteRunState(true); IntPtr main, child; Assert(memory.TryGet(out main, out child), "Success discarded valid memory");
+                        form.CompleteRunState(false); Assert(!memory.TryGet(out main, out child), "Stopped run retained failed capture state");
+                    }
+                });
+                Test("native worklist validation rejects actual buttons combos and editors without losing the valid grid", () => {
+                    using (var root = new TestOffscreenForm())
+                    using (var list = new System.Windows.Forms.ListBox())
+                    using (var button = new System.Windows.Forms.Button())
+                    using (var combo = new System.Windows.Forms.ComboBox())
+                    using (var editor = new System.Windows.Forms.TextBox())
+                    using (var custom = new System.Windows.Forms.Panel())
+                    {
+                        root.Controls.Add(list); root.Controls.Add(button); root.Controls.Add(combo); root.Controls.Add(editor); root.Controls.Add(custom);
+                        root.Show(); System.Windows.Forms.Application.DoEvents();
+                        var memory = new WorklistFocusMemory(new Win32Desktop()); IntPtr main, child;
+                        Assert(memory.Remember(root.Handle, list.Handle), "Native list could not be retained");
+                        foreach (var control in new System.Windows.Forms.Control[] { button, combo, editor }) Assert(!memory.Remember(root.Handle, control.Handle), "Non-worklist native child was accepted");
+                        Assert(memory.TryGet(out main, out child) && child == list.Handle, "Rejected controls replaced the valid native list");
+                        Assert(memory.Remember(root.Handle, custom.Handle), "A valid custom container was rejected");
+                        root.Close();
+                    }
+                });
+                Test("stopped-run instructions identify case 10 when unsaved and case 11 after saving case 10", () => {
+                    var unsaved = new ExportRunner(); Throws<InvalidOperationException>(() => unsaved.Run(new FakeSession { MissingResident = true }, 10, 12, path(), CancellationToken.None, m => {}));
+                    string message = RunSummary.NextStep(new InvalidOperationException("worklist control"), unsaved, 10, 12);
+                    Assert(message.Contains("case 10") && !message.Contains("first case"), "Unsaved recovery instruction changed source case");
+                    var saved = new ExportRunner(); Throws<TimeoutException>(() => saved.Run(new FakeSession { FailAdvance = true }, 10, 12, path(), CancellationToken.None, m => {}));
+                    message = RunSummary.NextStep(new InvalidOperationException("worklist control"), saved, 10, 12);
+                    Assert(message.Contains("case 11") && !message.Contains("first case"), "Saved recovery asks for original starting row");
                 });
                 Test("worklist receives Down after close moved focus into report editor", () => {
                     var desktop = new FakeKeyboardDesktop(); var runner = new ExportRunner(); string output = path();
