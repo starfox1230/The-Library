@@ -19,6 +19,30 @@ namespace ReportExporter
             for (Control parent = control.Parent; parent != null; parent = parent.Parent)
                 Require(parent.RectangleToScreen(parent.ClientRectangle).Contains(bounds), control.Name + " is clipped by " + parent.GetType().Name);
         }
+        public static void VerifyRecoveryDialog()
+        {
+            using (var form = new RecoveryDialog(new RecoveryRequest(12, 20, 11, "Synthetic interruption", 11), System.Threading.CancellationToken.None))
+            {
+                form.CreateControl(); form.PerformLayout();
+                Require(Find(form, "RecoveryHeading").Text.Contains("case 12"), "Recovery has the wrong expected source case");
+                Require(Find(form, "RecoveryInstructions").Text.Contains("Close Compare") && Find(form, "RecoveryInstructions").Text.Contains("SAME worklist"), "Recovery omits selection/close instructions");
+                Require(form.AcceptButton == Find(form, "RecoveryContinue") && form.CancelButton == Find(form, "RecoveryStop"), "Recovery lacks keyboard Continue/Stop");
+                Require(Find(form, "RecoveryLinked").Width >= 200, "Linked-study confirmation is too narrow");
+                var panel = Find(form, "RecoveryContinue").Parent; panel.PerformLayout();
+                foreach (Control button in panel.Controls) Require(panel.ClientRectangle.Contains(button.Bounds), "Recovery button is clipped");
+                form.ChooseRecovery(RecoveryChoice.AcceptLinkedStudies);
+                Require(form.Choice == RecoveryChoice.AcceptLinkedStudies, "Linked confirmation was discarded");
+            }
+            using (var form = new RecoveryDialog(new RecoveryRequest(13, 12, 12, "Synthetic close timeout"), System.Threading.CancellationToken.None))
+            {
+                Require(Find(form, "RecoveryContinue").Text == "Finish", "Saved final pair is offered another copy");
+                bool rejected = false;
+                try { form.ChooseRecovery(RecoveryChoice.AcceptLinkedStudies); } catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "Unrelated timeout allows bypassing study selection as a linked pair");
+                form.ChooseRecovery(RecoveryChoice.Continue); Require(form.Choice == RecoveryChoice.Continue, "Finish was discarded");
+            }
+        }
+
         public static void VerifyProgressRouting()
         {
             using (var form = new ExportForm(true))

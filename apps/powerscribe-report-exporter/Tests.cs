@@ -49,6 +49,8 @@ namespace ReportExporter
             public bool ComparisonOpen, FailOpen, FailClose, NoFreshSequence, LoseFocusOnCopy;
             public bool IdenticalReportBodies, IdenticalCopiedHeaders, NativeRowSupported;
             public bool FreezeRow, NoNavigationControl, RejectNavigationFocus, MainModal, ModalOnOpen, BlockComparison;
+            public bool IgnoreFirstDown, LagFirstComparison;
+            private int loadedRow, comparisonOpens;
             public bool ResetFocusOnActivation, RejectInitialNavigationFocus, NavigationOnlyAfterActivation;
             private bool activated;
             public int UnavailableRow = -1;
@@ -111,7 +113,7 @@ namespace ReportExporter
             {
                 Events.Add("key:" + key.ToString("X2"));
                 if (key == 0x49 && ModalOnOpen) MainModal = true;
-                if (key == 0x49 && MenuDepth == 2 && !FailOpen && Row != UnavailableRow) { MenuDepth = 0; ComparisonOpen = true; residentPane = false; Active = LoseFocusOnOpen ? new IntPtr(999) : new IntPtr(2); }
+                if (key == 0x49 && MenuDepth == 2 && !FailOpen && Row != UnavailableRow) { MenuDepth = 0; ComparisonOpen = true; residentPane = false; loadedRow = LagFirstComparison && ++comparisonOpens == 2 ? Row - 1 : Row; Active = LoseFocusOnOpen ? new IntPtr(999) : new IntPtr(2); }
                 if (key == 0x49 && (FailOpen || Row == UnavailableRow) && CloseMenuOnUnavailable) MenuDepth = 0;
                 if (key == 0x1B && !RefuseMenuExit && !IgnoreEscape && MenuDepth > 0)
                 { if (EscapeExitReadDelay > 0) MenuReadDelay = EscapeExitReadDelay; else MenuDepth--; }
@@ -119,7 +121,7 @@ namespace ReportExporter
                 if (key == 0x09) residentPane = true;
                 if (key == 0x0D && !FailClose) { ComparisonOpen = false; focused = new IntPtr(11); Active = LoseFocusOnClose ? new IntPtr(999) : new IntPtr(1); }
                 if (key == 0x28 && MenuDepth > 0) MenuDownCount++;
-                if (key == 0x28 && MenuDepth == 0 && focused == new IntPtr(10) && !FreezeRow) Row++;
+                if (key == 0x28 && MenuDepth == 0 && focused == new IntPtr(10) && !FreezeRow) { if (IgnoreFirstDown) IgnoreFirstDown = false; else Row++; }
             }
             public void Chord(ushort modifier, ushort key)
             {
@@ -130,7 +132,7 @@ namespace ReportExporter
                 if (key == 0x43)
                 {
                     CopyCount++; pendingPolls = 0;
-                    string result = "HEADER " + (IdenticalCopiedHeaders ? "linked" : Row.ToString()) + "\r\n" + (MissingReportHeading ? "Report content without a section title " : ReportHeading + " ") + (IdenticalReportBodies ? "same" : (residentPane ? "resident " : "attending ") + Row);
+                    string result = "HEADER " + (IdenticalCopiedHeaders ? "linked" : loadedRow.ToString()) + "\r\n" + (MissingReportHeading ? "Report content without a section title " : ReportHeading + " ") + (IdenticalReportBodies ? "same" : (residentPane ? "resident " : "attending ") + loadedRow);
                     if (!residentPane && EmptyAttendingRows.Contains(Row))
                     { if (EmptyAttendingNoUpdate) return; result = ""; }
                     if (residentPane && EmptyResident) result = "";
@@ -141,6 +143,7 @@ namespace ReportExporter
                 }
             }
             public void Click(IntPtr window, int x, int y) { Events.Add("click:" + x + ":" + y); }
+            public void SelectWorklistRow(int row) { Row = row; focused = new IntPtr(10); ComparisonOpen = false; MenuDepth = 0; Active = new IntPtr(1); }
             public bool ClearClipboard() { text = null; pending = null; sequence++; Events.Add("clear"); return true; }
             public uint ClipboardSequence
             {
@@ -696,9 +699,90 @@ namespace ReportExporter
                     foreach (bool supported in new bool[] { false, true })
                     {
                         var desktop = new FakeKeyboardDesktop { IdenticalReportBodies = true, IdenticalCopiedHeaders = true, NativeRowSupported = supported }; var runner = new ExportRunner(); string output = path();
+                        int prompts = 0;
+                        runner.Recovery = (request, token) => { prompts++; Assert(request.RepeatedFromCase == 2 && request.CaseNumber == 3, "Linked confirmation has wrong source labels"); return RecoveryChoice.AcceptLinkedStudies; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 2, 4, output, CancellationToken.None, m => {});
-                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 6 && File.ReadAllText(output).Contains("Case 4"), "Identical linked-study reports stopped the run");
+                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 8 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
                     }
+                });
+                Test("delayed first report load is refreshed without another Down or wrong labels", () => {
+                    foreach (int first in new int[] { 1, 11 })
+                    {
+                        var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path();
+                        runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        string text = File.ReadAllText(output + ".for-comparison.txt");
+                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 8 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Refresh repeated Down or lost a pair");
+                        Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1"), "Previous report was saved under the next case number");
+                    }
+                });
+                Test("missed first Down pauses before save and Continue reselects the expected original case", () => {
+                    foreach (int first in new int[] { 1, 11 })
+                    {
+                        var desktop = new FakeKeyboardDesktop { IgnoreFirstDown = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                        runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                        runner.Recovery = (request, token) => {
+                            prompts++; Assert(request.CaseNumber == first + 1 && request.LastSavedCase == first && request.RepeatedFromCase == first, "Recovery did not retain original numbering");
+                            using (var reading = new FileStream(output + ".for-comparison.txt", FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                            using (var reader = new StreamReader(reading)) Assert(!reader.ReadToEnd().Contains("Case " + (first + 1) + "\r\n"), "Duplicate was saved before recovery");
+                            desktop.SelectWorklistRow(1); return RecoveryChoice.Continue;
+                        };
+                        runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        string text = File.ReadAllText(output + ".for-comparison.txt");
+                        Assert(runner.Completed == 3 && prompts == 1 && desktop.Row == 2, "Continue lost progress or selected another case");
+                        Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1") && text.Split(new string[] { "Case " + first + "\r\n" }, StringSplitOptions.None).Length == 2, "Case labels shifted or first pair was written twice");
+                    }
+                });
+                Test("unconfirmed repeated first pair stops without saving the duplicate", () => {
+                    var desktop = new FakeKeyboardDesktop { IgnoreFirstDown = true }; var runner = new ExportRunner(); string output = path();
+                    Throws<InvalidOperationException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 11, 13, output, CancellationToken.None, m => {}));
+                    Assert(runner.Completed == 1 && !File.ReadAllText(output).Contains("Case 12\r\n"), "Unconfirmed repeat was committed");
+                });
+                Test("close failure Continue keeps saved pair once and resumes at the next original label", () => {
+                    var desktop = new FakeKeyboardDesktop { FailClose = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 12 && request.LastSavedCase == 11, "Saved close failure resumed on an already saved case"); desktop.FailClose = false; desktop.SelectWorklistRow(1); return RecoveryChoice.Continue; };
+                    runner.Run(null, 11, 12, output, CancellationToken.None, m => {});
+                    string text = File.ReadAllText(output + ".for-comparison.txt");
+                    Assert(runner.Completed == 2 && prompts == 1 && desktop.Events.FindAll(e => e == "key:28").Count == 0, "Recovery sent an extra Down or lost saved output");
+                    Assert(text.Split(new string[] { "Case 11\r\n" }, StringSplitOptions.None).Length == 2 && text.Contains("Case 12\r\nAttending Report:\r\nHEADER 1"), "Recovery duplicated or relabeled a saved pair");
+                });
+                Test("unsaved opening failure Continue retries the same label with a fresh session", () => {
+                    var desktop = new FakeKeyboardDesktop { FailTools = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 11 && !request.LastSavedCase.HasValue, "Unsaved failure skipped a source label"); desktop.FailTools = false; desktop.SelectWorklistRow(0); return RecoveryChoice.Continue; };
+                    runner.Run(null, 11, 11, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 1 && prompts == 1 && desktop.CopyCount == 2 && desktop.Row == 0, "Retry discarded or duplicated the current case");
+                });
+                Test("final saved close failure offers Finish without recopy or navigation", () => {
+                    var desktop = new FakeKeyboardDesktop { FailClose = true }; var runner = new ExportRunner(); string output = path();
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { Assert(request.FinishOnly && request.LastSavedCase == 11, "Final saved case did not offer finish"); desktop.SelectWorklistRow(0); return RecoveryChoice.Continue; };
+                    runner.Run(null, 11, 11, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 1 && desktop.CopyCount == 2 && !desktop.Events.Contains("key:28"), "Finish reread or advanced the final saved case");
+                });
+                Test("Stop in recovery preserves complete pairs without saving an unverified repeat", () => {
+                    var desktop = new FakeKeyboardDesktop { IgnoreFirstDown = true }; var runner = new ExportRunner(); string output = path();
+                    runner.Recovery = (request, token) => RecoveryChoice.Stop;
+                    Throws<OperationCanceledException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 3, output, CancellationToken.None, m => {}));
+                    Assert(runner.Completed == 1 && !File.ReadAllText(output).Contains("Case 2\r\n") && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Stop appended a duplicate or advanced");
+                });
+                Test("native unchanged-row timeout Continue keeps saved label and does not retry Down", () => {
+                    var desktop = new FakeKeyboardDesktop { FreezeRow = true, NativeRowSupported = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 12 && request.LastSavedCase == 11, "Navigation timeout lost the committed label"); desktop.FreezeRow = false; desktop.SelectWorklistRow(1); return RecoveryChoice.Continue; };
+                    runner.Run(null, 11, 12, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 2 && prompts == 1 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Recovery retried Down after manual selection");
+                    Assert(File.ReadAllText(output).Contains("Case 12\r\nAttending Report:\r\nHEADER 1"), "Next case contains the old report");
+                });
+                Test("cancellation while paused ignores Continue and retains the saved prefix", () => {
+                    var desktop = new FakeKeyboardDesktop { IgnoreFirstDown = true }; var runner = new ExportRunner(); string output = path(); int restarts = 0;
+                    using (var cancel = new CancellationTokenSource())
+                    {
+                        runner.RestartSession = () => { restarts++; return new KeyboardSession(KeyboardSettings(), desktop, m => {}); };
+                        runner.Recovery = (request, token) => { cancel.Cancel(); return RecoveryChoice.Continue; };
+                        Throws<OperationCanceledException>(() => runner.Run(null, 11, 13, output, cancel.Token, m => {}));
+                    }
+                    Assert(runner.Completed == 1 && restarts == 1 && !File.ReadAllText(output).Contains("Case 12\r\n"), "Cancellation reopened or committed the paused case");
                 });
                 Test("Win32 INPUT union has the correct native structure size", () => {
                     Type type = typeof(Native).GetNestedType("Input", System.Reflection.BindingFlags.NonPublic);
@@ -951,6 +1035,7 @@ namespace ReportExporter
                 });
                 Test("compact launcher hides setup, expands Options and keeps Go visible", LauncherChecks.Verify);
                 Test("live progress is shown only in the external overlay without resizing the launcher", LauncherChecks.VerifyProgressRouting);
+                Test("recovery dialog explains source selection, keeps buttons visible and separates linked studies from Finish", LauncherChecks.VerifyRecoveryDialog);
                 Test("failed and cancelled attempts clear retained capture state and permit retry without reopening", LauncherChecks.VerifyRetryState);
                 Test("typed case fields preserve valid ranges and reject blank, malformed, overflow and reversed input", LauncherChecks.VerifyTypedRange);
                 Test("manual recovery reads complete pairs after a stopped run, never the archival file", () => {

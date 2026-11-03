@@ -2,6 +2,37 @@
 
 Prepared October 4, 2026. All fixture reports are synthetic.
 
+## November 2, 2026: truncated unique cases and current labels (2026.11.02.2)
+
+- **111 Python tests passed.** The backend clinical prompt/severity rules did not
+  change. The assembled single-file deployment remains syntax checked.
+- `check-sequence.cjs` now covers unique 1-to-11 repairs with and without an OCR
+  flag, a three-row middle repair, a three-row leading repair, and refusal of a
+  digit substitution or a two-row crop. Existing 47/81-row truncation, offset,
+  unchanged-accession, gap/reorder/spacing/insufficient-anchor checks passed.
+  Local-neighbor fixtures repair 1-to-11 despite an unrelated genuine gap or
+  contradictory number elsewhere, retain those original values and accessions,
+  and refuse competing local answers of 10 versus 11.
+- `check-lookup-recovery.cjs` verifies that a completed image's needs-correction
+  label clears after fixing its case number, reappears when an edit creates a
+  conflict, and clears when that conflict is resolved. Prior list-scroll,
+  partial analysis/export, retained evidence and correction checks still pass.
+- Actual pinned OCR, multi-image overlap/progress, offline export/correction,
+  dual titles, save and reopen checks passed with synthetic data. No patient
+  screenshot or paid analysis request was used. Cloud Run deployment is pending.
+- The associated extractor v0.19 passes **127 synthetic/native-control tests**.
+  Regressions reproduce delayed loaded reports and missed first Down, both at
+  labels 1 and 11; demonstrate same-row refresh or explicit recovery before a
+  duplicate is saved; preserve linked studies, saved prefixes and original labels;
+  and cover Stop/cancel, close/navigation recovery and Finish without recopy.
+  The actual PowerScribe failure still requires a hospital-workstation trial.
+- Portable [extractor v0.19](https://drive.google.com/file/d/1lxBMem5TiKGOuNVmJKnJrqGM7RhXOK80/view?usp=drivesdk)
+  is uploaded in the existing release folder. ZIP: 68,481 bytes; SHA-256
+  `b9f63b4463d42d6d2bccbf656942ca740dbe760b558f7d72ab10cf40835ad648`.
+  The archive contains only the tested EXE, README and quick start; the embedded
+  EXE hash matches the tested file. Mounted-Drive SHA-256 and connector readback
+  of the synced file ID/name/size were verified; prior releases were preserved.
+
 ## November 2, 2026: lookup scroll and best-available analysis (2026.11.02.1)
 
 - **111 Python tests passed.** The normal form now retains incomplete, flagged

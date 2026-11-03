@@ -1,4 +1,39 @@
-# PowerScribe Report Exporter v0.18
+# PowerScribe Report Exporter v0.19
+
+## v0.19: recover in place and check a repeated first pair
+
+Recoverable opening, focus, capture, close and navigation failures now pause the
+active export instead of immediately ending it. The dialog gives the original
+case number to select: close Compare Report Revisions, select that case in the
+same unchanged worklist, and click **Continue**. The exporter brings PowerScribe
+forward with a fresh navigation/capture session and keeps the current output.
+Already saved entries are never appended again: after a saved close/navigation
+failure, the dialog requests the next case. If the final entry was already saved,
+**Finish** ends without another copy or Down. **Stop** and the stop shortcut remain
+available; disk/save failures are not automatically retried.
+
+The first time the next case repeats both full resident and attending reports,
+the keyboard workflow closes/reopens that **same** comparison once, without Down,
+after a short settling interval. This catches a freshly copied but still-loaded
+previous report. If both reports still match, the second pair is not saved until
+you select the expected study and Continue, or confirm **These are linked
+studies**. Legitimate identical linked reports keep all original case numbers;
+they are never silently deleted or assumed to be an extraction error. The check
+is at the first transition, not a confirmation for every case. Native worklist
+row-index checks and existing focus/clipboard/menu guards remain in place.
+
+Validation: **127 synthetic/native-control tests passed**, including delayed
+loaded-report data, missed first Down at starts 1 and 11, unchanged native-row
+recovery, saved/unsaved failures, cancellation while paused, final-entry Finish,
+linked studies and unclipped dialog controls. The night recovery-dialog preview
+was inspected. No tests operate PowerScribe or the real clipboard. The actual
+hospital failure has not been reproduced; verify a short range locally before
+using its case/accession mapping for distribution.
+
+The separate website source build **2026.11.02.2** repairs an omitted case-number
+digit when one consistent neighboring sequence supports it, and clears each
+screenshot's correction label after edits resolve its remaining issues. Deploy
+that `main.py` separately; installing this executable does not update Cloud Run.
 
 ## v0.18: reset retained capture state after a failed or stopped attempt
 

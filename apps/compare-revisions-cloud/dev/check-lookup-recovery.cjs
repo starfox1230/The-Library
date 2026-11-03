@@ -19,7 +19,7 @@ const report=n=>`Case ${n}\nAttending Report:\nFINDINGS:\nSynthetic finding ${n}
   const c=document.createElement('canvas');c.width=500;c.height=1600;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,500,1600);x.fillStyle='black';x.font='20px Arial';
   for(let i=1;i<=47;i++)x.fillText(i+'     CT900001'+String(i).padStart(3,'0'),10,30*i);
   const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Synthetic screenshot · 47 rows';details.className='lookup-screenshot';details.append(summary);document.querySelector('#lookup-images').append(details);
-  const img={id:'synthetic-scroll',bitmap:await createImageBitmap(c),details,summary,label:'Synthetic screenshot'};lookupQA.images.push(img);
+  const img={id:'synthetic-scroll',bitmap:await createImageBitmap(c),details,summary,label:'Synthetic screenshot',rowsReady:true};lookupQA.images.push(img);
   lookupQA.rows=Array.from({length:47},(_,i)=>({case_number:i+1,accession:'CT900001'+String(i+1).padStart(3,'0'),imageId:img.id,rowY:30*(i+1),source:'Synthetic screenshot'}));
   details.addEventListener('toggle',()=>{if(details.open){lookupQA.show(img);lookupQA.table();}else if(document.querySelector('#lookup-editor').parentElement===details)document.querySelector('#lookup-editor').hidden=true;});
   details.open=true;lookupQA.show(img);lookupQA.table();
@@ -35,6 +35,12 @@ const report=n=>`Case ${n}\nAttending Report:\nFINDINGS:\nSynthetic finding ${n}
  await page.screenshot({path:path.join(out,'lookup-scroll-preserved.png')});
  // Explicit list rebuilds (e.g. details toggle/row edit) also retain its offset.
  const offset=await page.locator('.lookup-table-wrap').evaluate(n=>n.scrollTop);await page.evaluate(()=>lookupQA.table());assert.equal(await page.locator('.lookup-table-wrap').evaluate(n=>n.scrollTop),offset);
+ // Screenshot-level warnings must follow edits, including conflicts introduced
+ // or removed from a previously ready image.
+ await page.evaluate(()=>{lookupQA.rows[0].caseIssue='Case number may be incomplete';lookupQA.table();});assert((await page.locator('.lookup-screenshot > summary').textContent()).includes('needs correction'));
+ await page.locator('#lookup-rows tr').first().locator('input').first().fill('1');assert((await page.locator('.lookup-screenshot > summary').textContent()).includes('ready'));
+ await page.locator('#lookup-rows tr').first().locator('input').first().fill('2');assert((await page.locator('.lookup-screenshot > summary').textContent()).includes('needs correction'));
+ await page.locator('#lookup-rows tr').first().locator('input').first().fill('1');assert((await page.locator('.lookup-screenshot > summary').textContent()).includes('ready'));
  // The actual normal POST must retain all unresolved rows and their crops,
  // while report preparation and known-good accession copying still work.
  await page.goto('http://127.0.0.1:8766/');await page.locator('#report-text').fill(report(68)+report(69));

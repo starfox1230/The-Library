@@ -1,5 +1,22 @@
 # Changes and rationale — October 4, 2026
 
+## Neighbor-based case repair and current image labels — November 2, 2026 (2026.11.02.2)
+
+- Repair a unique short case reading such as 1 instead of 11 when one consistent
+  sequence has at least 60% reliable anchors. Require literal omitted digits for
+  readable discrepancies, retain spacing/end-anchor checks and reject gaps or
+  substitutions. Permit three-row crops with two supporting anchors. Accession
+  strings remain unchanged.
+- When whole-image repair is blocked elsewhere, permit a unique local omitted
+  digit established by two original, unflagged neighbors with consistent spacing.
+  Do not use inferred rows as new anchors or bridge a genuine source gap.
+- Recalculate each completed screenshot's correction/ready label from current
+  canonical rows after edits, removal or range assignment. Shared overlap and
+  duplicate-case conflicts update all affected image labels.
+- Extractor v0.19 adds in-place interruption recovery and a fresh same-row
+  comparison check before a repeated first pair can acquire a second case label.
+  Its executable and the website remain separate updates.
+
 ## OCR lookup recovery — November 2, 2026 (build 2026.11.02.1)
 
 - Preserve the OCR table's scroll position when View row highlights an image;

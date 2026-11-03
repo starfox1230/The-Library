@@ -114,7 +114,7 @@ namespace ReportExporter
         }
     }
 
-    public sealed class KeyboardSession : IReportSession, ISessionTelemetry
+    public sealed class KeyboardSession : IReportSession, ISessionTelemetry, IRefreshComparisonSession
     {
         private readonly Profile profile;
         private readonly IKeyboardDesktop desktop;
@@ -326,6 +326,17 @@ namespace ReportExporter
                 AttendingCopyMs = attendingMs, ResidentCopyMs = residentClock.ElapsedMilliseconds, CopyRetries = copyRetries,
                 ClipboardReadMs = clipboardReadMs, ClipboardReadMaxMs = clipboardReadMaxMs,
                 ClipboardClearMs = clipboardClearMs, ClipboardLockMisses = clipboardLockMisses };
+        }
+
+        public ReportPair RefreshComparison(CancellationToken token)
+        {
+            // Same selected row, no list navigation. Reopening gives PowerScribe a
+            // chance to finish loading after the first Down instead of reusing a dialog.
+            CloseComparison(token);
+            Guard(main, token);
+            if (token.WaitHandle.WaitOne(Math.Max(300, profile.CaseDelayMs))) token.ThrowIfCancellationRequested();
+            OpenComparison(token);
+            return ReadReports(token);
         }
 
         private string Copy(string role, CancellationToken token, bool inspectResidentAfterEmpty = false)

@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.18.0.0")]
-[assembly: AssemblyFileVersion("0.18.0.0")]
+[assembly: AssemblyVersion("0.19.0.0")]
+[assembly: AssemblyFileVersion("0.19.0.0")]
 
 namespace ReportExporter
 {
@@ -18,11 +18,13 @@ namespace ReportExporter
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-copied" || args[0] == "--preview-progress"))
+            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-copied" || args[0] == "--preview-progress" || args[0] == "--preview-recovery"))
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                using (Form form = args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
+                using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(12, 20, 11,
+                    "Both full reports still match case 11. The next study may not have loaded, or these may be distinct linked studies.", 11), CancellationToken.None) :
+                    args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
                     if (args[0] == "--preview-copied")
@@ -128,7 +130,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.18";
+            Text = "PowerScribe Report Exporter v0.19";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -556,11 +558,18 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.18; new capture/navigation session for this attempt...");
-                    IReportSession session = profile.KeyboardWorkflow ?
-                        (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
-                        (IReportSession)new WindowsSession(profile, reportProgress);
-                    runner.Run(session, firstLabel, lastLabel, output, cancellation.Token, reportProgress);
+                    reportProgress("Initializing native exporter v0.19; new capture/navigation session for this attempt...");
+                    bool initialSession = true;
+                    runner.RestartSession = () => {
+                        IntPtr worklistMain = initialSession ? lockedWorklistMain : IntPtr.Zero;
+                        IntPtr worklistChild = initialSession ? lockedWorklistChild : IntPtr.Zero;
+                        initialSession = false;
+                        return profile.KeyboardWorkflow ?
+                            (IReportSession)new KeyboardSession(profile, new Win32Desktop(worklistMain, worklistChild, reportProgress), reportProgress) :
+                            (IReportSession)new WindowsSession(profile, reportProgress);
+                    };
+                    runner.Recovery = ShowRecovery;
+                    runner.Run(null, firstLabel, lastLabel, output, cancellation.Token, reportProgress);
                     success = true; outcome = "Done"; result = "Done. " + runner.Completed + " complete pairs ready to paste.";
                     if (runner.Pending + runner.Skipped > 0) result += " " + (runner.Pending + runner.Skipped) + " entries need review; see Details.";
                     diagnostic = "Only complete pairs go into the comparison file. Unconfirmed pending and unavailable entries remain in the original capture.\r\n" + runner.OutcomeSummary;
@@ -619,6 +628,20 @@ namespace ReportExporter
             worker.IsBackground = true;
             worker.SetApartmentState(ApartmentState.STA); // Required for Windows clipboard access.
             worker.Start();
+        }
+
+        private RecoveryChoice ShowRecovery(RecoveryRequest request, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            RecoveryChoice choice = RecoveryChoice.Stop;
+            Invoke((Action)(() => {
+                if (token.IsCancellationRequested || IsDisposed) return;
+                if (overlay != null) overlay.SetPhase("Paused at case " + request.CaseNumber + ". Follow the Continue dialog.", 0, 1);
+                using (var dialog = new RecoveryDialog(request, token)) { dialog.ShowDialog(this); choice = dialog.Choice; }
+                if (choice == RecoveryChoice.Continue) lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
+            }));
+            token.ThrowIfCancellationRequested();
+            return choice;
         }
 
         internal void CompleteRunState(bool success)

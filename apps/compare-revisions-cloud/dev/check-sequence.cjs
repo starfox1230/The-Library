@@ -14,6 +14,19 @@ assert.equal(rows.filter(r=>r.numberSource==='sequence').length,7);assert(rows.e
 rows=make(12,68);rows[5].case_number=null;assert.equal(repair(rows),1);assert.equal(rows[5].case_number,73,'repair starts from actual source labels, not 1');
 rows=make(81);for(const [i,n] of [[0,null],[8,null],[10,null],[21,2],[30,3],[70,7]])rows[i].case_number=n;
 assert.equal(repair(rows),6);assert.deepEqual(rows.map(r=>r.case_number),make(81).map(r=>r.case_number),'duplicate OCR readings of 2/3 must not invalidate a coherent early anchor at 4');
+for(const flagged of [false,true]){
+ rows=make(12,11);rows[0].case_number=1;if(flagged)rows[0].caseIssue='Case number may be incomplete';
+ const before=rows.map(r=>r.accession);assert.equal(repair(rows),1);assert.equal(rows[0].case_number,11);assert.equal(rows[0].caseIssue,'');assert.deepEqual(rows.map(r=>r.accession),before);
+}
+rows=make(3,10);rows[1].case_number=1;assert.equal(repair(rows),1);assert.equal(rows[1].case_number,11,'two adjacent anchors can repair a middle truncated digit');
+rows=make(3,11);rows[0].case_number=1;assert.equal(repair(rows),1);assert.equal(rows[0].case_number,11,'a short screenshot can establish 11,12,13');
+rows=make(3,11);rows[0].case_number=2;const shortBefore=copy(rows);assert.equal(repair(rows),0);assert.deepEqual(rows,shortBefore,'a digit substitution must not be called truncation');
+rows=make(2,11);rows[0].case_number=1;assert.equal(repair(rows),0,'two rows alone cannot establish a sequence');
+rows=make(20);rows[10].case_number=1;for(let i=15;i<rows.length;i++)rows[i].case_number++;accessions=rows.map(r=>r.accession);
+assert.equal(repair(rows),1);assert.equal(rows[10].case_number,11);assert.equal(rows[15].case_number,17,'a genuine gap elsewhere must remain unchanged');assert.deepEqual(rows.map(r=>r.accession),accessions);
+rows=make(20);rows[10].case_number=1;rows[17].case_number=900;assert.equal(repair(rows),1);assert.equal(rows[10].case_number,11);assert.equal(rows[17].case_number,900);
+rows=[9,10,1,12,13].map((n,i)=>({case_number:n,caseIssue:'',accession:'SYNTHETIC-'+i,rowY:30+i*18}));assert.equal(repair(rows),1);assert.equal(rows[2].case_number,11);
+rows=[8,9,1,12,13].map((n,i)=>({case_number:n,caseIssue:'',accession:'SYNTHETIC-'+i,rowY:30+i*18}));assert.equal(repair(rows),0,'competing local neighbors cannot choose between 10 and 11');
 for(const mutate of [
  r=>{r[4].case_number=900;}, // Contradictory unique reading: never choose a majority.
  r=>{for(let i=5;i<r.length;i++)r[i].case_number++;}, // Genuine source-number gap.

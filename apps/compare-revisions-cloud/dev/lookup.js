@@ -114,6 +114,14 @@ function showLookupImage(img,reveal=false){
  const zoom=$('lookup-zoom').value;$('lookup-canvas').style.width=(zoom==='fit'?Math.min(img.bitmap.width*3,$('lookup-image').clientWidth||700):img.bitmap.width*Number(zoom))+'px';paintLookup();
 }
 function updateImageCard(img,status){img.status=status;img.summary.textContent=img.label+' · '+status;}
+function refreshLookupImageChecks(){
+ const conflicts=lookupConflicts();
+ for(const img of lookupImages){
+  if(!img.rowsReady)continue;
+  const rows=lookupRows.filter(r=>r.imageId===img.id||r.imageIds?.includes(img.id));
+  updateImageCard(img,rows.length+' rows'+(rows.some(r=>!validLookup(r)||conflicts.has(r.case_number))?' · needs correction':' · ready'));
+ }
+}
 function rowCrop(img,row,line){
  const columns=[img.caseColumn,img.accessionColumn],top=Math.max(0,Math.floor(Math.min(...line.words.map(w=>w.bbox.y0))-3)),bottom=Math.min(img.bitmap.height,Math.ceil(Math.max(...line.words.map(w=>w.bbox.y1))+3));
  const width=columns.reduce((sum,[l,r])=>sum+Math.ceil(r)-Math.floor(l),0)+12,h=bottom-top;if(h<1)return;
@@ -133,10 +141,10 @@ function lookupTable(){
   if(r.numberSource==='sequence'){n.classList.add('lookup-repaired');n.title='OCR read '+(r.originalCase??'no case number')+'. Suggested '+r.case_number+' from consistent consecutive source numbers. Compare with the source if needed.';}
   const status=el('span',(!validLookup(r)||conflicts.has(r.case_number))?'lookup-warning':'muted',lookupRowMessage(r,conflicts));status.title='A duplicate case warning means the lookup assigns different accessions to one case number. OCR read scores are engine confidence, not measured accuracy.';
   const source=el('div');source.append(status);if(r.imageId||r.source_row){const reveal=()=>{const img=lookupImages.find(i=>i.id===r.imageId);if(!img){let crop=source.querySelector('img');if(!crop){crop=el('img','accession-source-row');crop.src=r.source_row;crop.alt='Original case number and accession from screenshot';source.append(crop);}else crop.hidden=!crop.hidden;return;}const tableTop=wrap.scrollTop,tableLeft=wrap.scrollLeft;img.focusY=r.rowY;showLookupImage(img,true);wrap.scrollTop=tableTop;wrap.scrollLeft=tableLeft;const canvas=$('lookup-canvas'),scale=canvas.getBoundingClientRect().width/canvas.width;$('lookup-image').scrollTop=Math.max(0,r.rowY*scale-100);};source.append(button('View row','plain',reveal));}
-  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const row of $('lookup-rows').children){const item=lookupRows[Number(row.dataset.lookupIndex)],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}updateReview();};
+  const changed=caseEdited=>{r.case_number=/^\d+$/.test(n.value.trim())?Number(n.value.trim()):null;r.accession=a.value.trim();if(!caseEdited){r.accessionIssue='';r.originalAccession=null;}if(caseEdited){r.caseIssue='';r.numberSource='manual';}r.confirmed=false;const conflicts=lookupConflicts();for(const row of $('lookup-rows').children){const item=lookupRows[Number(row.dataset.lookupIndex)],status=row.children[2].querySelector('span');status.className=(!validLookup(item)||conflicts.has(item.case_number))?'lookup-warning':'muted';status.textContent=lookupRowMessage(item,conflicts);}refreshLookupImageChecks();updateReview();};
   n.addEventListener('input',()=>changed(true));a.addEventListener('input',()=>changed(false));
   for(const child of [n,a,source,button('Remove','plain',()=>{lookupRows.splice(index,1);lookupTable();updateReview();})]){const td=el('td');td.append(child);tr.append(td);}$('lookup-rows').append(tr);
- });wrap.scrollTop=scrollTop;wrap.scrollLeft=scrollLeft;updateLookupCoverage();
+ });wrap.scrollTop=scrollTop;wrap.scrollLeft=scrollLeft;refreshLookupImageChecks();updateLookupCoverage();
 }
 function clearLookup(){
  lookupEpoch++;lookupRows=[];ocrQueue=[];for(const img of lookupImages)img.bitmap?.close();lookupImages.length=0;currentImage=null;
@@ -287,28 +295,60 @@ function readImageRows(img){
  markAccessionLengths(img.rows);
  const repairs=repairCaseSequence(img.rows);
  for(const candidate of img.rows){const existing=candidate.case_number&&lookupRows.find(r=>r.case_number===candidate.case_number&&r.accession===candidate.accession);if(existing){existing.imageIds=[...new Set([...(existing.imageIds||[existing.imageId]),img.id])];}else lookupRows.push(candidate);}
- updateImageCard(img,found+' rows'+(img.rows.some(r=>!validLookup(r))?' · needs correction':' · ready'));
+ img.rowsReady=true;refreshLookupImageChecks();
  lookupTable();updateReview();$('ocr-status').textContent=found?'Read '+found+' rows. '+(repairs?'Repaired '+repairs+' incomplete case numbers from a consistent sequence; suggested numbers are highlighted. ':'')+'Analyze reports accepts these mappings. You can correct any number against its source row.'+(img.bitmap.width<500?' Small source image: a larger original capture can improve recognition.':''):'No numbered rows recognized. Paste a clearer crop or add rows manually.';
 }
 function regularImageRows(rows){
  const gaps=rows.slice(1).map((r,i)=>r.rowY-rows[i].rowY),ordered=[...gaps].sort((a,b)=>a-b),median=ordered[Math.floor(ordered.length/2)];
  return gaps.every(g=>g>0&&g>=median*.55&&g<=median*1.6);
 }
-function repairCaseSequence(rows){
- if(rows.length<4||!regularImageRows(rows))return 0;
+function isTruncatedCaseNumber(read,expected){
+ const a=String(read),b=String(expected);if(a.length>=b.length)return false;
+ let i=0;for(const digit of b)if(digit===a[i])i++;
+ return i===a.length;
+}
+function repairAnchoredCaseSequence(rows){
+ if(rows.length<3||!regularImageRows(rows))return 0;
  const occurrences=new Map();for(const r of rows)if(Number.isInteger(r.case_number))occurrences.set(r.case_number,(occurrences.get(r.case_number)||0)+1);
  const anchors=rows.map((r,i)=>({r,i,start:r.case_number-i})).filter(a=>Number.isInteger(a.r.case_number)&&!a.r.caseIssue&&occurrences.get(a.r.case_number)===1);
- if(anchors.length<Math.max(4,Math.ceil(rows.length*.6)))return 0;
- const starts=new Set(anchors.map(a=>a.start));
- // Any contradictory readable number, gap or reordered source list blocks
- // repair. Do not choose a majority that could erase a legitimate source gap.
- // An early genuine 2/3 may also be excluded when 22/31 were truncated to
- // those digits. Allow an anchor in the first five rows, while retaining the
- // global consensus, spacing and far-end requirements.
- if(starts.size!==1||!anchors.some(a=>a.i<5)||!anchors.some(a=>a.i>=rows.length-3))return 0;
- const start=anchors[0].start;if(start<1||start+rows.length-1>1000000)return 0;
+ const required=Math.max(2,Math.ceil(rows.length*.6)),starts=[];
+ // A unique short reading (1 instead of 11) is not a contradictory full
+ // number. Admit only literal missing-digit readings against one strongly
+ // anchored sequence. Equal-length disagreements, source gaps and substitutions
+ // still reject repair; accession characters are never inferred here.
+ for(const start of new Set(anchors.map(a=>a.start))){
+  if(start<1||start+rows.length-1>1000000)continue;
+  const supporting=anchors.filter(a=>a.start===start);
+  if(supporting.length<required||!supporting.some(a=>a.i<5)||!supporting.some(a=>a.i>=rows.length-3))continue;
+  if(rows.some((r,i)=>Number.isInteger(r.case_number)&&r.case_number!==start+i&&!isTruncatedCaseNumber(r.case_number,start+i)))continue;
+  starts.push(start);
+ }
+ if(starts.length!==1)return 0;const start=starts[0];
  let changed=0;
  for(const [i,r] of rows.entries())if(!Number.isInteger(r.case_number)||r.caseIssue||r.case_number!==start+i){r.originalCase=r.case_number;r.case_number=start+i;r.caseIssue='';r.numberSource='sequence';r.confirmed=false;changed++;}
+ return changed;
+}
+function repairCaseSequence(rows){
+ const whole=repairAnchoredCaseSequence(rows);if(whole)return whole;
+ // An unrelated numbering gap elsewhere must not prevent 10,1,12 -> 10,11,12.
+ // Use only original, unflagged neighbor readings as evidence, never a chain
+ // of inferred neighbors. Require literal missing digits and a unique result.
+ const original=rows.map(r=>({...r})),counts=new Map();let changed=0;
+ for(const r of original)counts.set(r.case_number,(counts.get(r.case_number)||0)+1);
+ for(let i=0;i<rows.length;i++){
+  const read=original[i].case_number;if(!Number.isInteger(read))continue;
+  const candidates=new Set();
+  for(let start=Math.max(0,i-2);start<=Math.min(i,rows.length-3);start++){
+   const window=original.slice(start,start+3);if(!regularImageRows(window))continue;
+   const anchors=window.map((r,j)=>({r,index:start+j})).filter(a=>a.index!==i);
+   if(anchors.some(a=>a.r.caseIssue||!Number.isInteger(a.r.case_number)||counts.get(a.r.case_number)!==1))continue;
+   const [a,b]=anchors;if(b.r.case_number-a.r.case_number!==b.index-a.index)continue;
+   const expected=a.r.case_number+i-a.index;
+   if(expected>0&&expected<=1000000&&isTruncatedCaseNumber(read,expected))candidates.add(expected);
+  }
+  if(candidates.size!==1)continue;
+  const r=rows[i];r.originalCase=read;r.case_number=[...candidates][0];r.caseIssue='';r.numberSource='sequence';r.confirmed=false;changed++;
+ }
  return changed;
 }
 async function addLookupImages(files){

@@ -2,8 +2,8 @@
 
 ## Screenshot lookup and HTML export — November 2, 2026
 
-Website build **2026.11.02.1** appears in the footer. This is separate from the
-PowerScribe extractor executable version (now v0.18).
+Website build **2026.11.02.2** appears in the footer. This is separate from the
+PowerScribe extractor executable version (now v0.19).
 
 Implemented in replacement source; Cloud Run deployment is still pending.
 
@@ -40,9 +40,15 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   same-image digit-length consensus flags unusual lengths for correction.
 - Case numbers are still read by OCR. An incomplete or duplicate reading can
   be repaired when at least 60% of rows provide unique, consistent consecutive
-  anchors, including anchors near both ends, with regular row spacing. A
-  contradictory readable number, source gap or missing-row spacing blocks
-  automatic repair. Suggested numbers remain highlighted for easy inspection.
+  anchors, including anchors near both ends, with regular row spacing. A unique
+  truncated reading such as 1 instead of 11 can be repaired even if OCR did not
+  flag it; the observed digits must be a literal subsequence of the suggested
+  number. A three-row crop can qualify with two supporting anchors. If an
+  unrelated gap or unreadable number blocks whole-image repair, two original,
+  unflagged neighboring readings can still establish a local omitted digit.
+  Competing local answers, digit substitutions, same-length disagreements and
+  missing-row spacing prevent that repair. Genuine gaps are retained and
+  suggested numbers remain highlighted for inspection.
   **Use verified consecutive case numbers** is an optional fallback: enter the
   first/last source numbers and explicitly verify that every row is present in
   order. The count must match. Neither method changes accession strings.
@@ -59,6 +65,8 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   is made. Capture larger source text where possible.
 - **View row preserves list position.** It highlights and scrolls the image pane
   without reattaching the active editor or resetting the table's scroll offset.
+- Screenshot-level **needs correction** labels are recalculated after edits,
+  removals and range changes, including conflicts shared by overlapping images.
 - Source numbers are exact, batch-local keys. Lookup rows survive the
   normal Analyze form submission without sending them to Azure. Editing report
   input suspends copying/export against the old results until the new batch is

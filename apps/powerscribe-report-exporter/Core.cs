@@ -26,6 +26,23 @@ namespace ReportExporter
     }
     public interface ISessionTelemetry { int FocusRecoveries { get; } }
 
+    public interface IRefreshComparisonSession
+    {
+        ReportPair RefreshComparison(CancellationToken token);
+    }
+
+    public enum RecoveryChoice { Stop, Continue, AcceptLinkedStudies }
+
+    public sealed class RecoveryRequest
+    {
+        public readonly int CaseNumber, LastCase;
+        public readonly int? LastSavedCase, RepeatedFromCase;
+        public readonly string Reason;
+        public bool FinishOnly { get { return CaseNumber > LastCase; } }
+        public RecoveryRequest(int number, int last, int? saved, string reason, int? repeatedFrom = null)
+        { CaseNumber = number; LastCase = last; LastSavedCase = saved; Reason = reason; RepeatedFromCase = repeatedFrom; }
+    }
+
     // Only throw after confirming that no comparison exists and the main window is ready.
     public sealed class ComparisonUnavailableException : Exception
     {
@@ -169,6 +186,8 @@ namespace ReportExporter
 
     public sealed class ExportRunner
     {
+        public Func<RecoveryRequest, CancellationToken, RecoveryChoice> Recovery;
+        public Func<IReportSession> RestartSession;
         private readonly bool findingsOnly;
         public ExportRunner(bool findingsOnly = false) { this.findingsOnly = findingsOnly; }
         public int Completed { get; private set; }
@@ -203,6 +222,8 @@ namespace ReportExporter
                 timings.WriteLine("case,open_ms,capture_ms,save_close_ms,next_ms,read_method,attending_copy_ms,resident_copy_ms,save_ms,close_ms,total_ms,focus_recoveries,copy_retries,clipboard_read_ms,clipboard_read_max_ms,clipboard_clear_ms,clipboard_lock_misses");
                 timings.Flush();
                 string previous = null;
+                ReportPair firstPair = null;
+                int firstPairNumber = 0;
                 for (int number = first; number <= last; number++)
                 {
                     token.ThrowIfCancellationRequested();
@@ -211,6 +232,11 @@ namespace ReportExporter
                     string stage = "selection";
                     try
                     {
+                        if (session == null)
+                        {
+                            if (RestartSession == null) throw new InvalidOperationException("No capture session is available.");
+                            session = RestartSession();
+                        }
                         progress("Case " + number + (session.CanVerifySelectedRow ? ": verifying the selected row..." : ": using the AHK keyboard sequence..."));
                         string selected = session.CanVerifySelectedRow ? session.SelectedCase() : null;
                         if (session.CanVerifySelectedRow && (String.IsNullOrEmpty(selected) || selected == previous))
@@ -241,6 +267,33 @@ namespace ReportExporter
                         progress("Case " + number + ": comparison is open; reading both reports...");
                         stage = "capture";
                         ReportPair pair = session.ReadReports(token);
+                        // An independently updated clipboard can still contain PowerScribe's
+                        // previously loaded report. Never silently relabel that first repeat.
+                        if (Completed == 1 && number == firstPairNumber + 1 && SamePair(firstPair, pair))
+                        {
+                            var refresh = session as IRefreshComparisonSession;
+                            if (refresh != null)
+                            {
+                                progress("The first two report pairs match; reopening this same case once to check for delayed loading. No Down is sent.");
+                                pair = refresh.RefreshComparison(token);
+                            }
+                            if (SamePair(firstPair, pair))
+                            {
+                                if (Recovery == null) throw new InvalidOperationException("The first report pair repeated after advancing. Verify the next study before exporting it under another case number.");
+                                outcomes.WriteLine(number + ",paused_first_pair_repeat"); outcomes.Flush();
+                                var request = new RecoveryRequest(number, last, LastSavedCase,
+                                    "Both full reports still match case " + firstPairNumber + ". The next study may not have loaded, or these may be distinct linked studies.", firstPairNumber);
+                                RecoveryChoice choice = Recovery(request, token); token.ThrowIfCancellationRequested();
+                                if (choice == RecoveryChoice.Stop) throw new OperationCanceledException("Stopped while checking the repeated first pair.", token);
+                                if (choice == RecoveryChoice.Continue)
+                                {
+                                    if (RestartSession == null) throw new InvalidOperationException("A fresh capture session is required to continue.");
+                                    session = null; previous = null; number--; continue;
+                                }
+                                if (choice != RecoveryChoice.AcceptLinkedStudies) throw new InvalidOperationException("Invalid recovery choice.");
+                                outcomes.WriteLine(number + ",distinct_linked_studies_confirmed"); outcomes.Flush();
+                            }
+                        }
                         bool pending = pair.AttendingEmptyUnconfirmed;
                         string formatted = pending ? ReportText.FormatPending(number, pair) : ReportText.Format(number, pair, findingsOnly);
                         if (session.CanVerifySelectedRow && session.SelectedCase() != selected)
@@ -258,6 +311,7 @@ namespace ReportExporter
                             () => session.CloseComparison(token), () => {
                                 if (pending) { Pending++; pendingCases.Add(number.ToString(CultureInfo.InvariantCulture)); } else Completed++;
                                 LastSavedCase = number;
+                                if (!pending && firstPair == null) { firstPair = pair; firstPairNumber = number; }
                                 outcomes.WriteLine(number + (pending ? ",pending_suspected" : ",complete")); outcomes.Flush();
                             }, out saveMs, out closeMs);
                         long close = clock.ElapsedMilliseconds - open - capture;
@@ -280,11 +334,35 @@ namespace ReportExporter
                     }
                     catch (OperationCanceledException)
                     { outcomes.WriteLine(number + ",cancelled_" + stage); outcomes.Flush(); throw; }
-                    catch (Exception)
-                    { outcomes.WriteLine(number + ",stopped_" + stage); outcomes.Flush(); throw; }
+                    catch (Exception error)
+                    {
+                        // A saved pair must never be appended a second time after a close
+                        // or navigation timeout. Disk/save failures are not retried here.
+                        if (Recovery != null && RestartSession != null && (stage != "save_or_close" || LastSavedCase == number) &&
+                                (error is TimeoutException || error is InvalidOperationException))
+                        {
+                            int next = LastSavedCase.HasValue && LastSavedCase.Value >= number ? LastSavedCase.Value + 1 : number;
+                            outcomes.WriteLine(number + ",paused_" + stage); outcomes.Flush();
+                            progress("Paused. Saved reports are kept; waiting for study selection and Continue.");
+                            var choice = Recovery(new RecoveryRequest(next, last, LastSavedCase, error.Message), token);
+                            token.ThrowIfCancellationRequested();
+                            if (choice != RecoveryChoice.Continue) throw new OperationCanceledException("Stopped during recovery.", token);
+                            session = null; previous = null; number = next - 1;
+                            outcomes.WriteLine(next + ",manual_recovery"); outcomes.Flush();
+                            continue;
+                        }
+                        outcomes.WriteLine(number + ",stopped_" + stage); outcomes.Flush(); throw;
+                    }
                 }
                 progress(OutcomeSummary);
             }
+        }
+
+        private static bool SamePair(ReportPair first, ReportPair next)
+        {
+            return first != null && next != null && !first.AttendingEmptyUnconfirmed && !next.AttendingEmptyUnconfirmed &&
+                String.Equals(first.Attending, next.Attending, StringComparison.Ordinal) &&
+                String.Equals(first.Resident, next.Resident, StringComparison.Ordinal);
         }
     }
 
