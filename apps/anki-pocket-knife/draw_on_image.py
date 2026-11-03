@@ -13,12 +13,14 @@ from urllib.request import url2pathname
 from aqt import gui_hooks, mw
 from aqt.editor import Editor
 from aqt.qt import (
+    QAbstractTextDocumentLayout,
     QBuffer,
     QColor,
     QColorDialog,
     QDesktopServices,
     QDialog,
     QFrame,
+    QFont,
     QGuiApplication,
     QHBoxLayout,
     QImage,
@@ -28,6 +30,7 @@ from aqt.qt import (
     QMimeData,
     QPainter,
     QPainterPath,
+    QPalette,
     QPen,
     QPointF,
     QPolygonF,
@@ -38,6 +41,8 @@ from aqt.qt import (
     QSizePolicy,
     QSlider,
     QTimer,
+    QTextDocument,
+    QTextEdit,
     QUrl,
     Qt,
     QVBoxLayout,
@@ -53,6 +58,7 @@ COMMAND_PREFIX = "pocket_knife_draw_on_image:"
 DEFAULT_COLOR = "#FFAA00"
 DEFAULT_TOOL = "arrow"
 DEFAULT_WIDTH = 8
+DEFAULT_TEXT_SIZE = 24
 COPY_ATTEMPTS = 6
 COPY_VERIFY_DELAY_MS = 120
 COPY_RETRY_DELAY_MS = 250
@@ -134,17 +140,30 @@ class Stroke:
 
 
 @dataclass
+class TextAnnotation:
+    text: str
+    color: str
+    font_size: int
+    rect: QRectF
+
+
+@dataclass
 class AnnotationPreferences:
     color: str = DEFAULT_COLOR
     tool: str = DEFAULT_TOOL
     arrow_width: int = DEFAULT_WIDTH
     pen_width: int = DEFAULT_WIDTH
+    text_size: int = DEFAULT_TEXT_SIZE
 
     def width_for(self, tool: str) -> int:
+        if tool == "text":
+            return self.text_size
         return self.pen_width if tool == "pen" else self.arrow_width
 
     def set_width_for(self, tool: str, width: int) -> None:
-        if tool == "pen":
+        if tool == "text":
+            self.text_size = width
+        elif tool == "pen":
             self.pen_width = width
         else:
             self.arrow_width = width
@@ -163,11 +182,12 @@ def _load_annotation_preferences() -> AnnotationPreferences:
     tool = str(settings.get("draw_on_image_tool", DEFAULT_TOOL))
     return AnnotationPreferences(
         color=color.name().upper() if color.isValid() else DEFAULT_COLOR,
-        tool=tool if tool in {"arrow", "pen"} else DEFAULT_TOOL,
+        tool=tool if tool in {"arrow", "pen", "text"} else DEFAULT_TOOL,
         arrow_width=_valid_width(
             settings.get("draw_on_image_arrow_width", DEFAULT_WIDTH)
         ),
         pen_width=_valid_width(settings.get("draw_on_image_pen_width", DEFAULT_WIDTH)),
+        text_size=_valid_text_size(settings.get("draw_on_image_text_size", DEFAULT_TEXT_SIZE)),
     )
 
 
@@ -179,9 +199,110 @@ def _save_annotation_preferences(preferences: AnnotationPreferences) -> None:
             "draw_on_image_tool": preferences.tool,
             "draw_on_image_arrow_width": preferences.arrow_width,
             "draw_on_image_pen_width": preferences.pen_width,
+            "draw_on_image_text_size": preferences.text_size,
         }
     )
     save_settings(settings)
+
+
+def _valid_text_size(value) -> int:
+    try:
+        return max(8, min(144, int(value)))
+    except (TypeError, ValueError):
+        return DEFAULT_TEXT_SIZE
+
+
+class _TextResizeGrip(QWidget):
+    def __init__(self, parent) -> None:
+        super().__init__(parent)
+        self.setCursor(Qt.CursorShape.SizeFDiagCursor)
+        self.setToolTip("Drag to resize the text box")
+        self.setStyleSheet("background: transparent;")
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor("#94a3b8"), 1))
+        for offset in (3, 7, 11):
+            painter.drawLine(15 - offset, 15, 15, 15 - offset)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._origin = event.globalPosition()
+            self._size = self.parentWidget().size()
+            event.accept()
+
+    def mouseMoveEvent(self, event) -> None:
+        if event.buttons() & Qt.MouseButton.LeftButton and hasattr(self, "_origin"):
+            delta = (event.globalPosition() - self._origin).toPoint()
+            self.parentWidget().resize(
+                self._size.width() + delta.x(), self._size.height() + delta.y()
+            )
+
+    def mouseReleaseEvent(self, event) -> None:
+        event.accept()
+
+
+class _AnnotationTextEdit(QTextEdit):
+    def keyPressEvent(self, event) -> None:
+        if event.matches(QKeySequence.StandardKey.Copy):
+            copy_image = getattr(self.window(), "copy_to_clipboard_and_close", None)
+            if callable(copy_image):
+                copy_image()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
+
+class _TextBox(QFrame):
+    """Temporary editing controls; only the plain text is exported."""
+
+    def __init__(self, canvas: "DrawingCanvas") -> None:
+        super().__init__(canvas)
+        self.canvas = canvas
+        self._drag_offset = None
+        self.setMinimumSize(90, 70)
+        self.setStyleSheet("_TextBox { background: transparent; border: 1px dashed #94a3b8; }")
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 2, 5, 5)
+        layout.setSpacing(2)
+        label = QLabel("Move | resize corner", self)
+        label.setFixedHeight(18)
+        label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        label.setStyleSheet("background: transparent; color: #94a3b8; font-size: 11px; border: none;")
+        layout.addWidget(label)
+        self.editor = _AnnotationTextEdit(self)
+        self.editor.setAcceptRichText(False)
+        self.editor.setFrameShape(QFrame.Shape.NoFrame)
+        self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.editor.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.editor.document().setDocumentMargin(0)
+        layout.addWidget(self.editor, 1)
+        self.grip = _TextResizeGrip(self)
+        self.grip.setFixedSize(16, 16)
+        self.editor.textChanged.connect(canvas.update)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.grip.move(self.width() - 16, self.height() - 16)
+        self.grip.raise_()
+        self.layout().activate()
+        self.canvas._text_box_changed()
+
+    def moveEvent(self, event) -> None:
+        super().moveEvent(event)
+        self.canvas._text_box_changed()
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_offset = event.globalPosition() - QPointF(self.pos())
+            event.accept()
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._drag_offset is not None and event.buttons() & Qt.MouseButton.LeftButton:
+            self.move((event.globalPosition() - self._drag_offset).toPoint())
+
+    def mouseReleaseEvent(self, event) -> None:
+        self._drag_offset = None
 
 
 class DrawingCanvas(QWidget):
@@ -191,8 +312,14 @@ class DrawingCanvas(QWidget):
         self.tool = DEFAULT_TOOL
         self.pen_color = QColor(DEFAULT_COLOR)
         self.pen_size = float(DEFAULT_WIDTH)
-        self._strokes: list[Stroke] = []
-        self._redo: list[Stroke] = []
+        self.text_size = DEFAULT_TEXT_SIZE
+        self._strokes: list[Stroke | TextAnnotation] = []
+        self._undo: list[list[Stroke | TextAnnotation]] = []
+        self._redo: list[list[Stroke | TextAnnotation]] = []
+        self._text_box: _TextBox | None = None
+        self._text_annotation: TextAnnotation | None = None
+        self._editing_index: int | None = None
+        self._syncing_text_box = False
         self._active: Stroke | None = None
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.setMinimumSize(320, 240)
@@ -202,14 +329,131 @@ class DrawingCanvas(QWidget):
     def set_pen_color(self, color: QColor) -> None:
         if color.isValid():
             self.pen_color = QColor(color)
+            if self._text_annotation is not None:
+                self._text_annotation.color = color.name().upper()
+                self._sync_text_box_style()
 
     def set_pen_size(self, size: int) -> None:
         self.pen_size = float(max(2, min(30, int(size))))
 
     def set_tool(self, tool: str) -> None:
-        if tool not in {"arrow", "pen"}:
+        if tool not in {"arrow", "pen", "text"}:
             raise ValueError(f"Unknown drawing tool: {tool}")
+        if tool != self.tool:
+            self.finish_text()
         self.tool = tool
+
+    def set_text_size(self, size: int) -> None:
+        self.text_size = _valid_text_size(size)
+        if self._text_annotation is not None:
+            self._text_annotation.font_size = self.text_size
+            self._sync_text_box_style()
+
+    def _remember_change(self) -> None:
+        self._undo.append(self._strokes[:])
+        self._redo.clear()
+
+    def _text_box_changed(self) -> None:
+        if self._syncing_text_box or self._text_box is None or self._text_annotation is None:
+            return
+        box = self._text_box
+        target = self._target_rect()
+        if target.isEmpty():
+            return
+        origin = QPointF(box.editor.mapTo(self, box.editor.rect().topLeft()))
+        scale = self._image.width() / target.width()
+        self._text_annotation.rect = QRectF(
+            (origin.x() - target.left()) * scale,
+            (origin.y() - target.top()) * scale,
+            box.editor.viewport().width() * scale,
+            box.editor.viewport().height() * scale,
+        )
+
+    def _sync_text_box_style(self) -> None:
+        if self._text_box is None or self._text_annotation is None:
+            return
+        scale = self._target_rect().width() / self._image.width()
+        annotation = self._text_annotation
+        font = QFont("Segoe UI")
+        pixel_size = max(1, round(annotation.font_size * scale))
+        font.setPixelSize(pixel_size)
+        self._text_box.editor.setFont(font)
+        self._text_box.editor.setStyleSheet(
+            f"background: transparent; color: {annotation.color}; border: none; padding: 0px; "
+            f"font-family: 'Segoe UI'; font-size: {pixel_size}px;"
+        )
+
+    def _sync_text_box_geometry(self) -> None:
+        if self._text_box is None or self._text_annotation is None:
+            return
+        self._syncing_text_box = True
+        try:
+            target = self._target_rect()
+            scale = target.width() / self._image.width()
+            rect = self._text_annotation.rect
+            self._text_box.setGeometry(
+                max(0, round(target.left() + rect.left() * scale - 5)),
+                max(0, round(target.top() + rect.top() * scale - 24)),
+                max(90, round(rect.width() * scale + 10)),
+                max(70, round(rect.height() * scale + 29)),
+            )
+            self._sync_text_box_style()
+        finally:
+            self._syncing_text_box = False
+
+    def start_text(self, point: QPointF) -> None:
+        self.finish_text()
+        # Clicking an existing label lets it be edited, recolored, moved or resized.
+        for index in range(len(self._strokes) - 1, -1, -1):
+            item = self._strokes[index]
+            if isinstance(item, TextAnnotation) and item.rect.contains(point):
+                self._editing_index = index
+                self._text_annotation = TextAnnotation(
+                    item.text, item.color, item.font_size, QRectF(item.rect)
+                )
+                break
+        else:
+            self._text_annotation = TextAnnotation(
+                "", self.pen_color.name().upper(), self.text_size,
+                QRectF(point.x(), point.y(),
+                       min(260, self._image.width() - point.x()),
+                       min(100, self._image.height() - point.y())),
+            )
+        self._text_box = _TextBox(self)
+        self._sync_text_box_geometry()
+        self._text_box.editor.setPlainText(self._text_annotation.text)
+        self._text_box.show()
+        self._text_box_changed()
+        self._text_box.editor.setFocus()
+        self.update()
+
+    def finish_text(self) -> None:
+        if self._text_box is None or self._text_annotation is None:
+            return
+        annotation = self._text_annotation
+        annotation.text = self._text_box.editor.toPlainText()
+        index = self._editing_index
+        previous = self._strokes[index] if index is not None else None
+        if annotation.text.strip():
+            if annotation != previous:
+                self._remember_change()
+                if index is None:
+                    self._strokes.append(annotation)
+                else:
+                    self._strokes[index] = annotation
+        elif index is not None:
+            self._remember_change()
+            self._strokes.pop(index)
+        self._text_box.hide()
+        self._text_box.deleteLater()
+        self._text_box = None
+        self._text_annotation = None
+        self._editing_index = None
+        self.update()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._sync_text_box_geometry()
 
     def _target_rect(self) -> QRectF:
         available = QRectF(self.rect()).adjusted(8, 8, -8, -8)
@@ -243,24 +487,46 @@ class DrawingCanvas(QWidget):
         )
 
     def undo(self) -> None:
-        if self._strokes:
-            self._redo.append(self._strokes.pop())
+        self.finish_text()
+        if self._undo:
+            self._redo.append(self._strokes[:])
+            self._strokes = self._undo.pop()
             self.update()
 
     def redo(self) -> None:
+        self.finish_text()
         if self._redo:
-            self._strokes.append(self._redo.pop())
+            self._undo.append(self._strokes[:])
+            self._strokes = self._redo.pop()
             self.update()
 
     def clear(self) -> None:
+        self.finish_text()
         if not self._strokes:
             return
-        self._redo.extend(reversed(self._strokes))
+        self._remember_change()
         self._strokes.clear()
         self.update()
 
     @staticmethod
-    def _draw_stroke(painter: QPainter, stroke: Stroke) -> None:
+    def _draw_stroke(painter: QPainter, stroke: Stroke | TextAnnotation) -> None:
+        if isinstance(stroke, TextAnnotation):
+            painter.save()
+            painter.setClipRect(stroke.rect)
+            painter.translate(stroke.rect.topLeft())
+            document = QTextDocument()
+            document.setDocumentMargin(0)
+            font = QFont("Segoe UI")
+            font.setPixelSize(stroke.font_size)
+            document.setDefaultFont(font)
+            document.setPlainText(stroke.text)
+            # QTextDocument's plain text uses the palette in its paint context.
+            context = QAbstractTextDocumentLayout.PaintContext()
+            context.palette.setColor(QPalette.ColorRole.Text, QColor(stroke.color))
+            document.setTextWidth(stroke.rect.width())
+            document.documentLayout().draw(painter, context)
+            painter.restore()
+            return
         if len(stroke.points) < 2:
             return
 
@@ -308,8 +574,9 @@ class DrawingCanvas(QWidget):
 
     def _paint_image_contents(self, painter: QPainter, include_active: bool) -> None:
         painter.drawImage(QPointF(0, 0), self._image)
-        for stroke in self._strokes:
-            self._draw_stroke(painter, stroke)
+        for index, stroke in enumerate(self._strokes):
+            if index != self._editing_index:
+                self._draw_stroke(painter, stroke)
         if include_active and self._active is not None:
             self._draw_stroke(painter, self._active)
 
@@ -329,6 +596,7 @@ class DrawingCanvas(QWidget):
         self._paint_image_contents(painter, include_active=True)
 
     def rendered_image(self) -> QImage:
+        self.finish_text()
         rendered = self._image.copy()
         painter = QPainter(rendered)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -346,6 +614,10 @@ class DrawingCanvas(QWidget):
             return
         point = self._image_point(event.position())
         if point is None:
+            self.finish_text()
+            return
+        if self.tool == "text":
+            self.start_text(point)
             return
         self._active = Stroke(
             self.tool,
@@ -353,7 +625,6 @@ class DrawingCanvas(QWidget):
             self.pen_size,
             [point],
         )
-        self._redo.clear()
         self.update()
 
     def mouseMoveEvent(self, event) -> None:
@@ -384,6 +655,7 @@ class DrawingCanvas(QWidget):
             elif len(self._active.points) == 1:
                 self._active.points.append(point)
         if len(self._active.points) >= 2:
+            self._remember_change()
             self._strokes.append(self._active)
         self._active = None
         self.update()
@@ -435,6 +707,9 @@ class DrawOnImageDialog(QDialog):
 
         self.arrow_button = QPushButton("Arrow")
         self.draw_button = QPushButton("Draw")
+        self.text_button = QPushButton("Text")
+        self.text_button.setCheckable(True)
+        self.text_button.setToolTip("Click the image to type. Drag the box header to move; drag its corner to resize. Click a label to edit it.")
         self.arrow_button.setCheckable(True)
         self.draw_button.setCheckable(True)
         self.arrow_button.setChecked(True)
@@ -459,6 +734,7 @@ class DrawOnImageDialog(QDialog):
 
         toolbar.addWidget(self.arrow_button)
         toolbar.addWidget(self.draw_button)
+        toolbar.addWidget(self.text_button)
         toolbar.addSpacing(12)
         toolbar.addWidget(QLabel("Color:"))
         toolbar.addWidget(self.color_button)
@@ -486,6 +762,7 @@ class DrawOnImageDialog(QDialog):
 
         self.arrow_button.clicked.connect(lambda: self._set_tool("arrow"))
         self.draw_button.clicked.connect(lambda: self._set_tool("pen"))
+        self.text_button.clicked.connect(lambda: self._set_tool("text"))
         self.color_button.clicked.connect(self._choose_color)
         self.size_slider.valueChanged.connect(self._set_pen_size)
         undo_button.clicked.connect(self.canvas.undo)
@@ -530,12 +807,13 @@ class DrawOnImageDialog(QDialog):
         self._preferences.tool = tool
         self.arrow_button.setChecked(tool == "arrow")
         self.draw_button.setChecked(tool == "pen")
+        self.text_button.setChecked(tool == "text")
         width = self._preferences.width_for(tool)
         self._applying_preferences = True
         try:
+            self.size_slider.setRange(*((8, 144) if tool == "text" else (2, 30)))
             self.size_slider.setValue(width)
-            self.canvas.set_pen_size(width)
-            self.size_label.setText(f"Width: {width}")
+            self._set_pen_size(width)
         finally:
             self._applying_preferences = False
         _save_annotation_preferences(self._preferences)
@@ -557,10 +835,13 @@ class DrawOnImageDialog(QDialog):
             self.canvas.set_tool(self._preferences.tool)
             self.arrow_button.setChecked(self._preferences.tool == "arrow")
             self.draw_button.setChecked(self._preferences.tool == "pen")
+            self.text_button.setChecked(self._preferences.tool == "text")
             width = self._preferences.width_for(self._preferences.tool)
+            self.size_slider.setRange(*(
+                (8, 144) if self._preferences.tool == "text" else (2, 30)
+            ))
             self.size_slider.setValue(width)
-            self.canvas.set_pen_size(width)
-            self.size_label.setText(f"Width: {width}")
+            self._set_pen_size(width)
         finally:
             self._applying_preferences = False
 
@@ -579,8 +860,12 @@ class DrawOnImageDialog(QDialog):
         _save_annotation_preferences(self._preferences)
 
     def _set_pen_size(self, value: int) -> None:
-        self.canvas.set_pen_size(int(value))
-        self.size_label.setText(f"Width: {int(value)}")
+        if self.canvas.tool == "text":
+            self.canvas.set_text_size(int(value))
+            self.size_label.setText(f"Text size: {int(value)}")
+        else:
+            self.canvas.set_pen_size(int(value))
+            self.size_label.setText(f"Width: {int(value)}")
         if self._applying_preferences:
             return
         self._preferences.set_width_for(self.canvas.tool, int(value))

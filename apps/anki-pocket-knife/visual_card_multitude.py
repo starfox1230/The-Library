@@ -37,6 +37,8 @@ BUTTON_ICON_PATH = addon_root() / "assets" / "pink_picture_frame.svg"
 BUTTON_ID = "pocket-knife-visual-card-multitude"
 DIAGNOSIS_BUTTON_COMMAND = "pocket_knife_diagnosis_template"
 DIAGNOSIS_BUTTON_ID = "pocket-knife-diagnosis-template"
+STRUCTURE_BUTTON_COMMAND = "pocket_knife_structure_template"
+STRUCTURE_BUTTON_ID = "pocket-knife-structure-template"
 AUTO_DECK_BUTTON_COMMAND = "pocket_knife_toggle_add_cards_auto_deck"
 AUTO_DECK_BUTTON_ID = "pocket-knife-auto-deck-toggle"
 STICKY_FIELDS_STATE_PATH = user_files_dir() / "sticky_fields_state.json"
@@ -44,6 +46,7 @@ AUTO_DECK_AUDIO_NAME = ".NEW::Audio"
 AUTO_DECK_VISUAL_NAME = ".NEW::Visual"
 _HOOK_REGISTERED = False
 _BRIDGE_PATCHED = False
+_ADD_CARDS_REOPEN_PATCHED = False
 _TAB_CLOZE_FILTER: "_AddCardsTabClozeAppFilter | None" = None
 _OPEN_ADD_CARDS_EDITORS: "weakref.WeakSet[Editor]" = weakref.WeakSet()
 
@@ -566,6 +569,12 @@ if (diagnosisButton) {{
   diagnosisButton.style.opacity = diagnosisButton.disabled ? "0.62" : "1";
   diagnosisButton.style.cursor = diagnosisButton.disabled ? "not-allowed" : "";
 }}
+const structureButton = document.getElementById({json.dumps(STRUCTURE_BUTTON_ID)});
+if (structureButton) {{
+  structureButton.disabled = {json.dumps(not diagnosis_enabled)};
+  structureButton.style.cssText = diagnosisButton?.style.cssText || "";
+  structureButton.title = "Replace Text with What structure is this? and keep the first cloze answer and images";
+}}
 """,
     )
 
@@ -824,7 +833,9 @@ def _normalize_text_field_for_multi_image_counter(note) -> bool:
     return True
 
 
-def _build_diagnosis_text_html(text_html: str) -> str:
+def _build_diagnosis_text_html(
+    text_html: str, *, prompt: str = _DIAGNOSIS_TEMPLATE_PREFIX
+) -> str:
     source_html = _strip_diagnosis_cursor_markers(_strip_multi_image_counter(text_html))
     first_cloze_match = _CLOZE_RE.search(source_html)
     preserved_cloze_html = ""
@@ -837,7 +848,7 @@ def _build_diagnosis_text_html(text_html: str) -> str:
     )
     images_html = _extract_images_html(source_html)
     combined = (
-        f"{_DIAGNOSIS_TEMPLATE_PREFIX}"
+        f"{prompt}"
         f"{_DIAGNOSIS_CLOZE_PREFIX}{cloze_contents}{_DIAGNOSIS_CLOZE_SUFFIX}"
         f"{_DIAGNOSIS_TEMPLATE_SUFFIX}"
         f"{images_html}"
@@ -1298,6 +1309,14 @@ def _toggle_add_cards_auto_deck(editor: Editor) -> None:
 
 
 def apply_diagnosis_template(editor: Editor) -> None:
+    _apply_image_question_template(editor, structure=False)
+
+
+def apply_structure_template(editor: Editor) -> None:
+    _apply_image_question_template(editor, structure=True)
+
+
+def _apply_image_question_template(editor: Editor, *, structure: bool) -> None:
     if not isinstance(getattr(editor, "parentWindow", None), AddCards):
         return
 
@@ -1306,7 +1325,8 @@ def apply_diagnosis_template(editor: Editor) -> None:
         showWarning("No Add Cards note is currently loaded.")
         return
     if not _note_is_cloze(source_note):
-        tooltip("Dx is only available for cloze note types.")
+        tooltip("Struct is only available for cloze note types." if structure else
+                "Dx is only available for cloze note types.")
         return
 
     text_field_name = _actual_note_field_name(source_note, "Text")
@@ -1315,7 +1335,10 @@ def apply_diagnosis_template(editor: Editor) -> None:
         showWarning("This note does not have a usable Text field.")
         return
 
-    source_note[text_field_name] = _build_diagnosis_text_html(source_note[text_field_name])
+    prompt = "What structure is this?<br><br>" if structure else _DIAGNOSIS_TEMPLATE_PREFIX
+    source_note[text_field_name] = _build_diagnosis_text_html(
+        source_note[text_field_name], prompt=prompt
+    )
     setattr(editor, "_anki_pocket_knife_pending_diagnosis_cursor_ord", int(text_field_ord))
     load_note = getattr(editor, "loadNote", None)
     if callable(load_note):
@@ -1323,7 +1346,7 @@ def apply_diagnosis_template(editor: Editor) -> None:
     source_note[text_field_name] = _strip_diagnosis_cursor_markers(source_note[text_field_name])
     QTimer.singleShot(50, lambda: _place_diagnosis_cursor(editor, int(text_field_ord)))
     _apply_auto_deck_rules(editor)
-    tooltip("Diagnosis template inserted.")
+    tooltip("Structure template inserted." if structure else "Diagnosis template inserted.")
 
 
 def _build_visual_target_note(source_note, *, converted: ConvertedVisualFields) -> Note | None:
@@ -1512,7 +1535,43 @@ def _on_setup_editor_buttons(buttons: list[str], editor: Editor) -> list[str]:
             disables=False,
         )
         buttons.append(diagnosis_button)
+        buttons.append(editor.addButton(
+            None,
+            STRUCTURE_BUTTON_COMMAND,
+            apply_structure_template,
+            tip="Replace Text with What structure is this? and keep the first cloze answer and images",
+            label="Struct",
+            id=STRUCTURE_BUTTON_ID,
+            disables=False,
+        ))
     return buttons
+
+
+def _default_add_cards_to_sacloze(add_cards: AddCards) -> None:
+    model = add_cards.col.models.by_name(REVERSE_TARGET_NOTETYPE_NAME)
+    if model is None:
+        tooltip("Pocket Knife: saCloze++ is missing; keeping the current note type.")
+        return
+    # Use Anki's chooser so the selector, note fields, and editor stay in sync.
+    # This runs only when opening Add Cards, leaving manual changes alone.
+    add_cards.set_note_type(model["id"])
+
+
+def _patch_add_cards_reopen() -> None:
+    global _ADD_CARDS_REOPEN_PATCHED
+    if _ADD_CARDS_REOPEN_PATCHED:
+        return
+    original = AddCards.reopen
+
+    def reopen(add_cards: AddCards, *args, **kwargs):
+        was_blank = add_cards.editor.fieldsAreBlank()
+        result = original(add_cards, *args, **kwargs)
+        if was_blank:
+            _default_add_cards_to_sacloze(add_cards)
+        return result
+
+    AddCards.reopen = reopen
+    _ADD_CARDS_REOPEN_PATCHED = True
 
 
 def _on_editor_did_load_note(editor: Editor) -> None:
@@ -1564,6 +1623,8 @@ def install() -> None:
     _ensure_tab_cloze_event_filter()
     gui_hooks.editor_did_init_buttons.append(_on_setup_editor_buttons)
     gui_hooks.editor_did_load_note.append(_on_editor_did_load_note)
+    gui_hooks.add_cards_did_init.append(_default_add_cards_to_sacloze)
+    _patch_add_cards_reopen()
     if hasattr(gui_hooks, "main_window_did_init"):
         gui_hooks.main_window_did_init.append(lambda: _ensure_tab_cloze_event_filter())
     if hasattr(gui_hooks, "theme_did_change"):

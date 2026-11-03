@@ -2,6 +2,29 @@
 
 Anki Pocket Knife is a multi-tool add-on that bundles together a few focused workflow helpers in one place.
 
+## Card authoring
+
+Opening **Add Cards** defaults to the collection's existing **saCloze++** note type,
+including reopening an empty Add Cards window. You can still select another type
+or use the picture-frame converter. Reopening an unfinished note keeps it intact.
+If saCloze++ is missing, Pocket Knife keeps the current type and shows a notice.
+
+The **Struct** button next to **Dx** inserts
+`What structure is this?<br><br>{{c1::}}<br><br>`.
+Both buttons preserve the first cloze answer and all images, select the answer
+for editing, and keep the live image counter and automatic deck behavior.
+**Dx** uses `Most likely diagnosis?`. The existing **Dx Diagnosis Button In Add
+Cards** setting controls both buttons; both are available only on cloze notes.
+
+In **Draw on Image**, select **Text**, then click the image and type into the
+transparent box. Text uses the selected color. Drag the box header to move it,
+drag its bottom-right corner to resize and wrap it, and use **Text size** to
+change the font size. Click an existing label in Text mode to edit it; changing
+the selected color also recolors the active label. Click elsewhere or choose
+another tool to finish. Undo, Redo, Clear Drawing, and Copy & Close include text.
+The box border and handles are editing controls and do not appear in the image.
+Text size is remembered separately from arrow and drawing widths.
+
 ## Included tools
 
 - `Early Review Deck`: reuses the existing early-review behavior and builds a filtered deck from tomorrow's review cards, prioritizing the longest intervals first.
@@ -26,7 +49,7 @@ Anki Pocket Knife is a multi-tool add-on that bundles together a few focused wor
 - `Underline Trailing Spaces Fix`: default-on rich-text editor setting that keeps spaces out of underline while they are currently trailing, including after double-click selections and while you keep typing inside an underlined phrase, but lets those spaces join the underline automatically once later text makes them internal.
 - `Add Cards -> Pink Picture-Frame Converter`: default-on button on the normal Add Cards screen that converts the current cloze note into `Visual_Card_Multitude`, sending cloze text to `English`, non-cloze text to `Question`, inline images to `Images`, and `Extra` to `More Info`. If you are already on `Visual_Card_Multitude`, the same button converts back to `saCloze++`, sending `Question` plus a clozed `English` block and `Images` into `Text`, and `More Info` back into `Extra`.
 - `Add Cards -> Sticky Fields Default On`: default-on setting that initializes Add Cards note types with every field thumbtack turned on when they do not already have saved sticky-pin choices, then leaves later thumbtack changes as that note type's saved default.
-- `Add Cards -> Dx Diagnosis Template`: default-on `Dx` button beside the picture-frame button that is only enabled for cloze note types and rewrites the `Text` field to `Diagnosis?<br><br>{{c1::}}<br><br>` above any existing images, then places the cursor inside the empty cloze.
+- `Add Cards -> Dx / Struct Templates`: cloze-only buttons that use `Most likely diagnosis?` or `What structure is this?`, preserving the first cloze answer and all images and selecting the answer for editing.
 - `Add Cards -> Auto Deck Toggle`: toolbar toggle that can automatically switch cloze notes between `.NEW::Audio` and `.NEW::Visual` based on whether the `Text` field contains an image, and can also auto-switch `Visual_Card_Multitude` notes to `.NEW::Visual`.
 - `Add Cards -> Live Multi-Image Counter`: optional setting that adds a `1/N` label above the first image in a cloze note's `Text` field when more than one image is present, keeps it updated as images are added, strips it during cloze-to-visual conversion, and recreates it when converting back to cloze.
 - `Add Cards -> Tab Cycles Clozes`: default-on setting that changes `Tab` in the cloze note `Text` field so it cycles through cloze deletions instead of jumping to the next field. `Shift+Tab` cycles backward.
