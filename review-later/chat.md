@@ -44,32 +44,116 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-02 06:20 Central Standard Time
-Cards: 3
+Updated: 2026-11-02 21:52 Central Standard Time
+Cards: 8
 
 ## Card 1
 
 Deck: .NEW::Audio
-Flagged: 2026-04-27T05:55:17-05:00
-Last seen: 2026-11-02T06:11:13-06:00
-Card ID: 1763769382858
-Note ID: 1763769382857
+Flagged: 2026-09-26T15:35:23-05:00
+Last seen: 2026-11-02T21:52:17-06:00
+Card ID: 1775839995565
+Note ID: 1775839995564
 
 Question:
 00:12
 
-For solitary fibrous tumor of the pleura, the [...] morphology is associated with the highest risk of local recurrence.
+If the serum hCG level is above [...] and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
 
 Answer:
 00:12
 
-For solitary fibrous tumor of the pleura, the sessile morphology is associated with the highest risk of local recurrence.
+If the serum hCG level is above 3,500 mIU/mL and no intrauterine pregnancy is seen on transvaginal ultrasound, the finding is concerning for an abnormal pregnancy but does not by itself prove ectopic pregnancy.
 
 ## Card 2
 
 Deck: Saved Cards
+Flagged: 2026-09-07T08:54:41-05:00
+Last seen: 2026-11-02T21:51:11-06:00
+Card ID: 1788754072562
+Note ID: 1788754072560
+
+Question:
+00:12
+
+A well counter is typically a [...] used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+Answer:
+00:12
+
+A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-04-21T17:04:29-05:00
+Last seen: 2026-11-02T21:45:43-06:00
+Card ID: 1776449807658
+Note ID: 1776449807658
+
+Question:
+00:12
+
+What pattern?
+
+[...]
+
+Answer:
+00:08
+
+What pattern?
+
+reticular pattern
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-08-09T07:22:26-05:00
+Last seen: 2026-11-02T21:44:58-06:00
+Card ID: 1776176867641
+Note ID: 1776176867641
+
+Question:
+00:12
+
+What's going on in this cisternography?
+
+[...]
+
+Answer:
+00:12
+
+What's going on in this cisternography?
+
+Dose extravasation - railroad sign and early kidney activity
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-10-21T17:50:02-05:00
+Last seen: 2026-11-02T21:44:28-06:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 6
+
+Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
-Last seen: 2026-11-02T06:10:55-06:00
+Last seen: 2026-11-02T21:43:21-06:00
 Card ID: 1789015833796
 Note ID: 1789015833795
 
@@ -83,11 +167,29 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 3
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-04-27T05:55:17-05:00
+Last seen: 2026-11-02T21:42:43-06:00
+Card ID: 1763769382858
+Note ID: 1763769382857
+
+Question:
+00:12
+
+For solitary fibrous tumor of the pleura, the [...] morphology is associated with the highest risk of local recurrence.
+
+Answer:
+00:12
+
+For solitary fibrous tumor of the pleura, the sessile morphology is associated with the highest risk of local recurrence.
+
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-09-10T05:44:13-05:00
-Last seen: 2026-11-02T06:07:49-06:00
+Last seen: 2026-11-02T21:41:55-06:00
 Card ID: 1775678781115
 Note ID: 1775678781115
 
