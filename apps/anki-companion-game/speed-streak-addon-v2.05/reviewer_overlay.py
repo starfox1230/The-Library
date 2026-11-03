@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .time_drain_undo import automatic_queue_change, queue_changes_allowed, is_review_undo
+
 import json
 import platform
 import re
@@ -575,6 +577,12 @@ class ReviewerOverlayController:
             Reviewer._answerCard = guarded_answer_card
 
     def _get_next_v3_card_with_time_drain_reordering(self, reviewer: Reviewer, original: Any) -> None:
+        # Undo must be allowed to present restored cards without re-burying
+        # them. Redo remains available until the next deliberate collection edit.
+        if not queue_changes_allowed(getattr(mw, "col", None)):
+            original(reviewer)
+            return
+
         if not self._time_drain_review_last_enabled():
             self._restore_deferred_time_drain_cards()
             original(reviewer)
@@ -649,17 +657,20 @@ class ReviewerOverlayController:
         card_id = self._queued_card_id(queued_card)
         if card_id <= 0:
             return False
-        try:
-            bury_cards([card_id], manual=False)
-        except TypeError:
+        with automatic_queue_change(getattr(mw, "col", None)) as allowed:
+            if not allowed:
+                return False
             try:
-                bury_cards([card_id])
+                bury_cards([card_id], manual=False)
+            except TypeError:
+                try:
+                    bury_cards([card_id])
+                except Exception:
+                    return False
             except Exception:
                 return False
-        except Exception:
-            return False
-        self._remember_deferred_time_drain_card(card_id)
-        return True
+            self._remember_deferred_time_drain_card(card_id)
+            return True
 
     def _remember_deferred_time_drain_card(self, card_id: int) -> None:
         if int(card_id or 0) <= 0:
@@ -675,6 +686,8 @@ class ReviewerOverlayController:
     def _restore_deferred_time_drain_cards(self) -> bool:
         if not self._deferred_time_drain_card_ids:
             return False
+        if not queue_changes_allowed(getattr(mw, "col", None)):
+            return False
         scheduler = getattr(getattr(mw, "col", None), "sched", None)
         unbury_cards = getattr(scheduler, "unbury_cards", None)
         if not callable(unbury_cards):
@@ -689,8 +702,16 @@ class ReviewerOverlayController:
         restored = False
         for card_id in deferred_ids:
             try:
-                unbury_cards([card_id])
-                restored = True
+                # Undo may already have restored this card. Never unbury a
+                # card subsequently buried manually or suspended by the user.
+                if mw.col.get_card(card_id).queue != -2:
+                    continue
+                with automatic_queue_change(mw.col) as allowed:
+                    if not allowed:
+                        self._remember_deferred_time_drain_card(card_id)
+                        continue
+                    unbury_cards([card_id])
+                    restored = True
             except Exception:
                 continue
         return restored
@@ -2585,6 +2606,8 @@ class ReviewerOverlayController:
             self.engine.notify_undo_blocked()
             self._sync_no_undo_guard()
             self._push_state(only_if_changed=False)
+            return
+        if not is_review_undo(getattr(mw, "col", None), changes):
             return
         self._apply_anki_undo_to_speed_streak()
 
