@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.19.0.0")]
-[assembly: AssemblyFileVersion("0.19.0.0")]
+[assembly: AssemblyVersion("0.20.0.0")]
+[assembly: AssemblyFileVersion("0.20.0.0")]
 
 namespace ReportExporter
 {
@@ -130,7 +130,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.19";
+            Text = "PowerScribe Report Exporter v0.20";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -558,7 +558,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.19; new capture/navigation session for this attempt...");
+                    reportProgress("Initializing native exporter v0.20; stable clipboard snapshots and verified capture-to-file records...");
                     bool initialSession = true;
                     runner.RestartSession = () => {
                         IntPtr worklistMain = initialSession ? lockedWorklistMain : IntPtr.Zero;
@@ -575,7 +575,7 @@ namespace ReportExporter
                     diagnostic = "Only complete pairs go into the comparison file. Unconfirmed pending and unavailable entries remain in the original capture.\r\n" + runner.OutcomeSummary;
                     try
                     {
-                        availableText = ExportDelivery.ReadCompleted(output, runner.Completed);
+                        availableText = ExportDelivery.ReadCompleted(output, runner.Completed, runner.VerifiedComparisonBytes);
                         if (availableText != null)
                         {
                             ClipboardWriter(availableText);
@@ -595,7 +595,7 @@ namespace ReportExporter
                     // Reading failure does not erase the previous in-app export or its file.
                     if (availableText == null && runner.Completed > 0)
                     {
-                        try { availableText = ExportDelivery.ReadCompleted(output, runner.Completed); }
+                        try { availableText = ExportDelivery.ReadCompleted(output, runner.Completed, runner.VerifiedComparisonBytes); }
                         catch (Exception) { result += " The saved text could not be loaded here; check Open save folder."; }
                     }
                     diagnostic = RunSummary.Build(runner, firstLabel, lastLabel, outcome, nextStep + "\r\n" + diagnostic, output);

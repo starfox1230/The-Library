@@ -26,11 +26,6 @@ namespace ReportExporter
     }
     public interface ISessionTelemetry { int FocusRecoveries { get; } }
 
-    public interface IRefreshComparisonSession
-    {
-        ReportPair RefreshComparison(CancellationToken token);
-    }
-
     public enum RecoveryChoice { Stop, Continue, AcceptLinkedStudies }
 
     public sealed class RecoveryRequest
@@ -111,10 +106,22 @@ namespace ReportExporter
 
     public static class ExportDelivery
     {
-        public static string ReadCompleted(string path, int completed)
+        public static string ReadCompleted(string path, int completed, long? verifiedBytes = null)
         {
             if (completed <= 0) return null;
-            string text = File.ReadAllText(path + ".for-comparison.txt");
+            string text;
+            if (verifiedBytes.HasValue)
+            {
+                if (verifiedBytes.Value < 0 || verifiedBytes.Value > Int32.MaxValue) throw new IOException("Invalid verified comparison length.");
+                using (var file = new FileStream(path + ".for-comparison.txt", FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    if (file.Length < verifiedBytes.Value) throw new IOException("The verified comparison file is incomplete.");
+                    byte[] bytes = new byte[(int)verifiedBytes.Value]; int offset = 0;
+                    while (offset < bytes.Length) { int count = file.Read(bytes, offset, bytes.Length - offset); if (count == 0) throw new IOException("The verified comparison file ended early."); offset += count; }
+                    using (var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, true)) text = reader.ReadToEnd();
+                }
+            }
+            else text = File.ReadAllText(path + ".for-comparison.txt");
             return String.IsNullOrWhiteSpace(text) ? null : text;
         }
         // Called only after a successful run. Copy complete pairs, never archival
@@ -195,6 +202,7 @@ namespace ReportExporter
         public int Pending { get; private set; }
         public int? LastAttemptedCase { get; private set; }
         public int? LastSavedCase { get; private set; }
+        public long VerifiedComparisonBytes { get; private set; }
         private readonly List<string> pendingCases = new List<string>();
         private readonly List<string> unavailableCases = new List<string>();
         public int Saved { get { return Completed + Skipped + Pending; } }
@@ -206,7 +214,7 @@ namespace ReportExporter
         {
             if (first < 1 || last < first || last > 1000000) throw new ArgumentException("Invalid case range.");
             Completed = Skipped = Pending = 0; pendingCases.Clear(); unavailableCases.Clear();
-            LastAttemptedCase = LastSavedCase = null;
+            LastAttemptedCase = LastSavedCase = null; VerifiedComparisonBytes = 0;
             // CreateNew prevents replacing an existing report export.
             using (FileStream file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             using (StreamWriter output = new StreamWriter(file, new UTF8Encoding(true)))
@@ -215,6 +223,7 @@ namespace ReportExporter
             using (FileStream timingFile = new FileStream(path + ".timings.csv", FileMode.CreateNew, FileAccess.Write, FileShare.Read))
             using (StreamWriter timings = new StreamWriter(timingFile, Encoding.UTF8))
             using (StreamWriter outcomes = new StreamWriter(new FileStream(path + ".outcomes.csv", FileMode.CreateNew, FileAccess.Write, FileShare.Read), Encoding.UTF8))
+            using (var captureAudit = new CaptureAudit(path + ".capture-checks.csv"))
             {
                 // Append-only event ledger: a saved outcome is retained even if close or
                 // navigation subsequently fails. Contains source numbers, never report text.
@@ -266,36 +275,28 @@ namespace ReportExporter
                         long open = clock.ElapsedMilliseconds;
                         progress("Case " + number + ": comparison is open; reading both reports...");
                         stage = "capture";
-                        ReportPair pair = session.ReadReports(token);
+                        CapturedPair captured = captureAudit.Capture(number, session.ReadReports(token), findingsOnly);
+                        ReportPair pair = captured.Pair;
                         // An independently updated clipboard can still contain PowerScribe's
                         // previously loaded report. Never silently relabel that first repeat.
                         if (Completed == 1 && number == firstPairNumber + 1 && SamePair(firstPair, pair))
                         {
-                            var refresh = session as IRefreshComparisonSession;
-                            if (refresh != null)
+                            if (Recovery == null) throw new InvalidOperationException("The first report pair repeated after advancing. Verify the next study before exporting it under another case number.");
+                            outcomes.WriteLine(number + ",paused_first_pair_repeat"); outcomes.Flush();
+                            var request = new RecoveryRequest(number, last, LastSavedCase,
+                                "Both reports already match case " + firstPairNumber + " in the clipboard capture, before file saving. The capture-checks log records this. Verify the selected study, or confirm that they are separate linked studies.", firstPairNumber);
+                            RecoveryChoice choice = Recovery(request, token); token.ThrowIfCancellationRequested();
+                            if (choice == RecoveryChoice.Stop) throw new OperationCanceledException("Stopped while checking the repeated first pair.", token);
+                            if (choice == RecoveryChoice.Continue)
                             {
-                                progress("The first two report pairs match; reopening this same case once to check for delayed loading. No Down is sent.");
-                                pair = refresh.RefreshComparison(token);
+                                if (RestartSession == null) throw new InvalidOperationException("A fresh capture session is required to continue.");
+                                session = null; previous = null; number--; continue;
                             }
-                            if (SamePair(firstPair, pair))
-                            {
-                                if (Recovery == null) throw new InvalidOperationException("The first report pair repeated after advancing. Verify the next study before exporting it under another case number.");
-                                outcomes.WriteLine(number + ",paused_first_pair_repeat"); outcomes.Flush();
-                                var request = new RecoveryRequest(number, last, LastSavedCase,
-                                    "Both full reports still match case " + firstPairNumber + ". The next study may not have loaded, or these may be distinct linked studies.", firstPairNumber);
-                                RecoveryChoice choice = Recovery(request, token); token.ThrowIfCancellationRequested();
-                                if (choice == RecoveryChoice.Stop) throw new OperationCanceledException("Stopped while checking the repeated first pair.", token);
-                                if (choice == RecoveryChoice.Continue)
-                                {
-                                    if (RestartSession == null) throw new InvalidOperationException("A fresh capture session is required to continue.");
-                                    session = null; previous = null; number--; continue;
-                                }
-                                if (choice != RecoveryChoice.AcceptLinkedStudies) throw new InvalidOperationException("Invalid recovery choice.");
-                                outcomes.WriteLine(number + ",distinct_linked_studies_confirmed"); outcomes.Flush();
-                            }
+                            if (choice != RecoveryChoice.AcceptLinkedStudies) throw new InvalidOperationException("Invalid recovery choice.");
+                            outcomes.WriteLine(number + ",distinct_linked_studies_confirmed"); outcomes.Flush();
                         }
                         bool pending = pair.AttendingEmptyUnconfirmed;
-                        string formatted = pending ? ReportText.FormatPending(number, pair) : ReportText.Format(number, pair, findingsOnly);
+                        string formatted = captured.FormattedText;
                         if (session.CanVerifySelectedRow && session.SelectedCase() != selected)
                             throw new InvalidOperationException("The selected case changed during capture. No pair was saved.");
                         long capture = clock.ElapsedMilliseconds - open;
@@ -304,13 +305,14 @@ namespace ReportExporter
                         // Report strings are captured and validated before concurrent work starts.
                         // No UI/clipboard operations run on the saving worker. Join before advancing
                         // or disposing streams, including close errors and cancellation.
-                        long saveMs, closeMs;
+                        long saveMs, closeMs, comparisonEnd = VerifiedComparisonBytes;
                         stage = "save_or_close";
-                        CaseCommit.SaveAndClose(() => { output.Write(formatted); output.Flush(); file.Flush(true);
-                                if (!pending) { comparisonOutput.Write(formatted); comparisonOutput.Flush(); comparisonFile.Flush(true); } },
+                        CaseCommit.SaveAndClose(() => { captureAudit.WriteVerified("archive", captured, output, file, formatted);
+                                if (!pending) comparisonEnd = captureAudit.WriteVerified("comparison", captured, comparisonOutput, comparisonFile, formatted); },
                             () => session.CloseComparison(token), () => {
                                 if (pending) { Pending++; pendingCases.Add(number.ToString(CultureInfo.InvariantCulture)); } else Completed++;
                                 LastSavedCase = number;
+                                VerifiedComparisonBytes = comparisonEnd;
                                 if (!pending && firstPair == null) { firstPair = pair; firstPairNumber = number; }
                                 outcomes.WriteLine(number + (pending ? ",pending_suspected" : ",complete")); outcomes.Flush();
                             }, out saveMs, out closeMs);

@@ -295,12 +295,16 @@ namespace ReportExporter
             Wait(() => {
                 CheckForeground(comparison, token);
                 if (!pane.Current.HasKeyboardFocus) throw new InvalidOperationException("Focus moved away from the report during copying.");
+                uint readSequence = Native.GetClipboardSequenceNumber();
+                IntPtr readOwner = Native.GetClipboardOwner();
                 // Request text before testing the sequence so delayed rendering can complete.
                 if (!Win32Desktop.ReadText(out text)) return false;
                 CheckForeground(comparison, token);
-                if (Native.GetClipboardSequenceNumber() == before) return false;
+                uint after = Native.GetClipboardSequenceNumber();
+                if (after == before || after != readSequence) return false;
                 uint clipboardProcess;
                 IntPtr owner = Native.GetClipboardOwner();
+                if (owner != readOwner) return false;
                 if (owner != IntPtr.Zero)
                 {
                     Native.GetWindowThreadProcessId(owner, out clipboardProcess);

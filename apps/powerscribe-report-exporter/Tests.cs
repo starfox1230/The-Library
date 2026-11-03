@@ -50,6 +50,9 @@ namespace ReportExporter
             public bool IdenticalReportBodies, IdenticalCopiedHeaders, NativeRowSupported;
             public bool FreezeRow, NoNavigationControl, RejectNavigationFocus, MainModal, ModalOnOpen, BlockComparison;
             public bool IgnoreFirstDown, LagFirstComparison;
+            public bool ChangeClipboardDuringRead, AlwaysChangeClipboardDuringRead;
+            public int UnstableReads;
+            private string readReplacement;
             private int loadedRow, comparisonOpens;
             public bool ResetFocusOnActivation, RejectInitialNavigationFocus, NavigationOnlyAfterActivation;
             private bool activated;
@@ -139,6 +142,11 @@ namespace ReportExporter
                     if (residentPane && CancelOnResidentCopy != null) CancelOnResidentCopy.Cancel();
                     if (FirstCopyIgnored && CopyCount == 1) return;
                     if (NoFreshSequence) text = result; else pending = result;
+                    if (ChangeClipboardDuringRead && Row == 1)
+                    {
+                        text = "HEADER 0\r\n" + ReportHeading + " " + (residentPane ? "resident " : "attending ") + "0";
+                        readReplacement = result; pending = null; sequence++;
+                    }
                     if (LoseFocusOnCopy) Active = new IntPtr(999);
                 }
             }
@@ -159,6 +167,8 @@ namespace ReportExporter
                 if (BusyReadsRemaining-- > 0) { result = null; return false; }
                 if (RenderOnlyWhenRead && pending != null) { text = pending; pending = null; sequence++; }
                 result = ClipboardLocked ? null : text;
+                if (readReplacement != null) { text = readReplacement; readReplacement = null; sequence++; UnstableReads++; }
+                if (AlwaysChangeClipboardDuringRead) { sequence++; UnstableReads++; }
                 if (!residentPane && text != null && AttendingEmptyThenTextReads-- > 0) result = "";
                 return !ClipboardLocked;
             }
@@ -296,6 +306,10 @@ namespace ReportExporter
                     Assert(File.ReadAllText(output + ".for-comparison.txt") == text, "Comparison file lost full reports");
                     Assert(File.ReadAllLines(output + ".timings.csv").Length == 4, "Missing timing rows");
                 });
+                Test("capture tokens match byte-verified archive/comparison records without logging report text", () => CaptureAuditChecks.VerifyRecords(path()));
+                Test("capture snapshots resist reused objects and equality keys are private to each run", () => CaptureAuditChecks.VerifySnapshotAndKey(path()));
+                Test("readback blocks reused case labels and substituted first-case text while preserving verified data", () => CaptureAuditChecks.VerifyReadback(path()));
+                Test("delivery excludes unverified tails and rejects a truncated verified prefix", () => CaptureAuditChecks.VerifyDeliveryBoundary(path()));
                 Test("Findings-only option preserves the old complete-pair format", () => {
                     string output = path();
                     new ExportRunner(true).Run(new FakeSession(), 7, 7, output, CancellationToken.None, m => {});
@@ -695,6 +709,33 @@ namespace ReportExporter
                 Test("placeholder can never pass report heading validation", () => {
                     Assert(ReportText.ExtractBody(ReportText.FormatUnavailable(7)) == null, "Placeholder was accepted as copied report text");
                 });
+                Test("mid-read clipboard replacement cannot label first report as second after correct navigation", () => {
+                    foreach (int first in new int[] { 1, 11 })
+                    {
+                        var desktop = new FakeKeyboardDesktop { ChangeClipboardDuringRead = true }; var runner = new ExportRunner(); string output = path();
+                        runner.Recovery = (request, token) => { throw new Exception("A changing clipboard should be reread without another comparison open or human confirmation"); };
+                        runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        string text = File.ReadAllText(output + ".for-comparison.txt");
+                        Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1"), "An earlier clipboard string was associated with a newer update");
+                        Assert(desktop.UnstableReads == 2 && desktop.CopyCount == 6 && desktop.Row == 2 && desktop.Events.FindAll(e => e == "key:49").Count == 3, "Stable read reopened a comparison, recopied or repeated navigation");
+                    }
+                });
+                Test("clipboard that changes throughout every read cannot produce a saved pair", () => {
+                    var desktop = new FakeKeyboardDesktop { AlwaysChangeClipboardDuringRead = true }; var runner = new ExportRunner(); string output = path();
+                    try { runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 2, output, CancellationToken.None, m => {}); throw new Exception("Unstable snapshot was accepted"); }
+                    catch (TimeoutException error) { Assert(error.Message.Contains("stable fresh snapshot"), "Unstable-read diagnosis missing"); }
+                    Assert(runner.Saved == 0 && !desktop.Events.Contains("key:28"), "Unstable clipboard caused a save or Down");
+                });
+                Test("identical capture tokens before save distinguish a repeated read from duplicate file writing", () => {
+                    var desktop = new FakeKeyboardDesktop { IgnoreFirstDown = true }; var runner = new ExportRunner(); string output = path();
+                    runner.Recovery = (request, token) => RecoveryChoice.Stop;
+                    Throws<OperationCanceledException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 11, 13, output, CancellationToken.None, m => {}));
+                    var lines = File.ReadAllLines(output + ".capture-checks.csv");
+                    var capture = new List<string[]>(); int verified = 0;
+                    foreach (string line in lines) { var cells = line.Split(','); if (cells[0] == "captured") capture.Add(cells); if (cells[0] == "comparison-verified") verified++; }
+                    Assert(capture.Count == 2 && capture[0][3] == capture[1][3] && capture[0][4] == capture[1][4] && verified == 1, "Ledger cannot locate the repeated text before saving");
+                    Assert(desktop.CopyCount == 4 && desktop.Events.FindAll(e => e == "key:49").Count == 2, "Repeat diagnosis reopened a comparison automatically");
+                });
                 Test("linked studies with identical full clipboard reports are both exported", () => {
                     foreach (bool supported in new bool[] { false, true })
                     {
@@ -702,16 +743,19 @@ namespace ReportExporter
                         int prompts = 0;
                         runner.Recovery = (request, token) => { prompts++; Assert(request.RepeatedFromCase == 2 && request.CaseNumber == 3, "Linked confirmation has wrong source labels"); return RecoveryChoice.AcceptLinkedStudies; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 2, 4, output, CancellationToken.None, m => {});
-                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 8 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
+                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 6 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
                     }
                 });
-                Test("delayed first report load is refreshed without another Down or wrong labels", () => {
+                Test("stale loaded comparison is identified before saving; reopening requires Continue", () => {
                     foreach (int first in new int[] { 1, 11 })
                     {
                         var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path();
+                        int prompts = 0;
+                        runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                        runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == first + 1 && desktop.CopyCount == 4, "An unrequested comparison reopen occurred"); desktop.SelectWorklistRow(1); return RecoveryChoice.Continue; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
                         string text = File.ReadAllText(output + ".for-comparison.txt");
-                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 8 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Refresh repeated Down or lost a pair");
+                        Assert(runner.Completed == 3 && prompts == 1 && desktop.Row == 2 && desktop.CopyCount == 8 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Continue repeated Down or lost a pair");
                         Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1"), "Previous report was saved under the next case number");
                     }
                 });

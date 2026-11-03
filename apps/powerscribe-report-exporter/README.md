@@ -1,4 +1,49 @@
-# PowerScribe Report Exporter v0.19
+# PowerScribe Report Exporter v0.20
+
+## v0.20: stable clipboard reads and capture-to-file verification
+
+The duplicated first pair is present in saved text as well as the website, so
+the investigation is upstream of website analysis. No unconditional duplicate
+append was found: tests of the published v0.18 and v0.19 binaries retained 240
+distinct synthetic captures through both output files, delivery, the copied-text
+viewer and website parsing.
+
+A concrete clipboard race was reproduced in the published **v0.18 binary**:
+the worklist advances correctly and Ctrl+C is issued once per pane, but the
+clipboard changes while its text is read. The old code can associate the earlier
+text with the later update number and save case 1 again as case 2. The same replay
+also reproduces at starts 11/12. The new code samples sequence and owner before
+and after each read and accepts only a stable, fresh snapshot. It rereads the
+clipboard after an overlapping update; it does not recopy or reopen comparisons.
+This is a demonstrated failure path, not proof that this specific race occurred
+on the hospital workstation.
+
+Each pair is copied into a per-case snapshot before formatting/closing. Each
+archive/comparison record is read back and compared byte-for-byte with that
+snapshot's formatted text, and a second save of the same source label is blocked.
+Clipboard delivery reads only the last committed verified comparison prefix.
+A failed write/readback rolls back its new record where possible and preserves
+earlier verified records; an unverified tail is never automatically delivered.
+
+The new `.capture-checks.csv` file records capture attempt IDs, source labels,
+within-run equality tokens, save verification and byte counts, with **no report
+text or patient identifiers**. Tokens use a fresh random HMAC key that is never
+saved and cannot be compared across runs. If the first two pairs already match
+at capture, that is recorded before saving; if writing changes a pair, readback
+fails. Details gives the log's location so those causes can be distinguished.
+
+The speculative automatic comparison reopen from v0.19 is removed. A repeated
+first pair still offers manual selection/Continue or confirmation of distinct
+linked studies; recovery of other interruptions remains available.
+
+Validation: **134 synthetic/native-control tests passed**, including mid-read
+clipboard replacement without extra open/copy/Down, permanently unstable reads,
+capture/save token joins, per-run key isolation, object reuse, deliberate
+same-length first-record substitution, duplicate labels, rollback and bounded
+delivery. `python dev/check-published-first-pair-race.py` reproduces the old binary
+failure and verifies the current binary with the exact same synthetic desktop.
+Neither suite operates PowerScribe or the real clipboard. Workstation verification
+remains necessary before calling the reported first-case failure resolved.
 
 ## v0.19: recover in place and check a repeated first pair
 

@@ -114,7 +114,7 @@ namespace ReportExporter
         }
     }
 
-    public sealed class KeyboardSession : IReportSession, ISessionTelemetry, IRefreshComparisonSession
+    public sealed class KeyboardSession : IReportSession, ISessionTelemetry
     {
         private readonly Profile profile;
         private readonly IKeyboardDesktop desktop;
@@ -328,17 +328,6 @@ namespace ReportExporter
                 ClipboardClearMs = clipboardClearMs, ClipboardLockMisses = clipboardLockMisses };
         }
 
-        public ReportPair RefreshComparison(CancellationToken token)
-        {
-            // Same selected row, no list navigation. Reopening gives PowerScribe a
-            // chance to finish loading after the first Down instead of reusing a dialog.
-            CloseComparison(token);
-            Guard(main, token);
-            if (token.WaitHandle.WaitOne(Math.Max(300, profile.CaseDelayMs))) token.ThrowIfCancellationRequested();
-            OpenComparison(token);
-            return ReadReports(token);
-        }
-
         private string Copy(string role, CancellationToken token, bool inspectResidentAfterEmpty = false)
         {
             var clearClock = Stopwatch.StartNew();
@@ -358,7 +347,7 @@ namespace ReportExporter
             progress("Waiting for a fresh " + role + " report copy with Findings, Impression, or Conclusion...");
             string text = null;
             bool changed = false, readable = false, gotText = false, wrongOwner = false, foundHeading = false;
-            bool sawChange = false, sawText = false, sawLocked = false, sawWrongOwner = false, sawMissingHeading = false;
+            bool sawChange = false, sawText = false, sawLocked = false, sawWrongOwner = false, sawMissingHeading = false, sawUnstable = false;
             bool freshOwnedEmpty = false;
             int attempts = 1;
             var clock = Stopwatch.StartNew();
@@ -367,8 +356,10 @@ namespace ReportExporter
             {
                 Wait(() => {
                     Guard(comparison, token);
-                    // Read FIRST. Delayed-rendering providers may not increment the sequence
-                    // until a data request causes them to render the selected text.
+                    uint readSequence = desktop.ClipboardSequence, readOwner = desktop.ClipboardOwnerProcess;
+                    // Always request data, even before freshness is established: delayed
+                    // rendering can update the sequence during this request. Then reread
+                    // until text, sequence and owner belong to one stable snapshot.
                     var readClock = Stopwatch.StartNew();
                     readable = desktop.ReadClipboard(out text);
                     long readMs = readClock.ElapsedMilliseconds;
@@ -378,19 +369,21 @@ namespace ReportExporter
                     Guard(comparison, token);
                     changed = desktop.ClipboardSequence != before;
                     uint owner = desktop.ClipboardOwnerProcess;
+                    bool stableSnapshot = readSequence == desktop.ClipboardSequence && readOwner == owner;
+                    sawUnstable |= !stableSnapshot;
                     wrongOwner = owner != 0 && owner != pid;
                     gotText = readable && !String.IsNullOrWhiteSpace(text);
-                    freshOwnedEmpty = changed && readable && !gotText && owner == pid;
+                    freshOwnedEmpty = stableSnapshot && changed && readable && !gotText && owner == pid;
                     foundHeading = gotText && ReportText.ExtractBody(text) != null;
                     sawChange |= changed; sawText |= gotText; sawLocked |= !readable;
                     sawWrongOwner |= changed && wrongOwner;
-                    sawMissingHeading |= changed && gotText && !wrongOwner && !foundHeading;
+                    sawMissingHeading |= stableSnapshot && changed && gotText && !wrongOwner && !foundHeading;
                     string observation = role + " clipboard: changed=" + changed + ", readable=" + readable +
                         ", characters=" + (text == null ? 0 : text.Length) + ", owner=" +
-                        (owner == 0 ? "unreported" : wrongOwner ? "another process" : "PowerScribe") + ", recognized heading=" + foundHeading + ".";
+                        (owner == 0 ? "unreported" : wrongOwner ? "another process" : "PowerScribe") + ", recognized heading=" + foundHeading + ", stable snapshot=" + stableSnapshot + ".";
                     if (observation != lastObservation) { progress(observation); lastObservation = observation; }
                     // Preserve the freshness, foreground, owner and section checks.
-                    if (changed && !wrongOwner && foundHeading) return true;
+                    if (stableSnapshot && changed && !wrongOwner && foundHeading) return true;
                     int retryAt = attempts == 1 ? 100 : 400;
                     if (attempts < 3 && clock.ElapsedMilliseconds >= retryAt &&
                         profile.TimeoutMs - clock.ElapsedMilliseconds > profile.PollMs &&
@@ -421,6 +414,7 @@ namespace ReportExporter
                     !sawChange && sawText ? "Text was readable, but the clipboard never showed a fresh sequence after clearing." :
                     !sawChange ? "Ctrl+C produced no fresh clipboard update." :
                     sawLocked && !sawText ? "The clipboard changed but its text could not be read." :
+                    sawUnstable ? "The clipboard kept changing during reads; no stable fresh snapshot was accepted." :
                     "The clipboard changed but no usable plain report text was available.";
                 throw new TimeoutException("The " + role + " report was not copied. " + reason +
                     " Copy attempts: " + attempts + ". No incomplete case was saved. PowerScribe was left at this case. " +

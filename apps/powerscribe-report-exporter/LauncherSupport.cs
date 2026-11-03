@@ -59,7 +59,7 @@ namespace ReportExporter
         public static string Build(ExportRunner runner, int first, int last, string outcome, string detail, string output)
         {
             int? resume = ResumeAt(runner, first, last);
-            return "PowerScribe Report Exporter v0.19\r\n" + outcome + "\r\n" +
+            return "PowerScribe Report Exporter v0.20\r\n" + outcome + "\r\n" +
                 "Requested case labels: " + first + "–" + last + "\r\n" +
                 "Complete report pairs: " + runner.Completed + "\r\n" +
                 "Unconfirmed pending: " + runner.Pending + "\r\nUnavailable comparisons: " + runner.Skipped + "\r\n" +
@@ -67,7 +67,8 @@ namespace ReportExporter
                 "Last saved source entry: " + (runner.LastSavedCase.HasValue ? runner.LastSavedCase.Value.ToString() : "None") + "\r\n" +
                 runner.OutcomeSummary + "\r\n\r\n" + detail + "\r\n\r\n" +
                 (outcome == "Done" ? "" : resume.HasValue ? "To resume: select case " + resume.Value + " in PowerScribe, set First case to " + resume.Value + ", then Go. The exporter does not select this row for you.\r\n" : "No remaining source entries are suggested.\r\n") +
-                "\r\nComparison file: " + output + ".for-comparison.txt\r\n" +
+                "\r\nComparison file: " + output + ".for-comparison.txt\r\nVerified comparison bytes: " + runner.VerifiedComparisonBytes + "\r\n" +
+                "Capture checks (no report text): " + output + ".capture-checks.csv\r\n" +
                 "Original capture: " + output + "\r\nProgress log: " + output + ".progress.log\r\n" +
                 "Outcomes: " + output + ".outcomes.csv\r\nTimings: " + output + ".timings.csv\r\n";
         }
