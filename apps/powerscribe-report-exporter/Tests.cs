@@ -42,7 +42,7 @@ namespace ReportExporter
             { Advances++; if (FailAdvance) throw new TimeoutException("No new selected case"); Row++; }
         }
 
-        private sealed class FakeKeyboardDesktop : IKeyboardDesktop
+        private class FakeKeyboardDesktop : IKeyboardDesktop
         {
             public readonly List<string> Events = new List<string>();
             public IntPtr Active = new IntPtr(1);
@@ -74,7 +74,7 @@ namespace ReportExporter
             public int RejectRecoveryAttempts;
             public int BusyReadsRemaining;
             public string ReportHeading = "FINDINGS:";
-            private bool residentPane;
+            protected bool residentPane;
             public int Row, CopyCount;
             public readonly HashSet<int> EmptyAttendingRows = new HashSet<int>();
             public bool EmptyResident, EmptyAttendingNoUpdate;
@@ -154,7 +154,7 @@ namespace ReportExporter
                     if (LoseFocusOnCopy) Active = new IntPtr(999);
                 }
             }
-            public void Click(IntPtr window, int x, int y) { Events.Add("click:" + x + ":" + y); }
+            public void Click(IntPtr window, int x, int y) { Events.Add("click:" + x + ":" + y); residentPane = false; }
             public void SelectWorklistRow(int row) { Row = row; focused = new IntPtr(10); ComparisonOpen = false; MenuDepth = 0; Active = new IntPtr(1); }
             public bool ClearClipboard() { text = null; pending = null; sequence++; Events.Add("clear"); return true; }
             public uint ClipboardSequence
@@ -175,6 +175,24 @@ namespace ReportExporter
                 if (AlwaysChangeClipboardDuringRead) { sequence++; UnstableReads++; }
                 if (!residentPane && text != null && AttendingEmptyThenTextReads-- > 0) result = "";
                 return !ClipboardLocked;
+            }
+        }
+
+        private sealed class FakeReportPaneDesktop : FakeKeyboardDesktop, IReportPaneDesktop
+        {
+            public bool ExposeControlText = true, SamePane, FocusMovesOnRead, NoReportFocus;
+            public int DirectReads, DelayedTabFocusReads, DelayedClickFocusReads;
+            public IntPtr ReportAtPoint(IntPtr comparison, int x, int y) { return NoReportFocus ? IntPtr.Zero : new IntPtr(101); }
+            public IntPtr ReportFocus(IntPtr comparison)
+            { return !ComparisonOpen || NoReportFocus ? IntPtr.Zero : new IntPtr(FocusMovesOnRead && DirectReads > 0 ? 103 : !residentPane && DelayedClickFocusReads-- > 0 ? 102 : SamePane || !residentPane || (residentPane && DelayedTabFocusReads-- > 0) ? 101 : 102); }
+            public string ReportControlClass(IntPtr child) { return "RICHEDIT50W"; }
+            public bool ReadReportControl(IntPtr comparison, IntPtr child, out string value)
+            {
+                value = null;
+                if (!ExposeControlText) return false;
+                DirectReads++;
+                value = "HEADER " + Row + "\r\nFINDINGS: " + (residentPane ? "resident " : "attending ") + Row;
+                return true;
             }
         }
 
@@ -233,9 +251,40 @@ namespace ReportExporter
             public void Dispose() { foreach (IntPtr pointer in memory.Keys) Marshal.FreeHGlobal(pointer); }
         }
 
-        [STAThread]
-        public static int Main()
+        // A separate, test-owned process exercises Windows' actual WM_GETTEXT
+        // marshalling. It never activates PowerScribe or touches the clipboard.
+        private static int RunReportControlFixture(string folder)
         {
+            using (var root = new TestOffscreenForm())
+            using (var edit = new System.Windows.Forms.TextBox { Multiline = true, Dock = System.Windows.Forms.DockStyle.Top, Text = "HEADER 1\r\nFINDINGS: first attending" })
+            using (var rich = new System.Windows.Forms.RichTextBox { Dock = System.Windows.Forms.DockStyle.Bottom, Text = "HEADER 1\nFINDINGS: first resident" })
+            using (var timer = new System.Windows.Forms.Timer { Interval = 20 })
+            {
+                root.Controls.Add(edit); root.Controls.Add(rich);
+                root.Shown += (s, e) => {
+                    string pending = Path.Combine(folder, "pending");
+                    File.WriteAllLines(pending, new string[] { root.Handle.ToInt64().ToString(), edit.Handle.ToInt64().ToString(), rich.Handle.ToInt64().ToString() });
+                    File.Move(pending, Path.Combine(folder, "ready.txt")); timer.Start();
+                };
+                var lifetime = System.Diagnostics.Stopwatch.StartNew(); bool changed = false;
+                timer.Tick += (s, e) => {
+                    if (File.Exists(Path.Combine(folder, "stop")) || lifetime.ElapsedMilliseconds > 12000) { timer.Stop(); root.Close(); return; }
+                    if (!changed && File.Exists(Path.Combine(folder, "next")))
+                    {
+                        edit.Text = "HEADER 2\r\nFINDINGS: second attending café →";
+                        rich.Text = "HEADER 2\nFINDINGS: second resident"; changed = true;
+                        File.WriteAllText(Path.Combine(folder, "changed"), "changed");
+                    }
+                };
+                System.Windows.Forms.Application.Run(root);
+            }
+            return 0;
+        }
+
+        [STAThread]
+        public static int Main(string[] args)
+        {
+            if (args.Length == 2 && args[0] == "--report-control-fixture") return RunReportControlFixture(args[1]);
             string directory = Path.Combine(Path.GetTempPath(), "NativeReportExporterTests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             Func<string> path = () => Path.Combine(directory, Guid.NewGuid().ToString("N") + ".txt");
@@ -662,7 +711,7 @@ namespace ReportExporter
                     Assert(prompts == 1 && runner.Completed == 3 && desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Recovery loops, repeats saves or sends extra Down");
                     Assert(text.Contains("Case 11\r\nAttending Report:\r\nHEADER 10") && text.Split(new string[] { "Case 10\r\n" }, StringSplitOptions.None).Length == 2, "Recovery renumbered or duplicated saved data");
                 });
-                Test("Continue waits for one observed worklist then succeeds after popup steals focus", () => {
+                Test("Continue remains available without detected worklist and retains observed handles", () => {
                     foreach (int number in new int[] { 10, 11 })
                     {
                         var desktop = new FakeKeyboardDesktop { Active = new IntPtr(999), FocusUnavailableWhileInactive = true }; var memory = new WorklistFocusMemory(desktop);
@@ -670,14 +719,30 @@ namespace ReportExporter
                         using (var dialog = new RecoveryDialog(new RecoveryRequest(number, 12, number == 10 ? (int?)null : 10, "The worklist control could not be identified."), CancellationToken.None, ready))
                         {
                             var button = dialog.Controls.Find("RecoveryContinue", true)[0];
-                            Assert(!button.Enabled && dialog.DialogResult == System.Windows.Forms.DialogResult.None, "Continue is active without a detected worklist");
-                            for (int i = 0; i < 5; i++) dialog.ChooseRecovery(RecoveryChoice.Continue);
-                            Assert(dialog.DialogResult == System.Windows.Forms.DialogResult.None, "Rapid Continue bypassed readiness");
+                            Assert(button.Enabled && dialog.DialogResult == System.Windows.Forms.DialogResult.None, "Continue strands recovery without a detected worklist");
                             desktop.SelectWorklistRow(number - 1); Assert(dialog.RefreshReadiness() && button.Enabled, "Selecting the worklist did not enable Continue");
                             desktop.Active = new IntPtr(999); dialog.ChooseRecovery(RecoveryChoice.Continue);
                             Assert(dialog.Choice == RecoveryChoice.Continue && dialog.DialogResult == System.Windows.Forms.DialogResult.OK, "Clicking Continue lost the remembered control");
                             dialog.ChooseRecovery(RecoveryChoice.Stop); Assert(dialog.Choice == RecoveryChoice.Continue, "A queued second click replaced the choice");
                         }
+                    }
+                });
+                Test("repeated pair can retry open reports while main is disabled without worklist detection", () => {
+                    using (var dialog = new RecoveryDialog(new RecoveryRequest(2, 3, 1, "Captured text matched the previous pair", 1), CancellationToken.None, () => false))
+                    {
+                        var button = dialog.Controls.Find("RecoveryContinue", true)[0];
+                        Assert(button.Enabled && button.Text == "Retry open reports", "Open-comparison retry is unavailable");
+                        dialog.ChooseRecovery(RecoveryChoice.RetryCapture);
+                        Assert(dialog.Choice == RecoveryChoice.RetryCapture && dialog.DialogResult == System.Windows.Forms.DialogResult.OK, "Retry required a worklist handle");
+                        dialog.ChooseRecovery(RecoveryChoice.AcceptLinkedStudies);
+                        Assert(dialog.Choice == RecoveryChoice.RetryCapture, "Queued click changed retry into linked confirmation");
+                    }
+                });
+                Test("ordinary Continue is actionable even when no worklist observation is possible", () => {
+                    using (var dialog = new RecoveryDialog(new RecoveryRequest(10, 12, null, "No observed focus"), CancellationToken.None, () => false))
+                    {
+                        dialog.ChooseRecovery(RecoveryChoice.Continue);
+                        Assert(dialog.Choice == RecoveryChoice.Continue && dialog.DialogResult == System.Windows.Forms.DialogResult.OK, "Continue stayed blocked");
                     }
                 });
                 Test("observed worklist handoff reaches launcher handles and failed-run reset clears it", () => {
@@ -707,6 +772,53 @@ namespace ReportExporter
                         Assert(memory.TryGet(out main, out child) && child == list.Handle, "Rejected controls replaced the valid native list");
                         Assert(memory.Remember(root.Handle, custom.Handle), "A valid custom container was rejected");
                         root.Close();
+                    }
+                });
+                Test("native report reads retrieve current Edit and RichEdit contents without clipboard or truncation", () => {
+                    using (var root = new TestOffscreenForm())
+                    using (var other = new TestOffscreenForm())
+                    using (var edit = new System.Windows.Forms.TextBox { Multiline = true, Dock = System.Windows.Forms.DockStyle.Top })
+                    using (var rich = new System.Windows.Forms.RichTextBox { Dock = System.Windows.Forms.DockStyle.Bottom })
+                    using (var button = new System.Windows.Forms.Button())
+                    {
+                        root.Controls.Add(edit); root.Controls.Add(rich); root.Controls.Add(button);
+                        root.Show(); other.Show(); System.Windows.Forms.Application.DoEvents(); string read;
+                        edit.Text = "HEADER 1\r\nFINDINGS: first report";
+                        Assert(Native.ReadReportControl(root.Handle, edit.Handle, out read) && read == edit.Text, "Native Edit text was not read");
+                        edit.Text = "HEADER 2\r\nFINDINGS: entirely different café → report";
+                        Assert(Native.ReadReportControl(root.Handle, edit.Handle, out read) && read == edit.Text, "Native read retained the first report");
+                        rich.Text = "HEADER 2\nFINDINGS: resident second report\nIMPRESSION: teaching case";
+                        Assert(Native.ReadReportControl(root.Handle, rich.Handle, out read) && read == rich.Text.Replace("\n", "\r\n"), "Native RichEdit report was not read in full");
+                        Assert(!Native.ReadReportControl(other.Handle, edit.Handle, out read), "Control from another comparison accepted");
+                        Assert(!Native.ReadReportControl(root.Handle, button.Handle, out read), "Button title accepted as report text");
+                        edit.Text = "FINDINGS: " + new string('x', 65000);
+                        Assert(!Native.ReadReportControl(root.Handle, edit.Handle, out read), "Over-limit native report was truncated instead of falling back");
+                        root.Close(); other.Close();
+                    }
+                });
+                Test("native report reader retrieves changed text across a real process boundary", () => {
+                    string fixtureDirectory = Path.Combine(directory, "native-control-fixture"); Directory.CreateDirectory(fixtureDirectory);
+                    var start = new System.Diagnostics.ProcessStartInfo(System.Reflection.Assembly.GetExecutingAssembly().Location,
+                        "--report-control-fixture \"" + fixtureDirectory + "\"") { UseShellExecute = false, CreateNoWindow = true, WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden };
+                    using (var child = System.Diagnostics.Process.Start(start))
+                    {
+                        try
+                        {
+                            string ready = Path.Combine(fixtureDirectory, "ready.txt");
+                            ReadyWait.Until(() => File.Exists(ready), 5000, 10, CancellationToken.None, "Test-owned native fixture did not start");
+                            var handles = File.ReadAllLines(ready); IntPtr parent = new IntPtr(Int64.Parse(handles[0])), edit = new IntPtr(Int64.Parse(handles[1])), rich = new IntPtr(Int64.Parse(handles[2])); string text;
+                            Assert(Native.ReadReportControl(parent, edit, out text) && text.Contains("first attending"), "Cross-process first native report failed");
+                            Assert(Native.ReadReportControl(parent, rich, out text) && text.Contains("first resident"), "Cross-process first rich report failed");
+                            File.WriteAllText(Path.Combine(fixtureDirectory, "next"), "next");
+                            ReadyWait.Until(() => File.Exists(Path.Combine(fixtureDirectory, "changed")), 3000, 10, CancellationToken.None, "Test-owned reports did not change");
+                            Assert(Native.ReadReportControl(parent, edit, out text) && text == "HEADER 2\r\nFINDINGS: second attending café →", "Cross-process report retained first-case text");
+                            Assert(Native.ReadReportControl(parent, rich, out text) && text.Contains("second resident"), "Cross-process resident retained first-case text");
+                        }
+                        finally
+                        {
+                            File.WriteAllText(Path.Combine(fixtureDirectory, "stop"), "stop");
+                            if (!child.WaitForExit(3000)) { child.Kill(); child.WaitForExit(); }
+                        }
                     }
                 });
                 Test("stopped-run instructions identify case 10 when unsaved and case 11 after saving case 10", () => {
@@ -844,6 +956,62 @@ namespace ReportExporter
                         runner.Recovery = (request, token) => { prompts++; Assert(request.RepeatedFromCase == 2 && request.CaseNumber == 3, "Linked confirmation has wrong source labels"); return RecoveryChoice.AcceptLinkedStudies; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 2, 4, output, CancellationToken.None, m => {});
                         Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 6 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
+                    }
+                });
+                Test("live report controls bypass a stale clipboard provider and preserve original numbering", () => {
+                    foreach (int first in new int[] { 1, 10 })
+                    {
+                        var desktop = new FakeReportPaneDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path();
+                        runner.Recovery = (request, token) => { throw new Exception("Current report control text was mistaken for a linked study"); };
+                        runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        string text = File.ReadAllText(output + ".for-comparison.txt");
+                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 0 && desktop.DirectReads >= 12, "Control capture depended on stale Ctrl+C or moved incorrectly");
+                        Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1"), "Wrong report saved for the second source label");
+                        Assert(desktop.Events.FindAll(e => e == "key:49").Count == 3 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Control capture reopened or advanced extra studies");
+                    }
+                });
+                Test("unsupported native report controls retain checked clipboard fallback", () => {
+                    var desktop = new FakeReportPaneDesktop { ExposeControlText = false }; var runner = new ExportRunner(); string output = path();
+                    runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 10, 11, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 2 && desktop.CopyCount == 4 && File.ReadAllText(output).Contains("FINDINGS: resident 1"), "Custom-control fallback lost a report");
+                });
+                Test("same report control after Tab is rejected before saving a pair", () => {
+                    var desktop = new FakeReportPaneDesktop { SamePane = true }; var runner = new ExportRunner(); string output = path();
+                    try { runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 1, output, CancellationToken.None, m => {}); throw new Exception("Same pane was accepted twice"); }
+                    catch (TimeoutException error) { Assert(error.Message.Contains("Tab did not move"), "Wrong pane failure lost its cause"); }
+                    Assert(runner.Completed == 0 && desktop.Row == 0 && File.ReadAllText(output).Length == 0, "Unverified pane pair was saved or advanced");
+                });
+                Test("custom comparison with no native report child retains clipboard capture", () => {
+                    var desktop = new FakeReportPaneDesktop { ExposeControlText = false, NoReportFocus = true }; var runner = new ExportRunner();
+                    runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 10, 11, path(), CancellationToken.None, m => {});
+                    Assert(runner.Completed == 2 && desktop.CopyCount == 4, "Unsupported focus provider caused a new capture block");
+                });
+                Test("report reads wait for delayed click and Tab to reach their intended controls", () => {
+                    var desktop = new FakeReportPaneDesktop { DelayedClickFocusReads = 5, DelayedTabFocusReads = 5 }; var runner = new ExportRunner(); string output = path();
+                    runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 10, 10, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 1 && desktop.DirectReads >= 4 && desktop.CopyCount == 0 && desktop.DelayedClickFocusReads <= 0 && desktop.DelayedTabFocusReads <= 0, "Read happened before input reached its pane");
+                    string text = File.ReadAllText(output);
+                    Assert(text.Contains("Attending Report:\r\nHEADER 0\r\nFINDINGS: attending 0") && text.Contains("Resident Report:\r\nHEADER 0\r\nFINDINGS: resident 0"), "Delayed input swapped report roles");
+                });
+                Test("report focus changing during direct capture rejects the unsaved pair", () => {
+                    var desktop = new FakeReportPaneDesktop { FocusMovesOnRead = true }; var runner = new ExportRunner(); string output = path();
+                    Throws<InvalidOperationException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 1, output, CancellationToken.None, m => {}));
+                    Assert(runner.Completed == 0 && desktop.CopyCount == 0 && desktop.Row == 0, "Changed source control was trusted");
+                });
+                Test("retry current comparison rereads distinct live reports without opening or advancing", () => {
+                    foreach (int first in new int[] { 1, 10 })
+                    {
+                        var desktop = new FakeReportPaneDesktop { ExposeControlText = false, LagFirstComparison = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                        runner.RestartSession = () => { throw new Exception("Retry open reports unnecessarily restarted the session"); };
+                        runner.Recovery = (request, token) => {
+                            prompts++;
+                            Assert(request.CaseNumber == first + 1 && request.LastSavedCase == first && desktop.ComparisonOpen && !desktop.VisibleEnabled(new IntPtr(1)), "Recovery was not at the open second comparison");
+                            desktop.ExposeControlText = true; return RecoveryChoice.RetryCapture;
+                        };
+                        runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        string text = File.ReadAllText(output + ".for-comparison.txt");
+                        Assert(prompts == 1 && runner.Completed == 3 && desktop.CopyCount == 4 && desktop.Events.FindAll(e => e == "key:49").Count == 3 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Retry changed selection, reopened, duplicated, or dropped a pair");
+                        Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1") && text.Contains("FINDINGS: resident 1"), "Retry did not replace the unsaved repeated pair with current data");
                     }
                 });
                 Test("stale loaded comparison is identified before saving; reopening requires Continue", () => {

@@ -1,4 +1,41 @@
-# PowerScribe Report Exporter v0.21
+# PowerScribe Report Exporter v0.22
+
+## v0.22: live report controls and recovery without a disabled Continue
+
+The case-2 warning only established that two captured strings matched case 1.
+It did **not** establish that the study visible in PowerScribe was identical.
+Requiring worklist detection at that point could disable Continue while the
+comparison dialog was open. That recovery gate has been removed.
+
+When the report body under the click exposes a native editor, capture waits for
+that exact control to receive focus. Tab must reach a different resident control
+after a direct attending read. An obstructed click is rejected before clicking.
+After clicking the attending body and tabbing to the resident body, keyboard mode
+now identifies the focused child of the current comparison window. For supported
+Edit/RichEdit controls it reads the report directly with bounded `WM_GETTEXT`
+requests, requires stable text across at least 50 ms, and checks that focus
+stays on that control. This bypasses Ctrl+C and clipboard/provider caches. The
+resident must be a different control when the attending was read directly.
+Unsupported controls and reports above the native size limit retain the checked
+clipboard path; changed focus and exposed control/clipboard disagreement reject
+the unsaved pair. No report text is written to diagnostic logs.
+
+For a repeated first pair, **Retry open reports** rereads the existing comparison
+without opening another dialog, sending Down, relabeling cases, or confirming
+linked studies. **Reselect case** remains available if the wrong study was
+selected: close the comparison, select the requested row, then choose it.
+**Identical linked reports** is a separate explicit choice. Ordinary Continue
+also remains clickable when worklist observation is unavailable; navigation
+still requires validated worklist focus before any Down key is sent.
+
+**153 automated checks passed.** Tests cover stale clipboard content alongside distinct live control text,
+same-window retry while the main window is disabled, exact source numbering,
+native Edit/RichEdit reads (including a separate Windows process), delayed
+click/Tab focus, and unsupported-control fallback. These establish the
+code paths; they do not prove the PowerScribe workstation failure resolved. A
+short workstation export remains necessary, especially for custom report controls.
+
+The earlier version sections below document historical behavior.
 
 ## v0.21: retain worklist focus across Go and Continue
 

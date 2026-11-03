@@ -1,4 +1,4 @@
-PowerScribe Report Exporter v0.21
+PowerScribe Report Exporter v0.22
 
 Extract the ZIP and run PowerScribeReportExporter.exe. No installer,
 PowerShell, Python, or AutoHotkey is required on the workstation.
@@ -81,7 +81,7 @@ See README.md for technical details and limits.
 RETRYING A STOPPED RUN
 The exporter remembers the worklist control while you are selecting a row in
 PowerScribe, before Go or Continue takes focus. Keep the exporter open while
-selecting the requested case. Continue enables when that control is detected;
+selecting the requested case. Continue stays available even if detection fails;
 click it once. The readiness message identifies the control, not the case number,
 so select the exact requested case in the same worklist and order.
 
@@ -92,7 +92,9 @@ capture starts at that case. After a saved case, it asks for the next case so
 the saved pair is not duplicated. Finish means the final pair is already saved.
 Stop is always available. A disk/save error still ends the run.
 
-Clipboard text is now accepted only when its update number and owner remain
+Supported report controls are read directly, bypassing Ctrl+C and the clipboard.
+Both text and focused control must remain stable. Unsupported controls and very
+long reports use the clipboard fallback. Clipboard text is accepted only when its update number and owner remain
 stable across the read. A changing clipboard is reread, without another Ctrl+C
 or comparison reopen. A controlled replay of v0.18 showed that this race can
 duplicate the first saved pair despite correct visible navigation. This is not
@@ -104,9 +106,12 @@ report text or patient identifiers. If cases 1 and 2 are wrong, keep this log
 with the ordinary progress log to identify capture versus saving errors.
 
 If the first two full report pairs already match when captured, the exporter
-pauses before saving the second under another number. Reselect the requested
-case and Continue, or choose "These are linked studies" only if they are distinct
-studies with intentionally identical reports. It does not automatically reopen,
+pauses before saving the second under another number. If different reports are
+open, leave that comparison OPEN and choose "Retry open reports". It rereads
+this case without reopening or moving the worklist and needs no worklist detection.
+If the wrong study is selected, close the comparison, select the requested row,
+and choose "Reselect case". Choose "Identical linked reports" only if they are
+distinct studies with intentionally identical reports. It does not automatically reopen,
 delete linked reports or guess that an extra Down is safe.
 
 The launcher clears remembered worklist/capture/cancellation state after a stopped

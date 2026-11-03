@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.21.0.0")]
-[assembly: AssemblyFileVersion("0.21.0.0")]
+[assembly: AssemblyVersion("0.22.0.0")]
+[assembly: AssemblyFileVersion("0.22.0.0")]
 
 namespace ReportExporter
 {
@@ -22,8 +22,8 @@ namespace ReportExporter
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
-                using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(11, 20, 10,
-                    "The PowerScribe worklist control could not be identified. No comparison shortcut or Down key was sent."), CancellationToken.None, () => true) :
+                using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(2, 20, 1,
+                    "The captured text matches case 1. This checks copied text, not the identity of the study on screen. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", 1), CancellationToken.None, () => false) :
                     args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
@@ -132,7 +132,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.21";
+            Text = "PowerScribe Report Exporter v0.22";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -573,7 +573,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.21; retaining validated worklist focus across Go and Continue...");
+                    reportProgress("Initializing native exporter v0.22; reading live report controls before clipboard fallback...");
                     runner.RestartSession = () => {
                         return profile.KeyboardWorkflow ?
                             (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :

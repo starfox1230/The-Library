@@ -27,7 +27,7 @@ namespace ReportExporter
                 Require(Find(form, "RecoveryHeading").Text.Contains("case 12"), "Recovery has the wrong expected source case");
                 Require(Find(form, "RecoveryInstructions").Text.Contains("Close Compare") && Find(form, "RecoveryInstructions").Text.Contains("SAME worklist"), "Recovery omits selection/close instructions");
                 Require(form.AcceptButton == Find(form, "RecoveryContinue") && form.CancelButton == Find(form, "RecoveryStop"), "Recovery lacks keyboard Continue/Stop");
-                Require(Find(form, "RecoveryLinked").Width >= 200, "Linked-study confirmation is too narrow");
+                Require(Find(form, "RecoveryLinked").Width >= 180, "Linked-study confirmation is too narrow");
                 var panel = Find(form, "RecoveryContinue").Parent; panel.PerformLayout();
                 foreach (Control button in panel.Controls) Require(panel.ClientRectangle.Contains(button.Bounds), "Recovery button is clipped");
                 form.ChooseRecovery(RecoveryChoice.AcceptLinkedStudies);

@@ -30,7 +30,17 @@ namespace ReportExporter
         bool ReadClipboard(out string text);
     }
 
-    public sealed class Win32Desktop : IKeyboardDesktop
+    // Optional capability: binds report data to the focused child of this exact
+    // comparison window, rather than treating a clipboard update as pane identity.
+    public interface IReportPaneDesktop
+    {
+        IntPtr ReportFocus(IntPtr comparison);
+        IntPtr ReportAtPoint(IntPtr comparison, int x, int y);
+        string ReportControlClass(IntPtr child);
+        bool ReadReportControl(IntPtr comparison, IntPtr child, out string text);
+    }
+
+    public sealed class Win32Desktop : IKeyboardDesktop, IReportPaneDesktop
     {
         private static readonly NativeClipboard clipboard = new NativeClipboard(new WindowsClipboardAccess());
         private readonly IntPtr lockedMain, lockedChild;
@@ -63,6 +73,11 @@ namespace ReportExporter
         public void Key(ushort key) { Native.Key(key); }
         public void Chord(ushort modifier, ushort key) { Native.Chord(modifier, key); }
         public void Click(IntPtr hwnd, int x, int y) { Native.Click(hwnd, x, y); }
+        public IntPtr ReportFocus(IntPtr comparison) { return Native.FocusedChild(comparison); }
+        public IntPtr ReportAtPoint(IntPtr comparison, int x, int y) { return Native.ReportAtPoint(comparison, x, y); }
+        public string ReportControlClass(IntPtr child) { return Native.WindowClass(child); }
+        public bool ReadReportControl(IntPtr comparison, IntPtr child, out string text)
+        { return Native.ReadReportControl(comparison, child, out text); }
         public bool ClearClipboard()
         { return clipboard.Clear(); }
         public uint ClipboardSequence { get { return Native.GetClipboardSequenceNumber(); } }
@@ -309,26 +324,90 @@ namespace ReportExporter
 
         public ReportPair ReadReports(CancellationToken token)
         {
+            captureResolved = false;
             Guard(comparison, token);
             progress("Clicking the attending report body at " + profile.ClickX + ", " + profile.ClickY + "...");
+            var panes = desktop as IReportPaneDesktop;
+            IntPtr clickTarget = panes == null ? IntPtr.Zero : panes.ReportAtPoint(comparison, profile.ClickX, profile.ClickY);
             desktop.Click(comparison, profile.ClickX, profile.ClickY);
             InputSettle(comparison, timing.KeyDelayMs, token);
             var attendingClock = Stopwatch.StartNew();
-            string attending = Copy("attending", token, true);
+            IntPtr attendingPane;
+            bool attendingDirect;
+            string attending = ReadReport("attending", token, clickTarget, IntPtr.Zero, true, out attendingPane, out attendingDirect);
             long attendingMs = attendingClock.ElapsedMilliseconds;
             Guard(comparison, token);
             progress("Tab to the resident report body — same as the AHK...");
             desktop.Key(0x09);
             InputSettle(comparison, timing.KeyDelayMs, token);
             var residentClock = Stopwatch.StartNew();
-            string resident = Copy("resident", token);
+            IntPtr residentPane;
+            bool residentDirect;
+            string resident = ReadReport("resident", token, IntPtr.Zero, attendingDirect ? attendingPane : IntPtr.Zero, false, out residentPane, out residentDirect);
             captureResolved = true;
-            return new ReportPair { Attending = attending, Resident = resident, Method = "keyboard-clipboard",
+            return new ReportPair { Attending = attending, Resident = resident, Method = attendingDirect && residentDirect ? "keyboard-control-text" : "keyboard-clipboard",
                 AttendingEmptyUnconfirmed = attending == null,
                 AttendingCopyMs = attendingMs, ResidentCopyMs = residentClock.ElapsedMilliseconds, CopyRetries = copyRetries,
                 ClipboardReadMs = clipboardReadMs, ClipboardReadMaxMs = clipboardReadMaxMs,
                 ClipboardClearMs = clipboardClearMs, ClipboardLockMisses = clipboardLockMisses };
         }
+
+        private string ReadReport(string role, CancellationToken token, IntPtr expectedPane, IntPtr otherPane, bool allowEmpty,
+            out IntPtr pane, out bool direct)
+        {
+            var source = desktop as IReportPaneDesktop;
+            pane = IntPtr.Zero; direct = false;
+            if (source == null) return Copy(role, token, allowEmpty);
+            IntPtr target = source.ReportFocus(comparison);
+            if (expectedPane != IntPtr.Zero || otherPane != IntPtr.Zero)
+                Wait(() => { Guard(comparison, token); target = source.ReportFocus(comparison); return target != IntPtr.Zero &&
+                    (expectedPane == IntPtr.Zero || target == expectedPane) && (otherPane == IntPtr.Zero || target != otherPane); }, token,
+                    otherPane != IntPtr.Zero ? "Tab did not move to a different resident report control. No pair was saved. Check the report click position." :
+                    "The clicked attending report control did not receive focus. No pair was saved.");
+            pane = target;
+            progress(role + " target: control=" + target.ToInt64().ToString("X") + ", class=" + (target == IntPtr.Zero ? "unavailable" : source.ReportControlClass(target)) + ".");
+            string initial;
+            if (target != IntPtr.Zero && source.ReadReportControl(comparison, target, out initial) && ReportText.ExtractBody(initial) != null)
+            {
+                // Read the live control twice across a settling interval. No clipboard
+                // data, selection, or app-level Ctrl+C cache participates in this path.
+                string previous = initial, settled = null;
+                var clock = Stopwatch.StartNew(); long unchangedSince = 0;
+                Wait(() => {
+                    Guard(comparison, token);
+                    if (source.ReportFocus(comparison) != target)
+                        throw new InvalidOperationException("The focused " + role + " report control changed during capture. No pair was saved.");
+                    string current;
+                    if (!source.ReadReportControl(comparison, target, out current) || ReportText.ExtractBody(current) == null)
+                    { unchangedSince = clock.ElapsedMilliseconds; previous = null; return false; }
+                    if (current != previous) { previous = current; unchangedSince = clock.ElapsedMilliseconds; return false; }
+                    if (source.ReportFocus(comparison) != target)
+                        throw new InvalidOperationException("The focused " + role + " report control changed during capture. No pair was saved.");
+                    if (clock.ElapsedMilliseconds - unchangedSince < 50) return false;
+                    settled = current; return true;
+                }, token, "The live " + role + " report control did not finish loading. No pair was saved.");
+                direct = true;
+                progress(role + " read directly from the focused report control; characters=" + settled.Length + ". Clipboard bypassed.");
+                return settled;
+            }
+            progress(role + " control does not expose complete native report text; using checked clipboard capture.");
+            string copied = Copy(role, token, allowEmpty);
+            Guard(comparison, token);
+            IntPtr afterCopy = source.ReportFocus(comparison);
+            if (target != IntPtr.Zero && afterCopy != target)
+                throw new InvalidOperationException("The focused " + role + " report control changed while copying. No pair was saved.");
+            // Some custom controls only expose text after selection/copy. If so,
+            // compare the content, not merely the clipboard sequence number.
+            string visible;
+            if (afterCopy != IntPtr.Zero && source.ReadReportControl(comparison, afterCopy, out visible) && ReportText.ExtractBody(visible) != null)
+            {
+                if (copied == null || NormalizeLines(copied) != NormalizeLines(visible)) throw new InvalidOperationException("The " + role + " clipboard text does not match its report control. No pair was saved. Retry the current case.");
+            }
+            return copied;
+        }
+
+        private static string NormalizeLines(string text)
+        { return text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\0', '\n'); }
 
         private string Copy(string role, CancellationToken token, bool inspectResidentAfterEmpty = false)
         {

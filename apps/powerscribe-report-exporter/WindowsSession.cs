@@ -439,6 +439,35 @@ namespace ReportExporter
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr SendMessageTimeout(IntPtr window, uint message, IntPtr wparam, IntPtr lparam, uint flags, uint timeout, out UIntPtr result);
+        [DllImport("user32.dll", EntryPoint = "SendMessageTimeoutW", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern IntPtr ReadTextTimeout(IntPtr window, uint message, IntPtr wparam, StringBuilder text, uint flags, uint timeout, out UIntPtr result);
+
+        internal static IntPtr ReportAtPoint(IntPtr comparison, int x, int y)
+        {
+            Rect rectangle;
+            if (!GetWindowRect(comparison, out rectangle)) return IntPtr.Zero;
+            IntPtr hit = WindowFromPoint(new Point { X = rectangle.Left + x, Y = rectangle.Top + y });
+            return IsChild(comparison, hit) && IsTextEditor(hit) ? hit : IntPtr.Zero;
+        }
+
+        internal static bool ReadReportControl(IntPtr comparison, IntPtr child, out string text)
+        {
+            text = null;
+            uint parentPid, childPid;
+            GetWindowThreadProcessId(comparison, out parentPid); GetWindowThreadProcessId(child, out childPid);
+            if (parentPid == 0 || parentPid != childPid || !IsChild(comparison, child) ||
+                !IsWindowVisible(child) || !IsWindowEnabled(child) || !IsTextEditor(child)) return false;
+            // WM_GETTEXT is system-marshalled across processes. Do not use remote
+            // pointers with rich-edit messages (WM_USER+), or truncate long reports.
+            // Unsupported/custom controls and >64K text keep the clipboard fallback.
+            UIntPtr length, copied, after;
+            if (SendMessageTimeout(child, 0x000E, IntPtr.Zero, IntPtr.Zero, 2, 200, out length) == IntPtr.Zero || length.ToUInt64() > 60000) return false;
+            var buffer = new StringBuilder(65536);
+            if (ReadTextTimeout(child, 0x000D, new IntPtr(buffer.Capacity), buffer, 2, 200, out copied) == IntPtr.Zero ||
+                copied.ToUInt64() >= (ulong)(buffer.Capacity - 1) || copied.ToUInt64() != (ulong)buffer.Length || copied.ToUInt64() > length.ToUInt64()) return false;
+            if (SendMessageTimeout(child, 0x000E, IntPtr.Zero, IntPtr.Zero, 2, 200, out after) == IntPtr.Zero || length != after) return false;
+            text = buffer.ToString(); return true;
+        }
         [StructLayout(LayoutKind.Sequential)]
         private struct GuiThreadInfo
         {
@@ -621,6 +650,9 @@ namespace ReportExporter
             if (!GetWindowRect(hwnd, out rect) || x < 0 || y < 0 || x >= rect.Right - rect.Left || y >= rect.Bottom - rect.Top)
                 throw new InvalidOperationException("The report click position is outside the comparison window. Use Capture report click to set the position for this window size.");
             if (!SetCursorPos(rect.Left + x, rect.Top + y)) throw new InvalidOperationException("Windows blocked moving the pointer to the report pane.");
+            IntPtr hit = WindowFromPoint(new Point { X = rect.Left + x, Y = rect.Top + y });
+            if (hit != hwnd && !IsChild(hwnd, hit))
+                throw new InvalidOperationException("Another window covers the report click position. Move it away and retry this case. No click or copy was sent.");
             Send(new Input[] {
                 new Input { Type = 0, Data = new InputUnion { Mouse = new Mouse { Flags = 2 } } },
                 new Input { Type = 0, Data = new InputUnion { Mouse = new Mouse { Flags = 4 } } }

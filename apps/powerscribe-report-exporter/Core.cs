@@ -26,7 +26,7 @@ namespace ReportExporter
     }
     public interface ISessionTelemetry { int FocusRecoveries { get; } }
 
-    public enum RecoveryChoice { Stop, Continue, AcceptLinkedStudies }
+    public enum RecoveryChoice { Stop, Continue, AcceptLinkedStudies, RetryCapture }
 
     public sealed class RecoveryRequest
     {
@@ -279,22 +279,31 @@ namespace ReportExporter
                         ReportPair pair = captured.Pair;
                         // An independently updated clipboard can still contain PowerScribe's
                         // previously loaded report. Never silently relabel that first repeat.
-                        if (Completed == 1 && number == firstPairNumber + 1 && SamePair(firstPair, pair))
+                        bool reselect = false;
+                        while (Completed == 1 && number == firstPairNumber + 1 && SamePair(firstPair, pair))
                         {
                             if (Recovery == null) throw new InvalidOperationException("The first report pair repeated after advancing. Verify the next study before exporting it under another case number.");
                             outcomes.WriteLine(number + ",paused_first_pair_repeat"); outcomes.Flush();
                             var request = new RecoveryRequest(number, last, LastSavedCase,
-                                "Both reports already match case " + firstPairNumber + " in the clipboard capture, before file saving. The capture-checks log records this. Verify the selected study, or confirm that they are separate linked studies.", firstPairNumber);
+                                "The captured text matches case " + firstPairNumber + ". This checks copied text, not the identity of the study on screen. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", firstPairNumber);
                             RecoveryChoice choice = Recovery(request, token); token.ThrowIfCancellationRequested();
                             if (choice == RecoveryChoice.Stop) throw new OperationCanceledException("Stopped while checking the repeated first pair.", token);
                             if (choice == RecoveryChoice.Continue)
                             {
                                 if (RestartSession == null) throw new InvalidOperationException("A fresh capture session is required to continue.");
-                                session = null; previous = null; number--; continue;
+                                session = null; previous = null; reselect = true; break;
+                            }
+                            if (choice == RecoveryChoice.RetryCapture)
+                            {
+                                progress("Case " + number + ": retrying the open comparison without reopening or moving the worklist...");
+                                captured = captureAudit.Capture(number, session.ReadReports(token), findingsOnly);
+                                pair = captured.Pair; continue;
                             }
                             if (choice != RecoveryChoice.AcceptLinkedStudies) throw new InvalidOperationException("Invalid recovery choice.");
                             outcomes.WriteLine(number + ",distinct_linked_studies_confirmed"); outcomes.Flush();
+                            break;
                         }
+                        if (reselect) { number--; continue; }
                         bool pending = pair.AttendingEmptyUnconfirmed;
                         string formatted = captured.FormattedText;
                         if (session.CanVerifySelectedRow && session.SelectedCase() != selected)

@@ -1,3 +1,63 @@
+# Live report controls and actionable recovery — November 3, 2026 (v0.22)
+
+## What the screenshot establishes
+
+The v0.21 case-2 warning means the captured pair matched case 1 before saving.
+It does not establish that the visible studies were identical. Worklist readiness
+could disable Continue while the comparison was still open, preventing an in-place
+retry. No further actual workstation logs were supplied with this screenshot.
+
+## Changes and evidence
+
+- Standard focused Edit/RichEdit report controls are read directly with bounded
+  system-marshalled WM_GETTEXT requests, bypassing Ctrl+C and the clipboard.
+  Complete report text must settle for at least 50 ms on the same child control.
+  The child under the report click must receive focus, and Tab must move to a
+  different child after a direct attending read. Covered click targets are rejected.
+- Unsupported native text/focus providers and long reports retain the checked
+  clipboard fallback. When control text becomes available after copying, it must
+  agree with the clipboard, allowing only line-ending/terminal-newline differences.
+- A repeated first pair offers Retry open reports. This calls ReadReports on the
+  existing session/window and discards the unsaved previous capture. It sends no
+  extra comparison shortcut or Down. Reselect case and linked confirmation are
+  separate actions. No recovery button requires worklist readiness to be detected;
+  subsequent navigation still validates focus before Down.
+- Source labels, immutable snapshots, verified writes and delivery-prefix checks
+  are retained. Diagnostic additions contain control handles/classes/counts only.
+
+**153 automated checks passed.** Eleven additions cover live text versus stale
+clipboard content, unsupported and absent native focus, same-pane/focus changes,
+delayed click/Tab, case-2 recovery while the main window is disabled, usable
+Continue without readiness, native Edit/RichEdit text including Unicode and size
+limits, and real cross-process text reads. The fixture is a test-owned offscreen
+Windows process: it never reads real reports or uses the user's clipboard.
+Existing linked-study, start-at-10/11, one-Down, cancellation, immutable-record,
+readback and verified-delivery tests remain passing.
+
+The recovery preview was inspected in the repeated-pair state with worklist
+readiness deliberately false: all four choices fit and Retry open reports is enabled.
+
+Microsoft documents [WM_GETTEXT](https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-gettext)
+as retrieving an edit control's content, with limits for long RichEdit text.
+The implementation declines over-limit reads instead of accepting truncation.
+
+**Limit:** there is no PowerScribe end-to-end execution on this machine. Direct
+control reading removes clipboard reuse from supported report controls, but the
+specific hospital control class and cause of its stale copies remain unverified.
+Do not describe the synthetic/cross-process fixtures as proof of a workstation fix.
+
+## v0.22 portable delivery
+
+- [PowerScribeReportExporter-v0.22.zip](https://drive.google.com/file/d/1Q5FJUiXcHyBNzoXJDjAaCfbG_RP2QbnJ/view?usp=drivesdk)
+- ZIP: **77,007 bytes**; SHA-256
+  `82f56174ac9b6e47e2cc9da678f71f75b392151b47fbf0aa3fda3bed4e68fe29`.
+- Tested EXE: version **0.22.0.0**; SHA-256
+  `a8854b4be991bd549662dc72e8efb9c55a1469e31de0415f5d97f9ec6ca4baa5`.
+- Archive entries are exactly the production EXE, README and quick start. The
+  embedded EXE matches the tested binary. Mounted-Drive ZIP SHA-256 matches the
+  local archive; connector listing and metadata confirmed its cloud ID, name,
+  size and parent release folder. Earlier versions were preserved.
+
 # Worklist focus and recovery — November 3, 2026 (v0.21)
 
 The case-10 screenshot identifies an initialization failure before any report
