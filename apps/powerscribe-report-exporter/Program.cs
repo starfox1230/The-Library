@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.22.0.0")]
-[assembly: AssemblyFileVersion("0.22.0.0")]
+[assembly: AssemblyVersion("0.23.0.0")]
+[assembly: AssemblyFileVersion("0.23.0.0")]
 
 namespace ReportExporter
 {
@@ -23,7 +23,7 @@ namespace ReportExporter
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
                 using (Form form = args[0] == "--preview-recovery" ? (Form)new RecoveryDialog(new RecoveryRequest(2, 20, 1,
-                    "The captured text matches case 1. This checks copied text, not the identity of the study on screen. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", 1), CancellationToken.None, () => false) :
+                    "The comparison was closed and reopened once without moving the worklist, but its captured text still matches case 1. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", 1), CancellationToken.None, () => false) :
                     args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
@@ -132,7 +132,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.22";
+            Text = "PowerScribe Report Exporter v0.23";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -156,7 +156,7 @@ namespace ReportExporter
             speed.Items.AddRange(new object[] { "Automatic - fast first", "Fast (fixed)", "Conservative (fixed)", "Custom timing" });
             speed.SelectedIndex = 0;
             optionsPanel.Controls.Add(Row("Speed", speed, "", new Label { AutoSize = true }));
-            optionsPanel.Controls.Add(new Label { Text = "Automatic starts fast and adds input settling only when a copy needs retrying.\nWindow and clipboard waits finish as soon as their checks succeed.", AutoSize = true, MaximumSize = new Size(570, 0) });
+            optionsPanel.Controls.Add(new Label { Text = "Automatic uses brief key delays and lets each source study settle before opening its comparison.\nThe first study switch gets extra time; delayed copies can add input settling.", AutoSize = true, MaximumSize = new Size(570, 0) });
             customTiming = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false, Visible = false };
             customTiming.Controls.Add(Row("Input pause (ms)", keyPause, "After Down (ms)", casePause));
             customTiming.Controls.Add(Row("Readiness poll (ms)", poll, "", new Label { AutoSize = true }));
@@ -573,7 +573,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.22; reading live report controls before clipboard fallback...");
+                    reportProgress("Initializing native exporter v0.23; reading live report controls before clipboard fallback...");
                     runner.RestartSession = () => {
                         return profile.KeyboardWorkflow ?
                             (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :

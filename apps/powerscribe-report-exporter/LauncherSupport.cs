@@ -6,9 +6,20 @@ namespace ReportExporter
     public sealed class InputTiming
     {
         private readonly bool automatic;
+        private readonly string mode;
+        private readonly int caseDelay;
         public int KeyDelayMs { get; private set; }
         public InputTiming(Profile profile)
-        { automatic = profile.TimingMode == "Automatic"; KeyDelayMs = automatic ? 10 : profile.KeyDelayMs; }
+        { mode = profile.TimingMode; automatic = mode == "Automatic"; caseDelay = profile.CaseDelayMs; KeyDelayMs = automatic ? 10 : profile.KeyDelayMs; }
+        public int StudySwitchDelay(bool firstSwitch)
+        {
+            if (mode == "Custom") return caseDelay;
+            // A selected row/enabled parent is not evidence that the report model
+            // has loaded. Keep key delays short, but allow the source-study switch
+            // to settle BEFORE opening a comparison (which may snapshot old text).
+            int floor = mode == "Conservative" ? (firstSwitch ? 1000 : 750) : firstSwitch ? 750 : 500;
+            return Math.Max(caseDelay, floor);
+        }
         public bool CopyRetry()
         {
             if (!automatic || KeyDelayMs >= 100) return false;
@@ -18,9 +29,9 @@ namespace ReportExporter
         public static void Configure(Profile profile)
         {
             if (profile.TimingMode == "Automatic" || profile.TimingMode == "Fast")
-            { profile.KeyDelayMs = 10; profile.CaseDelayMs = 100; profile.PollMs = 5; }
+            { profile.KeyDelayMs = 10; profile.CaseDelayMs = 500; profile.PollMs = 5; }
             if (profile.TimingMode == "Conservative")
-            { profile.KeyDelayMs = 100; profile.CaseDelayMs = 100; profile.PollMs = 10; }
+            { profile.KeyDelayMs = 100; profile.CaseDelayMs = 750; profile.PollMs = 10; }
         }
     }
 
@@ -59,7 +70,7 @@ namespace ReportExporter
         public static string Build(ExportRunner runner, int first, int last, string outcome, string detail, string output)
         {
             int? resume = ResumeAt(runner, first, last);
-            return "PowerScribe Report Exporter v0.21\r\n" + outcome + "\r\n" +
+            return "PowerScribe Report Exporter v0.23\r\n" + outcome + "\r\n" +
                 "Requested case labels: " + first + "–" + last + "\r\n" +
                 "Complete report pairs: " + runner.Completed + "\r\n" +
                 "Unconfirmed pending: " + runner.Pending + "\r\nUnavailable comparisons: " + runner.Skipped + "\r\n" +

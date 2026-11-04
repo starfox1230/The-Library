@@ -50,6 +50,12 @@ namespace ReportExporter
             public bool IdenticalReportBodies, IdenticalCopiedHeaders, NativeRowSupported;
             public bool FreezeRow, NoNavigationControl, RejectNavigationFocus, MainModal, ModalOnOpen, BlockComparison;
             public bool IgnoreFirstDown, LagFirstComparison;
+            public bool RepeatFirstPairOnSecondStudy;
+            public int StudyLoadDelayMs;
+            public int DeferredDownMs;
+            private int sourceRow;
+            private System.Diagnostics.Stopwatch sourceLoad;
+            private bool downPending;
             public bool ChangeClipboardDuringRead, AlwaysChangeClipboardDuringRead;
             public int UnstableReads;
             private string readReplacement;
@@ -115,12 +121,20 @@ namespace ReportExporter
                 if (MenuDepth > 1) popups.Add(new IntPtr(42));
                 return popups.ToArray();
             }
-            public string NavigationRow(IntPtr child) { return NativeRowSupported ? "row:" + Row : null; }
+            private void CompleteDeferredDown()
+            { if (downPending && sourceLoad.ElapsedMilliseconds >= DeferredDownMs) { Row++; downPending = false; } }
+            public string NavigationRow(IntPtr child) { CompleteDeferredDown(); return NativeRowSupported ? "row:" + Row : null; }
             public void Key(ushort key)
             {
                 Events.Add("key:" + key.ToString("X2"));
                 if (key == 0x49 && ModalOnOpen) MainModal = true;
-                if (key == 0x49 && MenuDepth == 2 && !FailOpen && Row != UnavailableRow) { MenuDepth = 0; ComparisonOpen = true; residentPane = false; loadedRow = LagFirstComparison && ++comparisonOpens == 2 ? Row - 1 : Row; Active = LoseFocusOnOpen ? new IntPtr(999) : new IntPtr(2); }
+                if (key == 0x49 && MenuDepth == 2 && !FailOpen && Row != UnavailableRow) {
+                    CompleteDeferredDown();
+                    MenuDepth = 0; ComparisonOpen = true; residentPane = false; comparisonOpens++;
+                    if (sourceLoad != null && sourceLoad.ElapsedMilliseconds >= StudyLoadDelayMs + DeferredDownMs) sourceRow = Row;
+                    loadedRow = RepeatFirstPairOnSecondStudy && Row == 1 ? 0 : LagFirstComparison && comparisonOpens == 2 ? Row - 1 : StudyLoadDelayMs > 0 ? sourceRow : Row;
+                    Active = LoseFocusOnOpen ? new IntPtr(999) : new IntPtr(2);
+                }
                 if (key == 0x49 && (FailOpen || Row == UnavailableRow) && CloseMenuOnUnavailable) MenuDepth = 0;
                 if (key == 0x1B && !RefuseMenuExit && !IgnoreEscape && MenuDepth > 0)
                 { if (EscapeExitReadDelay > 0) MenuReadDelay = EscapeExitReadDelay; else MenuDepth--; }
@@ -128,7 +142,7 @@ namespace ReportExporter
                 if (key == 0x09) residentPane = true;
                 if (key == 0x0D && !FailClose) { ComparisonOpen = false; focused = new IntPtr(11); Active = LoseFocusOnClose ? new IntPtr(999) : new IntPtr(1); }
                 if (key == 0x28 && MenuDepth > 0) MenuDownCount++;
-                if (key == 0x28 && MenuDepth == 0 && focused == new IntPtr(10) && !FreezeRow) { if (IgnoreFirstDown) IgnoreFirstDown = false; else Row++; }
+                if (key == 0x28 && MenuDepth == 0 && focused == new IntPtr(10) && !FreezeRow) { if (IgnoreFirstDown) IgnoreFirstDown = false; else { if (DeferredDownMs > 0) downPending = true; else Row++; if (StudyLoadDelayMs > 0 || DeferredDownMs > 0) sourceLoad = System.Diagnostics.Stopwatch.StartNew(); } }
             }
             public void Chord(ushort modifier, ushort key)
             {
@@ -479,7 +493,7 @@ namespace ReportExporter
                 });
                 Test("keyboard default needs no accessibility captures", () => {
                     var profile = new Profile(); profile.Validate();
-                    Assert(profile.KeyboardWorkflow && profile.ClickX == 800 && profile.ClickY == 600 && profile.KeyDelayMs == 10 && profile.PollMs == 5 && profile.CaseDelayMs == 100, "Default no longer follows coordinates/faster timing or case delay changed");
+                    Assert(profile.KeyboardWorkflow && profile.ClickX == 800 && profile.ClickY == 600 && profile.KeyDelayMs == 10 && profile.PollMs == 5 && profile.CaseDelayMs == 500, "Default coordinates/key timing or study settling changed");
                     profile.KeyboardWorkflow = false;
                     Throws<InvalidOperationException>(() => profile.Validate());
                 });
@@ -945,8 +959,8 @@ namespace ReportExporter
                     var lines = File.ReadAllLines(output + ".capture-checks.csv");
                     var capture = new List<string[]>(); int verified = 0;
                     foreach (string line in lines) { var cells = line.Split(','); if (cells[0] == "captured") capture.Add(cells); if (cells[0] == "comparison-verified") verified++; }
-                    Assert(capture.Count == 2 && capture[0][3] == capture[1][3] && capture[0][4] == capture[1][4] && verified == 1, "Ledger cannot locate the repeated text before saving");
-                    Assert(desktop.CopyCount == 4 && desktop.Events.FindAll(e => e == "key:49").Count == 2, "Repeat diagnosis reopened a comparison automatically");
+                    Assert(capture.Count == 3 && capture[0][3] == capture[1][3] && capture[0][4] == capture[1][4] && capture[1][3] == capture[2][3] && verified == 1, "Ledger cannot locate the repeated text before saving");
+                    Assert(desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:49").Count == 3 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Bounded repeat recovery reopened more than once or navigated again");
                 });
                 Test("linked studies with identical full clipboard reports are both exported", () => {
                     foreach (bool supported in new bool[] { false, true })
@@ -955,7 +969,7 @@ namespace ReportExporter
                         int prompts = 0;
                         runner.Recovery = (request, token) => { prompts++; Assert(request.RepeatedFromCase == 2 && request.CaseNumber == 3, "Linked confirmation has wrong source labels"); return RecoveryChoice.AcceptLinkedStudies; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 2, 4, output, CancellationToken.None, m => {});
-                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 6 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
+                        Assert(runner.Completed == 3 && desktop.Row == 2 && desktop.CopyCount == 8 && prompts == 1 && File.ReadAllText(output).Contains("Case 4"), "Linked reports were dropped, re-navigated or repeatedly confirmed");
                     }
                 });
                 Test("live report controls bypass a stale clipboard provider and preserve original numbering", () => {
@@ -1001,8 +1015,8 @@ namespace ReportExporter
                 Test("retry current comparison rereads distinct live reports without opening or advancing", () => {
                     foreach (int first in new int[] { 1, 10 })
                     {
-                        var desktop = new FakeReportPaneDesktop { ExposeControlText = false, LagFirstComparison = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
-                        runner.RestartSession = () => { throw new Exception("Retry open reports unnecessarily restarted the session"); };
+                        var desktop = new FakeReportPaneDesktop { ExposeControlText = false, RepeatFirstPairOnSecondStudy = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0, restarts = 0;
+                        runner.RestartSession = () => { restarts++; return new KeyboardSession(KeyboardSettings(), desktop, m => {}); };
                         runner.Recovery = (request, token) => {
                             prompts++;
                             Assert(request.CaseNumber == first + 1 && request.LastSavedCase == first && desktop.ComparisonOpen && !desktop.VisibleEnabled(new IntPtr(1)), "Recovery was not at the open second comparison");
@@ -1010,21 +1024,71 @@ namespace ReportExporter
                         };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
                         string text = File.ReadAllText(output + ".for-comparison.txt");
-                        Assert(prompts == 1 && runner.Completed == 3 && desktop.CopyCount == 4 && desktop.Events.FindAll(e => e == "key:49").Count == 3 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Retry changed selection, reopened, duplicated, or dropped a pair");
+                        Assert(prompts == 1 && restarts == 0 && runner.Completed == 3 && desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:49").Count == 4 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Retry changed selection, reopened, duplicated, or dropped a pair");
                         Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1") && text.Contains("FINDINGS: resident 1"), "Retry did not replace the unsaved repeated pair with current data");
                     }
                 });
-                Test("stale loaded comparison is identified before saving; reopening requires Continue", () => {
+                Test("stale second comparison is closed and reopened automatically in a fresh session without Down", () => {
                     foreach (int first in new int[] { 1, 11 })
                     {
                         var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path();
-                        int prompts = 0;
-                        runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
-                        runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == first + 1 && desktop.CopyCount == 4, "An unrequested comparison reopen occurred"); desktop.SelectWorklistRow(1); return RecoveryChoice.Continue; };
+                        int prompts = 0, restarts = 0;
+                        runner.RestartSession = () => { restarts++; Assert(desktop.Row == 1 && !desktop.ComparisonOpen, "Same-case recovery moved or did not close comparison"); return new KeyboardSession(KeyboardSettings(), desktop, m => {}); };
+                        runner.Recovery = (request, token) => { prompts++; return RecoveryChoice.Stop; };
                         runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
                         string text = File.ReadAllText(output + ".for-comparison.txt");
-                        Assert(runner.Completed == 3 && prompts == 1 && desktop.Row == 2 && desktop.CopyCount == 8 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Continue repeated Down or lost a pair");
+                        Assert(runner.Completed == 3 && prompts == 0 && restarts == 0 && desktop.Row == 2 && desktop.CopyCount == 8 && desktop.Events.FindAll(e => e == "key:28").Count == 2 && File.ReadAllText(output + ".outcomes.csv").Contains("same_case_reopen_resolved"), "Automatic reopen repeated Down, prompted or lost a pair");
                         Assert(text.Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1\r\nFINDINGS: attending 1"), "Previous report was saved under the next case number");
+                    }
+                });
+                Test("automatic study settling prevents freezing the old report while the new row is already selected", () => {
+                    foreach (int first in new int[] { 1, 10 })
+                    {
+                        var settings = KeyboardSettings(); settings.TimingMode = "Automatic"; InputTiming.Configure(settings);
+                        var desktop = new FakeKeyboardDesktop { StudyLoadDelayMs = 350, NativeRowSupported = true }; var runner = new ExportRunner(); string output = path();
+                        runner.Recovery = (request, token) => { throw new Exception("New study was opened before it loaded"); };
+                        runner.Run(new KeyboardSession(settings, desktop, m => {}), first, first + 2, output, CancellationToken.None, m => {});
+                        Assert(runner.Completed == 3 && desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:49").Count == 3 && desktop.Events.FindAll(e => e == "key:28").Count == 2, "Loading delay caused a frozen comparison, reopen or extra Down");
+                        Assert(File.ReadAllText(output).Contains("Case " + (first + 1) + "\r\nAttending Report:\r\nHEADER 1"), "Loaded report was associated with the wrong source label");
+                    }
+                });
+                Test("source settling starts after a delayed native row selection rather than expiring before it", () => {
+                    var settings = KeyboardSettings(); settings.TimingMode = "Automatic"; settings.TimeoutMs = 2000; InputTiming.Configure(settings);
+                    var desktop = new FakeKeyboardDesktop { StudyLoadDelayMs = 350, DeferredDownMs = 850, NativeRowSupported = true }; var runner = new ExportRunner(); string output = path();
+                    runner.Recovery = (request, token) => { throw new Exception("Report settling elapsed before the queued Down selected its row"); };
+                    runner.Run(new KeyboardSession(settings, desktop, m => {}), 10, 11, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 2 && desktop.Row == 1 && desktop.CopyCount == 4 && desktop.Events.FindAll(e => e == "key:49").Count == 2, "Delayed selection required a comparison refresh");
+                    Assert(File.ReadAllText(output).Contains("Case 11\r\nAttending Report:\r\nHEADER 1"), "Delayed selection froze the previous report");
+                });
+                Test("an intentionally short custom study pause is recovered once without row reselect or manual approval", () => {
+                    var settings = KeyboardSettings(); settings.CaseDelayMs = 10;
+                    var desktop = new FakeKeyboardDesktop { StudyLoadDelayMs = 350 }; var runner = new ExportRunner(); string output = path(); int restarts = 0;
+                    runner.RestartSession = () => { restarts++; return new KeyboardSession(settings, desktop, m => {}); };
+                    runner.Recovery = (request, token) => { throw new Exception("Automatic same-study retry asked for user input"); };
+                    runner.Run(new KeyboardSession(settings, desktop, m => {}), 11, 12, output, CancellationToken.None, m => {});
+                    Assert(runner.Completed == 2 && restarts == 0 && desktop.Row == 1 && desktop.CopyCount == 6 && desktop.Events.FindAll(e => e == "key:28").Count == 1 && desktop.Events.FindAll(e => e == "key:49").Count == 3, "Reopen needed a selection click, duplicated or advanced a case");
+                    Assert(File.ReadAllText(output).Contains("Case 12\r\nAttending Report:\r\nHEADER 1") && File.ReadAllText(output + ".outcomes.csv").Contains("12,same_case_reopen_resolved"), "Same-study retry did not replace the unsaved stale pair");
+                });
+                Test("a failed automatic comparison close retains the saved prefix and never advances", () => {
+                    var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 2 && request.LastSavedCase == 1, "Failed reopen lost resume label"); return RecoveryChoice.Stop; };
+                    Throws<OperationCanceledException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 3, output, CancellationToken.None, m => { if (m.Contains("closing and reopening this SAME study")) desktop.FailClose = true; }));
+                    Assert(prompts == 1 && runner.Completed == 1 && desktop.Row == 1 && desktop.CopyCount == 4 && !File.ReadAllText(output).Contains("Case 2\r\n"), "Failed refresh saved the suspect pair or advanced");
+                });
+                Test("same-study session restart rejects a lost worklist handle without another comparison or Down", () => {
+                    var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path(); int prompts = 0;
+                    runner.RestartSession = () => new KeyboardSession(KeyboardSettings(), desktop, m => {});
+                    runner.Recovery = (request, token) => { prompts++; Assert(request.CaseNumber == 2 && request.Reason.Contains("retained worklist control"), "Invalid retained control lost its cause"); return RecoveryChoice.Stop; };
+                    Throws<OperationCanceledException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 1, 3, output, CancellationToken.None, m => { if (m.Contains("closing and reopening this SAME study")) desktop.NavigationHandleInvalid = true; }));
+                    Assert(prompts == 1 && runner.Completed == 1 && desktop.Events.FindAll(e => e == "key:49").Count == 2 && desktop.Events.FindAll(e => e == "key:28").Count == 1, "Lost worklist handle was used for more input");
+                });
+                Test("cancelling automatic same-study recovery retains the first pair and sends no further navigation", () => {
+                    using (var cancel = new CancellationTokenSource())
+                    {
+                        var desktop = new FakeKeyboardDesktop { LagFirstComparison = true }; var runner = new ExportRunner(); string output = path();
+                        Throws<OperationCanceledException>(() => runner.Run(new KeyboardSession(KeyboardSettings(), desktop, m => {}), 10, 12, output, cancel.Token, m => { if (m.Contains("closing and reopening this SAME study")) cancel.CancelAfter(25); }));
+                        Assert(runner.Completed == 1 && desktop.Row == 1 && desktop.Events.FindAll(e => e == "key:28").Count == 1 && !File.ReadAllText(output).Contains("Case 11\r\n"), "Cancellation committed a stale pair or moved again");
                     }
                 });
                 Test("missed first Down pauses before save and Continue reselects the expected original case", () => {
@@ -1298,7 +1362,7 @@ namespace ReportExporter
                 Test("automatic timing starts fast, backs off only on copy retry, and resets per run", () => {
                     var profile = new Profile(); InputTiming.Configure(profile);
                     var timing = new InputTiming(profile);
-                    Assert(timing.KeyDelayMs == 10 && profile.CaseDelayMs == 100 && profile.PollMs == 5, "Automatic did not start fast");
+                    Assert(timing.KeyDelayMs == 10 && profile.CaseDelayMs == 500 && profile.PollMs == 5 && timing.StudySwitchDelay(true) == 750 && timing.StudySwitchDelay(false) == 500, "Automatic study settling was shortened to key timing");
                     Assert(timing.CopyRetry() && timing.KeyDelayMs == 25, "First retry did not add settling");
                     Assert(timing.CopyRetry() && timing.KeyDelayMs == 100 && !timing.CopyRetry(), "Adaptive settling is not bounded");
                     Assert(new InputTiming(profile).KeyDelayMs == 10 && profile.KeyDelayMs == 10, "A slow run changed the next run's fast start");
@@ -1308,7 +1372,8 @@ namespace ReportExporter
                     var fixedTiming = new InputTiming(profile);
                     Assert(fixedTiming.KeyDelayMs == 100 && !fixedTiming.CopyRetry(), "Conservative changed dynamically");
                     profile.TimingMode = "Custom"; profile.KeyDelayMs = 37; InputTiming.Configure(profile);
-                    Assert(new InputTiming(profile).KeyDelayMs == 37 && !new InputTiming(profile).CopyRetry(), "Custom timing was overwritten");
+                    profile.CaseDelayMs = 23;
+                    Assert(new InputTiming(profile).KeyDelayMs == 37 && !new InputTiming(profile).CopyRetry() && new InputTiming(profile).StudySwitchDelay(true) == 23 && new InputTiming(profile).StudySwitchDelay(false) == 23, "Custom timing was overwritten");
                 });
                 Test("automatic copy retry retains source safeguards and does not repeat row navigation", () => {
                     var settings = KeyboardSettings(); settings.TimingMode = "Automatic"; settings.TimeoutMs = 1000;

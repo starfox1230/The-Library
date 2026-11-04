@@ -14,8 +14,8 @@ import zipfile
 APP = Path(__file__).resolve().parents[1]
 scratch = Path(tempfile.mkdtemp(prefix="compare-first-pair-race-"))
 tests = (APP / "Tests.cs").read_text(encoding="utf-8")
-fake = tests[tests.index("        private sealed class FakeKeyboardDesktop"):tests.index("        private static Profile KeyboardSettings")]
-fake = fake.replace("private sealed class FakeKeyboardDesktop", "public sealed class FakeKeyboardDesktop", 1)
+fake = tests[tests.index("        private class FakeKeyboardDesktop"):tests.index("        private sealed class FakeReportPaneDesktop")]
+fake = fake.replace("private class FakeKeyboardDesktop", "public sealed class FakeKeyboardDesktop", 1)
 harness = r'''
 using System;using System.IO;using System.Threading;using System.Collections.Generic;using ReportExporter;
 namespace RaceAudit {

@@ -1,3 +1,80 @@
+# Source-study settling and automatic same-case recovery — November 3, 2026 (v0.23)
+
+## New workstation evidence
+
+The v0.22 repeat still occurred. The user explicitly confirmed that recovery
+requires only closing Compare Report Revisions and choosing Continue: no click
+or reselect of the worklist row is needed. Reopening is the effective operation;
+recopying an already-open comparison did not solve this report.
+
+## Identified code gap and implementation
+
+Advance sent Down, waited 100 ms, then accepted an enabled main window (and, when
+available, changed row index) as sufficient to open the comparison. None of those
+checks establish completion of asynchronous report loading. A comparison can
+therefore be opened against a previous report snapshot. Direct native/clipboard
+reads inside that comparison cannot make the underlying snapshot current.
+
+- Before opening Tools after Down, Automatic/Fast settle 750 ms on the first
+  switch and at least 500 ms thereafter. Conservative uses 1000/750 ms; Custom
+  retains its explicit case delay. With a native row index, the interval starts
+  after selection actually changes, so a queued Down cannot consume the settling
+  interval before selecting the new row. Short key timing and copy checks remain.
+- One repeated first pair triggers one close/reopen of the same selected study,
+  with a cancellable 1000 ms settling interval after close. Keyboard mode creates
+  a fresh session carrying forward its validated worklist handle, even when closing
+  the comparison returned focus to the report editor. No selection click or Down
+  occurs during the refresh; original source labels and saved prefix are retained.
+- The suspect capture is never written. A corrected pair is captured and written
+  once. A persistent repeat, invalid handle, failed close or cancellation follows
+  controlled recovery/stop; the automatic reopen is limited to once for that source
+  case per run. Genuine identical linked reports remain available for confirmation.
+- Outcomes record same_case_reopen_started/resolved/still_matching with source
+  numbers; diagnostics contain no report text or patient identifiers.
+
+## Verification
+
+**159 automated tests passed**, including delayed source loading while row selection
+and the main window are ready, one same-study refresh without manual input, exact
+labels starting at 1/10/11, saved-prefix preservation on close failure/cancellation,
+settling after delayed native selection, and rejection of an invalid retained
+worklist before another comparison or Down.
+Existing native cross-process, clipboard snapshot, write/readback and export-delivery
+checks remain passing.
+
+`dev/check-published-study-switch.py` runs the actual v0.22 portable assembly and
+the current assembly against the same synthetic desktop. Its source row changes
+immediately, while report loading takes 350 ms and an opened comparison snapshots
+the then-loaded report. Results for starting labels 1 and 10:
+
+| Assembly | Manual close/reopen | Comparison opens | Down | Correct pairs |
+| --- | ---: | ---: | ---: | ---: |
+| Published v0.22 | 1 | 3 | 1 | 2 |
+| v0.23 | 0 | 2 | 1 | 2 |
+
+The legacy recovery closes/reopens only; it does not click/select another row.
+The fixture reproduces the observed behavior under a plausible delayed-load
+model, not PowerScribe's actual private implementation. The independent v0.18
+clipboard-race binary replay also passes, starting at labels 1 and 11.
+
+**Limit:** no actual PowerScribe is available here. The load synchronization gap
+is demonstrated in the code and replay, but its role in the hospital failure
+remains an inference. Settling intervals do not prove report identity/readiness;
+the bounded same-case retry implements the user's demonstrated working recovery.
+
+## v0.23 portable delivery
+
+- [PowerScribeReportExporter-v0.23.zip](https://drive.google.com/file/d/1jdxUn2nQc7jJpHJEy977gpvyH9kifIi2/view?usp=drivesdk)
+- ZIP: **78,726 bytes**; SHA-256
+  `92475d7802b33681dd27e75550ec675c35c9f5b22a94db19338351c9f75aec28`.
+- Tested EXE: version **0.23.0.0**; SHA-256
+  `11f0eb6203ecf6e13c70d6ae463dcf324f44fac376304b7632d64831d9381487`.
+- The archive contains exactly the tested production EXE, README and quick start.
+  Embedded EXE and mounted-Drive archive hashes match their local originals.
+  Connector readback confirmed the cloud ID, name, size and release-folder parent;
+  older published versions were preserved. The paused-dialog preview was inspected
+  with the updated once-reopened explanation and enabled recovery choices.
+
 # Live report controls and actionable recovery — November 3, 2026 (v0.22)
 
 ## What the screenshot establishes

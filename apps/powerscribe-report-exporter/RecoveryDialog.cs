@@ -21,7 +21,7 @@ namespace ReportExporter
         {
             Choice = RecoveryChoice.Stop; allowLinked = request.RepeatedFromCase.HasValue;
             finishOnly = request.FinishOnly; sourceCase = request.CaseNumber; continueReady = worklistReady;
-            Text = "Paused — PowerScribe Report Exporter v0.22";
+            Text = "Paused — PowerScribe Report Exporter v0.23";
             ClientSize = new Size(620, allowLinked ? 440 : 380); FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = MinimizeBox = false; StartPosition = FormStartPosition.CenterScreen;
             TopMost = true; Font = new Font("Segoe UI", 10); Padding = new Padding(18);

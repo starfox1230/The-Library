@@ -131,7 +131,7 @@ namespace ReportExporter
         }
     }
 
-    public sealed class KeyboardSession : IReportSession, ISessionTelemetry
+    public sealed class KeyboardSession : IReportSession, ISessionTelemetry, ISameStudyRestart
     {
         private readonly Profile profile;
         private readonly IKeyboardDesktop desktop;
@@ -141,6 +141,7 @@ namespace ReportExporter
         private IntPtr comparison;
         private IntPtr navigationFocus;
         private bool navigationInitialized;
+        private int studySwitches;
         private readonly HashSet<IntPtr> existingPopups;
         private bool captureResolved;
         private readonly FocusRecovery focus;
@@ -153,6 +154,10 @@ namespace ReportExporter
         public string SelectedCase() { throw new NotSupportedException("Keyboard mode cannot inspect the selected case row."); }
 
         public KeyboardSession(Profile settings, IKeyboardDesktop windows, Action<string> reportProgress)
+            : this(settings, windows, reportProgress, IntPtr.Zero, IntPtr.Zero) { }
+
+        private KeyboardSession(Profile settings, IKeyboardDesktop windows, Action<string> reportProgress,
+            IntPtr retainedMain, IntPtr retainedWorklist)
         {
             settings.Validate(); profile = settings; desktop = windows;
             timing = new InputTiming(profile);
@@ -169,10 +174,18 @@ namespace ReportExporter
                 throw new InvalidOperationException("A Compare Report Revisions window is still open.");
             // Reactivating PowerScribe can reset its child focus to the report editor.
             // Read the retained worklist focus before any activation, then verify/restore it.
-            navigationFocus = desktop.NavigationFocus(main);
+            if (retainedWorklist != IntPtr.Zero && (retainedMain != main || !desktop.IsNavigationControl(main, retainedWorklist)))
+                throw new InvalidOperationException("The retained worklist control is no longer valid. No navigation input was sent.");
+            navigationFocus = retainedWorklist != IntPtr.Zero ? retainedWorklist : desktop.NavigationFocus(main);
             if (navigationFocus != IntPtr.Zero) progress("Remembered worklist focus before activating PowerScribe.");
             progress("Activating PowerScribe for the same click / Tab sequence as the AHK...");
             desktop.Activate(main); // Readiness/focus recovery confirms activation before any input.
+        }
+
+        public IReportSession RestartForSameStudy()
+        {
+            progress("Starting a fresh capture session for the same study, retaining its validated worklist control. No selection key is sent.");
+            return new KeyboardSession(profile, desktop, progress, main, navigationFocus);
         }
 
         private void Guard(IntPtr window, CancellationToken token)
@@ -539,8 +552,6 @@ namespace ReportExporter
                 throw new InvalidOperationException("A comparison or menu appeared before Down. Stopped without navigation.");
             progress("Worklist focused; Down once to the next case...");
             desktop.Key(0x28);
-            InputSettle(main, profile.CaseDelayMs, token);
-            Wait(() => { Guard(main, token); return desktop.VisibleEnabled(main); }, token, "PowerScribe did not become ready after Down.");
             if (before != null)
             {
                 Wait(() => {
@@ -552,6 +563,12 @@ namespace ReportExporter
                 progress("Selected worklist row index changed after Down. Identical report text is allowed.");
             }
             else progress("Down sent to the remembered control; this custom worklist does not expose a supported native row index. Report text is not used to infer case identity.");
+            // If a row index is available, start report settling AFTER that row
+            // actually changes, not while Down might still be queued.
+            int settle = timing.StudySwitchDelay(studySwitches++ == 0);
+            progress("Allowing the selected source study to settle for " + settle + " ms before opening its comparison...");
+            InputSettle(main, settle, token);
+            Wait(() => { Guard(main, token); return desktop.VisibleEnabled(main); }, token, "PowerScribe's reporting window did not become enabled after Down.");
         }
     }
 }

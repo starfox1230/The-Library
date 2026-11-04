@@ -25,6 +25,7 @@ namespace ReportExporter
         public int ClipboardLockMisses;
     }
     public interface ISessionTelemetry { int FocusRecoveries { get; } }
+    public interface ISameStudyRestart { IReportSession RestartForSameStudy(); }
 
     public enum RecoveryChoice { Stop, Continue, AcceptLinkedStudies, RetryCapture }
 
@@ -233,6 +234,7 @@ namespace ReportExporter
                 string previous = null;
                 ReportPair firstPair = null;
                 int firstPairNumber = 0;
+                var reopenedCases = new HashSet<int>();
                 for (int number = first; number <= last; number++)
                 {
                     token.ThrowIfCancellationRequested();
@@ -277,6 +279,31 @@ namespace ReportExporter
                         stage = "capture";
                         CapturedPair captured = captureAudit.Capture(number, session.ReadReports(token), findingsOnly);
                         ReportPair pair = captured.Pair;
+                        if (Completed == 1 && number == firstPairNumber + 1 && SamePair(firstPair, pair) && reopenedCases.Add(number))
+                        {
+                            // Match the recovery demonstrated on the workstation: close
+                            // the comparison, create a fresh session, reopen the SAME
+                            // selected study. Never Advance or commit the suspect pair.
+                            outcomes.WriteLine(number + ",same_case_reopen_started"); outcomes.Flush();
+                            progress("Case " + number + ": the previous pair repeated; closing and reopening this SAME study once. No Down or case change...");
+                            session.CloseComparison(token);
+                            if (token.WaitHandle.WaitOne(1000)) token.ThrowIfCancellationRequested();
+                            if (session.CanVerifySelectedRow && session.SelectedCase() != selected)
+                                throw new InvalidOperationException("The selected study changed before the same-case retry. No repeated pair was saved.");
+                            var retained = session as ISameStudyRestart;
+                            if (retained != null) session = retained.RestartForSameStudy();
+                            else if (RestartSession != null) session = RestartSession();
+                            if (session.CanVerifySelectedRow && session.SelectedCase() != selected)
+                                throw new InvalidOperationException("The selected study changed while restarting the same-case retry. No repeated pair was saved.");
+                            try { session.OpenComparison(token); }
+                            catch (ComparisonUnavailableException error)
+                            { throw new InvalidOperationException("The same-case comparison could not be reopened. No repeated pair was saved.", error); }
+                            captured = captureAudit.Capture(number, session.ReadReports(token), findingsOnly);
+                            pair = captured.Pair;
+                            bool repeated = SamePair(firstPair, pair);
+                            outcomes.WriteLine(number + (repeated ? ",same_case_reopen_still_matching" : ",same_case_reopen_resolved")); outcomes.Flush();
+                            progress("Case " + number + (repeated ? ": the reopened reports still match; verification is needed before saving." : ": fresh reports captured after same-case reopen; continuing."));
+                        }
                         // An independently updated clipboard can still contain PowerScribe's
                         // previously loaded report. Never silently relabel that first repeat.
                         bool reselect = false;
@@ -285,7 +312,7 @@ namespace ReportExporter
                             if (Recovery == null) throw new InvalidOperationException("The first report pair repeated after advancing. Verify the next study before exporting it under another case number.");
                             outcomes.WriteLine(number + ",paused_first_pair_repeat"); outcomes.Flush();
                             var request = new RecoveryRequest(number, last, LastSavedCase,
-                                "The captured text matches case " + firstPairNumber + ". This checks copied text, not the identity of the study on screen. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", firstPairNumber);
+                                "The comparison was closed and reopened once without moving the worklist, but its captured text still matches case " + firstPairNumber + ". This checks captured text, not the identity of the study on screen. If the open reports are different, choose Retry open reports. Nothing from this case has been saved yet.", firstPairNumber);
                             RecoveryChoice choice = Recovery(request, token); token.ThrowIfCancellationRequested();
                             if (choice == RecoveryChoice.Stop) throw new OperationCanceledException("Stopped while checking the repeated first pair.", token);
                             if (choice == RecoveryChoice.Continue)

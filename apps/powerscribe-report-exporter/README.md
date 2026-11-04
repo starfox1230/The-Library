@@ -1,4 +1,45 @@
-# PowerScribe Report Exporter v0.22
+# PowerScribe Report Exporter v0.23
+
+## v0.23: let the source study settle, then recover a stale comparison automatically
+
+The user confirmed that closing the repeated second comparison and choosing
+Continue fixes it **without clicking or reselecting any worklist row**. Reopening
+the comparison, rather than copying its existing panes again, is the effective
+recovery demonstrated on the workstation.
+
+There is a concrete synchronization gap in the earlier path: after Down, it
+waited only 100 ms and checked that the reporting window was enabled. A changed
+selected row and an enabled parent do not establish that the new report model
+has loaded. Opening a comparison then can snapshot the previous revision pair;
+waiting or recopying inside that already-open comparison cannot refresh it.
+
+Automatic/Fast now keep the short 10 ms key timing but allow 750 ms for the first
+source-study switch and at least 500 ms for later switches, before opening Tools.
+Conservative uses 1000/750 ms. Custom timing keeps the user's case delay. These
+are settling intervals, **not an authoritative report-loaded signal**. Where a
+native row index is available, the interval starts after that row actually changes.
+
+If the first two captured pairs still match, the exporter discards the unsaved
+second capture, closes that comparison, allows another second for the source
+study, starts a fresh session retaining the validated worklist control, and
+reopens the **same selected study once**. It sends no Down, selection click or
+case-number increment during this retry. A resolved repeat saves the fresh pair
+and continues automatically. A persistent match still offers the existing
+verification choices, including legitimate linked reports; it never loops
+indefinitely or silently commits an unresolved repeat.
+
+**159 automated checks passed.** A controlled replay against the actual v0.22
+release reproduces the delayed-loading scenario and its close/reopen recovery
+without a row click. The current assembly completes that scenario without a
+reopen. Additional checks force a stale second comparison and verify one fresh
+session, correct source labels, no extra Down, no duplicate write, cancellation,
+invalid retained control rejection and failed-close preservation. The separate
+v0.18 clipboard-race replay remains passing.
+
+These are synthetic PowerScribe-like load scenarios and real Windows-control
+checks, not a hospital PowerScribe run. The exact internal cause on that
+workstation remains an inference; the automatic fallback implements the recovery
+the user has demonstrated works.
 
 ## v0.22: live report controls and recovery without a disabled Continue
 

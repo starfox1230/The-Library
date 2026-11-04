@@ -25,7 +25,7 @@ namespace ReportExporter
         [DataMember] public int ClickX = 800;
         [DataMember] public int ClickY = 600;
         [DataMember] public int KeyDelayMs = 10;
-        [DataMember] public int CaseDelayMs = 100;
+        [DataMember] public int CaseDelayMs = 500;
         [DataMember] public string MainTitle = "PowerScribe 360 | Reporting";
         [DataMember] public string ComparisonTitle = "Compare Report Revisions";
         [DataMember] public Locator CaseList;
