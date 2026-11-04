@@ -44,10 +44,182 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-04 12:39 Central Standard Time
-Cards: 10
+Updated: 2026-11-04 13:29 Central Standard Time
+Cards: 17
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-05:00
+Last seen: 2026-11-04T13:20:34-06:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-05-07T16:29:27-05:00
+Last seen: 2026-11-04T13:10:10-06:00
+Card ID: 1777315484971
+Note ID: 1777315484971
+
+Question:
+00:12
+
+Most likely diagnosis in neonate?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Most likely diagnosis in neonate?
+
+Functional immaturity of the colon (normal rectosigmoid ratio with the left side of the colon appearing small and ahaustral, scattered filling defects seen throughout the colon likely due to meconium plugs)
+
+1/2
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-13T14:13:43-05:00
+Last seen: 2026-11-04T13:09:23-06:00
+Card ID: 1760542142702
+Note ID: 1760542142702
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+dorsal dermal sinus
+
+## Card 4
+
+Deck: Saved Cards
+Flagged: 2026-08-05T13:16:09-05:00
+Last seen: 2026-11-04T13:07:29-06:00
+Card ID: 1785187893874
+Note ID: 1785187893873
+
+Question:
+00:12
+
+What is indicated by the yellow arrow?
+
+[...]
+
+Answer:
+00:12
+
+What is indicated by the yellow arrow?
+
+medial collateral ligament
+
+MRI anatomy of the knee ligaments. Capture timestamp 03:44.
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-09-27T07:43:51-05:00
+Last seen: 2026-11-04T13:07:21-06:00
+Card ID: 1768330036762
+Note ID: 1768330036761
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+Diagnosis?
+
+deep cerebral venous thrombosis (leading to venous congestion and infarction in deep brain structures)
+
+1/2
+
+## Card 6
+
+Deck: Saved Cards
+Flagged: 2026-11-04T13:07:02-06:00
+Last seen: 2026-11-04T13:07:02-06:00
+Card ID: 1792987742869
+Note ID: 1792987742868
+
+Question:
+00:12
+
+Which ossified ligament extends to the ischial tuberosity?
+
+[...]
+
+1/5
+
+Answer:
+00:12
+
+Which ossified ligament extends to the ischial tuberosity?
+
+Sacrotuberous ligament
+
+1/5
+
+Sagittal stills and coronal/axial cine images preserve the available anatomy.
+
+Notion source
+
+## Card 7
+
+Deck: .NEW::Visual
+Flagged: 2026-07-04T08:00:27-05:00
+Last seen: 2026-11-04T13:03:51-06:00
+Card ID: 1776948276939
+Note ID: 1776948276939
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:08
+
+Most likely diagnosis?
+
+Anterosuperior labral tear with paralabral cyst.
+
+1/2
+
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-07-10T23:03:01-05:00
@@ -71,7 +243,7 @@ Cavum vergae
 
 Q20. Correct; difficulty: hard. Vital Concept: Cavum vergae is the cerebrospinal fluid space posterior to the forniceal columns that normally closes before birth. When persistent, it's usually seen with cavum septum pellucidum and is considered a normal variant. It must be distinguished from cavum velum interpositum, which lies below the fornix rather than posterior to it.
 
-## Card 2
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-08-22T06:38:18-05:00
@@ -95,7 +267,7 @@ D
 
 Source: Visual Cards for nukes session. Original note used lettered locations; this card tests the physiologic localization instead of the answer letters.
 
-## Card 3
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:07:31-05:00
@@ -120,7 +292,7 @@ Flash-filling hemangioma, hypervascular metastases, adenoma or well-differentiat
 Flash-filling hemangiomas can enhance rapidly and uniformly in the arterial phase.
 Hepatic hemangioma imaging review
 
-## Card 4
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-08-20T20:34:16-05:00
@@ -140,7 +312,7 @@ Distal radius fracture classifications incorporate both DRUJ articular extension
 
 Source: Notion Radiology entry.
 
-## Card 5
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-09-05T06:54:07-05:00
@@ -164,7 +336,7 @@ Contrast outpouching
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 6
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -182,7 +354,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 7
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:49:17-05:00
@@ -200,7 +372,7 @@ Answer:
 
 Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
 
-## Card 8
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-05:00
@@ -226,7 +398,7 @@ Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
 
-## Card 9
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-08-12T20:19:09-05:00
@@ -248,7 +420,7 @@ This is traumatic rather than an unfused ossification center.
 
 Source: Notion Radiology entry.
 
-## Card 10
+## Card 17
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
