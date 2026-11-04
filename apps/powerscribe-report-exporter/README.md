@@ -1,4 +1,12 @@
-# PowerScribe Report Exporter v0.23
+# PowerScribe Report Exporter v0.24
+
+## v0.24: elapsed time in minutes and seconds
+
+The running progress window now shows both total elapsed time and current-step
+elapsed time as minutes and seconds (for example, `2m 05s`). Minutes continue
+past 59 rather than resetting each hour. Case switching/capture/recovery behavior
+is unchanged from v0.23. All 159 existing checks pass; the progress preview and
+minute/hour rollover formatting were checked for this build.
 
 ## v0.23: let the source study settle, then recover a stale comparison automatically
 

@@ -14,19 +14,19 @@ const out=path.join(__dirname,'qa-output');
   async function pasteImage(buffer,name='synthetic.png'){
    await page.locator('#lookup-paste-zone').evaluate((zone,data)=>{const bytes=Uint8Array.from(atob(data.base64),c=>c.charCodeAt(0)),transfer=new DataTransfer();transfer.items.add(new File([bytes],data.name,{type:'image/png'}));zone.dispatchEvent(new ClipboardEvent('paste',{bubbles:true,clipboardData:transfer}));},{name,base64:buffer.toString('base64')});
   }
-  const tableImage=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=700;c.height=410;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,700,410);x.fillStyle='black';x.font='28px Consolas';x.fillText('Case',24,36);x.fillText('Accession',200,36);for(const [i,n] of [68,69,70,71,74,78].entries()){x.fillText(String(n),24,90+i*48);x.fillText('CT9012'+n+'345',200,90+i*48);}return c.toDataURL('image/png').split(',')[1];});
+  const tableImage=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=700;c.height=650;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,700,650);x.fillStyle='black';x.font='28px Consolas';x.fillText('Case',24,36);x.fillText('Accession',200,36);for(const [i,n] of Array.from({length:11},(_,i)=>68+i).entries()){x.fillText(String(n),24,90+i*48);x.fillText('CT9012'+n+'345',200,90+i*48);}return c.toDataURL('image/png').split(',')[1];});
   fs.writeFileSync(path.join(out,'lookup-synthetic.png'),Buffer.from(tableImage,'base64'));
   assert.equal(await page.locator('.phi-banner').count(),0);
   await pasteImage(Buffer.from(tableImage,'base64'));
-  await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===6,{},{timeout:90000});
+  await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===11,{},{timeout:90000});
   await checkProgress('Reading columns',2);
   const values=await page.locator('#lookup-rows tr').evaluateAll(rows=>rows.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value)));
-  assert.deepEqual(values,[68,69,70,71,74,78].map(n=>[String(n),'CT9012'+n+'345']));
+  assert.deepEqual(values,Array.from({length:11},(_,i)=>68+i).map(n=>[String(n),'CT9012'+n+'345']));
   assert.equal(await page.locator('.copy-accession').count(),4,'valid OCR attaches without individual approval');assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
   assert.equal(await page.locator('#export-review').isDisabled(),false);
   await pasteImage(Buffer.from(tableImage,'base64'));
-  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images details').length===2&&[...document.querySelectorAll('.lookup-screenshot summary')].every(n=>n.textContent.includes('6 rows')),{},{timeout:90000});
-  assert.equal(await page.locator('#lookup-rows tr').count(),6,'overlapping identical screenshot rows are deduplicated');
+  await page.waitForFunction(()=>document.querySelectorAll('#lookup-images details').length===2&&[...document.querySelectorAll('.lookup-screenshot summary')].every(n=>n.textContent.includes('11 rows')),{},{timeout:90000});
+  assert.equal(await page.locator('#lookup-rows tr').count(),11,'overlapping identical screenshot rows are deduplicated');
   assert.equal(await page.locator('.copy-accession').count(),4);
   await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-rows input').first().focus();await page.screenshot({path:path.join(out,'lookup-preparation-dark.png'),fullPage:true});
   await page.evaluate(()=>{window.copied=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>window.copied.push(value)}});});
@@ -68,21 +68,17 @@ const out=path.join(__dirname,'qa-output');
   assert.equal(await page.locator('#export-review').isDisabled(),false,'lookup issues allow a best-available export');await page.locator('#row-0 .case-copy-accession').click();assert.equal(await page.evaluate(()=>window.copied.at(-1)),'CT901269345');
   await page.locator('#lookup-rows tr').last().getByRole('button',{name:'Remove'}).click();
   const originalInput=await page.locator('#report-text').inputValue();if(!await page.locator('#report-text').isVisible())await page.locator('#input-disclosure > summary').click();await page.locator('#report-text').fill('Changed report batch');assert.equal(await page.locator('.copy-accession').count(),0);assert.equal(await page.locator('#export-review').isDisabled(),true);await page.locator('#report-text').fill(originalInput);
-  // Explicit range fallback must not run without acknowledgement or with a
-  // count mismatch. It changes case labels only, never accession strings.
-  await page.locator('.lookup-screenshot summary').first().evaluate(n=>{n.parentElement.open=false;});await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-range-tools > summary').click();await page.locator('#lookup-range-first').fill('68');await page.locator('#lookup-range-last').fill('73');
+  // One first-case override renumbers this consecutive screenshot, without
+  // a last-case field or per-image/row approval. Accessions remain unchanged.
+  await page.locator('.lookup-screenshot summary').first().evaluate(n=>{n.parentElement.open=false;});await page.locator('.lookup-screenshot summary').first().click();await page.locator('#lookup-range-tools > summary').click();await page.locator('#lookup-range-first').fill('100');
   const beforeRange=await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value));
-  await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('Check that every case'));assert.equal(await page.locator('#lookup-rows input[aria-label^="Case number"]').last().inputValue(),'78');
-  await page.locator('#lookup-range-checked').check();await page.locator('#lookup-range-last').fill('74');await page.locator('#lookup-range-apply').click();assert((await page.locator('#lookup-range-status').innerText()).includes('7 cases, but 6'));
-  // Deliberate operator override for testing only; this synthetic source has
-  // nonconsecutive labels, so automatic repair correctly leaves them unchanged.
-  await page.locator('#lookup-range-last').fill('73');await page.locator('#lookup-range-apply').click();assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Case number"]').evaluateAll(xs=>xs.map(x=>x.value)),['68','69','70','71','72','73']);assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value)),beforeRange);assert.equal(await page.locator('#lookup-rows input[type=checkbox]:checked').count(),0);
+  await page.locator('#lookup-range-apply').click();assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Case number"]').evaluateAll(xs=>xs.map(x=>x.value)),Array.from({length:11},(_,i)=>String(100+i)));assert.deepEqual(await page.locator('#lookup-rows input[aria-label^="Accession"]').evaluateAll(xs=>xs.map(x=>x.value)),beforeRange);assert.equal(await page.locator('#lookup-rows input[type=checkbox]').count(),0);
   await page.locator('#lookup-clear').click();assert.equal(await page.locator('.copy-accession').count(),0);
   assert.equal(await page.locator('#lookup-rows tr').count(),0);
   // Headerless images require explicit visual column selection, not guessing.
-  const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1350;c.height=410;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='28px Consolas';for(const [i,n] of [68,69,70,71,74,78].entries()){x.fillText(String(n),24,40+i*53);x.fillText('9876543',170,40+i*53);x.fillText('CT9012'+n+'345',430,40+i*53);}return c.toDataURL('image/png').split(',')[1];});
+  const image=await page.evaluate(()=>{const c=document.createElement('canvas');c.width=1350;c.height=650;const x=c.getContext('2d');x.fillStyle='white';x.fillRect(0,0,c.width,c.height);x.fillStyle='black';x.font='28px Consolas';for(const [i,n] of Array.from({length:11},(_,i)=>68+i).entries()){x.fillText(String(n),24,40+i*53);x.fillText('9876543',170,40+i*53);x.fillText('CT9012'+n+'345',430,40+i*53);}return c.toDataURL('image/png').split(',')[1];});
   await pasteImage(Buffer.from(image,'base64'),'synthetic-no-header.png');
-  await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===6,{},{timeout:90000});
+  await page.waitForFunction(()=>document.querySelectorAll('#lookup-rows tr').length===11,{},{timeout:90000});
   assert.equal(await page.locator('#mark-case,#mark-accession,#read-columns,input[type=file]').count(),0);
   assert.deepEqual(await page.locator('#lookup-rows tr').evaluateAll(rs=>rs.map(r=>[...r.querySelectorAll('input')].slice(0,2).map(i=>i.value))),values);
   await page.locator('#lookup-clear').click();

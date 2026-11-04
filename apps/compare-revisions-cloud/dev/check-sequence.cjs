@@ -1,41 +1,25 @@
-// Pure sequence safeguards: no OCR runtime, network, real identifiers or provider calls.
+// Each screenshot is contracted to be a consecutive, increasing source list.
 const assert=require('assert/strict'),fs=require('fs'),path=require('path'),vm=require('vm');
-const source=fs.readFileSync(path.join(__dirname,'lookup.js'),'utf8');
-const block=source.slice(source.indexOf('function regularImageRows('),source.indexOf('async function addLookupImages('));
-const context={};vm.createContext(context);vm.runInContext(block,context);
+const source=fs.readFileSync(path.join(__dirname,'lookup.js'),'utf8'),context={};vm.createContext(context);
+vm.runInContext(source.slice(source.indexOf('function repairCaseSequence('),source.indexOf('function reconcileLookupImages(')),context);
 const make=(count,start=1)=>Array.from({length:count},(_,i)=>({case_number:start+i,accession:'SYNTHETIC-'+i,rowY:30+i*18,caseIssue:'',confirmed:false}));
-const copy=value=>JSON.parse(JSON.stringify(value));
 const repair=context.repairCaseSequence;
 let rows=make(47),accessions=rows.map(r=>r.accession);
 for(const [i,n] of [[10,null],[16,7],[21,2],[30,3],[33,4],[35,3],[40,4]])rows[i].case_number=n;
 rows[10].caseIssue='Case number not read';rows[16].caseIssue='Case number may be incomplete';
-assert.equal(repair(rows),7);assert.deepEqual(rows.map(r=>r.case_number),make(47).map(r=>r.case_number));assert.deepEqual(rows.map(r=>r.accession),accessions);
-assert.equal(rows.filter(r=>r.numberSource==='sequence').length,7);assert(rows.every(r=>!r.confirmed));assert.equal(rows[16].originalCase,7);
-rows=make(12,68);rows[5].case_number=null;assert.equal(repair(rows),1);assert.equal(rows[5].case_number,73,'repair starts from actual source labels, not 1');
-rows=make(81);for(const [i,n] of [[0,null],[8,null],[10,null],[21,2],[30,3],[70,7]])rows[i].case_number=n;
-assert.equal(repair(rows),6);assert.deepEqual(rows.map(r=>r.case_number),make(81).map(r=>r.case_number),'duplicate OCR readings of 2/3 must not invalidate a coherent early anchor at 4');
-for(const flagged of [false,true]){
- rows=make(12,11);rows[0].case_number=1;if(flagged)rows[0].caseIssue='Case number may be incomplete';
- const before=rows.map(r=>r.accession);assert.equal(repair(rows),1);assert.equal(rows[0].case_number,11);assert.equal(rows[0].caseIssue,'');assert.deepEqual(rows.map(r=>r.accession),before);
+assert.equal(repair(rows),7);assert.deepEqual(rows.map(r=>r.case_number),make(47).map(r=>r.case_number));assert.deepEqual(rows.map(r=>r.accession),accessions);assert(rows.every(r=>!r.caseIssue));
+for(const middle of [null,1,77,111]){
+ rows=[8,9,10,middle,12].map((n,i)=>({case_number:n,caseIssue:i===3?'Case number may be incomplete':'',accession:'SYNTHETIC-'+i}));
+ assert.equal(repair(rows),1);assert.deepEqual(rows.map(r=>r.case_number),[8,9,10,11,12]);assert(rows.every(r=>!r.caseIssue));
 }
-rows=make(3,10);rows[1].case_number=1;assert.equal(repair(rows),1);assert.equal(rows[1].case_number,11,'two adjacent anchors can repair a middle truncated digit');
-rows=make(3,11);rows[0].case_number=1;assert.equal(repair(rows),1);assert.equal(rows[0].case_number,11,'a short screenshot can establish 11,12,13');
-rows=make(3,11);rows[0].case_number=2;const shortBefore=copy(rows);assert.equal(repair(rows),0);assert.deepEqual(rows,shortBefore,'a digit substitution must not be called truncation');
-rows=make(2,11);rows[0].case_number=1;assert.equal(repair(rows),0,'two rows alone cannot establish a sequence');
-rows=make(20);rows[10].case_number=1;for(let i=15;i<rows.length;i++)rows[i].case_number++;accessions=rows.map(r=>r.accession);
-assert.equal(repair(rows),1);assert.equal(rows[10].case_number,11);assert.equal(rows[15].case_number,17,'a genuine gap elsewhere must remain unchanged');assert.deepEqual(rows.map(r=>r.accession),accessions);
-rows=make(20);rows[10].case_number=1;rows[17].case_number=900;assert.equal(repair(rows),1);assert.equal(rows[10].case_number,11);assert.equal(rows[17].case_number,900);
-rows=[9,10,1,12,13].map((n,i)=>({case_number:n,caseIssue:'',accession:'SYNTHETIC-'+i,rowY:30+i*18}));assert.equal(repair(rows),1);assert.equal(rows[2].case_number,11);
-rows=[8,9,1,12,13].map((n,i)=>({case_number:n,caseIssue:'',accession:'SYNTHETIC-'+i,rowY:30+i*18}));assert.equal(repair(rows),0,'competing local neighbors cannot choose between 10 and 11');
-for(const mutate of [
- r=>{r[4].case_number=900;}, // Contradictory unique reading: never choose a majority.
- r=>{for(let i=5;i<r.length;i++)r[i].case_number++;}, // Genuine source-number gap.
- r=>{r.reverse();}, // Reordered list.
- r=>{for(let i=5;i<r.length;i++)r[i].rowY+=18;}, // Missing image row.
- r=>{r[5].rowY=r[4].rowY;}, // Duplicate image row.
- r=>{r.forEach((v,i)=>{if(i>1)v.case_number=null;});}, // Insufficient anchors.
- r=>{r.forEach(v=>v.case_number=2);}, // Repeated labels cannot be anchors.
- r=>{r[7].case_number=1;}, // Unique readable contradiction with invalid start.
- r=>{r.slice(0,5).forEach(v=>v.case_number=null);}, // No anchor near the beginning.
-]){rows=make(12,68);mutate(rows);const before=copy(rows);assert.equal(repair(rows),0);assert.deepEqual(rows,before);}
-console.log('Sequence repair passed: seven truncated/unread labels, source offsets, unchanged accessions, confirmation retained, and refusal of contradictory/gapped/reordered/insufficient evidence.');
+rows=make(12,68);rows[0].case_number=null;rows[4].case_number=900;rows[8].case_number=7;
+accessions=rows.map(r=>r.accession);assert.equal(repair(rows),3);assert.deepEqual(rows.map(r=>r.case_number),make(12,68).map(r=>r.case_number));assert.deepEqual(rows.map(r=>r.accession),accessions);
+rows=make(20);for(let i=15;i<rows.length;i++)rows[i].case_number++;
+assert.equal(repair(rows),5);assert.deepEqual(rows.map(r=>r.case_number),make(20).map(r=>r.case_number),'source gaps are OCR inconsistencies under the new contract');
+rows=make(12,68);rows.forEach((r,i)=>{if(i<8)r.case_number=null;r.rowY+=i%2?8:0;});
+assert.equal(repair(rows),8);assert.deepEqual(rows.map(r=>r.case_number),make(12,68).map(r=>r.case_number),'end anchors suffice; spacing is not a case-number warning');
+rows=[{case_number:1},{case_number:12}];assert.equal(repair(rows),1);assert.deepEqual(rows.map(r=>r.case_number),[11,12]);
+rows=make(5,68);rows.forEach(r=>{r.case_number=null;r.caseIssue='Case number not read';});
+assert.equal(repair(rows),0,'do not invent an absolute start without any anchor');
+assert.equal(repair(rows,68),5);assert.deepEqual(rows.map(r=>r.case_number),[68,69,70,71,72]);assert(rows.every(r=>!r.caseIssue));assert.equal(repair(rows),0);
+console.log('Consecutive screenshot numbering passed: missing/truncated/substituted digits, source offsets, end anchors, spacing, explicit starts and unchanged accessions.');

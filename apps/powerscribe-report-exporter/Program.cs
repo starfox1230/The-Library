@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.23.0.0")]
-[assembly: AssemblyFileVersion("0.23.0.0")]
+[assembly: AssemblyVersion("0.24.0.0")]
+[assembly: AssemblyFileVersion("0.24.0.0")]
 
 namespace ReportExporter
 {
@@ -132,7 +132,7 @@ namespace ReportExporter
         {
             previewMode = preview;
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.23";
+            Text = "PowerScribe Report Exporter v0.24";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -573,7 +573,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.23; reading live report controls before clipboard fallback...");
+                    reportProgress("Initializing native exporter v0.24; reading live report controls before clipboard fallback...");
                     runner.RestartSession = () => {
                         return profile.KeyboardWorkflow ?
                             (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
@@ -713,13 +713,15 @@ namespace ReportExporter
             stopButton.Click += (sender, args) => { if (StopRequested != null) StopRequested(this, EventArgs.Empty); };
             Controls.Add(stopButton); Controls.Add(elapsed); Controls.Add(count); Controls.Add(phase);
             heartbeat.Tick += (sender, args) => {
-                elapsed.Text = "Elapsed " + totalTime.Elapsed.TotalSeconds.ToString("F1") + " s  |  current step " + phaseTime.Elapsed.TotalSeconds.ToString("F1") + " s";
+                elapsed.Text = "Elapsed " + FormatDuration(totalTime.Elapsed) + "  |  current step " + FormatDuration(phaseTime.Elapsed);
             };
-            elapsed.Text = "Elapsed 0 s  |  current step 0 s";
+            elapsed.Text = "Elapsed 0m 00s  |  current step 0m 00s";
             NightTheme.Apply(this); phase.Font = new Font(Font, FontStyle.Bold);
             count.ForeColor = NightTheme.Accent; elapsed.ForeColor = NightTheme.Muted;
             heartbeat.Start();
         }
+        internal static string FormatDuration(TimeSpan duration)
+        { return ((long)duration.TotalMinutes).ToString(CultureInfo.InvariantCulture) + "m " + duration.Seconds.ToString("00", CultureInfo.InvariantCulture) + "s"; }
         protected override void OnHandleCreated(EventArgs args)
         { base.OnHandleCreated(args); NightTheme.TitleBar(this); }
         public void SetPhase(string text, int completed, int total)

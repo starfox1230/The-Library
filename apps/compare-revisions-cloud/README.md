@@ -1,9 +1,9 @@
 # Compare Revisions: cloud review redesign
 
-## Screenshot lookup and HTML export — November 2, 2026
+## Screenshot lookup, OCR review and HTML export — November 4, 2026
 
-Website build **2026.11.02.2** appears in the footer. This is separate from the
-PowerScribe extractor executable version (now v0.19).
+Website build **2026.11.04.1** appears in the footer. This is separate from the
+PowerScribe extractor executable version (now v0.24).
 
 Implemented in replacement source; Cloud Run deployment is still pending.
 
@@ -29,8 +29,8 @@ Implemented in replacement source; Cloud Run deployment is still pending.
 - Use **Paste screenshot of case number and accession** directly below the
   report text. Each accepted image becomes a collapsed card and the button
   offers the next screenshot. Additional images queue while OCR runs, up to
-  20 per batch. Expand a card only to inspect or edit that image's rows. Identical case/accession overlaps are kept once. Different
-  accessions for one case remain conflicts. Keep original PowerScribe numbers;
+  20 per batch. Expand a card only to inspect or edit that image's rows. Confirmed overlapping coverage is kept once, using the first screenshot. Other
+  accession disagreements remain available in Review OCR. Keep original PowerScribe numbers;
   the optional verified range applies to one screenshot's actual source numbers.
 - OCR context corrections normalize 0T/07/O7 to OT, and letter O to zero only in
   the numeric part. Existing numeric digits are never trimmed, padded or guessed.
@@ -38,20 +38,28 @@ Implemented in replacement source; Cloud Run deployment is still pending.
   for inspection rather than guessed. A stable headerless 07-prefixed column
   can use the known OT correction without requiring a visible letter. Strong
   same-image digit-length consensus flags unusual lengths for correction.
-- Case numbers are still read by OCR. An incomplete or duplicate reading can
-  be repaired when at least 60% of rows provide unique, consistent consecutive
-  anchors, including anchors near both ends, with regular row spacing. A unique
-  truncated reading such as 1 instead of 11 can be repaired even if OCR did not
-  flag it; the observed digits must be a literal subsequence of the suggested
-  number. A three-row crop can qualify with two supporting anchors. If an
-  unrelated gap or unreadable number blocks whole-image repair, two original,
-  unflagged neighboring readings can still establish a local omitted digit.
-  Competing local answers, digit substitutions, same-length disagreements and
-  missing-row spacing prevent that repair. Genuine gaps are retained and
-  suggested numbers remain highlighted for inspection.
-  **Use verified consecutive case numbers** is an optional fallback: enter the
-  first/last source numbers and explicitly verify that every row is present in
-  order. The count must match. Neither method changes accession strings.
+- Every screenshot is treated as consecutive, increasing source cases. The
+  strongest consistent start offset repairs all inconsistent case readings,
+  including missing digits, digit substitutions and unread middle numbers.
+  Corrected cases have no review warning. Exact accession anchors from other
+  screenshots can recover a missing or incorrect image offset. If no absolute
+  anchor exists anywhere, enter the first case once; all rows follow from it.
+- **Review OCR** opens a focused overlay for remaining lookup issues. It shows
+  the cropped original row beside the case/accession fields. Tab or Enter saves
+  and advances; Shift+Tab goes back; Escape closes. Correcting a screenshot's
+  first/start number also resolves and skips other case-only checks. Conflicting
+  readings can be compared and one explicitly retained. Review stays optional;
+  Analyze still supports best-available mappings without per-row confirmation.
+- Overlaps are evaluated after sequence correction and again after review edits.
+  Exact matches, two aligned exact accession anchors, or one exact anchor with
+  aligned near-identical neighbors identify repeated coverage. The first image's
+  row/accession/crop remains authoritative. Later repeated rows are blacked out
+  in that image and omitted from lookup/review/export, including after a first
+  reading is edited. Unrelated accession disagreements remain reviewable; case
+  labels or shared accession prefixes alone do not discard rows.
+- **Set first case number** is an optional per-image override with one input.
+  It assigns the remaining consecutive numbers without a last-case field,
+  spacing gate, or confirmation checkbox. Accession characters are unchanged.
 - **Analyze reports accepts valid mappings automatically.** There are no per-row
   confirmation checkboxes. If OCR is running or rows are incomplete, flagged or
   conflicting, one confirmation lets analysis proceed with available mappings.

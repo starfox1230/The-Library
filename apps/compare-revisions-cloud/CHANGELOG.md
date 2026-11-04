@@ -1,5 +1,31 @@
 # Changes and rationale — October 4, 2026
 
+## Focused OCR review and screenshot overlap — November 4, 2026 (2026.11.04.1)
+
+- Treat each screenshot as consecutive increasing source rows, per the updated
+  workflow contract. Infer the start from consistent readings and correct missing,
+  truncated or substituted case digits automatically; corrected cases need no
+  human review. Exact accession matches across screenshots can anchor an unread
+  image or repair an incorrect whole-image offset. Accessions are never generated
+  from the numeric sequence. An otherwise unknowable start can be entered once.
+- Add Review OCR: original row crop, case/accession editing, Tab/Enter to save and
+  advance, Shift+Tab to go back, Escape to close, and comparison/selection of
+  genuinely conflicting readings. Skip case-only checks resolved by one start
+  correction. Analyze remains available with best-available mappings.
+- Reconcile repeated screenshot coverage after numbering and review edits. Keep
+  the first row/accession/crop for confirmed overlaps, black out later repeated
+  source rows, and exclude those repeats from lookup/review/export. Preserve
+  ownership when the first reading is corrected. Case labels alone do not merge
+  conflicting accessions; matching/near-matching aligned accession blocks supply
+  the evidence. Explicit human source selection also removes hidden repeats.
+- Simplify the optional numbering override to First case and Apply numbers;
+  remove the last-case field, spacing gate and confirmation checkbox.
+- Verification: 111 Python tests, sequence/overlap/domain checks, desktop/mobile
+  review-overlay tests, existing scroll/best-available/copy/export checks and a
+  real local Tesseract OCR/export run passed using fictional data. Full screenshot
+  pixels stay local to OCR; lookup crops retain the existing export behavior.
+  Replacement source is assembled in main.py; Cloud Run redeployment is pending.
+
 ## Neighbor-based case repair and current image labels — November 2, 2026 (2026.11.02.2)
 
 - Repair a unique short case reading such as 1 instead of 11 when one consistent

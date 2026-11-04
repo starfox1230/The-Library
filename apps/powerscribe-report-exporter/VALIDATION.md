@@ -1,3 +1,23 @@
+# Elapsed-time display — November 4, 2026 (v0.24)
+
+The running overlay now formats total and current-step elapsed time as minutes
+and seconds, such as `2m 05s`. Total minutes continue past 59; there is no hourly
+reset. The native progress preview was inspected and rollover checks passed for
+0, 59, 60, 125 and 3600 seconds. **All 159 existing checks pass.** Capture,
+navigation and same-case recovery code are unchanged from v0.23.
+
+## v0.24 portable delivery
+
+- [PowerScribeReportExporter-v0.24.zip](https://drive.google.com/file/d/1I8YpkQ6D__KzY8_nHyb43Ra-X14DQmnl/view?usp=drivesdk)
+- ZIP: **78,975 bytes**; SHA-256
+  `e4724a4aeb024f4774287d0964db62dab7aee99e3d7543cbfa5fbcfaec94903a`.
+- Tested EXE: version **0.24.0.0**; SHA-256
+  `788c6f3ee04c87940e7f9805062d122a976cee7408b8b6a92d919b17e0e78313`.
+- Archive entries are exactly the tested EXE, README and quick start. Embedded
+  EXE and mounted-Drive ZIP hashes match the local originals. Connector readback
+  confirmed the cloud ID, name, size and release-folder parent. Older versions
+  remain unchanged.
+
 # Source-study settling and automatic same-case recovery — November 3, 2026 (v0.23)
 
 ## New workstation evidence

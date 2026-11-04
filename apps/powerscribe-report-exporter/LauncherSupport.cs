@@ -70,7 +70,7 @@ namespace ReportExporter
         public static string Build(ExportRunner runner, int first, int last, string outcome, string detail, string output)
         {
             int? resume = ResumeAt(runner, first, last);
-            return "PowerScribe Report Exporter v0.23\r\n" + outcome + "\r\n" +
+            return "PowerScribe Report Exporter v0.24\r\n" + outcome + "\r\n" +
                 "Requested case labels: " + first + "–" + last + "\r\n" +
                 "Complete report pairs: " + runner.Completed + "\r\n" +
                 "Unconfirmed pending: " + runner.Pending + "\r\nUnavailable comparisons: " + runner.Skipped + "\r\n" +
