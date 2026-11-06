@@ -125,6 +125,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .summary-direction { font-size:12px; margin:0 0 8px; }
 #cr-app .resident-summary { color:var(--ink); }
 #cr-app .attending-summary { color:var(--minor); }
+#cr-app .attending-summary.is-major { color:var(--major); }
 #cr-app .more { color:var(--accent); display:inline-block; margin-top:2px; }
 #cr-app .badges { display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap; padding-top:3px; }
 #cr-app .badge { font-size:11px; font-weight:550; border-radius:5px; padding:3px 7px; background:var(--soft); color:var(--muted); white-space:nowrap; }
@@ -435,10 +436,10 @@ const caseLabel = c => c.case_label || members(c).join(', ');
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
 function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
 function appendSummary(node,item) {
- // The server validates these endpoints. Color always denotes report side,
- // independently of the revision's wording, action or importance.
+ // Resident text keeps its normal color; the attending endpoint/arrow also
+ // communicate clinical importance in previews, expanded groups and exports.
  node.append(el('span','resident-summary',item.resident_summary),
-  el('span','attending-summary',' → '+item.attending_summary));
+  el('span','attending-summary'+(item.importance==='major'?' is-major':''),' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
  if(filter==='analysis-issues')return analysisIds.has(c.id)&&!['queued','processing','complete'].includes(c.status);
@@ -780,6 +781,19 @@ function render() {
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
 {% if not exported_review | default(false) %}
+function applyAnalysisResult(c,result,mode){
+ // Keep capture identity immutable. Both title perspectives must survive BOTH
+ // batch streaming and an individual retry, or switching falls back to title.
+ for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+ if(['complete','partial'].includes(result.status)){
+  if(typeof result.title_resident==='string'&&result.title_resident.trim()&&typeof result.title_attending==='string'&&result.title_attending.trim()){
+   c.title_resident=result.title_resident;c.title_attending=result.title_attending;c.title=result.title||result['title_'+mode];
+  }else if(typeof result.title==='string'&&result.title.trim()){
+   c.title=result.title;delete c.title_resident;delete c.title_attending;
+  }
+ }
+ c.review_mode=mode;
+}
 async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
  if(syntheticPreview || queueRunning || runGeneration!==generation || c.status==='processing'||controllers.size>0)return;
  const mode=reviewMode;
@@ -794,8 +808,7 @@ async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
   if(!result || typeof result!=='object' || Array.isArray(result) || !['complete','partial','pending','unavailable','needs_sections','error'].includes(result.status))throw new Error('format');
   if(runGeneration!==generation)return;
   // Source identity and original reports belong to the capture, never to model output.
-  for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
-  c.review_mode=mode;
+  applyAnalysisResult(c,result,mode);
  } catch(error) {
   if(runGeneration!==generation || error.name==='AbortError')return;
   c.status='error';c.status_message=error.message==='session'?'Your sign-in may have expired. Refresh this page to sign in again.':'Analysis could not be completed. Your reports remain available; retry this case.';
@@ -836,8 +849,7 @@ async function analyzeBatch(group,instructions,runGeneration,mode) {
    if(!result||typeof result!=='object'||Array.isArray(result)||!['complete','partial','pending','unavailable','needs_sections','error'].includes(result.status))throw new Error('format');
    const c=pending.get(event.id);
    // Never accept model/server replacement of source numbers or original reports.
-   for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
-   c.review_mode=mode;
+   applyAnalysisResult(c,result,mode);
    pending.delete(event.id);refresh();
   }
   while(runGeneration===generation){

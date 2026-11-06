@@ -884,10 +884,10 @@ namespace ReportExporter
                     foreach (string name in new string[] { "SysListView32", "WindowsForms10.LISTBOX.app.0", "CreditGrid", "WindowsForms10.Window.8.app.0" })
                         Assert(!Native.IsTextEditorClass(name), "Noneditor class rejected: " + name);
                 });
-                Test("invalid remembered F8 worklist cannot silently fall back to current focus", () => {
+                Test("invalid remembered worklist cannot silently fall back to current focus", () => {
                     Throws<InvalidOperationException>(() => new Win32Desktop(new IntPtr(111111), new IntPtr(222222), m => {}).NavigationFocus(new IntPtr(111111)));
                 });
-                Test("F8 native control validation accepts test-owned list and rejects editors stale and wrong roots", () => {
+                Test("Remembered native control validation accepts test-owned list and rejects editors stale and wrong roots", () => {
                     using (var parent = new TestOffscreenForm())
                     using (var other = new TestOffscreenForm())
                     using (var list = new System.Windows.Forms.ListView())
@@ -1412,6 +1412,21 @@ namespace ReportExporter
                 });
                 Test("compact launcher hides setup, expands Options and keeps Go visible", LauncherChecks.Verify);
                 Test("live progress is shown only in the external overlay without resizing the launcher", LauncherChecks.VerifyProgressRouting);
+                Test("setup countdown captures once after five seconds and can replace or cancel a target", () => {
+                    double now = 0; var captures = new List<string>(); var countdown = new SetupCaptureCountdown(() => now, captures.Add);
+                    countdown.Start("WorklistFocus"); Assert(countdown.SecondsRemaining == 5, "Countdown did not start at five seconds");
+                    now = 4999; countdown.Tick(); Assert(captures.Count == 0 && countdown.SecondsRemaining == 1, "Capture fired before the setup deadline");
+                    now = 5000; countdown.Tick(); countdown.Tick(); Assert(captures.Count == 1 && captures[0] == "WorklistFocus" && !countdown.Active, "Setup fired twice or kept its target");
+                    countdown.Start("Attending"); now += 1000; countdown.Start("Resident"); now += 4999; countdown.Tick(); Assert(captures.Count == 1, "Replacement used the previous deadline");
+                    now++; countdown.Tick(); Assert(captures.Count == 2 && captures[1] == "Resident", "Replacement captured the wrong target");
+                    countdown.Start("KeyboardPoint"); countdown.Cancel(); now += 10000; countdown.Tick(); Assert(captures.Count == 2, "Canceled setup still captured");
+                });
+                Test("setup countdown clears its target even when capture fails", () => {
+                    double now = 0; int attempts = 0; var countdown = new SetupCaptureCountdown(() => now, role => { attempts++; throw new InvalidOperationException("Synthetic setup failure"); });
+                    countdown.Start("Close"); now = 5000; Throws<InvalidOperationException>(() => countdown.Tick()); countdown.Tick();
+                    Assert(attempts == 1 && !countdown.Active, "A failing capture remained armed");
+                });
+                Test("launcher setup uses cancellable countdowns and registers only stop shortcuts", LauncherChecks.VerifySetupWithoutHotkeys);
                 Test("recovery dialog explains source selection, keeps buttons visible and separates linked studies from Finish", LauncherChecks.VerifyRecoveryDialog);
                 Test("failed and cancelled attempts clear retained capture state and permit retry without reopening", LauncherChecks.VerifyRetryState);
                 Test("typed case fields preserve valid ranges and reject blank, malformed, overflow and reversed input", LauncherChecks.VerifyTypedRange);

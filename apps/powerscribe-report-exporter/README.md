@@ -1,4 +1,21 @@
-# PowerScribe Report Exporter v0.24
+# PowerScribe Report Exporter v0.25
+
+## v0.25: free PACS F8 and use countdown setup
+
+The exporter no longer registers F8 or any setup hotkey. Its existing stop
+shortcut remains available. Worklist focus is still detected automatically.
+Optional worklist, report-click and accessibility captures now use an explicit
+five-second countdown: press the setup button, then select/point at the target
+in PowerScribe. Cancel setup, collapse Options, change mode or press Go to cancel
+an armed capture. Completing or failing a capture clears the armed target.
+
+The countdown uses a monotonic clock and captures once at its deadline. It
+preserves the existing native target/foreground checks and report-click settings.
+162 automated checks pass, including an injected hotkey-registration boundary
+that verifies only stop keys, countdown completion/replacement/cancellation,
+failed-capture disarming and actual launcher setup controls. These checks do not
+operate PowerScribe or reserve real hotkeys. Older release sections describe
+historical behavior; the usage section below describes the current version.
 
 ## v0.24: elapsed time in minutes and seconds
 
@@ -258,7 +275,7 @@ The keyboard workflow uses a saved **window-relative pixel offset** for its firs
 
 Resizing the comparison, changing pane arrangements, switching display scaling or monitors with different scaling, or using a different PowerScribe/remote-desktop layout can put another control under that offset. The app rejects an offset outside the comparison rectangle and checks window focus, clipboard freshness/ownership, clinical headings, and navigation state. Those checks detect many failures, but valid report headings do not prove that a clicked pane was the attending pane or that each Tab reached the intended control. No claim of arbitrary-layout compatibility is made. Multiple visible windows matching the expected reporting title are rejected; title/version differences may prevent discovery.
 
-For a new workstation, set the intended comparison layout, use **Options > Capture report click (optional)** if needed, and verify a few known resident/attending pairs and their order. Keep that layout stable during extraction. Repeat the click calibration and short check after layout/scaling changes. **Remember worklist (F8)** is a separate session-only focus capture, not report-pane calibration. Reliable use across arbitrary layouts would require identifying the actual report controls; the optional accessibility mode still depends on controls that the UAB installation may not expose.
+For a new workstation, set the intended comparison layout, use **Options > Capture report click (optional)** if needed, and verify a few known resident/attending pairs and their order. Keep that layout stable during extraction. Repeat the click calibration and short check after layout/scaling changes. **Remember worklist (5 seconds)** is a separate session-only focus capture, not report-pane calibration. Reliable use across arbitrary layouts would require identifying the actual report controls; the optional accessibility mode still depends on controls that the UAB installation may not expose.
 
 ## v0.13: first case, last case, Go
 
@@ -351,20 +368,20 @@ The first version's accessibility approach did not work on Sterling's workstatio
 
 ## Use it — no PowerShell required
 
-1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.18**.
+1. Close the earlier exporter and Review Reports AHK. Extract the portable ZIP and double-click `PowerScribeReportExporter.exe` on the PowerScribe workstation. The title should say **v0.25**.
 2. Close any open Compare Report Revisions dialog and **click the first case row in PowerScribe's worklist**. Leave focus on that row. Keep the comparison-window size that works with the AHK.
 3. Enter **First case** and **Last case**, then **Go**. These labels determine the count; they do not select numbered rows. Start with one case, then a small batch. Options is unnecessary for a normally configured workstation.
 4. A small progress window shows the current action, elapsed time, saved count, and available stop shortcut (**Numpad \*** or **Ctrl+Shift+F12**). Use its Stop button to cancel.
 5. On success, complete pairs are copied and the [Compare Revisions website](https://compare-revisions-646439009049.us-central1.run.app/) opens if enabled. Select **Paste**, or Ctrl+V in the report box, then **Analyze reports**. The extractor does not paste or upload reports itself.
 6. **Open comparison file**, **Open save folder**, and **Details** are available after the run. Expand **Copied text** to inspect the comparison input or **Copy again** after the clipboard changes. Options lets you choose another save folder, toggle Notepad, or adjust setup. Only `<output>.for-comparison.txt` contains comparison input; the original `<output>` retains incomplete entries too. Zero complete pairs leaves the clipboard unchanged and does not open the website. Stopped/failed runs retain completed pairs but do not automatically copy them or open the website.
 
-If automatic worklist detection fails, use **Options > Remember worklist (F8)**, select the first case row, and press F8 while PowerScribe is active. Return to the exporter and try Go. This focus capture lasts for the exporter session, rather than being saved permanently.
+If automatic worklist detection fails, use **Options > Remember worklist (5 seconds)**, then select the starting case row during the countdown. Keep PowerScribe active until capture completes; return to the exporter and try Go. No keypress is needed. This focus capture lasts for the exporter session, rather than being saved permanently.
 
 ### Report click position
 
 The default report-body click is **X=800, Y=600 relative to the comparison window's top-left corner**, matching the November AHK. It is the report text area, not the attending/resident name label.
 
-If the window layout has changed, expand **Options** and use **Capture report click (optional)**: open the comparison manually, click this button, point inside the **attending report body**, and press F8. This records a mouse position only. It does not take a screenshot, perform OCR, or require a selectable accessibility control. Then close the comparison and start the export. No case-list, resident, or OK-button capture is required in keyboard mode.
+If the window layout has changed, expand **Options** and use **Capture report click (5 seconds)**: open the comparison manually, click this button, then point inside the **attending report body** until the countdown finishes. This records a mouse position only. It does not take a screenshot, perform OCR, or require a selectable accessibility control. Then close the comparison and start the export. No case-list, resident, or OK-button capture is required in keyboard mode.
 
 If the click lies outside the window or copying fails, the app stops with an explanation. Repositioning the window on another monitor does not change the window-relative coordinate, but resizing it, changing display scaling, or changing the pane layout may require updating that position.
 

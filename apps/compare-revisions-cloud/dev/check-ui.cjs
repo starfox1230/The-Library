@@ -24,7 +24,7 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  for(const group of ['major','wording']){
   const previews=page.locator('.preview-item.'+group);assert(await previews.count()>0);
   assert.equal(await previews.first().locator('.resident-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'resident preview uses reading color regardless of '+group);
-  assert.equal(await previews.first().locator('.attending-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-minor').evaluate(n=>getComputedStyle(n).color),'attending preview always uses amber');
+  assert.equal(await previews.first().locator('.attending-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-'+(group==='major'?'major':'minor')).evaluate(n=>getComputedStyle(n).color),'attending preview reflects importance');
  }
  const minorPage=await browser.newPage({viewport:{width:1280,height:1000}});
  const minorFixture={...fixtures[0],revisions:fixtures[0].revisions.filter(r=>r.importance==='minor')};

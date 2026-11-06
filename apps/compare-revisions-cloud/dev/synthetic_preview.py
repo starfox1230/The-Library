@@ -147,8 +147,9 @@ if __name__ == '__main__':
     (output/'grouping-preview.html').write_text(grouped_html, encoding='utf-8')
     (output/'grouping-fixtures.json').write_text(json.dumps(grouped_results, ensure_ascii=False), encoding='utf-8')
     # Mode-specific defaults and titles, rendered without a provider or sign-in.
-    mode_attending = dict(grouped_results[0], review_mode='attending', title='Moderate effusion')
-    mode_resident = dict(grouped_results[0], review_mode='resident', title='Small effusion')
+    titles = dict(title_resident='Small effusion', title_attending='Moderate effusion')
+    mode_attending = dict(grouped_results[0], review_mode='attending', title='Moderate effusion', **titles)
+    mode_resident = dict(grouped_results[0], review_mode='resident', title='Small effusion', **titles)
     mode_queue = [dict(grouped[0], review_mode='attending')]
     with app.app.app_context():
         for name, mode, values, synthetic in [('mode-empty', 'resident', [], True),

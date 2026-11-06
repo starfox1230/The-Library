@@ -67,7 +67,7 @@ namespace ReportExporter
             if (Close == null) missing.Add("OK button");
             if (missing.Count > 0)
                 throw new InvalidOperationException("Setup is incomplete. Still needed: " + String.Join(", ", missing.ToArray()) +
-                    ".\r\n\r\nClick each matching Capture button, point at that control in PowerScribe, and press F8. The Captured line must show four checkmarks before exporting.");
+                    ".\r\n\r\nClick each matching Capture button, then point at that control in PowerScribe during the five-second countdown. The Captured line must show four checkmarks before exporting.");
             if (Attending.SameTarget(Resident))
                 throw new InvalidOperationException("Attending and resident must be different report panes.");
         }

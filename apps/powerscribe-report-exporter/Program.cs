@@ -8,8 +8,8 @@ using System.Runtime.Serialization.Json;
 using System.Threading;
 using System.Windows.Forms;
 
-[assembly: AssemblyVersion("0.24.0.0")]
-[assembly: AssemblyFileVersion("0.24.0.0")]
+[assembly: AssemblyVersion("0.25.0.0")]
+[assembly: AssemblyFileVersion("0.25.0.0")]
 
 namespace ReportExporter
 {
@@ -18,7 +18,7 @@ namespace ReportExporter
         [STAThread]
         public static void Main(string[] args)
         {
-            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-copied" || args[0] == "--preview-progress" || args[0] == "--preview-recovery"))
+            if (args.Length == 2 && (args[0] == "--preview" || args[0] == "--preview-options" || args[0] == "--preview-setup" || args[0] == "--preview-copied" || args[0] == "--preview-progress" || args[0] == "--preview-recovery"))
             {
                 Application.EnableVisualStyles();
                 Application.SetCompatibleTextRenderingDefault(false);
@@ -27,6 +27,7 @@ namespace ReportExporter
                     args[0] == "--preview-progress" ? (Form)new ProgressOverlay("Numpad *") : new ExportForm(true))
                 {
                     if (args[0] == "--preview-options") ((ExportForm)form).SetOptionsVisible(true);
+                    if (args[0] == "--preview-setup") { ((ExportForm)form).SetOptionsVisible(true); ((ExportForm)form).BeginSetupCapture("KeyboardPoint"); }
                     if (args[0] == "--preview-copied")
                     {
                         var exporter = (ExportForm)form;
@@ -98,7 +99,13 @@ namespace ReportExporter
         private System.Windows.Forms.Timer worklistTimer;
         private CancellationTokenSource cancellation;
         private bool running;
-        private bool captureHotkey, stopHotkey;
+        private bool stopHotkey;
+        private readonly Stopwatch setupClock = Stopwatch.StartNew();
+        private readonly System.Windows.Forms.Timer setupTimer;
+        private readonly Button cancelSetup = new NightButton { Name = "CancelSetup", Text = "Cancel setup", AutoSize = true, Visible = false };
+        internal SetupCaptureCountdown SetupCountdown { get; private set; }
+        internal Action<string> SetupCaptureAction;
+        internal Func<IntPtr, int, uint, uint, bool> HotkeyRegistration = Native.RegisterHotKey;
         private ProgressOverlay overlay;
         private FlowLayoutPanel keyboardSettings, accessibilitySettings;
         private FlowLayoutPanel optionsPanel, resultActions, customTiming;
@@ -131,8 +138,17 @@ namespace ReportExporter
         public ExportForm(bool preview)
         {
             previewMode = preview;
+            SetupCaptureAction = preview ? (Action<string>)(role => status.Text = "Preview setup completed.") : role => {
+                captureRole = role; try { CaptureControl(); } finally { captureRole = null; }
+            };
+            SetupCountdown = new SetupCaptureCountdown(() => setupClock.Elapsed.TotalMilliseconds, role => {
+                setupTimer.Stop(); cancelSetup.Visible = false; SetupCaptureAction(role);
+            });
+            setupTimer = new System.Windows.Forms.Timer { Interval = 100 };
+            setupTimer.Tick += (sender, args) => { SetupCountdown.Tick(); if (SetupCountdown.Active) ShowSetupCountdown(); };
+            cancelSetup.Click += (sender, args) => { CancelSetupCapture(); status.Text = "Setup canceled."; };
             ClipboardWriter = preview ? (Action<string>)(text => { throw new InvalidOperationException("Preview does not use the clipboard."); }) : text => Clipboard.SetDataObject(text, true, 3, 100);
-            Text = "PowerScribe Report Exporter v0.24";
+            Text = "PowerScribe Report Exporter v0.25";
             ClientSize = new Size(420, 300);
             MinimumSize = SizeFromClientSize(ClientSize);
             Font = new Font("Segoe UI", 10);
@@ -165,36 +181,32 @@ namespace ReportExporter
             keyboardSettings = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
             keyboardSettings.Controls.Add(new Label { Text = "PowerScribe setup (only if needed)", AutoSize = true });
             var worklistButtons = new FlowLayoutPanel { AutoSize = true };
-            var rememberWorklist = new NightButton { Text = "Remember worklist (F8)", AutoSize = true };
+            var rememberWorklist = new NightButton { Name = "RememberWorklist", Text = "Remember worklist (5 seconds)", AutoSize = true };
             rememberWorklist.Click += (sender, args) => {
-                if (!captureHotkey) { ShowError("F8 is in use", "Close the other program using F8 and reopen this exporter."); return; }
                 lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
                 if (FocusMemory != null) FocusMemory.Clear();
-                captureRole = "WorklistFocus";
-                status.Text = "Click the FIRST CASE ROW in PowerScribe, then press F8 while PowerScribe is active. This remembers keyboard focus; no accessibility capture is used.";
+                BeginSetupCapture("WorklistFocus");
             };
             var clearWorklist = new NightButton { Text = "Clear remembered worklist", AutoSize = true };
             clearWorklist.Click += (sender, args) => {
-                lockedWorklistMain = lockedWorklistChild = IntPtr.Zero; captureRole = null;
+                CancelSetupCapture(); lockedWorklistMain = lockedWorklistChild = IntPtr.Zero;
                 if (FocusMemory != null) FocusMemory.Clear();
                 status.Text = "Remembered worklist cleared. The next export will detect focus automatically.";
             };
             worklistButtons.Controls.Add(rememberWorklist); worklistButtons.Controls.Add(clearWorklist);
             keyboardSettings.Controls.Add(worklistButtons);
             keyboardSettings.Controls.Add(Row("Report click X", clickX, "Y", clickY));
-            var captureClick = new NightButton { Text = "Capture report click (optional)", AutoSize = true };
+            var captureClick = new NightButton { Name = "CaptureReportClick", Text = "Capture report click (5 seconds)", AutoSize = true };
             captureClick.Click += (sender, args) => {
-                if (!captureHotkey) { ShowError("F8 is in use", "Close the other program using F8 and reopen this exporter, or enter the X/Y position manually."); return; }
-                captureRole = "KeyboardPoint";
-                status.Text = "Open Compare Report Revisions manually. Point inside the ATTENDING REPORT BODY, then press F8. This stores a click position, not a screenshot.";
+                BeginSetupCapture("KeyboardPoint");
             };
             keyboardSettings.Controls.Add(captureClick);
             keyboardSettings.Controls.Add(autoFocus);
             keyboardSettings.Controls.Add(Row("Missing comparison wait (s)", comparisonWait, "", new Label { Text = "Then save placeholder / continue", AutoSize = true }));
-            keyboardSettings.Controls.Add(new Label { Text = "Fast reduces input waits; use Conservative if keys are missed.\nAfter Down remains 100 ms because the selected row cannot be verified.", AutoSize = true });
+            keyboardSettings.Controls.Add(new Label { Text = "Automatic uses brief key delays and allows the source study to settle.\nManual setup uses a five-second countdown; no setup shortcut is reserved.", AutoSize = true });
             optionsPanel.Controls.Add(keyboardSettings);
             accessibilitySettings = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.TopDown, WrapContents = false };
-            accessibilitySettings.Controls.Add(new Label { Text = "Optional accessibility mode requires four captures; it does not work\nwhen PowerScribe does not expose these controls. Point and press F8.", AutoSize = true });
+            accessibilitySettings.Controls.Add(new Label { Text = "Optional accessibility mode requires four captures; it does not work\nwhen PowerScribe does not expose these controls. Point during the five-second countdown.", AutoSize = true });
             var captureButtons = new FlowLayoutPanel { AutoSize = true, MaximumSize = new Size(590, 100) };
             foreach (string role in new string[] { "CaseList", "Attending", "Resident", "Close" })
             {
@@ -202,9 +214,7 @@ namespace ReportExporter
                 var button = new NightButton { Text = role == "Close" ? "Capture OK button" : "Capture " + role, AutoSize = true };
                 button.Click += (sender, args) => {
                     if (running) return;
-                    if (!captureHotkey) { status.Text = "F8 is in use by another program. Close that program and reopen the exporter."; return; }
-                    captureRole = current;
-                    status.Text = "Point at " + current + " in PowerScribe, then press F8. For a report pane, point at its text area.";
+                    BeginSetupCapture(current);
                 };
                 captureButtons.Controls.Add(button);
             }
@@ -213,6 +223,7 @@ namespace ReportExporter
             accessibilitySettings.Controls.Add(Row("Text settling (ms)", stable, "", new Label { AutoSize = true, Text = "Direct-read settling check" }));
             accessibilitySettings.Controls.Add(clipboard);
             optionsPanel.Controls.Add(accessibilitySettings);
+            optionsPanel.Controls.Add(cancelSetup);
             optionsPanel.Controls.Add(Row("Maximum wait (s)", timeout, "", new Label { AutoSize = true, Text = "Not a fixed delay" }));
             optionsPanel.Controls.Add(findingsOnly);
             optionsPanel.Controls.Add(website); optionsPanel.Controls.Add(openText);
@@ -266,6 +277,7 @@ namespace ReportExporter
             copiedSource.ForeColor = NightTheme.Muted;
             optionsPanel.BackColor = copiedPanel.BackColor = NightTheme.Surface;
             FormClosing += (sender, args) => {
+                CancelSetupCapture();
                 if (running && cancellation != null && !cancellation.IsCancellationRequested)
                 { CancelExport(); args.Cancel = true; status.Text = "Stopping... close again to exit immediately if PowerScribe's accessibility provider is stuck."; }
             };
@@ -280,8 +292,34 @@ namespace ReportExporter
             }
         }
 
+        internal void BeginSetupCapture(string role)
+        {
+            if (running) return;
+            CancelSetupCapture(); SetupCountdown.Start(role); cancelSetup.Visible = true;
+            ShowSetupCountdown(); setupTimer.Start();
+        }
+        private void ShowSetupCountdown()
+        {
+            string instruction = SetupCountdown.Role == "WorklistFocus" ? "Select the starting case row in PowerScribe's worklist." :
+                SetupCountdown.Role == "KeyboardPoint" ? "Open Compare Report Revisions and point inside the attending report body." :
+                "Point at " + SetupCountdown.Role + " in PowerScribe.";
+            status.Text = instruction + "\nCapturing in " + SetupCountdown.SecondsRemaining + " seconds. No keypress is needed.";
+        }
+        internal void CancelSetupCapture()
+        {
+            if (setupTimer != null) setupTimer.Stop();
+            if (SetupCountdown != null) SetupCountdown.Cancel();
+            captureRole = null; cancelSetup.Visible = false;
+        }
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) { CancelSetupCapture(); if (setupTimer != null) setupTimer.Dispose(); }
+            base.Dispose(disposing);
+        }
+
         private void ApplyMode()
         {
+            CancelSetupCapture();
             profile.KeyboardWorkflow = keyboard.Checked;
             keyboardSettings.Visible = keyboard.Checked;
             accessibilitySettings.Visible = !keyboard.Checked;
@@ -292,6 +330,7 @@ namespace ReportExporter
 
         public void SetOptionsVisible(bool visible)
         {
+            if (!visible && SetupCountdown.Active) { CancelSetupCapture(); status.Text = "Setup canceled."; }
             optionsExpanded = visible; optionsPanel.Visible = visible; ((NightButton)optionsButton).Expanded = visible; optionsButton.Invalidate();
             ResizeForContent();
         }
@@ -360,11 +399,15 @@ namespace ReportExporter
             base.OnHandleCreated(args);
             NightTheme.TitleBar(this);
             if (previewMode) { stopHotkey = true; return; }
-            captureHotkey = Native.RegisterHotKey(Handle, 1, 0x4000, 0x77); // F8, no repeat
-            stopHotkey = Native.RegisterHotKey(Handle, 2, 0x4000, 0x6A); // Numpad multiply
+            RegisterStopShortcut();
+        }
+
+        internal void RegisterStopShortcut()
+        {
+            stopHotkey = HotkeyRegistration(Handle, 2, 0x4000, 0x6A); // Numpad multiply
             if (!stopHotkey)
             {
-                stopHotkey = Native.RegisterHotKey(Handle, 2, 0x4000 | 0x0006, 0x7B); // Ctrl+Shift+F12
+                stopHotkey = HotkeyRegistration(Handle, 2, 0x4000 | 0x0006, 0x7B); // Ctrl+Shift+F12
                 stopShortcut = "Ctrl+Shift+F12";
             }
             stopHint.Text = "Stop with " + stopShortcut + ". Close the old Review Reports script\nso it does not run during this export.";
@@ -372,7 +415,7 @@ namespace ReportExporter
 
         protected override void OnHandleDestroyed(EventArgs args)
         {
-            if (!previewMode) { Native.UnregisterHotKey(Handle, 1); Native.UnregisterHotKey(Handle, 2); }
+            if (!previewMode) Native.UnregisterHotKey(Handle, 2);
             base.OnHandleDestroyed(args);
         }
 
@@ -381,7 +424,6 @@ namespace ReportExporter
             if (message.Msg == 0x0312)
             {
                 if (message.WParam.ToInt32() == 2) CancelExport();
-                if (message.WParam.ToInt32() == 1 && captureRole != null && !running) CaptureControl();
             }
             base.WndProc(ref message);
         }
@@ -394,10 +436,10 @@ namespace ReportExporter
                 {
                     IntPtr main = Native.UniqueWindow(profile.MainTitle, 0, true);
                     if (main == IntPtr.Zero || Native.GetForegroundWindow() != main)
-                        throw new InvalidOperationException("Click the first case row in the main PowerScribe window, then press F8 while PowerScribe is active.");
+                        throw new InvalidOperationException("Select the starting case row in the main PowerScribe window during the setup countdown, then try Remember worklist again.");
                     uint pid; Native.GetWindowThreadProcessId(main, out pid);
                     if (Native.UniqueWindow(profile.ComparisonTitle, pid, true) != IntPtr.Zero)
-                        throw new InvalidOperationException("Close Compare Report Revisions, click the first case row, then press F8.");
+                        throw new InvalidOperationException("Close Compare Report Revisions, then select the starting case row during the setup countdown.");
                     string diagnostic = "";
                     IntPtr child = Native.NavigationFocus(main, text => diagnostic = text);
                     if (child == IntPtr.Zero) throw new InvalidOperationException(diagnostic + " No worklist was remembered. This version cannot automatically navigate a grid without a separate usable control.");
@@ -412,7 +454,7 @@ namespace ReportExporter
                     if (!Native.GetCursorPos(out point)) throw new InvalidOperationException("Could not read the pointer position.");
                     IntPtr window = Native.GetAncestor(Native.WindowFromPoint(point), 2);
                     if (!Native.Title(window).StartsWith(profile.ComparisonTitle, StringComparison.Ordinal) || !Native.GetWindowRect(window, out rectangle))
-                        throw new InvalidOperationException("Point inside the attending report body in Compare Report Revisions, then press F8.");
+                        throw new InvalidOperationException("Point inside the attending report body in Compare Report Revisions during the setup countdown.");
                     clickX.Value = point.X - rectangle.Left; clickY.Value = point.Y - rectangle.Top;
                     profile.ClickX = (int)clickX.Value; profile.ClickY = (int)clickY.Value;
                     SaveProfile(); captureRole = null;
@@ -520,6 +562,7 @@ namespace ReportExporter
         private void StartExport()
         {
             if (running) return; // A queued Enter/Click cannot start a second worker.
+            CancelSetupCapture();
             string output;
             int firstLabel, lastLabel;
             try
@@ -573,7 +616,7 @@ namespace ReportExporter
                 try
                 {
                     progressLog = new AsyncProgressLog(output + ".progress.log");
-                    reportProgress("Initializing native exporter v0.24; reading live report controls before clipboard fallback...");
+                    reportProgress("Initializing native exporter v0.25; reading live report controls before clipboard fallback...");
                     runner.RestartSession = () => {
                         return profile.KeyboardWorkflow ?
                             (IReportSession)new KeyboardSession(profile, new Win32Desktop(lockedWorklistMain, lockedWorklistChild, reportProgress), reportProgress) :
@@ -668,7 +711,8 @@ namespace ReportExporter
 
         internal void CompleteRunState(bool success)
         {
-            // F8 handles are the capture state retained by the launcher across
+            CancelSetupCapture();
+            // Worklist handles are the capture state retained by the launcher across
             // attempts. A failed/stopped run must not repeatedly reuse them.
             // Reopening the exporter used to be the only automatic reset.
             if (!success) { lockedWorklistMain = lockedWorklistChild = IntPtr.Zero; if (FocusMemory != null) FocusMemory.Clear(); }

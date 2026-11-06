@@ -1,5 +1,23 @@
 # Changes and rationale — October 4, 2026
 
+## Preserve dual titles and clarify Major — November 6, 2026 (2026.11.06.1)
+
+- Fix both browser response whitelists dropping title_resident/title_attending.
+  One common update path retains both, protects source identity and handles
+  legacy success versus failed-result title preservation. Verify live-page and
+  exported-reader switches without new analysis requests.
+- Color Major arrows/attending endpoints red and Minor amber, keeping resident
+  text in the reading color. Use the same renderer for previews and expanded/exported
+  summaries. Verify both light and dark themes.
+- Broaden Major to substantial diagnostic/management consequence, acute or
+  important nonacute disease. Add source-supported suspicious prostate lesion
+  and significant disease-extent calibration; retain keyword/wording/follow-up
+  counterexamples, exact quotations and the existing Impression gate.
+  Shared prompt IDs: deltarad-review-1.7 / deltarad-review-dual-titles-1.1.
+- 113 Python checks and streamed/retry/export/browser regressions pass using
+  fictional data and mocked model responses. Update assembled main.py on Cloud
+  Run to activate; existing analyses need a retry to use the new grading default.
+
 ## Focused OCR review and screenshot overlap — November 4, 2026 (2026.11.04.1)
 
 - Treat each screenshot as consecutive increasing source rows, per the updated

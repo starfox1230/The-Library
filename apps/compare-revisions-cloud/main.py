@@ -185,7 +185,7 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.6'
+PROMPT_VERSION = 'deltarad-review-1.7'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
 IMPRESSION_EMPHASIS_SUMMARY = 'Added to Impression; finding unchanged'
@@ -248,8 +248,13 @@ If matching is uncertain, do not force two lesions to be one; use review
 importance and explain uncertainty.
 
 IMPORTANCE
-major: the particular revision has substantial acute clinical consequence or
-likely changes urgent clinical decisions in the supplied patient's context.
+major: the particular revision has substantial diagnostic or patient-management
+consequence in the supplied context, whether acute OR important nonacute disease.
+This includes a materially different important diagnosis, workup, treatment, or
+disease extent/staging. Urgency is NOT required. A serious underlying disease
+or an urgent examination does not automatically make each edit major.
+Judge the actual change from the resident's assessment to the attending's;
+do not invent a management plan, outcome, or certainty beyond the reports.
 Not every actionable follow-up is major. Impression inclusion alone is not
 sufficient. Do not grade by disease keywords or by amount of changed text.
 SECTION GATE: With separate Findings and Impression, the actual changed
@@ -258,7 +263,7 @@ underlying diagnosis. A newly added body-only descriptor of an unchanged
 impression diagnosis cannot be major. For additions, attending impression is
 required; for removals or downward reinterpretation, resident impression can
 establish eligibility. Combined Findings/Impression and conclusion-only
-sections are eligible, but still require the acute consequence threshold.
+sections are eligible, but still require substantial diagnostic/management impact.
 Apply the same importance standard in reverse: an important resident call
 removed/refuted can be major when the corresponding addition would be major
 in the same context. Do not invent another 'critical' category to bypass the
@@ -279,8 +284,8 @@ DECISION ORDER: apply this independently to each distinct revision
    change in laterality, negation, certainty, recommendation or interpretation
    is not merely wording just because few words changed.
 4. For a supported substantive clinical change, consider major ONLY if BOTH
-   requirements hold: substantial acute consequence/urgent decision impact in
-   this supplied context AND evidence for the actual delta in the eligible
+   requirements hold: substantial diagnostic/management impact (acute or
+   important nonacute) in this supplied context AND evidence for the actual delta in the eligible
    Impression/Conclusion/combined section. Use the correct evidence side.
    If the change is clear but falls below that threshold or lacks impression
    eligibility, use minor. If importance cannot be assessed reliably, use
@@ -330,6 +335,15 @@ CALIBRATION (context-specific examples, not universal disease rules)
   impression-supported. Device is a subject, not a fixed severity category.
 - Changed renal cyst laterality is a clinical change, not merely style.
 - Routine 12-month nodule follow-up isn't automatically major just because actionable.
+- Negative assessment of clinically significant prostate cancer changed to a
+  clearly identified, highly suspicious PI-RADS 5 lesion in Conclusion: major
+  changed interpretation when source-supported. This is a substantial diagnostic
+  change even without an acute emergency or an explicit immediate action plan.
+- New definite clinically important tumor invasion/extension can be major when
+  it materially changes the reported disease extent and meets the section gate.
+  Merely mentioning cancer, restating known malignancy, refining wording, or
+  adding an indeterminate small node is NOT automatically major. Use actual
+  diagnostic/management impact and supplied uncertainty, not a cancer keyword.
 
 EVIDENCE AND WRITING: FIXED RESIDENT / ATTENDING ORDER
 resident_summary and attending_summary: two REQUIRED separate short phrases,
@@ -382,7 +396,7 @@ If quoting an existing underlying finding to contextualize a new attribute,
 say that the new attribute was not documented rather than inventing a negative.
 reason: at most two short sentences explaining this change's importance, not a
 generic teaching essay. For major, identify the actual delta and its supported
-acute consequence/urgent decision impact; for review, identify what is
+diagnostic/management consequence (urgent or nonacute); for review, identify what is
 uncertain. For emphasis, explain that the finding was already in resident
 Findings and only its Impression inclusion changed. Never claim the reference
 is image-proven truth. Do not merely repeat the category label as a reason.
@@ -427,7 +441,7 @@ uncertainty. Titles describe the case, not a list of revisions. For example:
 title_resident='Pelvic mass, uncertain origin'; title_attending='Favored uterine
 fibroid'. Generate the revision inventory and importance judgments ONCE; they
 are identical for both viewing modes. Always keep resident-to-attending order."""
-ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.0'
+ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.1'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
 
@@ -435,7 +449,7 @@ REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
 @app.context_processor
 def review_prompt_context():
     # Also available to local synthetic renders; no credentials or requests.
-    return {'review_prompts': REVIEW_PROMPTS, 'review_build': '2026.11.04.1'}
+    return {'review_prompts': REVIEW_PROMPTS, 'review_build': '2026.11.06.1'}
 
 
 _REVISION_STRINGS = ('resident_summary', 'attending_summary',
@@ -1266,6 +1280,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .summary-direction { font-size:12px; margin:0 0 8px; }
 #cr-app .resident-summary { color:var(--ink); }
 #cr-app .attending-summary { color:var(--minor); }
+#cr-app .attending-summary.is-major { color:var(--major); }
 #cr-app .more { color:var(--accent); display:inline-block; margin-top:2px; }
 #cr-app .badges { display:flex; justify-content:flex-end; gap:5px; flex-wrap:wrap; padding-top:3px; }
 #cr-app .badge { font-size:11px; font-weight:550; border-radius:5px; padding:3px 7px; background:var(--soft); color:var(--muted); white-space:nowrap; }
@@ -2059,10 +2074,10 @@ lookupTable();
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
 function summaryText(item){return item.resident_summary+' → '+item.attending_summary;}
 function appendSummary(node,item) {
- // The server validates these endpoints. Color always denotes report side,
- // independently of the revision's wording, action or importance.
+ // Resident text keeps its normal color; the attending endpoint/arrow also
+ // communicate clinical importance in previews, expanded groups and exports.
  node.append(el('span','resident-summary',item.resident_summary),
-  el('span','attending-summary',' → '+item.attending_summary));
+  el('span','attending-summary'+(item.importance==='major'?' is-major':''),' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
  if(filter==='analysis-issues')return analysisIds.has(c.id)&&!['queued','processing','complete'].includes(c.status);
@@ -2404,6 +2419,19 @@ function render() {
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
 {% if not exported_review | default(false) %}
+function applyAnalysisResult(c,result,mode){
+ // Keep capture identity immutable. Both title perspectives must survive BOTH
+ // batch streaming and an individual retry, or switching falls back to title.
+ for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+ if(['complete','partial'].includes(result.status)){
+  if(typeof result.title_resident==='string'&&result.title_resident.trim()&&typeof result.title_attending==='string'&&result.title_attending.trim()){
+   c.title_resident=result.title_resident;c.title_attending=result.title_attending;c.title=result.title||result['title_'+mode];
+  }else if(typeof result.title==='string'&&result.title.trim()){
+   c.title=result.title;delete c.title_resident;delete c.title_attending;
+  }
+ }
+ c.review_mode=mode;
+}
 async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
  if(syntheticPreview || queueRunning || runGeneration!==generation || c.status==='processing'||controllers.size>0)return;
  const mode=reviewMode;
@@ -2418,8 +2446,7 @@ async function analyzeCase(c,key,runGeneration,instructions=submittedPrompt) {
   if(!result || typeof result!=='object' || Array.isArray(result) || !['complete','partial','pending','unavailable','needs_sections','error'].includes(result.status))throw new Error('format');
   if(runGeneration!==generation)return;
   // Source identity and original reports belong to the capture, never to model output.
-  for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
-  c.review_mode=mode;
+  applyAnalysisResult(c,result,mode);
  } catch(error) {
   if(runGeneration!==generation || error.name==='AbortError')return;
   c.status='error';c.status_message=error.message==='session'?'Your sign-in may have expired. Refresh this page to sign in again.':'Analysis could not be completed. Your reports remain available; retry this case.';
@@ -2460,8 +2487,7 @@ async function analyzeBatch(group,instructions,runGeneration,mode) {
    if(!result||typeof result!=='object'||Array.isArray(result)||!['complete','partial','pending','unavailable','needs_sections','error'].includes(result.status))throw new Error('format');
    const c=pending.get(event.id);
    // Never accept model/server replacement of source numbers or original reports.
-   for(const field of ['exam_label','title','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
-   c.review_mode=mode;
+   applyAnalysisResult(c,result,mode);
    pending.delete(event.id);refresh();
   }
   while(runGeneration===generation){

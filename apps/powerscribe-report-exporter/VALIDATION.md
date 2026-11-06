@@ -1,3 +1,33 @@
+# Countdown setup without PACS F8 reservation — November 6, 2026 (v0.25)
+
+The exporter removes setup hotkey registration and the WM_HOTKEY setup action.
+It registers only the existing stop shortcut/fallback; PACS F8 is not reserved.
+Optional worklist, report-point and accessibility capture buttons arm a five-second
+countdown using a monotonic clock. Targets are still checked by the existing
+native foreground/control logic when the countdown expires.
+
+Cancel setup, collapsing Options, changing mode, Go, reset or closing the form
+disarms pending capture. Deadline completion clears the target before invoking
+capture, including failure/reentrant cases. The preview was inspected: countdown
+instructions and Cancel setup fit, with no keypress required.
+
+**162 automated checks passed.** New tests exercise an injected hotkey registrar
+that receives only stop keys, actual launcher countdown/cancel/reset buttons,
+five-second timing, target replacement, cancellation and failed-capture disarming.
+No real hotkeys, clipboard or PowerScribe actions are used by these tests.
+
+## v0.25 portable delivery
+
+- [PowerScribeReportExporter-v0.25.zip](https://drive.google.com/file/d/1YyuU2BLV7gON_fPvY57zkoZDi5A7nAOj/view?usp=drivesdk)
+- ZIP: **80,559 bytes**; SHA-256
+  `4c575e4f807bd3fc4fc49d306ad1e1090b9147a2abbc3d6ff3d011bd291b1b83`.
+- Tested EXE: version **0.25.0.0**; SHA-256
+  `12b5f8385622b671083d524e38e992a825aa189c52bda5979d21d79f0289d56b`.
+- The archive contains exactly the tested production EXE, README and quick start.
+  Embedded EXE and mounted-Drive ZIP hashes match their local originals. Connector
+  listing/metadata confirmed cloud ID, name, size and the release-folder parent.
+  Older published releases were preserved.
+
 # Elapsed-time display — November 4, 2026 (v0.24)
 
 The running overlay now formats total and current-step elapsed time as minutes

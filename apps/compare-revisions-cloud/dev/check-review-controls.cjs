@@ -44,7 +44,8 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
    assert.equal(await resident.textContent(),'Pelvic mass with uncertain origin');
    assert.equal(await attending.textContent(),' → Uterine origin favored');
    assert.equal(await resident.evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color));
-   assert.equal(await attending.evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-minor').evaluate(n=>getComputedStyle(n).color));
+   const group=await attending.evaluate(n=>n.closest('.preview-item').classList.contains('major')?'major':'minor');
+   assert.equal(await attending.evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-'+group).evaluate(n=>getComputedStyle(n).color));
    assert.notEqual(await resident.evaluate(n=>getComputedStyle(n).color),await attending.evaluate(n=>getComputedStyle(n).color));
   }
   assert.equal(await page.locator('.change-preview img').count(),0);

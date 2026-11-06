@@ -1,8 +1,10 @@
 # How Compare Revisions classifies changes
 
-Resident prompt: `deltarad-review-1.5`; Attending prompt: `deltarad-review-attending-1.0`. The two defaults differ only in title anchoring, not the criteria below. This is the app's current custom rubric,
-not a claim of an externally validated discrepancy scale. The wording update
-keeps the existing importance thresholds. Read the [resident default](ANALYSIS_PROMPT.md),
+Resident prompt: `deltarad-review-1.7`; Attending prompt: `deltarad-review-dual-titles-1.1`.
+Both modes use identical instructions and generate both title perspectives in
+one analysis. The November 6, 2026 update includes consequential nonacute changes
+in Major; urgency is no longer required. This is the app's custom rubric, not a
+claim of an externally validated discrepancy scale. Read the [resident default](ANALYSIS_PROMPT.md),
 the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main.py) to audit it.
 
 ## Scope and unit of assessment
@@ -29,7 +31,7 @@ the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main
 
 | Importance: how consequential the particular revision is | Current criterion |
 | --- | --- |
-| Major | Substantial **acute** clinical consequence or likely change to **urgent** clinical decisions in the supplied context, **and** the actual changed assertion meets the Impression/Conclusion section rule below. |
+| Major | Substantial diagnostic or patient-management consequence, whether **acute or important nonacute disease**, **and** the actual changed assertion meets the Impression/Conclusion section rule below. Urgency is not required; the actual diagnostic, workup, treatment or staging change must be supported by the supplied context. |
 | Minor | A supported clinical assertion changes, but it does not meet the Major criteria. A clear clinical change confined to Findings remains below Major under this app's rule. |
 | Wording/detail | Pure emphasis, equivalent phrasing or descriptive refinement without a new clinical assertion. Emphasis and Description actions must use this importance. |
 | Needs review | Insufficient evidence/context to confidently assess importance or establish whether assertions concern the same finding. Name the uncertainty rather than forcing a grade. |
@@ -49,8 +51,8 @@ underlying unchanged disease does not qualify a new body-only attribute.
 - For Changed, an appropriate endpoint can establish eligibility. A downward
   reinterpretation can qualify using the resident's Impression.
 - Combined Findings/Impression and conclusion-only sections are eligible.
-- Section eligibility alone is insufficient: the acute/urgent consequence
-  threshold must also be met. Nonurgent actionable follow-up is not automatically Major.
+- Section eligibility alone is insufficient: substantial diagnostic/management
+  impact must also be supported. Routine actionable follow-up is not automatically Major.
 
 This is a deliberate product restriction: **a potentially important change
 appearing only in Findings cannot receive Major under the current rubric**.
@@ -69,6 +71,9 @@ These are context-dependent examples, not universal disease classifications.
 | Existing multiloculated perisigmoid collection renamed abscess without a material new assertion | Description / Wording in that supplied context. Do not generalize all collection-to-abscess changes this way. |
 | Renal cyst laterality changes | A clinical change, not merely wording; assess importance using the same threshold. |
 | Routine conditional 12-month nodule follow-up added | Not automatically Major because it is actionable. |
+| Negative assessment changed to a clearly identified highly suspicious PI-RADS 5 prostate lesion in Conclusion | Major changed interpretation when source-supported, even without an acute emergency. |
+| New definite clinically important tumor invasion/extension in Impression | Can be Major when it materially changes reported disease extent. |
+| Restatement of known malignancy, equivalent cancer-related wording, or an indeterminate small node | Not automatically Major because cancer is mentioned; assess the actual delta and its consequence. |
 | Device position changes from stomach to mainstem bronchus with repositioning advised | May be Major when supported by context and eligible Impression evidence. Device identity alone does not set importance. |
 | Unchanged retained ballistic fragments newly mentioned | Not Major solely because they are foreign bodies. |
 
@@ -83,7 +88,7 @@ warning. An unsupported Major section classification becomes Needs review.
 
 **Still model judgments:** whether two assertions match, whether an edit is
 clinically substantive or only descriptive, whether an excerpt supports the
-claimed change, the clinical consequence/urgency, the accuracy of a paraphrase,
+claimed change, the acute or nonacute clinical consequence, the accuracy of a paraphrase,
 and whether every relevant revision was found. An exact quotation check cannot
 prove those semantic judgments. In particular, the code does not independently
 prove that a quoted Impression passage contains the specific delta claimed by
@@ -93,7 +98,8 @@ clinical-quality evaluation.
 ## Predictable summary wording
 
 Every line uses **resident finding → attending revision**. Resident text uses
-the normal reading color; the arrow and attending revision use amber.
+the normal reading color; the arrow and attending revision are red for Major
+and amber for Minor. These colors apply to previews, expanded summaries and exports.
 
 - Changed: `Left renal cyst → Right renal cyst`.
 - Added without a resident counterpart: `Not documented → Left seventh rib fracture`.

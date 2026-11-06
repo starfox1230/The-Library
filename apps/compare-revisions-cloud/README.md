@@ -1,9 +1,35 @@
 # Compare Revisions: cloud review redesign
 
+## Title transport, severity colors and nonacute Major changes — November 6, 2026
+
+Website source build **2026.11.06.1** fixes both streaming and individual-retry
+response handlers: they previously discarded `title_resident`/`title_attending`
+while retaining only `title`. Both titles now survive into the displayed case,
+export payload and offline reader. Switching perspective uses those existing
+fields, without additional analysis. Failed results preserve earlier titles;
+successful legacy single-title results clear stale dual fields and use their
+original title. Results/files that already lost a perspective need one reanalysis
+to obtain it again.
+
+Major summary arrows and attending endpoints are red in preview, expanded groups
+and exports. Minor stays amber; resident wording retains the normal reading color.
+The shared rubric now includes substantial diagnostic/management consequences
+from important **nonacute** disease. Urgency is not required. Exact eligible-section
+evidence and the Impression/Conclusion gate remain; cancer words, restated known
+malignancy, description and routine follow-up are not automatically Major. Read
+[REVIEW_CRITERIA.md](REVIEW_CRITERIA.md) for the current criteria. Reanalyze existing
+results to apply the changed rubric; it is not a retrospective automatic regrade.
+
+113 offline Python tests and production-browser checks pass, including streamed
+and retry results, in-flight perspective changes, both themes, expanded colors,
+real export serialization and offline switches without network calls. Model
+responses are mocked; these checks do not establish clinical grading accuracy.
+Cloud Run deployment remains pending; replace `main.py` and redeploy to activate.
+
 ## Screenshot lookup, OCR review and HTML export — November 4, 2026
 
-Website build **2026.11.04.1** appears in the footer. This is separate from the
-PowerScribe extractor executable version (now v0.24).
+The current source build appears in the footer after deployment. This is separate
+from the PowerScribe extractor executable version (now v0.25).
 
 Implemented in replacement source; Cloud Run deployment is still pending.
 
@@ -239,7 +265,7 @@ Clear reports removes reports, results and the edited prompt draft from the curr
 
 ## What was verified
 
-For the complete current importance criteria, the Major section rule, calibration examples and the limits of mechanical validation, read [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md). [ANALYSIS_PROMPT.md](ANALYSIS_PROMPT.md) and [ATTENDING_ANALYSIS_PROMPT.md](ATTENDING_ANALYSIS_PROMPT.md) export the identical shared defaults for both views. `dev/assemble.py` produces both without importing authentication or contacting the provider; regression tests verify equality and that only the title rule differs. Customized instructions replace this default; the current editor contents are what the model receives.
+For the complete current importance criteria, the Major section rule, calibration examples and the limits of mechanical validation, read [REVIEW_CRITERIA.md](REVIEW_CRITERIA.md). [ANALYSIS_PROMPT.md](ANALYSIS_PROMPT.md) and [ATTENDING_ANALYSIS_PROMPT.md](ATTENDING_ANALYSIS_PROMPT.md) export the identical shared defaults for both views. `dev/assemble.py` produces both without importing authentication or contacting the provider; regression tests verify shared instructions and both required title fields. Customized instructions replace this default; the current editor contents are what the model receives.
 
 Local regression tests use synthetic reports and mocked Azure responses. A 100-party barrier proves that 100 server workers reach the model call concurrently. Browser checks cover 100-case progressive results, 205-case grouping, UTF-8 byte limits, interrupted connections, prompt-specific retries, exact/repeated/overlapping passage links, keyboard pinning, page-stable sticky report scrolling, and responsive layout/report fidelity. No live latency measurement is claimed.
 

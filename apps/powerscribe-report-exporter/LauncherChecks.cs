@@ -64,6 +64,26 @@ namespace ReportExporter
             }
         }
 
+        public static void VerifySetupWithoutHotkeys()
+        {
+            using (var form = new ExportForm(true))
+            {
+                form.StartPosition = FormStartPosition.Manual; form.Location = new Point(-20000, -20000); form.ShowInTaskbar = false;
+                form.Show(); Application.DoEvents(); form.SetOptionsVisible(true);
+                var keys = new System.Collections.Generic.List<uint>();
+                form.HotkeyRegistration = (window, id, modifiers, key) => { Require(id == 2, "A setup hotkey was registered"); keys.Add(key); return key == 0x7B; };
+                form.RegisterStopShortcut();
+                Require(keys.Count == 2 && keys[0] == 0x6A && keys[1] == 0x7B && !keys.Contains(0x77), "Setup reserved the PACS function key");
+                ((Button)Find(form, "RememberWorklist")).PerformClick(); Application.DoEvents();
+                Require(form.SetupCountdown.Active && form.SetupCountdown.Role == "WorklistFocus" && Find(form, "CancelSetup").Visible, "Worklist button did not arm a countdown");
+                ((Button)Find(form, "CancelSetup")).PerformClick(); Require(!form.SetupCountdown.Active, "Setup cancel left a pending capture");
+                ((Button)Find(form, "CaptureReportClick")).PerformClick(); Require(form.SetupCountdown.Role == "KeyboardPoint", "Report click did not arm its own target");
+                form.SetOptionsVisible(false); Require(!form.SetupCountdown.Active, "Collapsing setup left a pending capture");
+                form.BeginSetupCapture("Attending"); form.CompleteRunState(false); Require(!form.SetupCountdown.Active, "Reset left a pending setup capture");
+                form.Close();
+            }
+        }
+
         public static void VerifyRetryState()
         {
             using (var form = new ExportForm(true))

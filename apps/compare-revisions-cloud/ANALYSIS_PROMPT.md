@@ -57,8 +57,13 @@ If matching is uncertain, do not force two lesions to be one; use review
 importance and explain uncertainty.
 
 IMPORTANCE
-major: the particular revision has substantial acute clinical consequence or
-likely changes urgent clinical decisions in the supplied patient's context.
+major: the particular revision has substantial diagnostic or patient-management
+consequence in the supplied context, whether acute OR important nonacute disease.
+This includes a materially different important diagnosis, workup, treatment, or
+disease extent/staging. Urgency is NOT required. A serious underlying disease
+or an urgent examination does not automatically make each edit major.
+Judge the actual change from the resident's assessment to the attending's;
+do not invent a management plan, outcome, or certainty beyond the reports.
 Not every actionable follow-up is major. Impression inclusion alone is not
 sufficient. Do not grade by disease keywords or by amount of changed text.
 SECTION GATE: With separate Findings and Impression, the actual changed
@@ -67,7 +72,7 @@ underlying diagnosis. A newly added body-only descriptor of an unchanged
 impression diagnosis cannot be major. For additions, attending impression is
 required; for removals or downward reinterpretation, resident impression can
 establish eligibility. Combined Findings/Impression and conclusion-only
-sections are eligible, but still require the acute consequence threshold.
+sections are eligible, but still require substantial diagnostic/management impact.
 Apply the same importance standard in reverse: an important resident call
 removed/refuted can be major when the corresponding addition would be major
 in the same context. Do not invent another 'critical' category to bypass the
@@ -88,8 +93,8 @@ DECISION ORDER: apply this independently to each distinct revision
    change in laterality, negation, certainty, recommendation or interpretation
    is not merely wording just because few words changed.
 4. For a supported substantive clinical change, consider major ONLY if BOTH
-   requirements hold: substantial acute consequence/urgent decision impact in
-   this supplied context AND evidence for the actual delta in the eligible
+   requirements hold: substantial diagnostic/management impact (acute or
+   important nonacute) in this supplied context AND evidence for the actual delta in the eligible
    Impression/Conclusion/combined section. Use the correct evidence side.
    If the change is clear but falls below that threshold or lacks impression
    eligibility, use minor. If importance cannot be assessed reliably, use
@@ -139,6 +144,15 @@ CALIBRATION (context-specific examples, not universal disease rules)
   impression-supported. Device is a subject, not a fixed severity category.
 - Changed renal cyst laterality is a clinical change, not merely style.
 - Routine 12-month nodule follow-up isn't automatically major just because actionable.
+- Negative assessment of clinically significant prostate cancer changed to a
+  clearly identified, highly suspicious PI-RADS 5 lesion in Conclusion: major
+  changed interpretation when source-supported. This is a substantial diagnostic
+  change even without an acute emergency or an explicit immediate action plan.
+- New definite clinically important tumor invasion/extension can be major when
+  it materially changes the reported disease extent and meets the section gate.
+  Merely mentioning cancer, restating known malignancy, refining wording, or
+  adding an indeterminate small node is NOT automatically major. Use actual
+  diagnostic/management impact and supplied uncertainty, not a cancer keyword.
 
 EVIDENCE AND WRITING: FIXED RESIDENT / ATTENDING ORDER
 resident_summary and attending_summary: two REQUIRED separate short phrases,
@@ -191,7 +205,7 @@ If quoting an existing underlying finding to contextualize a new attribute,
 say that the new attribute was not documented rather than inventing a negative.
 reason: at most two short sentences explaining this change's importance, not a
 generic teaching essay. For major, identify the actual delta and its supported
-acute consequence/urgent decision impact; for review, identify what is
+diagnostic/management consequence (urgent or nonacute); for review, identify what is
 uncertain. For emphasis, explain that the finding was already in resident
 Findings and only its Impression inclusion changed. Never claim the reference
 is image-proven truth. Do not merely repeat the category label as a reason.

@@ -3,6 +3,27 @@ using System.IO;
 
 namespace ReportExporter
 {
+    public sealed class SetupCaptureCountdown
+    {
+        private readonly Func<double> clock;
+        private readonly Action<string> capture;
+        private double due;
+        public string Role { get; private set; }
+        public bool Active { get { return Role != null; } }
+        public int SecondsRemaining { get { return Active ? Math.Max(0, (int)Math.Ceiling((due - clock()) / 1000)) : 0; } }
+        public SetupCaptureCountdown(Func<double> clock, Action<string> capture)
+        { this.clock = clock; this.capture = capture; }
+        public void Start(string role)
+        { if (String.IsNullOrEmpty(role)) throw new ArgumentException("Choose a setup target."); Role = role; due = clock() + 5000; }
+        public void Cancel() { Role = null; }
+        public void Tick()
+        {
+            if (!Active || clock() < due) return;
+            string role = Role; Role = null; // Exactly once, even if capture throws or reenters.
+            capture(role);
+        }
+    }
+
     public sealed class InputTiming
     {
         private readonly bool automatic;
@@ -70,7 +91,7 @@ namespace ReportExporter
         public static string Build(ExportRunner runner, int first, int last, string outcome, string detail, string output)
         {
             int? resume = ResumeAt(runner, first, last);
-            return "PowerScribe Report Exporter v0.24\r\n" + outcome + "\r\n" +
+            return "PowerScribe Report Exporter v0.25\r\n" + outcome + "\r\n" +
                 "Requested case labels: " + first + "–" + last + "\r\n" +
                 "Complete report pairs: " + runner.Completed + "\r\n" +
                 "Unconfirmed pending: " + runner.Pending + "\r\nUnavailable comparisons: " + runner.Skipped + "\r\n" +
