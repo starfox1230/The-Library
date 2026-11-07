@@ -424,9 +424,11 @@ export class IslandRenderer {
 
   setZoom(zoom) { this.camera.zoom = clamp(zoom, .35, 1.65); this.placeWorld(); this.notifyCamera(); }
   recenter() {
-    const latest = this.lastWorld?.buildings.at(-1);
-    this.camera.x = latest?.x ?? 0; this.camera.y = latest?.y ?? 0; this.camera.zoom = this.lastWorld?.growth.completedBuildings > 48 ? .58 : .9;
-    this.visualKey = ""; this.renderWorld(this.lastWorld); this.notifyCamera();
+    const maxZoom = this.lastWorld?.growth.completedBuildings > 48 ? .58 : .9;
+    this.camera = { x: 0, y: 0, zoom: clamp((this.host.getBoundingClientRect().width - 32) / 500, .35, maxZoom) };
+    this.visualKey = "";
+    this.placeWorld();
+    this.notifyCamera();
   }
   restore(camera) { if (camera) { this.camera = { x: camera.centerX || 0, y: camera.centerY || 0, zoom: camera.zoom || .77 }; this.placeWorld(); } }
   getCameraState() { return { centerX: this.camera.x, centerY: this.camera.y, zoom: this.camera.zoom }; }

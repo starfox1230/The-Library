@@ -151,6 +151,7 @@ function attachEvents() {
   $("openSettings").addEventListener("click", openSettings);
   $("closeSettings").addEventListener("click", () => els.settings.close());
   $("expandScene").addEventListener("click", toggleExpandedScene);
+  $("recenterIsland").addEventListener("click", () => renderer?.recenter());
   $("settingsBeginAgain").addEventListener("click", () => {
     if (!activeRun()) return;
     els.settings.close();

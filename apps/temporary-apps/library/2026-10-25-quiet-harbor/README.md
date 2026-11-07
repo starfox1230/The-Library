@@ -44,6 +44,8 @@ The church illustration follows the long brick form, broad gabled roof, and slen
 
 ## Local development
 
+The small crosshair beside the bottom-right zoom buttons returns to the original island center and a comfortable zoom. It is available in normal and expanded views, and the recovered camera position is saved like any other camera move.
+
 Use any static HTTP server from this folder. Open `index.html`; no install/build is required. A service worker caches the app shell and selected art after its first successful online load.
 
 Run `npm test` for pure timer, growth, seed layout and backup validation checks. Run `npm run check` for module syntax. `python scripts/prepare-assets.py` verifies the pinned free Kenney archives and crops only the selected sprites; `python scripts/make-contact-sheets.py` creates labeled visual reviews. `python scripts/prepare-icons.py` regenerates the PNG icon family. `python scripts/generate-precache.py` regenerates the app-local offline asset list.

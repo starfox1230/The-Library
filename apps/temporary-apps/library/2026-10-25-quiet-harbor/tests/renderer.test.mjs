@@ -74,6 +74,22 @@ test("reduced motion holds the illustrated scene while elapsed-time rendering co
   assert.ok(renderer.propLayer.children.some((item) => item.label === "home-0"));
 });
 
+test("recenter recovers the original island from a lost saved camera and saves the recovered view", async () => {
+  for (const age of [0, 259_200_000, 8_640_000_000]) {
+    const renderer = await new IslandRenderer(host).init({ centerX: 5000, centerY: -5000, zoom: 1.65 });
+    await renderer.renderWorld(worldFor("lost-camera", age));
+    let savedCamera;
+    renderer.onCameraChange = (camera) => { savedCamera = camera; };
+    renderer.recenter();
+    assert.equal(renderer.camera.x, 0);
+    assert.equal(renderer.camera.y, 0);
+    assert.ok(renderer.camera.zoom >= .35 && renderer.camera.zoom <= .9);
+    assert.deepEqual(savedCamera, { centerX: 0, centerY: 0, zoom: renderer.camera.zoom });
+    assert.ok(renderer.groundLayer.children.length > 0);
+    if (age > 0) assert.ok(renderer.propLayer.children.some((item) => item.label === "home-0"));
+  }
+});
+
 test("starting a new island after exploring a distant district brings the seed back into view", async () => {
   const renderer = await new IslandRenderer(host).init();
   const grown = worldFor("old-island", 8_640_000_000);
