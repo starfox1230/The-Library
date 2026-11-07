@@ -26,11 +26,11 @@ async function download(page,selector,file){const event=page.waitForEvent('downl
  await page.locator('#favorite-1').click();await page.locator('#feedback-0').click();
  const comment='Please check this classification. </script><img src=x onerror=alert(1)>';
  await page.locator('#feedback-comment').fill(comment);await page.locator('#feedback-done').click();
- assert.match(await page.locator('#mark-status').innerText(),/not included/);
+ assert.match(await page.locator('#review-toast').innerText(),/only saved/);
  await page.locator('#filter-flagged').click();assert.equal(await page.locator('.case').count(),1);await page.locator('#reset-filters').click();
  const liveFeedback=await download(page,'#export-feedback',path.join(out,'marks-live-feedback.html'));
  assert.equal(data(liveFeedback,'review-data').length,1);assert.ok(!liveFeedback.includes('UNFLAGGED_REPORT_70'));assert.equal(data(liveFeedback,'review-data')[0].review_marks.comment,comment);
- assert.match(await page.locator('#mark-status').innerText(),/not sent/);
+ assert.match(await page.locator('#review-toast').innerText(),/not sent/);
  const fullPath=path.join(out,'marks-full-review.html');let html=await download(page,'#export-review',fullPath);
  const records=data(html,'review-data');assert.deepEqual(records[0].source_numbers,[68,69]);assert.equal(records[1].review_marks.favorite,true);
  assert.equal(records[0].analysis_provenance.prompt,'synthetic-v1');assert.ok(/^[a-f0-9]{32}$/.test(data(html,'review-metadata').batch_id));

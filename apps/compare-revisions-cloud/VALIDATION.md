@@ -1,5 +1,32 @@
 # Verification record
 
+## November 7, 2026: 13 compact-review improvements (2026.11.07.2)
+
+- **116 offline Python tests passed.** Assembled source and authoring template
+  match; prompt exports remain unchanged at 1.8 / dual-title 1.2. No clinical
+  model, deployment setting, authentication or export-scope rule changed.
+- **`check-compact-review.cjs` passed in Edge:** continuous header hover and
+  neutral icon fills in both themes, no pointer outline, retained keyboard
+  focus, gold/red selected states, generic feedback wording, counted icon filters,
+  secondary filters under More with an active count, and no redundant counters
+  or persistent warning. Two expanded cases verify that reasons start hidden,
+  toggle independently of each other and of evidence, and remain in exported
+  JSON while reopening hidden.
+- The simulated clock verifies that the reminder disappears after four seconds
+  and returns on marking/unmarking. Its action works within the feedback modal,
+  on the website and in an offline file. A filtered export with no visible cases
+  still produces all four cases when using the reminder's full-copy action.
+  Source numbering, annotations and feedback explanations survive. The reminder
+  is hidden on reopening; More stays within a 390px viewport. Desktop light/dark
+  and mobile screenshots were inspected.
+- Existing `check-marks.cjs`, `check-perspectives-severity.cjs` and
+  `check-reader-sources.cjs` verify annotation/provenance roundtrips, flagged-only
+  export privacy, saved preferences, severity colors, dual titles, local OCR,
+  source crops and correction/save/reopen. All inputs and model responses are
+  synthetic; these checks do not establish clinical grading accuracy.
+- Deployment is pending. Replace/redeploy `main.py`; the footer identifies
+  **2026.11.07.2**. Existing downloaded HTML files are not modified remotely.
+
 ## November 7, 2026: clinical-action rubric and case annotations (2026.11.07.1)
 
 - **116 offline Python tests passed.** This includes clinical-only export scope,

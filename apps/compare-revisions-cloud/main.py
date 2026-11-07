@@ -481,7 +481,7 @@ are identical for both viewing modes. Always keep resident-to-attending order.""
 ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
-REVIEW_BUILD = '2026.11.07.1'
+REVIEW_BUILD = '2026.11.07.2'
 
 
 def review_metadata(raw=None):
@@ -1460,8 +1460,6 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .case-mark[aria-pressed=true] svg {fill:color-mix(in srgb,var(--accent) 22%,transparent);}
 #cr-app .mark-toolbar {padding:12px 0 16px;border-bottom:1px solid var(--line);margin-bottom:16px;}
 #cr-app .mark-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-#cr-app #mark-counts {font-size:12px;color:var(--muted);margin-right:auto;}
-#cr-app #mark-status {margin:8px 0 0;}
 #cr-app .feedback-dialog {max-width:480px;width:calc(100% - 48px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;}
 #cr-app .feedback-dialog::backdrop {background:#0008;}
 #cr-app .feedback-dialog h2 {margin-top:0;font-size:18px;}
@@ -1524,6 +1522,45 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .phi-banner {position:sticky; top:0; z-index:20; padding:10px 24px; background:var(--minor-bg); color:var(--ink); border-bottom:1px solid var(--minor); font-size:12px;}
 #cr-app .export-tools {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
 @media print { #cr-app .phi-banner {position:static;} #cr-app .site-header,#cr-app .controls,#cr-app .filter-panel,#cr-app .export-tools {display:none;} #cr-app .case-reveal {display:block; visibility:visible;} }
+</style>
+<style>
+
+/* One continuous header hover; icon hovers stay neutral, selection carries color. */
+#cr-app {--favorite:light-dark(#906200,#efc65a);}
+#cr-app .case-header {border-radius:11px;}
+#cr-app .case.is-open .case-header {border-radius:11px 11px 0 0;}
+#cr-app .case-header:hover {background:color-mix(in srgb,var(--soft) 65%,transparent);}
+#cr-app .case-head:hover {background:transparent;}
+#cr-app .case-mark,#cr-app .case-mark[aria-pressed=true] {background:transparent;border-color:transparent;}
+#cr-app .case-mark[aria-pressed=true][id^="favorite-"] {color:var(--favorite);}
+#cr-app .case-mark[aria-pressed=true][id^="feedback-"] {color:var(--major);}
+#cr-app .case-mark[aria-pressed=true] svg {fill:currentColor;}
+#cr-app .case-mark:hover {background:color-mix(in srgb,var(--ink) 7%,transparent);border-color:transparent;box-shadow:none;}
+#cr-app .case-mark:hover:not(:focus-visible) {outline:none;}
+#cr-app .filter-main {display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;flex:1;min-width:0;}
+#cr-app #revision-totals,#cr-app #mark-filters {display:contents;}
+#cr-app .filter-main .filter-chip {font-size:12px;font-weight:550;padding:8px 12px;}
+#cr-app #revision-totals .filter-chip {flex:1 0 auto;white-space:nowrap;min-height:42px;}
+#cr-app .mark-filter {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:54px;min-height:42px;}
+#cr-app .mark-filter svg {width:18px;height:18px;fill:currentColor;stroke:currentColor;stroke-width:1.3;}
+#cr-app .mark-filter.favorite-filter svg {color:var(--favorite);}
+#cr-app .mark-filter.feedback-filter svg {color:var(--major);}
+#cr-app .mark-filter[aria-pressed=true]::before {content:none;}
+#cr-app .more-filters {position:relative;flex:0 0 auto;}
+#cr-app .more-filters summary {list-style:none;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:var(--panel);}
+#cr-app .more-filters summary::-webkit-details-marker {display:none;}
+#cr-app .more-filters summary::after {content:' ▾';}
+#cr-app .more-filters[open] summary::after {content:' ▴';}
+#cr-app .more-filters.has-active summary {outline:2px solid var(--accent);outline-offset:1px;}
+#cr-app .more-filters > .filter-options {position:absolute;right:0;top:calc(100% + 6px);z-index:5;min-width:190px;padding:8px;flex-direction:column;align-items:stretch;border:1px solid var(--line);border-radius:9px;background:var(--panel);box-shadow:0 8px 24px #0003;}
+#cr-app .mark-actions {justify-content:flex-end;}
+#cr-app .export-tools #export-feedback {margin-left:auto;}
+#cr-app .summary-tools {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;}
+#cr-app .explanation-toggle {justify-self:center;}
+#cr-app .review-toast {position:fixed;right:18px;bottom:18px;z-index:30;display:flex;align-items:center;gap:14px;width:max-content;max-width:min(440px,calc(100vw - 36px));padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);box-shadow:0 8px 32px #0004;font-size:12px;}
+#cr-app .review-toast .plain {flex:none;font-size:12px;}
+@media(max-width:540px) { #cr-app .summary-tools {grid-template-columns:1fr 1fr;} #cr-app .summary-tools > .muted {grid-column:1 / -1;} #cr-app .explanation-toggle {justify-self:start;} #cr-app .wording-tools {justify-self:end;} }
+@media print { #cr-app .review-toast {display:none;} }
 </style>
 </head>
 <body>
@@ -1593,22 +1630,23 @@ html[data-theme="dark"] {color-scheme:dark;}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
-{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
-<div class="mark-toolbar" aria-label="Review marks and downloads">
-<div class="mark-actions"><span id="mark-counts"></span>{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
-<p class="hint" id="mark-status" role="status">Marks and comments stay in this open page until you download an updated copy.</p>
-</div>
-<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback for Sterling. This file contains flagged cases only. Downloading does not send it.</p>
+{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><button type="button" id="export-feedback" disabled>Download feedback (0)</button><span class="hint" id="export-status" role="status"></span></div>{% endif %}
+{% if exported_review | default(false) %}<div class="mark-toolbar" aria-label="Review downloads">
+<div class="mark-actions">{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
+</div>{% endif %}
+<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback. This file contains flagged cases only. Downloading does not send it.</p>
 <dialog id="feedback-dialog" class="feedback-dialog" aria-labelledby="feedback-title">
-<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in a feedback download for Sterling. Nothing is sent automatically.</p>
+<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in the feedback download. Nothing is sent automatically.</p>
 <label for="feedback-comment">Comment (optional)</label><textarea id="feedback-comment" maxlength="2000" rows="4" placeholder="What seems incorrect or unclear?"></textarea>
 <div class="mark-actions"><button type="button" id="feedback-done">Done</button><button type="button" id="feedback-remove" class="plain">Remove flag</button></div>
 </dialog>
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
-<div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
-<div class="filter-options" id="mark-filters" role="group" aria-label="Filter by your marks"></div>
-<div class="filter-options" id="status-filters" role="group" aria-label="Filter by analysis status"></div>
+<div class="filter-row"><div class="filter-main" role="group" aria-label="Case filters">
+<div id="revision-totals" role="group" aria-label="Filter by revision category"></div>
+<div id="mark-filters" role="group" aria-label="Filter by your marks"></div>
+<details id="more-filters" class="more-filters"><summary id="more-filters-label">More</summary><div class="filter-options" id="status-filters" role="group" aria-label="More case filters"></div></details>
+</div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
 </div>
 <div class="analysis-progress" id="analysis-progress" hidden>
 <div class="progress-labels"><strong id="progress-label"></strong><span id="progress-count" role="status"></span></div>
@@ -1625,6 +1663,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div id="wording-scroll-space" aria-hidden="true"></div>
 <footer><span>Build {{ review_build }} · Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
+<div id="review-toast-host"><div id="review-toast" class="review-toast" role="status" aria-live="polite" hidden><span id="review-toast-message"></span><button type="button" id="review-toast-download" class="plain">Download now</button></div></div>
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
@@ -1641,7 +1680,8 @@ const $ = id => document.getElementById(id);
 const exportedReview={{ exported_review | default(false) | tojson }};
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
-const wordingOverrides=new Map();
+const wordingOverrides=new Map(),explanationOverrides=new Map();
+const explanationShown=key=>explanationOverrides.get(key)===true;
 let wordingOffer=null, wordingOfferTimer=null;
 let wordingAnchorRestore=null, wordingAnchorPrevious='';
 const selectedFilters=new Set(), controllers=new Set();
@@ -1696,7 +1736,12 @@ const caseLabel = c => c.case_label || members(c).join(', ');
 // Case annotations live only in the document. Never persist clinical data in browser storage.
 const reviewMetadata=JSON.parse($('review-metadata').textContent||'{}');
 $('feedback-notice').hidden=!reviewMetadata.feedback_only;
-let markRevision=0,downloadedRevision=0,markMessage='',feedbackCase=null,feedbackFocus=null;
+let markRevision=0,feedbackCase=null,feedbackFocus=null,reviewToastTimer=null,reviewDownloadBusy=false;
+let markKeyboardInput=false;
+document.addEventListener('pointerdown',()=>{markKeyboardInput=false;});
+document.addEventListener('keydown',()=>{markKeyboardInput=true;});
+const starIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg>';
+const flagIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3m0 1c5-3 9 3 14 0v10c-5 3-9-3-14 0"/></svg>';
 function marksFor(c){
  if(!c.review_marks||typeof c.review_marks!=='object')c.review_marks={};
  const m=c.review_marks;
@@ -1705,59 +1750,88 @@ function marksFor(c){
  return m;
 }
 for(const c of cases)marksFor(c);
-function markChanged(){markRevision++;markMessage='';updateMarkTools();}
+function markChanged(){markRevision++;updateMarkTools();}
+function hideReviewToast(){
+ clearTimeout(reviewToastTimer);reviewToastTimer=null;$('review-toast').hidden=true;
+}
+function showReviewToast(message='Changes are only saved when you download an updated copy.',download=true){
+ const toast=$('review-toast'),action=$('review-toast-download');
+ ($('feedback-dialog').open?$('feedback-dialog'):$('review-toast-host')).append(toast);
+ $('review-toast-message').textContent=message;
+ if(!download&&document.activeElement===action)($('feedback-dialog').open?$('feedback-done'):$(exportedReview?'save-review':'export-review')).focus({preventScroll:true});
+ action.hidden=!download;action.disabled=reviewDownloadBusy||cases.some(c=>['queued','processing'].includes(c.status));
+ toast.hidden=false;clearTimeout(reviewToastTimer);
+ const expire=()=>{if(toast.contains(document.activeElement)){reviewToastTimer=setTimeout(expire,1000);return;}hideReviewToast();};
+ reviewToastTimer=setTimeout(expire,4000);
+}
+function markFilter(key,count){
+ const favorite=key==='favorite',label=(favorite?'Marked for later':'Project feedback')+' ('+count+')';
+ const chip=filterChip(key,'','mark-filter '+(favorite?'favorite-filter':'feedback-filter'),label);
+ chip.innerHTML=favorite?starIcon:flagIcon;chip.append(el('span','',count));return chip;
+}
 function updateMarkTools(){
  const stars=cases.filter(c=>marksFor(c).favorite).length,flags=cases.filter(c=>marksFor(c).flagged).length;
- $('mark-counts').textContent='★ Marked for later: '+stars+' · ⚑ Project feedback: '+flags;
  $('export-feedback').textContent='Download feedback ('+flags+')';
- $('export-feedback').disabled=!flags||cases.some(c=>['queued','processing'].includes(c.status));
- $('mark-status').textContent=markMessage||(markRevision>downloadedRevision?
-  'Changes are not included in a downloaded copy yet. Download an updated review to keep them.':
-  'Marks and comments stay in this open page until you download an updated copy.');
- $('mark-filters').replaceChildren(filterChip('favorite','★ Marked for later ('+stars+')'),filterChip('flagged','⚑ Project feedback ('+flags+')'));
+ const busy=reviewDownloadBusy||cases.some(c=>['queued','processing'].includes(c.status));
+ $('export-feedback').disabled=!flags||busy;$('review-toast-download').disabled=busy;
+ $('mark-filters').replaceChildren(markFilter('favorite',stars),markFilter('flagged',flags));
  if(!exportedReview)$('export-review').textContent=stars||flags||markRevision?'Download updated review':'Download review HTML';
 }
 function refreshMarkRow(id){
  const key=id.slice(id.indexOf('-')+1),anchor=$('case-'+key),before=anchor?.getBoundingClientRect().top;
- renderAndFocus(id);
+ // Pointer clicks must not acquire a keyboard-style square focus outline
+ // merely because the row was rebuilt. Restore focus for keyboard navigation.
+ render();if(markKeyboardInput)$(id)?.focus({preventScroll:true});
  const after=$('case-'+key)?.getBoundingClientRect().top;
  if(Number.isFinite(before)&&Number.isFinite(after))window.scrollBy(0,after-before);
 }
 function caseMarkTools(c,key){
  const m=marksFor(c),tools=el('div','case-mark-tools');
- const star=button('','case-mark',()=>{m.favorite=!m.favorite;markChanged();refreshMarkRow('favorite-'+key);$('announcement').textContent=m.favorite?'Marked for later. Download an updated review to keep your marks.':'Mark for later removed.';});
- star.id='favorite-'+key;star.title='Mark this case to revisit. Download an updated review to keep your marks.';
+ const star=button('','case-mark',()=>{m.favorite=!m.favorite;markChanged();refreshMarkRow('favorite-'+key);showReviewToast();$('announcement').textContent=m.favorite?'Marked for later.':'Mark for later removed.';});
+ star.id='favorite-'+key;star.title='Mark this case for later.';
  star.setAttribute('aria-label','Mark case '+caseLabel(c)+' for later');star.setAttribute('aria-pressed',String(m.favorite));
- star.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg>';
+ star.innerHTML=starIcon;
  const flag=button('','case-mark',()=>{
   if(!m.flagged){m.flagged=true;markChanged();refreshMarkRow('feedback-'+key);}
   feedbackCase=c;feedbackFocus='feedback-'+key;
   $('feedback-title').textContent='Project feedback · '+(members(c).length>1?'Cases ':'Case ')+caseLabel(c);
-  $('feedback-comment').value=m.comment;$('feedback-dialog').showModal();
+  $('feedback-comment').value=m.comment;$('feedback-dialog').showModal();showReviewToast();
  });
- flag.id='feedback-'+key;flag.title='Include this case in feedback for Sterling. Nothing is sent automatically.';
+ flag.id='feedback-'+key;flag.title='Include this case in the feedback download. Nothing is sent automatically.';
  flag.setAttribute('aria-label','Project feedback for case '+caseLabel(c));flag.setAttribute('aria-pressed',String(m.flagged));
- flag.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3m0 1c5-3 9 3 14 0v10c-5 3-9-3-14 0"/></svg>';
+ flag.innerHTML=flagIcon;
  tools.append(star,flag);return tools;
 }
 $('feedback-comment').addEventListener('input',()=>{if(feedbackCase){marksFor(feedbackCase).comment=$('feedback-comment').value;markChanged();}});
 $('feedback-done').addEventListener('click',()=>$('feedback-dialog').close());
 $('feedback-remove').addEventListener('click',()=>{
  if(feedbackCase){const m=marksFor(feedbackCase);m.flagged=false;m.comment='';markChanged();}
- $('feedback-dialog').close();
+ $('feedback-dialog').close();showReviewToast();
 });
-$('feedback-dialog').addEventListener('close',()=>{const id=feedbackFocus;feedbackCase=null;feedbackFocus=null;refreshMarkRow(id);});
+$('feedback-dialog').addEventListener('close',()=>{const id=feedbackFocus;feedbackCase=null;feedbackFocus=null;$('review-toast-host').append($('review-toast'));refreshMarkRow(id);});
+$('review-toast-download').addEventListener('click',()=>{
+ if(exportedReview)downloadOfflineReview(false);
+ {% if not exported_review | default(false) %}else downloadLiveReview(false,true);{% endif %}
+});
+$('more-filters').addEventListener('keydown',event=>{if(event.key==='Escape'){$('more-filters').open=false;$('more-filters-label').focus();}});
+function positionMoreFilters(){
+ if(!$('more-filters').open)return;
+ const menu=$('status-filters');menu.style.left='';menu.style.right='';
+ if(menu.getBoundingClientRect().left<12){menu.style.left='0';menu.style.right='auto';}
+}
+$('more-filters').addEventListener('toggle',positionMoreFilters);
+window.addEventListener('resize',positionMoreFilters);
+document.addEventListener('pointerdown',event=>{if(!event.target.closest('#more-filters'))$('more-filters').open=false;});
 function resolvedTheme(){return $('theme-toggle').getAttribute('aria-checked')==='true'?'dark':'light';}
 function downloadHTML(html,filename){
  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),link=el('a');
  link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 function downloadNotice(feedback,full=true,revision=markRevision){
- if(!feedback&&full)downloadedRevision=revision;
- markMessage=feedback?'Feedback download started—not sent. Attach it manually to your approved work email. Download an updated review to keep all marks.':
+ let message=feedback?'Feedback download started—not sent. Attach it manually to your approved work email.':
   (markRevision===revision?'Updated-copy download started. The original file is unchanged; open the downloaded copy next time.':'Download started. More recent changes still need a new updated copy.');
- if(!feedback&&!full)markMessage='Filtered-copy download started. Marks outside that selection are not included.';
- updateMarkTools();
+ if(!feedback&&!full)message='Filtered-copy download started. Marks outside that selection are not included.';
+ showReviewToast(message,false);updateMarkTools();
 }
 function downloadOfflineReview(feedback=false){
  const records=feedback?cases.filter(c=>marksFor(c).flagged):cases;
@@ -1774,6 +1848,9 @@ function downloadOfflineReview(feedback=false){
  clone.querySelector('#case-list').replaceChildren();clone.querySelectorAll('.accession-peek').forEach(n=>n.remove());
  clone.querySelector('#feedback-dialog').removeAttribute('open');clone.querySelector('#feedback-comment').textContent='';
  clone.querySelector('#feedback-title').textContent='Project feedback';
+ clone.querySelector('#review-toast-host').append(clone.querySelector('#review-toast'));
+ clone.querySelector('#review-toast').hidden=true;
+ clone.querySelector('#review-toast-message').textContent='';
  clone.querySelector('#search').setAttribute('value','');
  // Rebuild all clinical content from the selected JSON only; no hidden unflagged case DOM survives.
  downloadHTML('<!doctype html>\n'+clone.outerHTML,feedback?'clinical-feedback.html':'clinical-review.html');
@@ -1869,7 +1946,7 @@ function updateLookupCoverage(){
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
  $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>!validLookup(r))?'Some lookup rows need correction. ':'')+((lookupRows.some(r=>!validLookup(r))||conflicts.size)?'You can still analyze reports using the available mappings. ':'');
  $('lookup-value').value=JSON.stringify(valid.map(lookupPayload));
- $('export-review').disabled=!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status));
+ $('export-review').disabled=reviewDownloadBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status));
  {% endif %}
 }
 {% if exported_review | default(false) %}
@@ -2242,13 +2319,14 @@ $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipbo
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Copy a screenshot, then click Paste screenshot here and press Ctrl+V.';}});
 $('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});currentImage=null;$('lookup-manual').open=true;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;lookupTable();});
 $('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
-async function downloadLiveReview(feedback=false){
+async function downloadLiveReview(feedback=false,forceFull=false){
+ if(reviewDownloadBusy)return;
  if(!feedback&&!confirmAvailableLookup('export'))return;
- const target=$(feedback?'export-feedback':'export-review'),revision=markRevision;target.disabled=true;
+ const target=$(feedback?'export-feedback':'export-review'),revision=markRevision;reviewDownloadBusy=true;target.disabled=true;updateMarkTools();
  $('export-status').textContent=feedback?'Preparing flagged cases…':'Preparing clinical review…';
  try{
   if(!lookupMatchesReview())throw Error('batch');
-  const selected=!feedback&&$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
+  const selected=!feedback&&!forceFull&&$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
   const records=cases.filter((c,i)=>feedback?marksFor(c).flagged:!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c),review_marks:marksFor(c),analysis_provenance:c.analysis_provenance||{}}));
   const lookup=feedback?[]:availableLookup().map(lookupPayload);
   const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_metadata:reviewMetadata,feedback_only:feedback,review_mode:reviewMode,theme:resolvedTheme(),combined_view:combinedView,show_report_wording:showReportWording})});
@@ -2256,9 +2334,9 @@ async function downloadLiveReview(feedback=false){
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('export');
   const html=await response.text(),reader=new DOMParser().parseFromString(html,'text/html');if(reader.head.querySelector('meta[name="compare-revisions-export"]')?.content!=='offline-v1')throw Error('session');
   downloadHTML(html,feedback?'clinical-feedback.html':'clinical-review.html');downloadNotice(feedback,!selected||records.length===cases.length,revision);
-  $('export-status').textContent=feedback?'Feedback download started—not sent.':'Review download started. Contains PHI—keep it within approved systems.';
+  $('export-status').textContent='';
  }catch(error){$('export-status').textContent=error.message==='session'?'Your sign-in expired. Sign in to Compare Revisions, then download the review again.':'Export could not be completed. Check that analysis is finished and try again.';}
- finally{updateLookupCoverage();updateMarkTools();}
+ finally{reviewDownloadBusy=false;updateLookupCoverage();updateMarkTools();}
 }
 $('export-review').addEventListener('click',()=>downloadLiveReview(false));
 lookupTable();
@@ -2363,8 +2441,8 @@ function syncWording() {
   if(toggle){toggle.textContent=show?'Hide report wording':'Show report wording';toggle.setAttribute('aria-expanded',String(show));}
  }
 }
-function preserveWordingPosition(key,change) {
- const control=$('evidence-'+key);if(!control){change();return;}
+function preserveWordingPosition(key,change,controlId='evidence-'+key) {
+ const control=$(controlId);if(!control){change();return;}
  const top=control.getBoundingClientRect().top, root=document.documentElement;
  if(wordingAnchorRestore!==null)cancelAnimationFrame(wordingAnchorRestore);
  else wordingAnchorPrevious=root.style.overflowAnchor;
@@ -2387,6 +2465,15 @@ function toggleWording(key) {
  });
  $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
 }
+function toggleExplanation(key){
+ const show=!explanationShown(key);
+ preserveWordingPosition(key,()=>{
+  explanationOverrides.set(key,show);
+  for(const reason of $('row-'+key).querySelectorAll('.reason'))reason.hidden=!show;
+  const toggle=$('explanation-'+key);toggle.textContent=show?'Hide AI Explanation':'Show AI Explanation';toggle.setAttribute('aria-expanded',String(show));
+ },'explanation-'+key);
+ $('announcement').textContent='AI explanations '+(show?'shown':'hidden')+' for this case.';
+}
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
@@ -2400,7 +2487,7 @@ function makeRevision(item,show,key,index) {
   node.addEventListener('click',event=>{if(!event.target.closest('button')&&!window.getSelection()?.toString())pinRevision(key,index);});
  }else appendSummary(heading,item);
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
- if(item.reason)node.append(el('p','reason',prose(item.reason)));
+ if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!explanationShown(key);node.append(reason);}
  const evidence=el('div','evidence'); evidence.hidden=!show;
  evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); node.append(evidence); return node;
 }
@@ -2423,6 +2510,10 @@ function summaryPanel(c,key) {
  const items=revisions(c), show=wordingShown(key);
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
+  const explanation=button(explanationShown(key)?'Hide AI Explanation':'Show AI Explanation','plain explanation-toggle',()=>toggleExplanation(key));
+  explanation.id='explanation-'+key;explanation.setAttribute('aria-expanded',String(explanationShown(key)));
+  explanation.setAttribute('aria-controls',items.map((r,i)=>r.reason?'reason-'+key+'-'+i:'').filter(Boolean).join(' '));
+  explanation.disabled=!items.some(r=>r.reason);tools.append(explanation);
   const holder=el('div','wording-tools');holder.id='wording-tools-'+key;
   const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>toggleWording(key));
   toggle.addEventListener('keydown',event=>{if(event.key==='Escape'&&wordingOffer?.key===key){event.preventDefault();dismissWordingOffer();}});
@@ -2604,6 +2695,7 @@ function render() {
  }));
  updateMarkTools();
  $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
+ const extraActive=['pending','none'].filter(key=>selectedFilters.has(key)).length;$('more-filters-label').textContent='More'+(extraActive?' ('+extraActive+')':'');$('more-filters').classList.toggle('has-active',extraActive>0);
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
  $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted','favorite':'Marked for later','flagged':'Project feedback'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
@@ -2732,7 +2824,7 @@ $('paste-button').addEventListener('click',async()=>{
 $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleCase(key,false);$('search').focus();});
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
- dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
+ dismissWordingOffer();wordingOverrides.clear();explanationOverrides.clear();hideReviewToast();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.review_marks={favorite:false,flagged:false,comment:''};c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();

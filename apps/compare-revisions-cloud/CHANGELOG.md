@@ -1,5 +1,19 @@
 # Changes and rationale — October 4, 2026
 
+## Compact filters and quieter review — November 7, 2026 (2026.11.07.2)
+
+- Continuous case-header hover; neutral internal star/flag hover, gold/red
+  selected states, preserved keyboard focus and generic feedback text.
+- Hidden-by-default per-case AI explanations, separately toggleable from report
+  wording, retained in saved data and feedback. No grading or model changes.
+- Full-width wrapping primary filters with counted star/flag icons and a More
+  disclosure for Not analyzed/No revisions. Remove duplicate counters.
+- Replace persistent save text with a four-second actionable reminder on mark
+  selection/removal. Support the feedback dialog, full-copy downloads regardless
+  of filters, safe saved-file reloads and narrow-screen menu positioning.
+- All 13 requested improvements are included; source must be redeployed to
+  update the website, and previously downloaded HTML remains self-contained.
+
 ## Clinical-action threshold and explicit saved copies — November 7, 2026 (2026.11.07.1)
 
 - Shared prompt 1.8 / dual-title 1.2: likely substantial clinical-action difference,

@@ -83,7 +83,7 @@ function updateLookupCoverage(){
  const extras=lookupRows.filter(r=>validLookup(r)&&source.size&&!source.has(r.case_number));
  $('lookup-coverage').textContent=(!matchesBatch?'Reports changed. Analyze the new batch before using its lookup or exporting. ':'')+(source.size?matched.size+' of '+source.size+' source cases matched. '+(missing.length?'Missing: '+missing.join(', ')+'. ':''):'')+(conflicts.size?'Duplicate case numbers with different accessions: '+[...conflicts].join(', ')+'. Check the case-number OCR. ':'')+(extras.length?'Some lookup rows do not belong to this report batch. ':'')+(lookupRows.some(r=>!validLookup(r))?'Some lookup rows need correction. ':'')+((lookupRows.some(r=>!validLookup(r))||conflicts.size)?'You can still analyze reports using the available mappings. ':'');
  $('lookup-value').value=JSON.stringify(valid.map(lookupPayload));
- $('export-review').disabled=!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status));
+ $('export-review').disabled=reviewDownloadBusy||!matchesBatch||!cases.length||cases.some(c=>['queued','processing'].includes(c.status));
  {% endif %}
 }
 {% if exported_review | default(false) %}
@@ -456,13 +456,14 @@ $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipbo
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Copy a screenshot, then click Paste screenshot here and press Ctrl+V.';}});
 $('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});currentImage=null;$('lookup-manual').open=true;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;lookupTable();});
 $('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
-async function downloadLiveReview(feedback=false){
+async function downloadLiveReview(feedback=false,forceFull=false){
+ if(reviewDownloadBusy)return;
  if(!feedback&&!confirmAvailableLookup('export'))return;
- const target=$(feedback?'export-feedback':'export-review'),revision=markRevision;target.disabled=true;
+ const target=$(feedback?'export-feedback':'export-review'),revision=markRevision;reviewDownloadBusy=true;target.disabled=true;updateMarkTools();
  $('export-status').textContent=feedback?'Preparing flagged cases…':'Preparing clinical review…';
  try{
   if(!lookupMatchesReview())throw Error('batch');
-  const selected=!feedback&&$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
+  const selected=!feedback&&!forceFull&&$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
   const records=cases.filter((c,i)=>feedback?marksFor(c).flagged:!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c),review_marks:marksFor(c),analysis_provenance:c.analysis_provenance||{}}));
   const lookup=feedback?[]:availableLookup().map(lookupPayload);
   const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_metadata:reviewMetadata,feedback_only:feedback,review_mode:reviewMode,theme:resolvedTheme(),combined_view:combinedView,show_report_wording:showReportWording})});
@@ -470,9 +471,9 @@ async function downloadLiveReview(feedback=false){
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('export');
   const html=await response.text(),reader=new DOMParser().parseFromString(html,'text/html');if(reader.head.querySelector('meta[name="compare-revisions-export"]')?.content!=='offline-v1')throw Error('session');
   downloadHTML(html,feedback?'clinical-feedback.html':'clinical-review.html');downloadNotice(feedback,!selected||records.length===cases.length,revision);
-  $('export-status').textContent=feedback?'Feedback download started—not sent.':'Review download started. Contains PHI—keep it within approved systems.';
+  $('export-status').textContent='';
  }catch(error){$('export-status').textContent=error.message==='session'?'Your sign-in expired. Sign in to Compare Revisions, then download the review again.':'Export could not be completed. Check that analysis is finished and try again.';}
- finally{updateLookupCoverage();updateMarkTools();}
+ finally{reviewDownloadBusy=false;updateLookupCoverage();updateMarkTools();}
 }
 $('export-review').addEventListener('click',()=>downloadLiveReview(false));
 lookupTable();

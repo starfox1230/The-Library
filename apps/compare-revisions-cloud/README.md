@@ -1,5 +1,38 @@
 # Compare Revisions: cloud review redesign
 
+## Compact review controls — November 7, 2026 (2026.11.07.2)
+
+Prepared replacement source; Cloud Run deployment is pending. This implements the
+13-item UI improvement list without changing the model or prompt 1.8 criteria.
+
+- The whole case header highlights together, including the action area. Stars
+  and flags have a neutral internal hover fill with no hover border. Selected
+  stars are gold and selected flags red in both themes. Keyboard focus remains
+  visible; pointer-driven row rebuilds do not manufacture a keyboard outline.
+- Feedback wording is generic throughout the reader, tooltips and downloads.
+- **Show AI Explanation / Hide AI Explanation** is a per-case toggle in the
+  middle of Summary tools; Report wording remains on the right. Reasons are
+  hidden on initial load and on reopening a download. The underlying explanations
+  remain in analysis data and feedback files. Toggling does not alter evidence
+  visibility, classification, other cases, or make a model request.
+- A single wrapping filter toolbar fills the available width: All cases, Major,
+  Minor, Wording/detail, Needs review, counted gold-star/red-flag icons, and More.
+  Not analyzed and No revisions are under More; its active count stays visible.
+  Icon-only controls retain descriptive accessible names and tooltips.
+- Redundant marked/feedback counters and the persistent save warning are removed.
+  Star/flag clicks and removing a flag show a four-second reminder with
+  **Download now**. Hover does not extend it; keyboard focus inside the toast
+  keeps its action available. The reminder remains usable inside the optional
+  feedback-comment dialog, and never reappears merely from opening a saved file.
+- Download now always requests the complete updated review, even if a filter or
+  “Only currently shown cases” is active. The normal filtered-export option and
+  flagged-only feedback download retain their separate purposes. Download and
+  error notices still distinguish downloading from sending; no automatic email,
+  new storage, AI calls, authentication or dependencies are introduced.
+
+Browser verification: `dev/check-compact-review.cjs` plus the existing marks,
+perspective/severity and OCR source-row suites. Synthetic reports only.
+
 ## Clinical-action rubric, case marks and dark default — November 7, 2026
 
 Source build **2026.11.07.1**. Deployment remains pending: replace `main.py` in the

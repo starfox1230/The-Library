@@ -236,8 +236,6 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .case-mark[aria-pressed=true] svg {fill:color-mix(in srgb,var(--accent) 22%,transparent);}
 #cr-app .mark-toolbar {padding:12px 0 16px;border-bottom:1px solid var(--line);margin-bottom:16px;}
 #cr-app .mark-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-#cr-app #mark-counts {font-size:12px;color:var(--muted);margin-right:auto;}
-#cr-app #mark-status {margin:8px 0 0;}
 #cr-app .feedback-dialog {max-width:480px;width:calc(100% - 48px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;}
 #cr-app .feedback-dialog::backdrop {background:#0008;}
 #cr-app .feedback-dialog h2 {margin-top:0;font-size:18px;}
@@ -300,6 +298,45 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .phi-banner {position:sticky; top:0; z-index:20; padding:10px 24px; background:var(--minor-bg); color:var(--ink); border-bottom:1px solid var(--minor); font-size:12px;}
 #cr-app .export-tools {display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
 @media print { #cr-app .phi-banner {position:static;} #cr-app .site-header,#cr-app .controls,#cr-app .filter-panel,#cr-app .export-tools {display:none;} #cr-app .case-reveal {display:block; visibility:visible;} }
+</style>
+<style>
+
+/* One continuous header hover; icon hovers stay neutral, selection carries color. */
+#cr-app {--favorite:light-dark(#906200,#efc65a);}
+#cr-app .case-header {border-radius:11px;}
+#cr-app .case.is-open .case-header {border-radius:11px 11px 0 0;}
+#cr-app .case-header:hover {background:color-mix(in srgb,var(--soft) 65%,transparent);}
+#cr-app .case-head:hover {background:transparent;}
+#cr-app .case-mark,#cr-app .case-mark[aria-pressed=true] {background:transparent;border-color:transparent;}
+#cr-app .case-mark[aria-pressed=true][id^="favorite-"] {color:var(--favorite);}
+#cr-app .case-mark[aria-pressed=true][id^="feedback-"] {color:var(--major);}
+#cr-app .case-mark[aria-pressed=true] svg {fill:currentColor;}
+#cr-app .case-mark:hover {background:color-mix(in srgb,var(--ink) 7%,transparent);border-color:transparent;box-shadow:none;}
+#cr-app .case-mark:hover:not(:focus-visible) {outline:none;}
+#cr-app .filter-main {display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;flex:1;min-width:0;}
+#cr-app #revision-totals,#cr-app #mark-filters {display:contents;}
+#cr-app .filter-main .filter-chip {font-size:12px;font-weight:550;padding:8px 12px;}
+#cr-app #revision-totals .filter-chip {flex:1 0 auto;white-space:nowrap;min-height:42px;}
+#cr-app .mark-filter {display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:54px;min-height:42px;}
+#cr-app .mark-filter svg {width:18px;height:18px;fill:currentColor;stroke:currentColor;stroke-width:1.3;}
+#cr-app .mark-filter.favorite-filter svg {color:var(--favorite);}
+#cr-app .mark-filter.feedback-filter svg {color:var(--major);}
+#cr-app .mark-filter[aria-pressed=true]::before {content:none;}
+#cr-app .more-filters {position:relative;flex:0 0 auto;}
+#cr-app .more-filters summary {list-style:none;min-height:42px;padding:9px 12px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:var(--panel);}
+#cr-app .more-filters summary::-webkit-details-marker {display:none;}
+#cr-app .more-filters summary::after {content:' ▾';}
+#cr-app .more-filters[open] summary::after {content:' ▴';}
+#cr-app .more-filters.has-active summary {outline:2px solid var(--accent);outline-offset:1px;}
+#cr-app .more-filters > .filter-options {position:absolute;right:0;top:calc(100% + 6px);z-index:5;min-width:190px;padding:8px;flex-direction:column;align-items:stretch;border:1px solid var(--line);border-radius:9px;background:var(--panel);box-shadow:0 8px 24px #0003;}
+#cr-app .mark-actions {justify-content:flex-end;}
+#cr-app .export-tools #export-feedback {margin-left:auto;}
+#cr-app .summary-tools {display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;}
+#cr-app .explanation-toggle {justify-self:center;}
+#cr-app .review-toast {position:fixed;right:18px;bottom:18px;z-index:30;display:flex;align-items:center;gap:14px;width:max-content;max-width:min(440px,calc(100vw - 36px));padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);box-shadow:0 8px 32px #0004;font-size:12px;}
+#cr-app .review-toast .plain {flex:none;font-size:12px;}
+@media(max-width:540px) { #cr-app .summary-tools {grid-template-columns:1fr 1fr;} #cr-app .summary-tools > .muted {grid-column:1 / -1;} #cr-app .explanation-toggle {justify-self:start;} #cr-app .wording-tools {justify-self:end;} }
+@media print { #cr-app .review-toast {display:none;} }
 </style>
 </head>
 <body>
@@ -369,22 +406,23 @@ html[data-theme="dark"] {color-scheme:dark;}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
-{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
-<div class="mark-toolbar" aria-label="Review marks and downloads">
-<div class="mark-actions"><span id="mark-counts"></span>{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
-<p class="hint" id="mark-status" role="status">Marks and comments stay in this open page until you download an updated copy.</p>
-</div>
-<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback for Sterling. This file contains flagged cases only. Downloading does not send it.</p>
+{% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><button type="button" id="export-feedback" disabled>Download feedback (0)</button><span class="hint" id="export-status" role="status"></span></div>{% endif %}
+{% if exported_review | default(false) %}<div class="mark-toolbar" aria-label="Review downloads">
+<div class="mark-actions">{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
+</div>{% endif %}
+<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback. This file contains flagged cases only. Downloading does not send it.</p>
 <dialog id="feedback-dialog" class="feedback-dialog" aria-labelledby="feedback-title">
-<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in a feedback download for Sterling. Nothing is sent automatically.</p>
+<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in the feedback download. Nothing is sent automatically.</p>
 <label for="feedback-comment">Comment (optional)</label><textarea id="feedback-comment" maxlength="2000" rows="4" placeholder="What seems incorrect or unclear?"></textarea>
 <div class="mark-actions"><button type="button" id="feedback-done">Done</button><button type="button" id="feedback-remove" class="plain">Remove flag</button></div>
 </dialog>
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
-<div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
-<div class="filter-options" id="mark-filters" role="group" aria-label="Filter by your marks"></div>
-<div class="filter-options" id="status-filters" role="group" aria-label="Filter by analysis status"></div>
+<div class="filter-row"><div class="filter-main" role="group" aria-label="Case filters">
+<div id="revision-totals" role="group" aria-label="Filter by revision category"></div>
+<div id="mark-filters" role="group" aria-label="Filter by your marks"></div>
+<details id="more-filters" class="more-filters"><summary id="more-filters-label">More</summary><div class="filter-options" id="status-filters" role="group" aria-label="More case filters"></div></details>
+</div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
 </div>
 <div class="analysis-progress" id="analysis-progress" hidden>
 <div class="progress-labels"><strong id="progress-label"></strong><span id="progress-count" role="status"></span></div>
@@ -401,6 +439,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <div id="wording-scroll-space" aria-hidden="true"></div>
 <footer><span>Build {{ review_build }} · Oldest/newest uses source case order, not examination timestamps.</span>{% if synthetic_preview %}<span>Synthetic preview · illustrative results</span>{% endif %}</footer>
 </section>
+<div id="review-toast-host"><div id="review-toast" class="review-toast" role="status" aria-live="polite" hidden><span id="review-toast-message"></span><button type="button" id="review-toast-download" class="plain">Download now</button></div></div>
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
@@ -417,7 +456,8 @@ const $ = id => document.getElementById(id);
 const exportedReview={{ exported_review | default(false) | tojson }};
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
-const wordingOverrides=new Map();
+const wordingOverrides=new Map(),explanationOverrides=new Map();
+const explanationShown=key=>explanationOverrides.get(key)===true;
 let wordingOffer=null, wordingOfferTimer=null;
 let wordingAnchorRestore=null, wordingAnchorPrevious='';
 const selectedFilters=new Set(), controllers=new Set();
@@ -570,8 +610,8 @@ function syncWording() {
   if(toggle){toggle.textContent=show?'Hide report wording':'Show report wording';toggle.setAttribute('aria-expanded',String(show));}
  }
 }
-function preserveWordingPosition(key,change) {
- const control=$('evidence-'+key);if(!control){change();return;}
+function preserveWordingPosition(key,change,controlId='evidence-'+key) {
+ const control=$(controlId);if(!control){change();return;}
  const top=control.getBoundingClientRect().top, root=document.documentElement;
  if(wordingAnchorRestore!==null)cancelAnimationFrame(wordingAnchorRestore);
  else wordingAnchorPrevious=root.style.overflowAnchor;
@@ -594,6 +634,15 @@ function toggleWording(key) {
  });
  $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
 }
+function toggleExplanation(key){
+ const show=!explanationShown(key);
+ preserveWordingPosition(key,()=>{
+  explanationOverrides.set(key,show);
+  for(const reason of $('row-'+key).querySelectorAll('.reason'))reason.hidden=!show;
+  const toggle=$('explanation-'+key);toggle.textContent=show?'Hide AI Explanation':'Show AI Explanation';toggle.setAttribute('aria-expanded',String(show));
+ },'explanation-'+key);
+ $('announcement').textContent='AI explanations '+(show?'shown':'hidden')+' for this case.';
+}
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
@@ -607,7 +656,7 @@ function makeRevision(item,show,key,index) {
   node.addEventListener('click',event=>{if(!event.target.closest('button')&&!window.getSelection()?.toString())pinRevision(key,index);});
  }else appendSummary(heading,item);
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
- if(item.reason)node.append(el('p','reason',prose(item.reason)));
+ if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!explanationShown(key);node.append(reason);}
  const evidence=el('div','evidence'); evidence.hidden=!show;
  evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); node.append(evidence); return node;
 }
@@ -630,6 +679,10 @@ function summaryPanel(c,key) {
  const items=revisions(c), show=wordingShown(key);
  if(items.length) {
   const tools=el('div','summary-tools'); tools.append(el('span','muted',items.length+' revision'+(items.length===1?'':'s')));
+  const explanation=button(explanationShown(key)?'Hide AI Explanation':'Show AI Explanation','plain explanation-toggle',()=>toggleExplanation(key));
+  explanation.id='explanation-'+key;explanation.setAttribute('aria-expanded',String(explanationShown(key)));
+  explanation.setAttribute('aria-controls',items.map((r,i)=>r.reason?'reason-'+key+'-'+i:'').filter(Boolean).join(' '));
+  explanation.disabled=!items.some(r=>r.reason);tools.append(explanation);
   const holder=el('div','wording-tools');holder.id='wording-tools-'+key;
   const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>toggleWording(key));
   toggle.addEventListener('keydown',event=>{if(event.key==='Escape'&&wordingOffer?.key===key){event.preventDefault();dismissWordingOffer();}});
@@ -811,6 +864,7 @@ function render() {
  }));
  updateMarkTools();
  $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
+ const extraActive=['pending','none'].filter(key=>selectedFilters.has(key)).length;$('more-filters-label').textContent='More'+(extraActive?' ('+extraActive+')':'');$('more-filters').classList.toggle('has-active',extraActive>0);
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
  $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted','favorite':'Marked for later','flagged':'Project feedback'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
@@ -939,7 +993,7 @@ $('paste-button').addEventListener('click',async()=>{
 $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleCase(key,false);$('search').focus();});
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
- dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
+ dismissWordingOffer();wordingOverrides.clear();explanationOverrides.clear();hideReviewToast();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.review_marks={favorite:false,flagged:false,comment:''};c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();
