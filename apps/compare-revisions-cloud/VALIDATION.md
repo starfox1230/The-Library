@@ -1,5 +1,38 @@
 # Verification record
 
+## November 7, 2026: clinical-action rubric and case annotations (2026.11.07.1)
+
+- **116 offline Python tests passed.** This includes clinical-only export scope,
+  grouped source numbering, typed annotation limits, old/unknown provenance,
+  flagged-only server selection, lookup exclusion, HTML-shaped comment handling,
+  exact shared prompt exports, new defaults, template assembly, authentication
+  and CSRF. Model calls and identity are substituted; no live API usage occurred.
+- **`check-marks.cjs` passed in native headless Edge.** Fresh visits choose
+  Attending/dark even when the OS reports light. Explicit web theme/mode choices
+  survive reload; blocked storage falls back without breaking the page. Browser
+  storage contains only those two literal nonclinical preferences.
+- Stars never expand the case or alter its grade. Flags accept optional comments,
+  filters work, grouped membership remains 68–69, and markup-shaped comments are
+  inert. Live and offline feedback downloads omit an unflagged report sentinel
+  and the complete accession/source-crop payload. Updated copies reopen with
+  marks/comments, chosen title mode, resolved theme and combined-view choice.
+  Offline interaction makes zero HTTP(S) requests. Desktop and 390px mobile
+  screenshots were inspected; controls are separate from the expandable button
+  and fit without horizontal overflow.
+- **`check-perspectives-severity.cjs` passed:** streamed/retry dual titles,
+  shared revision inventory, severity colors, both themes and offline export,
+  without extra model calls when switching perspectives.
+- **`check-reader-sources.cjs` passed:** actual pinned local OCR, queued headerless
+  screenshots, overlap joining, optional row editing, cropped PNG export and
+  correction/save/reopen continue to work with the new document controls.
+- Prompt 1.8 / dual-title 1.2 instructs consequence ordering inside categories.
+  This is model guidance, not a deterministic clinical ranking. The exact old
+  1.7 prompt is archived. These tests do not measure clinical grading accuracy.
+- The Azure model/deployment, credentials and dependencies are unchanged.
+  Cloud Run deployment is **pending**; replace/redeploy the assembled `main.py`.
+  Existing exported files retain their own embedded code and classifications;
+  new classifications require an explicit analysis with the revised prompt.
+
 Prepared October 4, 2026. All fixture reports are synthetic.
 
 ## November 2, 2026: truncated unique cases and current labels (2026.11.02.2)

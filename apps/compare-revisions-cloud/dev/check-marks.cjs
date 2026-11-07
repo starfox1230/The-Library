@@ -1,0 +1,63 @@
+// Native Edge, real Flask export endpoint; all reports and AI responses are fictional.
+const {chromium}=require('playwright'),assert=require('assert/strict'),fs=require('fs'),path=require('path');
+const out=path.join(__dirname,'qa-output'),origin='http://127.0.0.1:8766';
+const r='FINDINGS:\nNo pulmonary embolus. Small renal cyst.\nIMPRESSION:\nNo pulmonary embolus. Small renal cyst.';
+const a='FINDINGS:\nSegmental pulmonary embolus. Stable small renal cyst.\nIMPRESSION:\nSegmental pulmonary embolus. Stable small renal cyst.';
+const other='FINDINGS:\nUNFLAGGED_REPORT_70.\nIMPRESSION:\nUNFLAGGED_REPORT_70.';
+const revision=(importance,action,rq,aq)=>({importance,action,resident_summary:rq,attending_summary:aq,reason:'Synthetic classification for UI testing.',resident_section:'r1',attending_section:'a1',resident_quote:rq,attending_quote:aq,major_evidence_side:importance==='major'?'attending':'none',major_evidence_section:importance==='major'?'a1':'',major_evidence_quote:importance==='major'?aq:''});
+const items=[revision('minor','changed','Small renal cyst.','Stable small renal cyst.'),revision('major','changed','No pulmonary embolus.','Segmental pulmonary embolus.')];
+const pasted=(n,rr,aa)=>`Case ${n}\nAttending Report:\n${aa}\nResident Report:\n${rr}\n`;
+const data=(html,id)=>JSON.parse(html.match(new RegExp(`<script id="${id}" type="application/json">([\\s\\S]*?)</script>`))[1]);
+const fileURL=file=>'file:///'+file.replaceAll('\\','/');
+async function download(page,selector,file){const event=page.waitForEvent('download');await page.locator(selector).click();await(await event).saveAs(file);return fs.readFileSync(file,'utf8');}
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+ const context=await browser.newContext({colorScheme:'light',viewport:{width:1280,height:960},acceptDownloads:true}),page=await context.newPage(),errors=[],calls=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await context.route('**/*',route=>{const u=new URL(route.request().url());return u.hostname==='127.0.0.1'||u.protocol==='file:'||u.protocol==='data:'?route.continue():route.abort();});
+ await page.goto(origin);assert.equal(await page.locator('#theme-toggle').getAttribute('aria-checked'),'true');assert.ok(await page.locator('#mode-attending').isChecked());
+ await page.locator('#theme-toggle').click();await page.locator('#mode-resident').check();await page.reload();
+ assert.equal(await page.locator('#theme-toggle').getAttribute('aria-checked'),'false');assert.ok(await page.locator('#mode-resident').isChecked());
+ await page.route('**/analyze-batch',route=>{const payload=route.request().postDataJSON();calls.push(payload);return route.fulfill({contentType:'application/x-ndjson',body:[{type:'started',total:2},...payload.cases.map((c,i)=>({type:'case',id:c.id,result:{status:'complete',exam_label:'Synthetic CT',title_resident:i?'Other case':'No pulmonary embolus',title_attending:i?'Other case':'Segmental pulmonary embolus',revisions:i?[]:items,analysis_provenance:{prompt:'synthetic-v1',build:'synthetic-build',deployment:'synthetic-model'}}})),{type:'done',total:2}].map(v=>JSON.stringify(v)).join('\n')+'\n'});});
+ await page.locator('#report-text').fill(pasted(68,r,a)+pasted(69,r,a)+pasted(70,other,other));await page.locator('#analyze-button').click();
+ await page.waitForFunction(()=>document.querySelectorAll('.case-title').length===2&&document.querySelector('.case-title').textContent==='No pulmonary embolus');
+ assert.equal(calls.length,1);assert.deepEqual(calls[0].cases.map(c=>c.id),['g1','g2']);
+ assert.match(await page.locator('#row-0 .change-preview').innerText(),/^No pulmonary embolus/); // Major precedes Minor, preserving intra-category response order.
+ await page.locator('#favorite-0').click();assert.equal(await page.locator('#case-0').getAttribute('aria-expanded'),'false');
+ await page.locator('#favorite-1').click();await page.locator('#feedback-0').click();
+ const comment='Please check this classification. </script><img src=x onerror=alert(1)>';
+ await page.locator('#feedback-comment').fill(comment);await page.locator('#feedback-done').click();
+ assert.match(await page.locator('#mark-status').innerText(),/not included/);
+ await page.locator('#filter-flagged').click();assert.equal(await page.locator('.case').count(),1);await page.locator('#reset-filters').click();
+ const liveFeedback=await download(page,'#export-feedback',path.join(out,'marks-live-feedback.html'));
+ assert.equal(data(liveFeedback,'review-data').length,1);assert.ok(!liveFeedback.includes('UNFLAGGED_REPORT_70'));assert.equal(data(liveFeedback,'review-data')[0].review_marks.comment,comment);
+ assert.match(await page.locator('#mark-status').innerText(),/not sent/);
+ const fullPath=path.join(out,'marks-full-review.html');let html=await download(page,'#export-review',fullPath);
+ const records=data(html,'review-data');assert.deepEqual(records[0].source_numbers,[68,69]);assert.equal(records[1].review_marks.favorite,true);
+ assert.equal(records[0].analysis_provenance.prompt,'synthetic-v1');assert.ok(/^[a-f0-9]{32}$/.test(data(html,'review-metadata').batch_id));
+ const stored=await page.evaluate(()=>Object.fromEntries(Object.entries(localStorage)));assert.deepEqual(stored,{'compare-revisions-theme-v1':'light','compare-revisions-mode-v1':'resident'});
+ // Add a fictional source row to the full reader; ensure offline feedback strips both identifiers and pixels.
+ const crop='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=';
+ html=html.replace(/(<script id="lookup-data" type="application\/json">)[\s\S]*?(<\/script>)/,(_,start,end)=>start+JSON.stringify([{case_number:68,accession:'CT_LOOKUP_MUST_NOT_SURVIVE',confirmed:true,source_row:crop}])+end);fs.writeFileSync(fullPath,html);
+ const offline=await context.newPage(),network=[];offline.on('pageerror',e=>errors.push(e.message));offline.on('request',q=>{if(/^https?:/.test(q.url()))network.push(q.url());});
+ await offline.goto(fileURL(fullPath));assert.equal(await offline.locator('#favorite-0').getAttribute('aria-pressed'),'true');assert.ok(await offline.locator('#mode-resident').isChecked());
+ await offline.locator('#mode-attending').check();await offline.locator('#theme-toggle').click();await offline.locator('#case-1').click();
+ const feedbackPath=path.join(out,'marks-offline-feedback.html'),feedback=await download(offline,'#export-feedback',feedbackPath);
+ for(const marker of ['UNFLAGGED_REPORT_70','CT_LOOKUP_MUST_NOT_SURVIVE',crop])assert.ok(!feedback.includes(marker));
+ assert.deepEqual(data(feedback,'lookup-data'),[]);assert.equal(data(feedback,'review-metadata').batch_id,data(html,'review-metadata').batch_id);
+ const feedbackPage=await context.newPage();feedbackPage.on('pageerror',e=>errors.push(e.message));await feedbackPage.goto(fileURL(feedbackPath));assert.equal(await feedbackPage.locator('.case').count(),1);assert.ok(await feedbackPage.locator('#feedback-notice').isVisible());
+ await feedbackPage.locator('#feedback-0').click();assert.equal(await feedbackPage.locator('#feedback-comment').inputValue(),comment);await feedbackPage.locator('#feedback-remove').click();assert.ok(await feedbackPage.locator('#export-feedback').isDisabled());
+ await offline.locator('#combined-view').uncheck();
+ const savedPath=path.join(out,'marks-updated-review.html');await download(offline,'#save-review',savedPath);
+ const reopened=await context.newPage();reopened.on('pageerror',e=>errors.push(e.message));await reopened.goto(fileURL(savedPath));
+ assert.ok(await reopened.locator('#mode-attending').isChecked());assert.equal(await reopened.locator('#theme-toggle').getAttribute('aria-checked'),'true');assert.equal(await reopened.locator('#favorite-1').getAttribute('aria-pressed'),'true');
+ assert.equal(await reopened.locator('#combined-view').isChecked(),false);
+ await reopened.screenshot({path:path.join(out,'marks-desktop.png'),fullPage:true});
+ await reopened.setViewportSize({width:390,height:844});await reopened.screenshot({path:path.join(out,'marks-mobile.png'),fullPage:true});
+ assert.ok(await reopened.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ const controls=await reopened.locator('#row-0 .case-mark').evaluateAll(ns=>ns.map(n=>({rect:n.getBoundingClientRect().toJSON(),nested:!!n.parentElement.closest('button')})));
+ assert.ok(controls.every(c=>!c.nested&&c.rect.width>=34&&c.rect.right<=390));
+ const blocked=await browser.newContext({colorScheme:'light'});await blocked.addInitScript(()=>Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Blocked','SecurityError');}}));
+ const blockedPage=await blocked.newPage();blockedPage.on('pageerror',e=>errors.push(e.message));await blockedPage.goto(origin);assert.ok(await blockedPage.locator('#mode-attending').isChecked());assert.equal(await blockedPage.locator('#theme-toggle').getAttribute('aria-checked'),'true');
+ assert.deepEqual(network,[]);assert.deepEqual(errors,[]);assert.equal(calls.length,1);
+ console.log('Passed: attending/dark defaults, remembered web-only preferences, blocked storage fallback, stars, flags/comments, live/offline feedback privacy, grouped numbering, provenance, saved-copy roundtrip, mobile controls, and zero offline network requests.');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

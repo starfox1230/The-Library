@@ -1,9 +1,10 @@
 # How Compare Revisions classifies changes
 
-Resident prompt: `deltarad-review-1.7`; Attending prompt: `deltarad-review-dual-titles-1.1`.
+Resident prompt: `deltarad-review-1.8`; Attending prompt: `deltarad-review-dual-titles-1.2`.
 Both modes use identical instructions and generate both title perspectives in
-one analysis. The November 6, 2026 update includes consequential nonacute changes
-in Major; urgency is no longer required. This is the app's custom rubric, not a
+one analysis. The November 7, 2026 update requires a likely substantially different clinical
+action for Major, including important nonacute evaluation or follow-up. Urgency
+is not required. Stronger certainty or a different understanding alone is insufficient. This is the app's custom rubric, not a
 claim of an externally validated discrepancy scale. Read the [resident default](ANALYSIS_PROMPT.md),
 the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main.py) to audit it.
 
@@ -31,7 +32,7 @@ the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main
 
 | Importance: how consequential the particular revision is | Current criterion |
 | --- | --- |
-| Major | Substantial diagnostic or patient-management consequence, whether **acute or important nonacute disease**, **and** the actual changed assertion meets the Impression/Conclusion section rule below. Urgency is not required; the actual diagnostic, workup, treatment or staging change must be supported by the supplied context. |
+| Major | Relying on the resident’s complete clinical report instead would likely produce a **substantially different clinical action** (investigation, referral, treatment, monitoring or important follow-up), **and** the actual delta meets the Impression/Conclusion section rule. Urgency is not required. Grade the incremental effect; do not invent patient-specific plans, future outcomes or automatic disease-keyword upgrades. |
 | Minor | A supported clinical assertion changes, but it does not meet the Major criteria. A clear clinical change confined to Findings remains below Major under this app's rule. |
 | Wording/detail | Pure emphasis, equivalent phrasing or descriptive refinement without a new clinical assertion. Emphasis and Description actions must use this importance. |
 | Needs review | Insufficient evidence/context to confidently assess importance or establish whether assertions concern the same finding. Name the uncertainty rather than forcing a grade. |
@@ -51,8 +52,8 @@ underlying unchanged disease does not qualify a new body-only attribute.
 - For Changed, an appropriate endpoint can establish eligibility. A downward
   reinterpretation can qualify using the resident's Impression.
 - Combined Findings/Impression and conclusion-only sections are eligible.
-- Section eligibility alone is insufficient: substantial diagnostic/management
-  impact must also be supported. Routine actionable follow-up is not automatically Major.
+- Section eligibility alone is insufficient: a likely substantially different clinical
+  action must also be supported. Routine actionable follow-up is not automatically Major.
 
 This is a deliberate product restriction: **a potentially important change
 appearing only in Findings cannot receive Major under the current rubric**.
@@ -71,8 +72,8 @@ These are context-dependent examples, not universal disease classifications.
 | Existing multiloculated perisigmoid collection renamed abscess without a material new assertion | Description / Wording in that supplied context. Do not generalize all collection-to-abscess changes this way. |
 | Renal cyst laterality changes | A clinical change, not merely wording; assess importance using the same threshold. |
 | Routine conditional 12-month nodule follow-up added | Not automatically Major because it is actionable. |
-| Negative assessment changed to a clearly identified highly suspicious PI-RADS 5 prostate lesion in Conclusion | Major changed interpretation when source-supported, even without an acute emergency. |
-| New definite clinically important tumor invasion/extension in Impression | Can be Major when it materially changes reported disease extent. |
+| Negative assessment changed to a clearly identified highly suspicious PI-RADS 5 prostate lesion in Conclusion | Major when important new evaluation is supported, even without an acute emergency. |
+| New definite clinically important tumor invasion/extension in Impression | Can be Major when that revision supports a substantially different clinical action. |
 | Restatement of known malignancy, equivalent cancer-related wording, or an indeterminate small node | Not automatically Major because cancer is mentioned; assess the actual delta and its consequence. |
 | Device position changes from stomach to mainstem bronchus with repositioning advised | May be Major when supported by context and eligible Impression evidence. Device identity alone does not set importance. |
 | Unchanged retained ballistic fragments newly mentioned | Not Major solely because they are foreign bodies. |
@@ -123,3 +124,30 @@ The exact default is exported by `python dev/assemble.py` to
 `ANALYSIS_PROMPT.md`, and a regression test checks equality with `DEFAULT_PROMPT`.
 Neither the export nor these changes updates an existing cloud deployment;
 replace `main.py` and redeploy to activate them there.
+
+
+## Ordering, calibration and pilot feedback — November 7, 2026
+
+Within each category, the model orders the actual revisions by likely clinical
+consequence, prioritizing time-sensitive consequences. Similarly consequential
+items retain report order. The UI groups Major, Needs review, Minor and Wording
+while preserving this intra-category order in previews, expanded summaries and
+exports. No numeric score, new grade or extra model request is introduced.
+
+Calibration now addresses already-communicated metastatic progression with added
+number/certainty; decreasing prior PE with a more precise residual distribution;
+suspicious versus indeterminate renal lesions; and a stability qualifier that
+does not require independent image verification. Certainty changes may be wording,
+Minor or Major depending on meaning and clinical action. Clear limited-impact
+clinical changes can be Minor; Needs review is for genuine matching/significance
+uncertainty, not a routine demand to prove the attending's image interpretation.
+
+The previous exact prompt is archived at [prompts/deltarad-review-1.7.md](prompts/deltarad-review-1.7.md).
+Existing results are not automatically regraded. For the pilot, review human-flagged
+examples with their original analysis provenance. Selectively submitted examples
+support calibration, not an unbiased estimate of classification accuracy.
+
+A separate future time-sensitive communication/action indicator remains a design
+idea. It is not implemented, and the present Major label is not a claim that a
+provider must be contacted immediately or that communication is outstanding.
+This remains a custom rubric, not a validated AHRQ or RADPEER classification.

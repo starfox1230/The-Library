@@ -1,5 +1,51 @@
 # Compare Revisions: cloud review redesign
 
+## Clinical-action rubric, case marks and dark default — November 7, 2026
+
+Source build **2026.11.07.1**. Deployment remains pending: replace `main.py` in the
+existing Cloud Run service and redeploy. Azure settings, model/deployment,
+authentication and dependencies are unchanged. No live Azure evaluation was run.
+
+- **Attending is the initial title perspective; dark is the initial theme.**
+  Resident remains one click away. Explicit theme/mode choices are remembered on
+  the website using two nonclinical browser preference values, with a graceful
+  fallback if storage is blocked. Downloaded files use their embedded mode/theme;
+  different local filenames do not reliably share browser storage. There is no
+  added cross-file explanation in the reader. A new updated copy preserves the
+  currently selected mode, resolved light/dark appearance and combined view.
+- **Major uses a likely substantially different clinical action**, including
+  important nonacute investigation/referral/follow-up. Added certainty/detail
+  does not suffice when the likely action remains substantially the same. The
+  Impression gate, evidence and shared dual-title analysis stay intact. The AI
+  orders revisions within each category by consequence; there are no new scores
+  or extra calls. See [current criteria](REVIEW_CRITERIA.md), [exact prompt](ANALYSIS_PROMPT.md)
+  and [previous prompt](prompts/deltarad-review-1.7.md).
+- **Star** a case to revisit it. **Project feedback** flags a case for Sterling
+  with an optional comment. Both have separate filters and never alter the AI
+  grade. Marks/comments/lookup corrections remain in memory until explicitly
+  downloaded. Report content, identifiers, marks and comments are never placed
+  in browser storage. An updated copy retains the annotations; it does not write
+  over the original file. Download notices describe a request, not a verified
+  filesystem save or a message sent to anyone.
+- **Download feedback** includes only flagged cases, comments and the clinical
+  sections needed to assess them. It excludes all unflagged cases and the lookup
+  accession/crop payload, on both the server and offline-reader paths. It still
+  contains PHI and is attached manually through the project's approved work-email
+  route. No automatic email, upload, analytics or additional model call occurs.
+- Each new review has a random batch identifier, retained across updated copies
+  and feedback. Analyses record prompt ID (or a custom-instruction hash), source
+  build and configured Azure **deployment name**, not a verified underlying model
+  version. Old results without provenance remain unknown rather than being
+  relabeled with the current prompt. Metadata's default prompt ID describes the
+  software default; per-case provenance identifies the instructions actually run.
+
+Run offline checks with `.venv/Scripts/python.exe -m unittest discover -s tests`.
+For browser checks, run `dev/serve-lookup-qa.py`, set `NODE_PATH` to the ignored
+Playwright installation, and run `node dev/check-marks.cjs` and
+`node dev/check-perspectives-severity.cjs`. All fixtures and responses are fictional.
+The standalone HTML remains interactive without authentication or AI/network
+requests; it does not inherit the live site's access controls.
+
 ## Title transport, severity colors and nonacute Major changes — November 6, 2026
 
 Website source build **2026.11.06.1** fixes both streaming and individual-retry

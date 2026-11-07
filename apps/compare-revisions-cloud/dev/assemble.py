@@ -6,6 +6,7 @@ import json
 ROOT = Path(__file__).resolve().parents[1]
 main = ROOT / 'main.py'
 template = (ROOT / 'dev/review-template.html').read_text(encoding='utf-8')
+template = template.replace('/* REVIEW MARKS AUTHORING SOURCE */', (ROOT / 'dev/review-marks.js').read_text(encoding='utf-8'))
 template = template.replace('/* LOOKUP AUTHORING SOURCE */', (ROOT / 'dev/lookup.js').read_text(encoding='utf-8'))
 assert "'''" not in template
 source = main.read_text(encoding='utf-8').split('# === UI TEMPLATE ===')[0]

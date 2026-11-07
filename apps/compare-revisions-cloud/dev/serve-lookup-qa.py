@@ -18,7 +18,7 @@ for c in fixtures:
 m.load_ocr_asset=lambda name:(ROOT/'dev/qa-output/ocr-assets'/name).read_bytes()
 @m.app.route('/qa')
 def qa():
-    m.TEMPLATE=(ROOT/'dev/review-template.html').read_text(encoding='utf-8').replace('/* LOOKUP AUTHORING SOURCE */',(ROOT/'dev/lookup.js').read_text(encoding='utf-8'))
+    m.TEMPLATE=(ROOT/'dev/review-template.html').read_text(encoding='utf-8').replace('/* REVIEW MARKS AUTHORING SOURCE */',(ROOT/'dev/review-marks.js').read_text(encoding='utf-8')).replace('/* LOOKUP AUTHORING SOURCE */',(ROOT/'dev/lookup.js').read_text(encoding='utf-8'))
     session['comparison_csrf_token']='synthetic-qa-csrf'
     return m.render_template_string(m.TEMPLATE,cases=fixtures,reports_text='EXCLUDE_RAW_INPUT_875942',
         custom_prompt=m.DEFAULT_PROMPT,default_prompt=m.DEFAULT_PROMPT,review_mode='resident',

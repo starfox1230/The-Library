@@ -37,6 +37,8 @@ class ModeTests(unittest.TestCase):
         with patch.object(self.module,'get_azure_client',return_value=client):
             result=self.module.summarize_case(self.pair())
         self.assertEqual(client.responses.create.call_count,1)
+        self.assertEqual(result['analysis_provenance'],{'prompt':self.module.PROMPT_VERSION,
+            'build':self.module.REVIEW_BUILD,'deployment':self.module.MODEL_ID})
         self.assertEqual(result['title_resident'],'Indeterminate pelvic mass')
         self.assertEqual(result['title_attending'],'Favored uterine fibroid')
         self.assertEqual(result['revisions'],[])
@@ -46,10 +48,10 @@ class ModeTests(unittest.TestCase):
             with self.subTest(value_type=type(value).__name__):
                 self.assertEqual(self.module.validate_analysis(dict(payload,title_attending=value),self.pair())['status'],'error')
 
-    def test_fresh_visit_defaults_resident_and_toggle_precedes_input(self):
+    def test_fresh_visit_defaults_attending_and_toggle_precedes_input(self):
         response = self.client_with_csrf().get('/')
-        self.assertRegex(response.text, r'id="mode-resident"[^>]*checked')
-        self.assertNotRegex(response.text, r'id="mode-attending"[^>]*checked')
+        self.assertRegex(response.text, r'id="mode-attending"[^>]*checked')
+        self.assertNotRegex(response.text, r'id="mode-resident"[^>]*checked')
         self.assertLess(response.text.index('id="mode-attending"'), response.text.index('id="input-disclosure"'))
 
     def test_attending_form_default_survives_submission_and_group_membership(self):

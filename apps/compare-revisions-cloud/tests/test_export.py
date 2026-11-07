@@ -109,6 +109,48 @@ class ExportTests(unittest.TestCase):
     def test_source_numbers_cannot_collide_between_entries(self):
         with self.assertRaises(ValueError):self.m.export_review_cases([self.record(),self.record()])
 
+    def test_marks_and_original_analysis_provenance_survive_export(self):
+        c=self.record()
+        c['review_marks']={'favorite':True,'flagged':True,'comment':'Classification seems excessive. </script>'}
+        c['analysis_provenance']={'prompt':'deltarad-review-1.7','build':'2026.11.06.1','deployment':'synthetic-deployment','secret':'DO_NOT_EXPORT'}
+        out=self.m.export_review_cases([c])[0]
+        self.assertEqual(out['review_marks'],c['review_marks'])
+        self.assertEqual(out['source_numbers'],[68,69])
+        self.assertEqual(out['analysis_provenance']['prompt'],'deltarad-review-1.7')
+        self.assertNotIn('secret',out['analysis_provenance'])
+        old=self.record()
+        self.assertEqual(self.m.export_review_cases([old])[0]['analysis_provenance'],{})
+        for comment in ['x'*2001,123]:
+            c['review_marks']['comment']=comment
+            with self.assertRaises(ValueError):self.m.export_review_cases([c])
+
+    def test_feedback_endpoint_keeps_only_flagged_cases_and_excludes_lookup(self):
+        flagged=self.record();flagged['review_marks']={'flagged':True,'comment':'Please check this.'}
+        other=self.record();other['source_numbers']=[70]
+        other['resident_report']=other['attending_report']='FINDINGS:\nUNFLAGGED_CLINICAL_SECRET.\nIMPRESSION:\nUNFLAGGED_CLINICAL_SECRET.'
+        with self.m.app.test_client() as client:
+            client.get('/')
+            with client.session_transaction() as session:token=session['comparison_csrf_token']
+            result=client.post('/export-review',json={'cases':[flagged,other], 'feedback_only':True,
+                'lookup':[{'case_number':68,'accession':'ACCESSION_MUST_BE_ABSENT','source_row':'CROP_MUST_BE_ABSENT'}],
+                'review_metadata':{'batch_id':'a'*32}},headers={'X-CSRF-Token':token})
+        self.assertEqual(result.status_code,200)
+        html=result.get_data(as_text=True)
+        self.assertIn('clinical-feedback.html',result.headers['Content-Disposition'])
+        for text in ['UNFLAGGED_CLINICAL_SECRET','ACCESSION_MUST_BE_ABSENT','CROP_MUST_BE_ABSENT']:
+            self.assertNotIn(text,html)
+        data=json.loads(re.search(r'<script id="review-data" type="application/json">(.*?)</script>',html,re.S).group(1))
+        self.assertEqual(len(data),1);self.assertEqual(data[0]['source_numbers'],[68,69])
+        self.assertIn('a'*32,html)
+
+    def test_empty_feedback_rejected_and_dark_is_default(self):
+        with self.m.app.test_client() as client:
+            html=client.get('/').get_data(as_text=True)
+            self.assertIn('<html lang="en" data-theme="dark">',html)
+            with client.session_transaction() as session:token=session['comparison_csrf_token']
+            result=client.post('/export-review',json={'cases':[self.record()],'feedback_only':True},headers={'X-CSRF-Token':token})
+        self.assertEqual(result.status_code,400)
+
     def test_export_requires_session_and_csrf(self):
         with self.m.app.test_client() as client:
             self.assertEqual(client.post('/export-review',json={'cases':[self.record()]}).status_code,400)

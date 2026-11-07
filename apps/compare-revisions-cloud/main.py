@@ -185,7 +185,7 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.7'
+PROMPT_VERSION = 'deltarad-review-1.8'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
 IMPRESSION_EMPHASIS_SUMMARY = 'Added to Impression; finding unchanged'
@@ -248,22 +248,31 @@ If matching is uncertain, do not force two lesions to be one; use review
 importance and explain uncertainty.
 
 IMPORTANCE
-major: the particular revision has substantial diagnostic or patient-management
-consequence in the supplied context, whether acute OR important nonacute disease.
-This includes a materially different important diagnosis, workup, treatment, or
-disease extent/staging. Urgency is NOT required. A serious underlying disease
-or an urgent examination does not automatically make each edit major.
-Judge the actual change from the resident's assessment to the attending's;
-do not invent a management plan, outcome, or certainty beyond the reports.
-Not every actionable follow-up is major. Impression inclusion alone is not
-sufficient. Do not grade by disease keywords or by amount of changed text.
+major: assuming the attending's interpretation is correct for this comparison,
+relying on the resident's COMPLETE clinical report instead would likely lead
+to a SUBSTANTIALLY DIFFERENT CLINICAL ACTION: whether, how urgently, or in what
+way to investigate, refer, treat, monitor, or arrange important follow-up.
+This includes initiating important nonacute evaluation that the resident's
+report would not otherwise prompt. Immediate danger is NOT required.
+Grade the INCREMENTAL effect of the actual revision, accounting for what the
+resident already communicated. Stronger certainty, more definitive wording,
+additional measurements/counts, or disease detail is not major when the likely
+clinical action remains substantially the same. A different understanding alone
+does not qualify. A serious disease or urgent examination does not make each
+edit major. Not every actionable follow-up or modest management change is major.
+The difference in action must be reasonably supported by the supplied reports
+and ordinary clinical practice. An explicit management recommendation is not
+required, but do not invent patient-specific plans, symptoms, outcomes, or a
+speculative worst-case future diagnosis. 'Could conceivably affect care' is
+insufficient. Impression inclusion alone, disease keywords, legal liability,
+and amount of changed text are not importance criteria.
 SECTION GATE: With separate Findings and Impression, the actual changed
 assertion MUST be represented in Impression/Conclusion, not merely the same
 underlying diagnosis. A newly added body-only descriptor of an unchanged
 impression diagnosis cannot be major. For additions, attending impression is
 required; for removals or downward reinterpretation, resident impression can
 establish eligibility. Combined Findings/Impression and conclusion-only
-sections are eligible, but still require substantial diagnostic/management impact.
+sections are eligible, but still require a likely substantially different clinical action.
 Apply the same importance standard in reverse: an important resident call
 removed/refuted can be major when the corresponding addition would be major
 in the same context. Do not invent another 'critical' category to bypass the
@@ -281,11 +290,13 @@ DECISION ORDER: apply this independently to each distinct revision
 2. Choose action from the definitions above. If assertion identity or clinical
    meaning is uncertain, use review and name the uncertainty rather than guess.
 3. If action is emphasis or description, importance MUST be wording. A real
-   change in laterality, negation, certainty, recommendation or interpretation
-   is not merely wording just because few words changed.
+   change in laterality, negation, recommendation or interpretation is not
+   merely wording just because few words changed. A certainty edit may be
+   wording, minor or major: distinguish a stylistic confidence preference from
+   a materially different assessment and its likely effect on clinical action.
 4. For a supported substantive clinical change, consider major ONLY if BOTH
-   requirements hold: substantial diagnostic/management impact (acute or
-   important nonacute) in this supplied context AND evidence for the actual delta in the eligible
+   requirements hold: a likely substantially different clinical action in this
+   supplied context (acute or important nonacute) AND evidence for the actual delta in the eligible
    Impression/Conclusion/combined section. Use the correct evidence side.
    If the change is clear but falls below that threshold or lacks impression
    eligibility, use minor. If importance cannot be assessed reliably, use
@@ -297,6 +308,11 @@ DECISION ORDER: apply this independently to each distinct revision
 6. Write the two short summary fields using the patterns below. Check that
    the reader can identify the exact revision without opening reason. Then
    verify exact quotations, section IDs, major evidence and duplicate items.
+7. Within each importance category, list revisions in descending order of
+   likely clinical consequence, prioritizing time-sensitive consequences.
+   Rank the revision, not the seriousness of the underlying disease. For
+   similarly consequential revisions, preserve report order. Do not invent
+   numerical scores or additional urgency categories.
 
 CALIBRATION (context-specific examples, not universal disease rules)
 - Pneumothorax called in resident impression but explicitly rejected by attending:
@@ -337,13 +353,33 @@ CALIBRATION (context-specific examples, not universal disease rules)
 - Routine 12-month nodule follow-up isn't automatically major just because actionable.
 - Negative assessment of clinically significant prostate cancer changed to a
   clearly identified, highly suspicious PI-RADS 5 lesion in Conclusion: major
-  changed interpretation when source-supported. This is a substantial diagnostic
-  change even without an acute emergency or an explicit immediate action plan.
+  changed interpretation when source-supported. This supports important new evaluation
+  even without an acute emergency or an explicit immediate action plan.
 - New definite clinically important tumor invasion/extension can be major when
-  it materially changes the reported disease extent and meets the section gate.
+  it supports a substantially different clinical action and meets the section gate.
   Merely mentioning cancer, restating known malignancy, refining wording, or
   adding an indeterminate small node is NOT automatically major. Use actual
-  diagnostic/management impact and supplied uncertainty, not a cancer keyword.
+  clinical-action consequence and supplied uncertainty, not a cancer keyword.
+- Enlarging nodes 'concerning for progressive metastatic disease' -> increased
+  size AND number of 'metastatic nodes': the resident already communicated
+  concern for progression. Added number/certainty alone does not establish a
+  substantially different action or new stage. Usually minor for the added
+  assertion in this limited context; equivalent confidence wording alone may
+  be wording. Do not invent a change in treatment to justify major.
+- Decreasing bilateral segmental/subsegmental emboli -> 'No acute PE', decreased
+  residual right lower lobe thrombus and other prior emboli no longer seen:
+  compare ALL eligible sections. Do not infer the resident called acute PE,
+  or excluded acute PE, from silence or decreasing burden. More precise
+  residual distribution is not automatically major; without a supported
+  substantial action difference, a clear clinical refinement is minor.
+- Normal kidneys -> a previously unreported lesion suspicious for renal
+  malignancy: potentially major when the reports support important new workup
+  and the section gate is met. A new indeterminate lesion is not major merely
+  because it could eventually be cancer; assess its present supported impact.
+- Ovarian cyst -> stable adnexal cyst: match the same lesion before grading
+  the stability qualifier. Do not demand prior images to verify the attending's
+  claim; this is report comparison. Use review only for a genuine matching or
+  significance uncertainty, not inability to independently prove image truth.
 
 EVIDENCE AND WRITING: FIXED RESIDENT / ATTENDING ORDER
 resident_summary and attending_summary: two REQUIRED separate short phrases,
@@ -395,8 +431,9 @@ attending_summary. Those markers refer to documentation, never disease absence.
 If quoting an existing underlying finding to contextualize a new attribute,
 say that the new attribute was not documented rather than inventing a negative.
 reason: at most two short sentences explaining this change's importance, not a
-generic teaching essay. For major, identify the actual delta and its supported
-diagnostic/management consequence (urgent or nonacute); for review, identify what is
+generic teaching essay. For major, identify the actual delta and the likely
+substantial difference in clinical action attributable to it. Naming a disease
+or merely saying 'changes management' is insufficient. For review, identify what is
 uncertain. For emphasis, explain that the finding was already in resident
 Findings and only its Impression inclusion changed. Never claim the reference
 is image-proven truth. Do not merely repeat the category label as a reason.
@@ -441,15 +478,26 @@ uncertainty. Titles describe the case, not a list of revisions. For example:
 title_resident='Pelvic mass, uncertain origin'; title_attending='Favored uterine
 fibroid'. Generate the revision inventory and importance judgments ONCE; they
 are identical for both viewing modes. Always keep resident-to-attending order."""
-ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.1'
+ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
+REVIEW_BUILD = '2026.11.07.1'
+
+
+def review_metadata(raw=None):
+    """Nonclinical provenance only; old results must not acquire a new prompt label."""
+    raw = raw if isinstance(raw, dict) else {}
+    batch = raw.get('batch_id', '')
+    return {'schema': 'review-v2',
+            'batch_id': batch if isinstance(batch, str) and re.fullmatch(r'[a-f0-9]{32}', batch) else secrets.token_hex(16),
+            'build': REVIEW_BUILD, 'default_prompt_version': PROMPT_VERSION}
 
 
 @app.context_processor
 def review_prompt_context():
     # Also available to local synthetic renders; no credentials or requests.
-    return {'review_prompts': REVIEW_PROMPTS, 'review_build': '2026.11.06.1'}
+    return {'review_prompts': REVIEW_PROMPTS, 'review_build': REVIEW_BUILD,
+            'review_metadata': review_metadata()}
 
 
 _REVISION_STRINGS = ('resident_summary', 'attending_summary',
@@ -597,7 +645,7 @@ def parse_cases(text):
 
 def _base_case(record, case_id):
     case = dict(record, id=case_id, case_label=format_case_numbers(record['source_numbers']),
-        review_mode=record.get('review_mode', 'resident'),
+        review_mode=record.get('review_mode', 'attending'),
         exam_label='Exam unspecified', title='Report comparison', status='queued',
         status_message='Waiting to analyze', revisions=[], analysis_warnings=[],
         clinical_diff=[], clinical_headings={'resident': [], 'attending': []}, diff_note='',
@@ -828,7 +876,7 @@ def export_review_cases(records):
                 return fallback
             return value
         case = _base_case(dict(reports, source_numbers=sorted(numbers)), f'g{index + 1}')
-        case['review_mode'] = raw.get('review_mode') if raw.get('review_mode') in REVIEW_PROMPTS else 'resident'
+        case['review_mode'] = raw.get('review_mode') if raw.get('review_mode') in REVIEW_PROMPTS else 'attending'
         case['exam_label'] = safe_prose(raw.get('exam_label'), 'Exam')
         case['title'] = safe_prose(raw.get('title'), 'Clinical report review')
         for role in ('resident', 'attending'):
@@ -858,6 +906,17 @@ def export_review_cases(records):
         else:
             case.update(status='unavailable', title='Analysis unavailable', revisions=[],
                 status_message='Analysis was incomplete or unavailable when this review was exported.', analysis_warnings=[])
+        marks = raw.get('review_marks', {})
+        if not isinstance(marks, dict) or not isinstance(marks.get('comment', ''), str) or len(marks.get('comment', '')) > 2000:
+            raise ValueError('A project feedback comment is invalid or too long.')
+        case['review_marks'] = {'favorite': marks.get('favorite') is True,
+                                'flagged': marks.get('flagged') is True,
+                                'comment': marks.get('comment', '')}
+        provenance = raw.get('analysis_provenance', {})
+        if isinstance(provenance, dict):
+            case['analysis_provenance'] = {key: value for key in ('prompt', 'build', 'deployment')
+                if isinstance((value := provenance.get(key)), str)
+                and re.fullmatch(r'[A-Za-z0-9_.:/-]{1,160}', value)}
         case['diff_note'] = 'Findings and Impression/Conclusion only.'
         output.append(case)
     return output
@@ -870,20 +929,27 @@ def export_review(*, context):
     try:
         if not isinstance(data, dict):
             raise ValueError('Invalid export request.')
-        records = export_review_cases(data.get('cases'))
-        lookup = confirmed_lookup(data.get('lookup', []))
+        feedback = data.get('feedback_only') is True
+        source_records = data.get('cases')
+        if feedback and isinstance(source_records, list):
+            source_records = [c for c in source_records if isinstance(c, dict)
+                              and isinstance(c.get('review_marks'), dict)
+                              and c['review_marks'].get('flagged') is True]
+        records = export_review_cases(source_records)
+        lookup = [] if feedback else confirmed_lookup(data.get('lookup', []))
         selected = {n for c in records for n in c['source_numbers']}
         lookup = [row for row in lookup if row['case_number'] in selected]
     except ValueError as exc:
         return jsonify(error=str(exc)), 400
     html = render_template_string(TEMPLATE, cases=records, lookup_rows=lookup,
         exported_review=True, reports_text='', custom_prompt='', default_prompt='',
-        review_mode=data.get('review_mode') if data.get('review_mode') in REVIEW_PROMPTS else 'resident',
+        review_metadata=dict(review_metadata(data.get('review_metadata')), feedback_only=feedback), feedback_only=feedback,
+        review_mode=data.get('review_mode') if data.get('review_mode') in REVIEW_PROMPTS else 'attending',
         combined_view=bool(data.get('combined_view', True)), show_report_wording=bool(data.get('show_report_wording', True)),
-        theme=data.get('theme') if data.get('theme') in ('light', 'dark', 'system') else 'system',
+        theme=data.get('theme') if data.get('theme') in ('light', 'dark') else 'dark',
         error='', csrf_token='', username='', synthetic_preview=False)
     return Response(html, mimetype='text/html', headers={
-        'Content-Disposition': 'attachment; filename="clinical-review.html"',
+        'Content-Disposition': 'attachment; filename="' + ('clinical-feedback.html' if feedback else 'clinical-review.html') + '"',
         'X-Content-Type-Options': 'nosniff'})
 
 
@@ -974,6 +1040,9 @@ def summarize_case(case, instructions=None):
     source = {side: {'full_report': case[side + '_report'],
                     'eligible_sections': parse_sections(case[side + '_report'], side)['sections']}
               for side in ('resident', 'attending')}
+    case['analysis_provenance'] = {'prompt': PROMPT_VERSION if instructions == DEFAULT_PROMPT else
+        'custom:' + hashlib.sha256(instructions.encode('utf-8')).hexdigest()[:16],
+        'build': REVIEW_BUILD, 'deployment': MODEL_ID}
     try:
         response = get_azure_client().responses.create(
             model=MODEL_ID, store=False, max_output_tokens=16384,
@@ -1002,18 +1071,18 @@ def summarize_case(case, instructions=None):
 @app.route('/main2', methods=['GET', 'POST'])
 @uab_login_required
 def index(*, context):
-    review_mode = request.form.get('review_mode', 'resident')
+    review_mode = request.form.get('review_mode', 'attending')
     invalid_mode = review_mode not in REVIEW_PROMPTS
     if invalid_mode:
-        review_mode = 'resident'
+        review_mode = 'attending'
     default_prompt = REVIEW_PROMPTS[review_mode]
     cases, error, reports_text, custom_prompt = [], '', '', default_prompt
     lookup = []
     combined_view = request.form.get('combined_view', '1') == '1'
     show_report_wording = request.form.get('show_report_wording', '1') != '0'
-    theme = request.form.get('theme', 'system')
+    theme = request.form.get('theme', 'dark')
     if theme not in ('system', 'light', 'dark'):
-        theme = 'system'
+        theme = 'dark'
     if request.method == 'POST':
         reports_text = request.form.get('reports_text', '')
         custom_prompt = request.form.get('custom_prompt', default_prompt)
@@ -1044,7 +1113,7 @@ def analyze(*, context):
     data = request.get_json(silent=True)
     if not isinstance(data, dict) or not all(isinstance(data.get(k), str) for k in ('id', 'resident_report', 'attending_report', 'custom_prompt')):
         return jsonify(error='The case request is malformed. Reload and paste the report batch again.'), 400
-    review_mode = data.get('review_mode', 'resident')
+    review_mode = data.get('review_mode', 'attending')
     if not isinstance(review_mode, str) or review_mode not in REVIEW_PROMPTS:
         return jsonify(error='Choose Resident or Attending mode.'), 400
     if not re.fullmatch(r'g[1-9]\d{0,3}', data['id']):
@@ -1070,7 +1139,7 @@ def analyze_batch(*, context):
             or not isinstance(data.get('custom_prompt'), str)):
         return jsonify(error='Submit between 1 and 100 report pairs with analysis instructions.'), 400
     instructions = data['custom_prompt']
-    review_mode = data.get('review_mode', 'resident')
+    review_mode = data.get('review_mode', 'attending')
     if not isinstance(review_mode, str) or review_mode not in REVIEW_PROMPTS:
         return jsonify(error='Choose Resident or Attending mode.'), 400
     if not instructions.strip() or len(instructions) > MAX_PROMPT_CHARACTERS:
@@ -1154,20 +1223,25 @@ def flask_entry_point(request):
 
 # === UI TEMPLATE ===
 TEMPLATE = r'''<!doctype html>
-<html lang="en" data-theme="{{ theme | default('system') }}">
+<html lang="en" data-theme="{{ theme | default('dark') }}">
 <head>
 <meta charset="utf-8">
 {% if exported_review | default(false) %}<meta name="compare-revisions-export" content="offline-v1">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Compare Revisions</title>
+<script>
+// Only appearance preferences, never reports or marks. Local files use their embedded choice.
+try { if (!{{ exported_review | default(false) | tojson }}) {
+ const saved=localStorage.getItem('compare-revisions-theme-v1');
+ if(saved==='dark'||saved==='light')document.documentElement.dataset.theme=saved;
+}} catch {}
+</script>
 <style>html {min-height:100%; background:light-dark(#f5f7fa,#11161d); color-scheme:light dark;} body {margin:0; min-height:100vh; background:light-dark(#f5f7fa,#11161d);}
 html[data-theme="light"] {color-scheme:light;}
 html[data-theme="dark"] {color-scheme:dark;}
 
-#cr-app { color-scheme:light dark; --bg:light-dark(#f5f7fa,#11161d); --panel:light-dark(#fff,#191f28); --ink:light-dark(#202d3e,#edf1f7); --muted:light-dark(#586779,#aab8ca); --line:light-dark(#d8e1ec,#343e4c); --soft:light-dark(#edf2f8,#252e3b); --accent:light-dark(#2456a6,#abcaff); --major:light-dark(#a42536,#ffb2ba); --major-bg:light-dark(#fff0f1,#40242d); --minor:light-dark(#805800,#efd087); --minor-bg:light-dark(#fff7df,#382e1c); --good:light-dark(#266347,#a0d8b7); --good-bg:light-dark(#edf8f1,#20352d); --focus:light-dark(#477ee0,#abcaff); --open-bg:light-dark(#f0f4fa,#202a38); --open-border:light-dark(#b8c9df,#4c607c); }
-#cr-app[data-theme="light"] {color-scheme:light;}
-#cr-app[data-theme="dark"] {color-scheme:dark;}
+#cr-app { color-scheme:inherit; --bg:light-dark(#f5f7fa,#11161d); --panel:light-dark(#fff,#191f28); --ink:light-dark(#202d3e,#edf1f7); --muted:light-dark(#586779,#aab8ca); --line:light-dark(#d8e1ec,#343e4c); --soft:light-dark(#edf2f8,#252e3b); --accent:light-dark(#2456a6,#abcaff); --major:light-dark(#a42536,#ffb2ba); --major-bg:light-dark(#fff0f1,#40242d); --minor:light-dark(#805800,#efd087); --minor-bg:light-dark(#fff7df,#382e1c); --good:light-dark(#266347,#a0d8b7); --good-bg:light-dark(#edf8f1,#20352d); --focus:light-dark(#477ee0,#abcaff); --open-bg:light-dark(#f0f4fa,#202a38); --open-border:light-dark(#b8c9df,#4c607c); }
 #cr-app * { box-sizing:border-box; }
 #cr-app { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow-wrap:anywhere; }
 #cr-app button,#cr-app input,#cr-app select,#cr-app textarea { font:inherit; color:inherit; }
@@ -1375,6 +1449,26 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app button,#cr-app .tab { min-height:44px; } }
 @media(prefers-reduced-motion:reduce) {
 #cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .mode-label,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
+
+#cr-app .case {position:relative;}
+#cr-app .case-header {display:flex;align-items:stretch;}
+#cr-app .case-head {flex:1;min-width:0;width:auto;}
+#cr-app .case-mark-tools {display:flex;flex-direction:column;gap:2px;flex:none;margin:14px 12px 10px 0;align-self:flex-start;}
+#cr-app .case-mark {width:36px;height:34px;padding:6px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border-color:transparent;color:var(--muted);}
+#cr-app .case-mark svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;}
+#cr-app .case-mark[aria-pressed=true] {color:var(--accent);background:var(--soft);}
+#cr-app .case-mark[aria-pressed=true] svg {fill:color-mix(in srgb,var(--accent) 22%,transparent);}
+#cr-app .mark-toolbar {padding:12px 0 16px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+#cr-app .mark-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#cr-app #mark-counts {font-size:12px;color:var(--muted);margin-right:auto;}
+#cr-app #mark-status {margin:8px 0 0;}
+#cr-app .feedback-dialog {max-width:480px;width:calc(100% - 48px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;}
+#cr-app .feedback-dialog::backdrop {background:#0008;}
+#cr-app .feedback-dialog h2 {margin-top:0;font-size:18px;}
+#cr-app .feedback-dialog textarea {margin:6px 0 16px;min-height:100px;}
+@media (max-width:740px) { #cr-app .case-mark-tools {margin:12px 6px 8px 0;}}
+@media print { #cr-app .case-mark-tools,#cr-app .mark-toolbar,#cr-app .feedback-dialog {display:none;}}
+
 </style>
 <style>
 #cr-app .lookup-card {margin:0 0 24px; padding:16px 20px; border:1px solid var(--line); border-radius:10px; background:var(--panel);}
@@ -1433,24 +1527,24 @@ html[data-theme="dark"] {color-scheme:dark;}
 </style>
 </head>
 <body>
-<div id="cr-app" data-theme="{{ theme | default('system') }}" {% if combined_view %}class="dual-view"{% endif %}>
+<div id="cr-app" data-theme="{{ theme | default('dark') }}" {% if combined_view %}class="dual-view"{% endif %}>
 {% if exported_review | default(false) %}<aside class="phi-banner"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</aside>{% endif %}
-<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('resident') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
+<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('attending') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
 {% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
 {% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
-<label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
-<label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('resident') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
-</div><p class="mode-help" id="mode-help" role="status">Both title perspectives are generated together.</p></fieldset>
+<label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('attending') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
+<label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('attending') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
+</div><p class="mode-help" id="mode-help" role="status">Case titles follow the selected perspective.</p></fieldset>
 {% if not exported_review | default(false) %}
 <details class="input-card" id="input-disclosure" {% if not cases %}open{% endif %}><summary>Report input</summary>
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
 <input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
-<input type="hidden" id="theme-value" name="theme" value="{{ theme | default('system') }}">
+<input type="hidden" id="theme-value" name="theme" value="{{ theme | default('dark') }}">
 <input type="hidden" id="lookup-value" name="lookup_json" value="">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
@@ -1498,12 +1592,22 @@ html[data-theme="dark"] {color-scheme:dark;}
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
-{% if exported_review | default(false) %}<button type="button" id="save-review" class="plain">Save review with corrections</button>{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
 {% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
+<div class="mark-toolbar" aria-label="Review marks and downloads">
+<div class="mark-actions"><span id="mark-counts"></span>{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
+<p class="hint" id="mark-status" role="status">Marks and comments stay in this open page until you download an updated copy.</p>
+</div>
+<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback for Sterling. This file contains flagged cases only. Downloading does not send it.</p>
+<dialog id="feedback-dialog" class="feedback-dialog" aria-labelledby="feedback-title">
+<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in a feedback download for Sterling. Nothing is sent automatically.</p>
+<label for="feedback-comment">Comment (optional)</label><textarea id="feedback-comment" maxlength="2000" rows="4" placeholder="What seems incorrect or unclear?"></textarea>
+<div class="mark-actions"><button type="button" id="feedback-done">Done</button><button type="button" id="feedback-remove" class="plain">Remove flag</button></div>
+</dialog>
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
 <div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
+<div class="filter-options" id="mark-filters" role="group" aria-label="Filter by your marks"></div>
 <div class="filter-options" id="status-filters" role="group" aria-label="Filter by analysis status"></div>
 </div>
 <div class="analysis-progress" id="analysis-progress" hidden>
@@ -1524,6 +1628,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
+<script id="review-metadata" type="application/json">{{ review_metadata | tojson }}</script>
 <script id="lookup-data" type="application/json">{{ lookup_rows | default([]) | tojson }}</script>
 {% if not exported_review | default(false) %}
 <script id="default-prompt" type="application/json">{{ default_prompt | tojson }}</script>
@@ -1545,7 +1650,9 @@ const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new 
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
 let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
-let reviewMode=$('cr-app').dataset.reviewMode||{{ review_mode | default('resident') | tojson }};
+function readPreference(key,values){try{if(!exportedReview){const value=localStorage.getItem(key);if(values.includes(value))return value;}}catch{}return null;}
+function savePreference(key,value){try{if(!exportedReview)localStorage.setItem(key,value);}catch{}}
+let reviewMode=readPreference('compare-revisions-mode-v1',['resident','attending'])||$('cr-app').dataset.reviewMode||{{ review_mode | default('attending') | tojson }};
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
 {% if not exported_review | default(false) %}
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
@@ -1554,14 +1661,14 @@ const promptDrafts={...reviewPrompts};
 {% endif %}
 function describeMode(){
  $('mode-subtitle').textContent=(reviewMode==='attending'?'Attending':'Resident')+' report review';
- $('mode-help').textContent='Switch title perspective at any time. Both are generated together; legacy results keep their original title.';
+ $('mode-help').textContent='Titles switch perspective; summaries and classifications stay the same.';
 }
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.addEventListener('change',()=>{
  if(!radio.checked||radio.value===reviewMode)return;
- reviewMode=radio.value;$('cr-app').dataset.reviewMode=reviewMode;render();
+ reviewMode=radio.value;savePreference('compare-revisions-mode-v1',reviewMode);$('cr-app').dataset.reviewMode=reviewMode;if(exportedReview)markChanged();render();
 });
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
-let themeChoice=$('theme-value').value;
+let themeChoice=exportedReview?$('theme-value').value:(readPreference('compare-revisions-theme-v1',['dark','light'])||$('theme-value').value);
 function applyTheme(){
  const dark=themeChoice==='dark'||(themeChoice==='system'&&themeMedia.matches);
  $('cr-app').dataset.theme=themeChoice;document.documentElement.dataset.theme=themeChoice;
@@ -1569,7 +1676,7 @@ function applyTheme(){
  $('theme-toggle').title=dark?'Switch to day mode':'Switch to night mode';
 }
 applyTheme();
-$('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').getAttribute('aria-checked')==='true'?'light':'dark';applyTheme();});
+$('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').getAttribute('aria-checked')==='true'?'light':'dark';savePreference('compare-revisions-theme-v1',themeChoice);applyTheme();if(exportedReview)markChanged();});
 themeMedia.addEventListener('change',()=>{if(themeChoice==='system')applyTheme();});
 let combinedView=$('combined-view').checked;
 let showReportWording=$('report-wording-value').value==='1';
@@ -1586,6 +1693,97 @@ const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
 const displayTitle = c => c['title_'+reviewMode] || c.title || 'Untitled case';
 const caseLabel = c => c.case_label || members(c).join(', ');
+// Case annotations live only in the document. Never persist clinical data in browser storage.
+const reviewMetadata=JSON.parse($('review-metadata').textContent||'{}');
+$('feedback-notice').hidden=!reviewMetadata.feedback_only;
+let markRevision=0,downloadedRevision=0,markMessage='',feedbackCase=null,feedbackFocus=null;
+function marksFor(c){
+ if(!c.review_marks||typeof c.review_marks!=='object')c.review_marks={};
+ const m=c.review_marks;
+ m.favorite=m.favorite===true;m.flagged=m.flagged===true;
+ m.comment=typeof m.comment==='string'?m.comment.slice(0,2000):'';
+ return m;
+}
+for(const c of cases)marksFor(c);
+function markChanged(){markRevision++;markMessage='';updateMarkTools();}
+function updateMarkTools(){
+ const stars=cases.filter(c=>marksFor(c).favorite).length,flags=cases.filter(c=>marksFor(c).flagged).length;
+ $('mark-counts').textContent='★ Marked for later: '+stars+' · ⚑ Project feedback: '+flags;
+ $('export-feedback').textContent='Download feedback ('+flags+')';
+ $('export-feedback').disabled=!flags||cases.some(c=>['queued','processing'].includes(c.status));
+ $('mark-status').textContent=markMessage||(markRevision>downloadedRevision?
+  'Changes are not included in a downloaded copy yet. Download an updated review to keep them.':
+  'Marks and comments stay in this open page until you download an updated copy.');
+ $('mark-filters').replaceChildren(filterChip('favorite','★ Marked for later ('+stars+')'),filterChip('flagged','⚑ Project feedback ('+flags+')'));
+ if(!exportedReview)$('export-review').textContent=stars||flags||markRevision?'Download updated review':'Download review HTML';
+}
+function refreshMarkRow(id){
+ const key=id.slice(id.indexOf('-')+1),anchor=$('case-'+key),before=anchor?.getBoundingClientRect().top;
+ renderAndFocus(id);
+ const after=$('case-'+key)?.getBoundingClientRect().top;
+ if(Number.isFinite(before)&&Number.isFinite(after))window.scrollBy(0,after-before);
+}
+function caseMarkTools(c,key){
+ const m=marksFor(c),tools=el('div','case-mark-tools');
+ const star=button('','case-mark',()=>{m.favorite=!m.favorite;markChanged();refreshMarkRow('favorite-'+key);$('announcement').textContent=m.favorite?'Marked for later. Download an updated review to keep your marks.':'Mark for later removed.';});
+ star.id='favorite-'+key;star.title='Mark this case to revisit. Download an updated review to keep your marks.';
+ star.setAttribute('aria-label','Mark case '+caseLabel(c)+' for later');star.setAttribute('aria-pressed',String(m.favorite));
+ star.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg>';
+ const flag=button('','case-mark',()=>{
+  if(!m.flagged){m.flagged=true;markChanged();refreshMarkRow('feedback-'+key);}
+  feedbackCase=c;feedbackFocus='feedback-'+key;
+  $('feedback-title').textContent='Project feedback · '+(members(c).length>1?'Cases ':'Case ')+caseLabel(c);
+  $('feedback-comment').value=m.comment;$('feedback-dialog').showModal();
+ });
+ flag.id='feedback-'+key;flag.title='Include this case in feedback for Sterling. Nothing is sent automatically.';
+ flag.setAttribute('aria-label','Project feedback for case '+caseLabel(c));flag.setAttribute('aria-pressed',String(m.flagged));
+ flag.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3m0 1c5-3 9 3 14 0v10c-5 3-9-3-14 0"/></svg>';
+ tools.append(star,flag);return tools;
+}
+$('feedback-comment').addEventListener('input',()=>{if(feedbackCase){marksFor(feedbackCase).comment=$('feedback-comment').value;markChanged();}});
+$('feedback-done').addEventListener('click',()=>$('feedback-dialog').close());
+$('feedback-remove').addEventListener('click',()=>{
+ if(feedbackCase){const m=marksFor(feedbackCase);m.flagged=false;m.comment='';markChanged();}
+ $('feedback-dialog').close();
+});
+$('feedback-dialog').addEventListener('close',()=>{const id=feedbackFocus;feedbackCase=null;feedbackFocus=null;refreshMarkRow(id);});
+function resolvedTheme(){return $('theme-toggle').getAttribute('aria-checked')==='true'?'dark':'light';}
+function downloadHTML(html,filename){
+ const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'})),link=el('a');
+ link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+function downloadNotice(feedback,full=true,revision=markRevision){
+ if(!feedback&&full)downloadedRevision=revision;
+ markMessage=feedback?'Feedback download started—not sent. Attach it manually to your approved work email. Download an updated review to keep all marks.':
+  (markRevision===revision?'Updated-copy download started. The original file is unchanged; open the downloaded copy next time.':'Download started. More recent changes still need a new updated copy.');
+ if(!feedback&&!full)markMessage='Filtered-copy download started. Marks outside that selection are not included.';
+ updateMarkTools();
+}
+function downloadOfflineReview(feedback=false){
+ const records=feedback?cases.filter(c=>marksFor(c).flagged):cases;
+ if(!records.length)return;
+ const clone=document.documentElement.cloneNode(true);
+ clone.dataset.theme=resolvedTheme();clone.querySelector('#cr-app').dataset.theme=resolvedTheme();
+ clone.querySelector('#theme-value').setAttribute('value',resolvedTheme());
+ clone.querySelector('#combined-view').toggleAttribute('checked',combinedView);
+ clone.querySelector('#combined-view-value').setAttribute('value',combinedView?'1':'0');
+ clone.querySelector('#cr-app').dataset.reviewMode=reviewMode;
+ clone.querySelector('#review-data').textContent=JSON.stringify(records).replaceAll('<','\\u003c');
+ clone.querySelector('#lookup-data').textContent=JSON.stringify(feedback?[]:lookupRows.map(lookupPayload)).replaceAll('<','\\u003c');
+ clone.querySelector('#review-metadata').textContent=JSON.stringify({...reviewMetadata,feedback_only:feedback}).replaceAll('<','\\u003c');
+ clone.querySelector('#case-list').replaceChildren();clone.querySelectorAll('.accession-peek').forEach(n=>n.remove());
+ clone.querySelector('#feedback-dialog').removeAttribute('open');clone.querySelector('#feedback-comment').textContent='';
+ clone.querySelector('#feedback-title').textContent='Project feedback';
+ clone.querySelector('#search').setAttribute('value','');
+ // Rebuild all clinical content from the selected JSON only; no hidden unflagged case DOM survives.
+ downloadHTML('<!doctype html>\n'+clone.outerHTML,feedback?'clinical-feedback.html':'clinical-review.html');
+ downloadNotice(feedback);
+}
+$('export-feedback').addEventListener('click',()=>{
+ if(exportedReview)downloadOfflineReview(true);
+ {% if not exported_review | default(false) %}else downloadLiveReview(true);{% endif %}
+});
+
 // Valid, batch-local mappings are accepted by Analyze/Download; no per-row approval.
 let lookupRows=JSON.parse($('lookup-data').textContent||'[]');
 const lookupSourceText=$('report-text')?.value;
@@ -1620,7 +1818,7 @@ function showAccessionPeek(target,entry){
  const apply=button('Copy corrected accession','',async()=>{
   const value=input.value.trim();if(!/^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$/.test(value)){note.textContent='Enter the accession exactly as shown in the source.';return;}
   const previous=entry.accession;for(const row of lookupRows)if(row.case_number===entry.case_number&&row.accession===previous){row.accession=value;row.accessionIssue='';row.originalAccession=null;}
-  await copyAccession(apply,value);note.textContent='Correction applies to this open review.';
+  await copyAccession(apply,value);note.textContent='Correction applies to this open review. Download an updated review to keep it.';markChanged();
   if(!exportedReview){lookupTable();updateLookupCoverage();}
   // Keep focus and the source visible while refreshing only case controls.
   const saved=peek;peek.remove();render();const next=document.querySelector('#'+host.id);(next||document.body).append(saved);
@@ -1675,14 +1873,7 @@ function updateLookupCoverage(){
  {% endif %}
 }
 {% if exported_review | default(false) %}
-$('save-review').addEventListener('click',()=>{
- const clone=document.documentElement.cloneNode(true);
- clone.querySelector('#lookup-data').textContent=JSON.stringify(lookupRows.map(lookupPayload)).replaceAll('<','\\u003c');
- clone.querySelector('#review-data').textContent=JSON.stringify(cases).replaceAll('<','\\u003c');
- clone.querySelector('#cr-app').dataset.reviewMode=reviewMode;
- clone.querySelector('#case-list').replaceChildren();clone.querySelectorAll('.accession-peek').forEach(n=>n.remove());
- const url=URL.createObjectURL(new Blob(['<!doctype html>\n'+clone.outerHTML],{type:'text/html;charset=utf-8'})),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
-});
+$('save-review').addEventListener('click',()=>downloadOfflineReview(false));
 {% endif %}
 {% if not exported_review | default(false) %}
 let lookupEpoch=0,ocrBusy=false,ocrWorker=null,ocrLoading=null,currentImage=null,ocrQueue=[];
@@ -2051,22 +2242,25 @@ $('lookup-panel').addEventListener('paste',event=>{const files=[...(event.clipbo
 $('lookup-paste').addEventListener('click',async()=>{try{if(!navigator.clipboard?.read)throw Error();const items=await navigator.clipboard.read(),files=[];for(const item of items)for(const type of item.types)if(type.startsWith('image/')){files.push(await item.getType(type));break;}if(!files.length)throw Error();await addLookupImages(files);}catch{$('ocr-status').textContent='Copy a screenshot, then click Paste screenshot here and press Ctrl+V.';}});
 $('lookup-add').addEventListener('click',()=>{lookupRows.push({case_number:null,accession:'',confirmed:false,source:'Manual'});currentImage=null;$('lookup-manual').open=true;$('lookup-manual').append($('lookup-editor'));$('lookup-editor').hidden=false;$('lookup-image').hidden=true;lookupTable();});
 $('lookup-clear').addEventListener('click',()=>{clearLookup();updateReview();});
-$('export-review').addEventListener('click',async()=>{
- if(!confirmAvailableLookup('export'))return;
- const target=$('export-review');target.disabled=true;$('export-status').textContent='Preparing clinical review…';
+async function downloadLiveReview(feedback=false){
+ if(!feedback&&!confirmAvailableLookup('export'))return;
+ const target=$(feedback?'export-feedback':'export-review'),revision=markRevision;target.disabled=true;
+ $('export-status').textContent=feedback?'Preparing flagged cases…':'Preparing clinical review…';
  try{
   if(!lookupMatchesReview())throw Error('batch');
-  const selected=$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
-  const records=cases.filter((c,i)=>!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c)}));
-  const lookup=availableLookup().map(lookupPayload);
-  const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_mode:reviewMode,theme:themeChoice,combined_view:combinedView,show_report_wording:showReportWording})});
+  const selected=!feedback&&$('export-filtered').checked?new Set([...document.querySelectorAll('#case-list .case')].map(r=>Number(r.id.slice(4)))):null;
+  const records=cases.filter((c,i)=>feedback?marksFor(c).flagged:!selected||selected.has(i)).map(c=>({source_numbers:members(c),resident_report:c.resident_report,attending_report:c.attending_report,review_mode:c.review_mode,exam_label:c.exam_label,title:c.title,title_resident:c.title_resident,title_attending:c.title_attending,status:c.status,revisions:revisions(c),review_marks:marksFor(c),analysis_provenance:c.analysis_provenance||{}}));
+  const lookup=feedback?[]:availableLookup().map(lookupPayload);
+  const response=await fetch('/export-review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':document.querySelector('[name=csrf_token]').value},body:JSON.stringify({cases:records,lookup,review_metadata:reviewMetadata,feedback_only:feedback,review_mode:reviewMode,theme:resolvedTheme(),combined_view:combinedView,show_report_wording:showReportWording})});
   if(response.redirected||response.status===401||response.status===403)throw Error('session');
   if(!response.ok||!response.headers.get('content-type')?.includes('text/html'))throw Error('export');
   const html=await response.text(),reader=new DOMParser().parseFromString(html,'text/html');if(reader.head.querySelector('meta[name="compare-revisions-export"]')?.content!=='offline-v1')throw Error('session');
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'}),url=URL.createObjectURL(blob),link=el('a');link.href=url;link.download='clinical-review.html';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('export-status').textContent='Review downloaded. Contains PHI—keep it within approved systems.';
- }catch(error){$('export-status').textContent=error.message==='session'?'Your sign-in expired. Sign in to Compare Revisions, then download the review again.':'Export could not be completed. Check that analysis is finished and lookup issues are resolved.';}
- finally{updateLookupCoverage();}
-});
+  downloadHTML(html,feedback?'clinical-feedback.html':'clinical-review.html');downloadNotice(feedback,!selected||records.length===cases.length,revision);
+  $('export-status').textContent=feedback?'Feedback download started—not sent.':'Review download started. Contains PHI—keep it within approved systems.';
+ }catch(error){$('export-status').textContent=error.message==='session'?'Your sign-in expired. Sign in to Compare Revisions, then download the review again.':'Export could not be completed. Check that analysis is finished and try again.';}
+ finally{updateLookupCoverage();updateMarkTools();}
+}
+$('export-review').addEventListener('click',()=>downloadLiveReview(false));
 lookupTable();
 {% endif %}
 
@@ -2080,6 +2274,8 @@ function appendSummary(node,item) {
   el('span','attending-summary'+(item.importance==='major'?' is-major':''),' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
+ if(filter==='favorite')return marksFor(c).favorite;
+ if(filter==='flagged')return marksFor(c).flagged;
  if(filter==='analysis-issues')return analysisIds.has(c.id)&&!['queued','processing','complete'].includes(c.status);
  if(filter==='not-submitted')return !analysisIds.has(c.id);
  if(groupOrder.includes(filter)&&counts(c)[filter]>0)return true;
@@ -2362,7 +2558,7 @@ function caseRow(c,key) {
  const badges=el('span','badges'), tally=counts(c);
  for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
  if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
- if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);row.append(head);
+ if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);const header=el('div','case-header');header.append(head,caseMarkTools(c,key));row.append(header);
  const copy=accessionIcon(c);if(copy){row.classList.add('has-accession');row.prepend(copy);}
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
@@ -2406,10 +2602,11 @@ function render() {
   const matching=cases.filter(c=>matchesFilter(c,group)).length;
   return filterChip(group,group==='review'?'Needs review ('+matching+')':badgeText(group,allCounts[group]),'badge '+group,labels[group]+': '+allCounts[group]+' revisions; '+matching+' matching cases.');
  }));
+ updateMarkTools();
  $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
- $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
+ $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted','favorite':'Marked for later','flagged':'Project feedback'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
  updateLookupCoverage();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
@@ -2422,7 +2619,7 @@ function updateReview(){const focusId=document.activeElement?.id;render();if(foc
 function applyAnalysisResult(c,result,mode){
  // Keep capture identity immutable. Both title perspectives must survive BOTH
  // batch streaming and an individual retry, or switching falls back to title.
- for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+ for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings','analysis_provenance'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
  if(['complete','partial'].includes(result.status)){
   if(typeof result.title_resident==='string'&&result.title_resident.trim()&&typeof result.title_attending==='string'&&result.title_attending.trim()){
    c.title_resident=result.title_resident;c.title_attending=result.title_attending;c.title=result.title||result['title_'+mode];
@@ -2536,7 +2733,7 @@ $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleC
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
- for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
+ for(const c of cases){c.review_marks={favorite:false,flagged:false,comment:''};c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();

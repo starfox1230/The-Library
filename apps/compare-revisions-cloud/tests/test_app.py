@@ -506,6 +506,8 @@ class ReviewerTests(unittest.TestCase):
 
     def test_template_remains_in_sync(self):
         template = (APP_PATH.parent / 'dev/review-template.html').read_text(encoding='utf-8')
+        template = template.replace('/* REVIEW MARKS AUTHORING SOURCE */',
+            (APP_PATH.parent / 'dev/review-marks.js').read_text(encoding='utf-8'))
         template = template.replace('/* LOOKUP AUTHORING SOURCE */',
             (APP_PATH.parent / 'dev/lookup.js').read_text(encoding='utf-8'))
         self.assertEqual(self.module.TEMPLATE, template)

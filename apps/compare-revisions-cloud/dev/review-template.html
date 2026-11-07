@@ -1,18 +1,23 @@
 <!doctype html>
-<html lang="en" data-theme="{{ theme | default('system') }}">
+<html lang="en" data-theme="{{ theme | default('dark') }}">
 <head>
 <meta charset="utf-8">
 {% if exported_review | default(false) %}<meta name="compare-revisions-export" content="offline-v1">{% endif %}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Compare Revisions</title>
+<script>
+// Only appearance preferences, never reports or marks. Local files use their embedded choice.
+try { if (!{{ exported_review | default(false) | tojson }}) {
+ const saved=localStorage.getItem('compare-revisions-theme-v1');
+ if(saved==='dark'||saved==='light')document.documentElement.dataset.theme=saved;
+}} catch {}
+</script>
 <style>html {min-height:100%; background:light-dark(#f5f7fa,#11161d); color-scheme:light dark;} body {margin:0; min-height:100vh; background:light-dark(#f5f7fa,#11161d);}
 html[data-theme="light"] {color-scheme:light;}
 html[data-theme="dark"] {color-scheme:dark;}
 
-#cr-app { color-scheme:light dark; --bg:light-dark(#f5f7fa,#11161d); --panel:light-dark(#fff,#191f28); --ink:light-dark(#202d3e,#edf1f7); --muted:light-dark(#586779,#aab8ca); --line:light-dark(#d8e1ec,#343e4c); --soft:light-dark(#edf2f8,#252e3b); --accent:light-dark(#2456a6,#abcaff); --major:light-dark(#a42536,#ffb2ba); --major-bg:light-dark(#fff0f1,#40242d); --minor:light-dark(#805800,#efd087); --minor-bg:light-dark(#fff7df,#382e1c); --good:light-dark(#266347,#a0d8b7); --good-bg:light-dark(#edf8f1,#20352d); --focus:light-dark(#477ee0,#abcaff); --open-bg:light-dark(#f0f4fa,#202a38); --open-border:light-dark(#b8c9df,#4c607c); }
-#cr-app[data-theme="light"] {color-scheme:light;}
-#cr-app[data-theme="dark"] {color-scheme:dark;}
+#cr-app { color-scheme:inherit; --bg:light-dark(#f5f7fa,#11161d); --panel:light-dark(#fff,#191f28); --ink:light-dark(#202d3e,#edf1f7); --muted:light-dark(#586779,#aab8ca); --line:light-dark(#d8e1ec,#343e4c); --soft:light-dark(#edf2f8,#252e3b); --accent:light-dark(#2456a6,#abcaff); --major:light-dark(#a42536,#ffb2ba); --major-bg:light-dark(#fff0f1,#40242d); --minor:light-dark(#805800,#efd087); --minor-bg:light-dark(#fff7df,#382e1c); --good:light-dark(#266347,#a0d8b7); --good-bg:light-dark(#edf8f1,#20352d); --focus:light-dark(#477ee0,#abcaff); --open-bg:light-dark(#f0f4fa,#202a38); --open-border:light-dark(#b8c9df,#4c607c); }
 #cr-app * { box-sizing:border-box; }
 #cr-app { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overflow-wrap:anywhere; }
 #cr-app button,#cr-app input,#cr-app select,#cr-app textarea { font:inherit; color:inherit; }
@@ -220,6 +225,26 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app button,#cr-app .tab { min-height:44px; } }
 @media(prefers-reduced-motion:reduce) {
 #cr-app main,#cr-app .revision,#cr-app .theme-thumb,#cr-app .mode-label,#cr-app .view-switch input,#cr-app .view-switch input::before,#cr-app .case,#cr-app .case-head,#cr-app .chevron::before,#cr-app .case-reveal,#cr-app .case.is-open .case-reveal,#cr-app .progress-fill { transition:none; } }
+
+#cr-app .case {position:relative;}
+#cr-app .case-header {display:flex;align-items:stretch;}
+#cr-app .case-head {flex:1;min-width:0;width:auto;}
+#cr-app .case-mark-tools {display:flex;flex-direction:column;gap:2px;flex:none;margin:14px 12px 10px 0;align-self:flex-start;}
+#cr-app .case-mark {width:36px;height:34px;padding:6px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border-color:transparent;color:var(--muted);}
+#cr-app .case-mark svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round;}
+#cr-app .case-mark[aria-pressed=true] {color:var(--accent);background:var(--soft);}
+#cr-app .case-mark[aria-pressed=true] svg {fill:color-mix(in srgb,var(--accent) 22%,transparent);}
+#cr-app .mark-toolbar {padding:12px 0 16px;border-bottom:1px solid var(--line);margin-bottom:16px;}
+#cr-app .mark-actions {display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#cr-app #mark-counts {font-size:12px;color:var(--muted);margin-right:auto;}
+#cr-app #mark-status {margin:8px 0 0;}
+#cr-app .feedback-dialog {max-width:480px;width:calc(100% - 48px);border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:24px;}
+#cr-app .feedback-dialog::backdrop {background:#0008;}
+#cr-app .feedback-dialog h2 {margin-top:0;font-size:18px;}
+#cr-app .feedback-dialog textarea {margin:6px 0 16px;min-height:100px;}
+@media (max-width:740px) { #cr-app .case-mark-tools {margin:12px 6px 8px 0;}}
+@media print { #cr-app .case-mark-tools,#cr-app .mark-toolbar,#cr-app .feedback-dialog {display:none;}}
+
 </style>
 <style>
 #cr-app .lookup-card {margin:0 0 24px; padding:16px 20px; border:1px solid var(--line); border-radius:10px; background:var(--panel);}
@@ -278,24 +303,24 @@ html[data-theme="dark"] {color-scheme:dark;}
 </style>
 </head>
 <body>
-<div id="cr-app" data-theme="{{ theme | default('system') }}" {% if combined_view %}class="dual-view"{% endif %}>
+<div id="cr-app" data-theme="{{ theme | default('dark') }}" {% if combined_view %}class="dual-view"{% endif %}>
 {% if exported_review | default(false) %}<aside class="phi-banner"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</aside>{% endif %}
-<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('resident') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
+<header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('attending') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
 {% if not exported_review | default(false) %}
 {% if error %}<div class="error" id="analysis-error" role="alert">{{ error }}</div>{% endif %}
 {% endif %}
 <fieldset class="review-mode" aria-describedby="mode-help"><legend class="sr">Review mode</legend><div class="mode-options">
-<label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('resident') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
-<label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('resident') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
-</div><p class="mode-help" id="mode-help" role="status">Both title perspectives are generated together.</p></fieldset>
+<label class="mode-option"><input type="radio" id="mode-resident" name="review_mode" value="resident" form="report-form" {% if review_mode | default('attending') != 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 8 9-4 9 4-9 4-9-4Zm4 2v5c3 3 7 3 10 0v-5M21 8v7"/></svg>Resident</span></label>
+<label class="mode-option"><input type="radio" id="mode-attending" name="review_mode" value="attending" form="report-form" {% if review_mode | default('attending') == 'attending' %}checked{% endif %}><span class="mode-label"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3M9 15l3 3 3-3M12 18v3"/></svg>Attending</span></label>
+</div><p class="mode-help" id="mode-help" role="status">Case titles follow the selected perspective.</p></fieldset>
 {% if not exported_review | default(false) %}
 <details class="input-card" id="input-disclosure" {% if not cases %}open{% endif %}><summary>Report input</summary>
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
 <input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
-<input type="hidden" id="theme-value" name="theme" value="{{ theme | default('system') }}">
+<input type="hidden" id="theme-value" name="theme" value="{{ theme | default('dark') }}">
 <input type="hidden" id="lookup-value" name="lookup_json" value="">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
 <textarea id="report-text" name="reports_text" required autocomplete="off" spellcheck="false">{{ reports_text }}</textarea>
@@ -343,12 +368,22 @@ html[data-theme="dark"] {color-scheme:dark;}
 {% else %}
 <input type="hidden" id="combined-view-value" value="{{ '1' if combined_view else '0' }}"><input type="hidden" id="report-wording-value" value="{{ '1' if show_report_wording else '0' }}"><input type="hidden" id="theme-value" value="{{ theme }}">
 {% endif %}
-{% if exported_review | default(false) %}<button type="button" id="save-review" class="plain">Save review with corrections</button>{% endif %}
 <section id="review" aria-labelledby="review-heading" hidden>
 {% if not exported_review | default(false) %}<div class="export-tools"><button type="button" id="export-review">Download review HTML</button><label class="view-switch"><input type="checkbox" id="export-filtered"><span>Only currently shown cases</span></label><span class="hint" id="export-status" role="status"></span></div>{% endif %}
+<div class="mark-toolbar" aria-label="Review marks and downloads">
+<div class="mark-actions"><span id="mark-counts"></span>{% if exported_review | default(false) %}<button type="button" id="save-review">Download updated review</button>{% endif %}<button type="button" id="export-feedback" disabled>Download feedback (0)</button></div>
+<p class="hint" id="mark-status" role="status">Marks and comments stay in this open page until you download an updated copy.</p>
+</div>
+<p id="feedback-notice" class="notice" {% if not feedback_only | default(false) %}hidden{% endif %}>Project feedback for Sterling. This file contains flagged cases only. Downloading does not send it.</p>
+<dialog id="feedback-dialog" class="feedback-dialog" aria-labelledby="feedback-title">
+<h2 id="feedback-title">Project feedback</h2><p class="hint">Include this case in a feedback download for Sterling. Nothing is sent automatically.</p>
+<label for="feedback-comment">Comment (optional)</label><textarea id="feedback-comment" maxlength="2000" rows="4" placeholder="What seems incorrect or unclear?"></textarea>
+<div class="mark-actions"><button type="button" id="feedback-done">Done</button><button type="button" id="feedback-remove" class="plain">Remove flag</button></div>
+</dialog>
 <div class="heading"><h2 id="review-heading">Your cases</h2><div class="review-preferences"><span class="totals" id="totals"></span><label class="view-switch"><input type="checkbox" role="switch" id="combined-view" {% if combined_view %}checked{% endif %}><span>Summary + text changes</span></label></div></div>
 <div class="filter-panel">
 <div class="filter-row"><div class="filter-options" id="revision-totals" role="group" aria-label="Filter by revision category"></div><button type="button" class="plain" id="reset-filters" hidden>Reset filters</button></div>
+<div class="filter-options" id="mark-filters" role="group" aria-label="Filter by your marks"></div>
 <div class="filter-options" id="status-filters" role="group" aria-label="Filter by analysis status"></div>
 </div>
 <div class="analysis-progress" id="analysis-progress" hidden>
@@ -369,6 +404,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <p class="sr" id="announcement" aria-live="polite"></p>
 </main>
 <script id="review-data" type="application/json">{{ cases | tojson }}</script>
+<script id="review-metadata" type="application/json">{{ review_metadata | tojson }}</script>
 <script id="lookup-data" type="application/json">{{ lookup_rows | default([]) | tojson }}</script>
 {% if not exported_review | default(false) %}
 <script id="default-prompt" type="application/json">{{ default_prompt | tojson }}</script>
@@ -390,7 +426,9 @@ const pinnedRevisions=new Map(), hoveredRevisions=new Map(), passageIndices=new 
 const syntheticPreview={{ synthetic_preview | tojson }};
 const analysisIds=new Set(cases.filter(c=>['queued','processing'].includes(c.status)||(syntheticPreview&&['complete','partial','error'].includes(c.status))).map(c=>c.id));
 let generation=0, queueRunning=false, submittedPrompt={% if exported_review | default(false) %}''{% else %}$('custom-prompt').value{% endif %};
-let reviewMode=$('cr-app').dataset.reviewMode||{{ review_mode | default('resident') | tojson }};
+function readPreference(key,values){try{if(!exportedReview){const value=localStorage.getItem(key);if(values.includes(value))return value;}}catch{}return null;}
+function savePreference(key,value){try{if(!exportedReview)localStorage.setItem(key,value);}catch{}}
+let reviewMode=readPreference('compare-revisions-mode-v1',['resident','attending'])||$('cr-app').dataset.reviewMode||{{ review_mode | default('attending') | tojson }};
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.checked=radio.value===reviewMode;
 {% if not exported_review | default(false) %}
 const reviewPrompts=JSON.parse($('review-prompts').textContent);
@@ -399,14 +437,14 @@ const promptDrafts={...reviewPrompts};
 {% endif %}
 function describeMode(){
  $('mode-subtitle').textContent=(reviewMode==='attending'?'Attending':'Resident')+' report review';
- $('mode-help').textContent='Switch title perspective at any time. Both are generated together; legacy results keep their original title.';
+ $('mode-help').textContent='Titles switch perspective; summaries and classifications stay the same.';
 }
 for(const radio of document.querySelectorAll('input[name="review_mode"]'))radio.addEventListener('change',()=>{
  if(!radio.checked||radio.value===reviewMode)return;
- reviewMode=radio.value;$('cr-app').dataset.reviewMode=reviewMode;render();
+ reviewMode=radio.value;savePreference('compare-revisions-mode-v1',reviewMode);$('cr-app').dataset.reviewMode=reviewMode;if(exportedReview)markChanged();render();
 });
 const themeMedia=window.matchMedia('(prefers-color-scheme:dark)');
-let themeChoice=$('theme-value').value;
+let themeChoice=exportedReview?$('theme-value').value:(readPreference('compare-revisions-theme-v1',['dark','light'])||$('theme-value').value);
 function applyTheme(){
  const dark=themeChoice==='dark'||(themeChoice==='system'&&themeMedia.matches);
  $('cr-app').dataset.theme=themeChoice;document.documentElement.dataset.theme=themeChoice;
@@ -414,7 +452,7 @@ function applyTheme(){
  $('theme-toggle').title=dark?'Switch to day mode':'Switch to night mode';
 }
 applyTheme();
-$('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').getAttribute('aria-checked')==='true'?'light':'dark';applyTheme();});
+$('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').getAttribute('aria-checked')==='true'?'light':'dark';savePreference('compare-revisions-theme-v1',themeChoice);applyTheme();if(exportedReview)markChanged();});
 themeMedia.addEventListener('change',()=>{if(themeChoice==='system')applyTheme();});
 let combinedView=$('combined-view').checked;
 let showReportWording=$('report-wording-value').value==='1';
@@ -431,6 +469,7 @@ const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
 const analyzed = c => c.status==='complete';
 const displayTitle = c => c['title_'+reviewMode] || c.title || 'Untitled case';
 const caseLabel = c => c.case_label || members(c).join(', ');
+/* REVIEW MARKS AUTHORING SOURCE */
 /* LOOKUP AUTHORING SOURCE */
 // Normalize generated prose only. Quoted evidence and original reports stay exact.
 const prose = value => String(value || '').replace(/\s*-+>\s*/g,' → ').replace(/\s*=+>\s*/g,' → ');
@@ -442,6 +481,8 @@ function appendSummary(node,item) {
   el('span','attending-summary'+(item.importance==='major'?' is-major':''),' → '+item.attending_summary));
 }
 function matchesFilter(c,filter) {
+ if(filter==='favorite')return marksFor(c).favorite;
+ if(filter==='flagged')return marksFor(c).flagged;
  if(filter==='analysis-issues')return analysisIds.has(c.id)&&!['queued','processing','complete'].includes(c.status);
  if(filter==='not-submitted')return !analysisIds.has(c.id);
  if(groupOrder.includes(filter)&&counts(c)[filter]>0)return true;
@@ -724,7 +765,7 @@ function caseRow(c,key) {
  const badges=el('span','badges'), tally=counts(c);
  for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
  if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
- if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);row.append(head);
+ if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);const header=el('div','case-header');header.append(head,caseMarkTools(c,key));row.append(header);
  const copy=accessionIcon(c);if(copy){row.classList.add('has-accession');row.prepend(copy);}
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
@@ -768,10 +809,11 @@ function render() {
   const matching=cases.filter(c=>matchesFilter(c,group)).length;
   return filterChip(group,group==='review'?'Needs review ('+matching+')':badgeText(group,allCounts[group]),'badge '+group,labels[group]+': '+allCounts[group]+' revisions; '+matching+' matching cases.');
  }));
+ updateMarkTools();
  $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
- $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
+ $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted','favorite':'Marked for later','flagged':'Project feedback'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
  updateLookupCoverage();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
@@ -784,7 +826,7 @@ function updateReview(){const focusId=document.activeElement?.id;render();if(foc
 function applyAnalysisResult(c,result,mode){
  // Keep capture identity immutable. Both title perspectives must survive BOTH
  // batch streaming and an individual retry, or switching falls back to title.
- for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
+ for(const field of ['exam_label','status','status_message','revisions','clinical_diff','clinical_headings','diff_note','analysis_warnings','analysis_provenance'])if(Object.prototype.hasOwnProperty.call(result,field))c[field]=result[field];
  if(['complete','partial'].includes(result.status)){
   if(typeof result.title_resident==='string'&&result.title_resident.trim()&&typeof result.title_attending==='string'&&result.title_attending.trim()){
    c.title_resident=result.title_resident;c.title_attending=result.title_attending;c.title=result.title||result['title_'+mode];
@@ -898,7 +940,7 @@ $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleC
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
  dismissWordingOffer();wordingOverrides.clear();$('wording-scroll-space').style.height='0px';
- for(const c of cases){c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
+ for(const c of cases){c.review_marks={favorite:false,flagged:false,comment:''};c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();
  for(const mode of Object.keys(reviewPrompts))promptDrafts[mode]=reviewPrompts[mode];describeMode();

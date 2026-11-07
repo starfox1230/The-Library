@@ -1,5 +1,21 @@
 # Changes and rationale — October 4, 2026
 
+## Clinical-action threshold and explicit saved copies — November 7, 2026 (2026.11.07.1)
+
+- Shared prompt 1.8 / dual-title 1.2: likely substantial clinical-action difference,
+  no automatic certainty/detail upgrades; new calibration and consequence ordering.
+  Exact previous 1.7 instructions archived. Existing results require explicit
+  reanalysis for the new rubric; model/deployment settings are unchanged.
+- Stars, Project feedback flags, optional comments, filters, explicit updated-copy
+  downloads and flagged-only feedback. Never persist clinical data in storage or
+  silently send feedback. Retain grouped source numbers, batch ID and per-analysis
+  provenance; exclude unrelated case DOM/JSON and all lookup/crop data from feedback.
+- Attending and dark defaults; web-only nonclinical preference persistence with
+  blocked-storage fallback. Offline copies preserve their selected perspective,
+  resolved theme and combined view without cross-file preference promises.
+- Offline checks and Edge roundtrips use synthetic reports and mocked responses.
+  No clinical validation or live Cloud Run deployment is claimed.
+
 ## Preserve dual titles and clarify Major — November 6, 2026 (2026.11.06.1)
 
 - Fix both browser response whitelists dropping title_resident/title_attending.
