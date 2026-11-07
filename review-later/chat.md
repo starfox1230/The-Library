@@ -44,41 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-06 22:00 Central Standard Time
-Cards: 2
+Updated: 2026-11-07 05:31 Central Standard Time
+Cards: 0
 
-## Card 1
-
-Deck: .NEW::Audio
-Flagged: 2026-11-06T21:56:40-06:00
-Last seen: 2026-11-06T21:56:40-06:00
-Card ID: 1765507990197
-Note ID: 1765507990196
-
-Question:
-00:12
-
-A right aortic arch with mirror branching is most closely associated with [...].
-
-Answer:
-00:12
-
-A right aortic arch with mirror branching is most closely associated with Truncus arteriosus.
-
-## Card 2
-
-Deck: .NEW::Audio
-Flagged: 2026-05-06T05:32:34-05:00
-Last seen: 2026-11-06T21:55:40-06:00
-Card ID: 1777842173601
-Note ID: 1777842173601
-
-Question:
-00:12
-
-The physiologic distribution of I-123 or I-131 includes [...].
-
-Answer:
-00:08
-
-The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
+No currently blue cards were seen in this period.
