@@ -44,7 +44,25 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-07 05:31 Central Standard Time
-Cards: 0
+Updated: 2026-11-07 05:32 Central Standard Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-07T05:32:01-06:00
+Last seen: 2026-11-07T05:32:01-06:00
+Card ID: 1760419317214
+Note ID: 1760419317214
+
+Question:
+00:12
+
+A quadrigeminal cistern mass with fluid and rim enhancement suggests [...].
+
+Answer:
+00:08
+
+A quadrigeminal cistern mass with fluid and rim enhancement suggests pineal cyst.
+
+Notion - AIRP Pineal Gland Neoplasms
