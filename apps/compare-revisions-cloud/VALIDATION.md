@@ -1,5 +1,13 @@
 # Verification record
 
+## November 7, 2026: red OCR review action (2026.11.07.3)
+
+- `check-ocr-review.cjs` verifies the pending count, prominent red background in
+  light/dark themes, and return to neutral/disabled after resolving all rows.
+  Existing sequence, overlap, crop, keyboard and conflict checks also pass.
+- 116 offline Python tests pass; template assembly remains synchronized.
+  OCR/analysis rules and authentication are unchanged. Deployment is pending.
+
 ## November 7, 2026: 13 compact-review improvements (2026.11.07.2)
 
 - **116 offline Python tests passed.** Assembled source and authoring template

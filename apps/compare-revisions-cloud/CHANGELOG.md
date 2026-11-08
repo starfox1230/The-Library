@@ -1,5 +1,12 @@
 # Changes and rationale — October 4, 2026
 
+## Red OCR review action — November 7, 2026 (2026.11.07.3)
+
+- Review OCR uses a prominent red fill whenever pending rows make it available.
+  It returns to its neutral disabled appearance when checks are resolved or OCR
+  is running. The existing pending-row count and review workflow are unchanged.
+  Both light and dark themes retain contrasting text. Deployment is pending.
+
 ## Compact filters and quieter review — November 7, 2026 (2026.11.07.2)
 
 - Continuous case-header hover; neutral internal star/flag hover, gold/red

@@ -24,6 +24,11 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),fs=requir
   }
  });
  assert.equal(await page.evaluate(()=>ocrQA.rows.length),70);assert.equal(await page.evaluate(()=>ocrQA.available().length),68);
+ assert.equal(await page.locator('#lookup-review').innerText(),'Review OCR (2)');
+ for(const dark of [false,true]){
+  if(await page.locator('#theme-toggle').getAttribute('aria-checked')!==String(dark))await page.locator('#theme-toggle').click();
+  assert.equal(await page.locator('#lookup-review').evaluate(n=>getComputedStyle(n).backgroundColor),await page.locator('#filter-major').evaluate(n=>getComputedStyle(n).color));
+ }
  assert.deepEqual(await page.evaluate(()=>ocrQA.rows.map(r=>r.case_number)),Array.from({length:70},(_,i)=>i+1));
  assert.equal(await page.evaluate(()=>ocrQA.rows.find(r=>r.case_number===57).imageId),'a');
  assert.equal(await page.evaluate(()=>ocrQA.rows.find(r=>r.case_number===58).accession),'CT990000058');
@@ -39,6 +44,7 @@ const {chromium}=require('playwright'),assert=require('assert/strict'),fs=requir
  await page.setViewportSize({width:390,height:844});const box=await page.locator('#ocr-review-dialog').boundingBox();assert(box.x>=0&&box.x+box.width<=390,'review overlay overflows mobile');await page.screenshot({path:path.join(__dirname,'qa-output/ocr-review-mobile.png')});
  await page.locator('#ocr-review-accession').fill('CT990000040');await page.keyboard.press('Enter');
  assert.equal(await page.locator('#ocr-review-dialog').evaluate(d=>d.open),false);assert(await page.locator('#lookup-review').isDisabled());assert.equal(await page.evaluate(()=>ocrQA.available().length),70);
+ assert.notEqual(await page.locator('#lookup-review').evaluate(n=>getComputedStyle(n).backgroundColor),await page.locator('#filter-major').evaluate(n=>getComputedStyle(n).color));
  // Choosing the second conflicting source must not skip the following item.
  await page.evaluate(()=>{ocrQA.images.length=0;ocrQA.rows=[{case_number:81,accession:'CT990000081',source:'First'},{case_number:81,accession:'MR990000081',source:'Second'},{case_number:82,accession:'CT9900000829',accessionIssue:'Check length'}];ocrQA.table();});
  await page.locator('#lookup-review').click();await page.locator('#ocr-review-alternatives button').click();assert.equal(await page.locator('#ocr-review-accession').inputValue(),'MR990000081');

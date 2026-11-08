@@ -481,7 +481,7 @@ are identical for both viewing modes. Always keep resident-to-attending order.""
 ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
-REVIEW_BUILD = '2026.11.07.2'
+REVIEW_BUILD = '2026.11.07.3'
 
 
 def review_metadata(raw=None):
@@ -1475,6 +1475,8 @@ html[data-theme="dark"] {color-scheme:dark;}
 #cr-app .lookup-paste-zone {display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px; margin-top:10px; border:1px dashed var(--line); border-radius:10px; background:var(--soft);}
 #cr-app .lookup-paste-zone:focus-visible {outline:2px solid var(--accent); outline-offset:2px;}
 #cr-app .lookup-tools {display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0;}
+#cr-app #lookup-review:not(:disabled) {background:var(--major);border-color:var(--major);color:var(--bg);font-weight:650;}
+#cr-app #lookup-review:not(:disabled):hover {background:color-mix(in srgb,var(--major) 90%,var(--ink));}
 #cr-app .lookup-tools input {width:auto; max-width:100%;}
 #cr-app .lookup-range-confirm {display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;}
 #cr-app .lookup-range-confirm input {width:18px; height:18px; padding:0; flex:none;}
