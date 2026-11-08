@@ -44,10 +44,126 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-08 13:03 Central Standard Time
-Cards: 18
+Updated: 2026-11-08 13:12 Central Standard Time
+Cards: 23
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-08T13:11:17-06:00
+Last seen: 2026-11-08T13:11:17-06:00
+Card ID: 1757025519983
+Note ID: 1757025519983
+
+Question:
+00:12
+
+Intramedullary rod/nail is the classic treatment for [what femoral neck fractures?]
+
+Answer:
+00:08
+
+Intramedullary rod/nail is the classic treatment for unstable basicervical or intertrochanteric fractures (comminuted, reverse obliquity, subtrochanteric extension, or involvement of the posteromedial cortex [calcar femorale])
+
+Dynamic Hip Screw
+
+Intramedullary rod/nail
+
+Dynamic Hip Screw
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-09-30T07:52:00-05:00
+Last seen: 2026-11-08T13:09:35-06:00
+Card ID: 1789015833872
+Note ID: 1789015833870
+
+Question:
+00:12
+
+[...] are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+Answer:
+00:12
+
+Tc-99m ECD and Tc-99m HMPAO are brain-perfusion tracers that cross the blood-brain barrier and produce parenchymal brain uptake.
+
+## Card 3
+
+Deck: .NEW::Visual
+Flagged: 2026-09-26T07:29:03-05:00
+Last seen: 2026-11-08T13:08:09-06:00
+Card ID: 1790272665570
+Note ID: 1790272665569
+
+Question:
+00:12
+
+What’s the black structure in the left atrium?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What’s the black structure in the left atrium?
+
+Coumadin ridge
+
+1/2
+
+## Card 4
+
+Deck: .NEW::Visual
+Flagged: 2026-07-11T10:04:05-05:00
+Last seen: 2026-11-08T13:05:55-06:00
+Card ID: 1783397643342
+Note ID: 1783397643341
+
+Question:
+00:12
+
+Most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+Most likely diagnosis?
+
+Mastocytosis -- Coronal CT images showing diffuse and patchy skeletal sclerosis in two patients.
+
+Core Radiology 2nd ed., MSK: 989. Mastocytosis can produce diffuse or patchy sclerosis from marrow reaction to infiltrating mast cells.
+
+Full source page:
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-09-09T18:06:59-05:00
+Last seen: 2026-11-08T13:05:42-06:00
+Card ID: 1768331455467
+Note ID: 1768331455467
+
+Question:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+[...]
+
+Answer:
+00:12
+
+What is the typical zonal distribution of cysts in pulmonary Langerhans cell histiocytosis?
+
+Upper lobe predominance with relative sparing of the lung bases
+
+## Card 6
 
 Deck: ..Due 2026-10-15 to 2026-11-08 Combined
 Flagged: 2026-11-08T11:47:18-06:00
@@ -65,7 +181,7 @@ Answer:
 
 The number of yolk sacs present in a gestational sac can help determine the amnionicity of a pregnancy.
 
-## Card 2
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-09-30T11:57:33-05:00
@@ -83,7 +199,7 @@ Answer:
 
 In a small hyperlucent oligemic lung, occurrence on the side opposite the aortic arch favors proximal interruption of the pulmonary artery.
 
-## Card 3
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T07:32:28-06:00
@@ -105,7 +221,7 @@ Diagnosis in trauma?
 
 Grade 3 hepatic laceration
 
-## Card 4
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-11-08T07:31:54-06:00
@@ -123,7 +239,7 @@ Answer:
 
 Intraparenchymal Hemorrhage: At the late subacute stage (8 days–1 month), the predominant hemoglobin form is methemoglobin (extracellular).
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-08-22T06:38:18-05:00
@@ -147,7 +263,7 @@ D
 
 Source: Visual Cards for nukes session. Original note used lettered locations; this card tests the physiologic localization instead of the answer letters.
 
-## Card 6
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-08-09T22:03:42-05:00
@@ -165,7 +281,7 @@ Answer:
 
 A Rastelli procedure is used for d-Transposition of the great arteries with a large VSD and pulmonary outflow obstruction.
 
-## Card 7
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -183,7 +299,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 8
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -201,7 +317,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 9
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-10-20T23:25:42-05:00
@@ -233,7 +349,7 @@ Q45. Correct; difficulty: hard. Vital Concept: Cardiac amyloidosis demonstrates 
 
 Open review Q45
 
-## Card 10
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-11-08T06:30:08-06:00
@@ -251,7 +367,7 @@ Answer:
 
 In brain imaging, the corticomedullary junction means the boundary between the cerebral cortex (gray matter) and the underlying subcortical white matter.
 
-## Card 11
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T13:17:29-05:00
@@ -269,7 +385,7 @@ Answer:
 
 The resulting photoelectrons from increased photoelectric absorption mainly contribute to patient absorbed dose.
 
-## Card 12
+## Card 17
 
 Deck: Saved Cards
 Flagged: 2026-11-08T06:21:47-06:00
@@ -301,7 +417,7 @@ Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
 
 Open source PDF
 
-## Card 13
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-04-16T09:05:38-05:00
@@ -319,7 +435,7 @@ Answer:
 
 An enhancing lesion of the choroid plexus in an adult is most likely a meningioma.
 
-## Card 14
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T07:01:56-05:00
@@ -341,7 +457,7 @@ What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 combined liver–kidney transplantation
 
-## Card 15
+## Card 20
 
 Deck: .NEW::Visual
 Flagged: 2026-04-20T16:57:03-05:00
@@ -366,7 +482,7 @@ Pancreatic ductal adenocarcinoma (double duct sign
 Other neoplasms of the ampulla, pancreas, and periampullary region such as duodenal carcinoma can also produce the double-duct sign.
 Benign causes include chronic pancreatitis and ampullary stenosis, but these are diagnoses ofexclusion.
 
-## Card 16
+## Card 21
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T07:25:03-05:00
@@ -388,7 +504,7 @@ What is C?
 
 Probst bundles
 
-## Card 17
+## Card 22
 
 Deck: Saved Cards
 Flagged: 2026-10-01T13:11:39-05:00
@@ -412,7 +528,7 @@ Subependymoma
 
 Source: Notion Radiology entry.
 
-## Card 18
+## Card 23
 
 Deck: .NEW::Audio
 Flagged: 2026-06-27T14:57:59-05:00
