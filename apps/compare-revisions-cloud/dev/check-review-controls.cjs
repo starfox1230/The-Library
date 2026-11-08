@@ -85,7 +85,7 @@ const withCases=cases=>html.replace(/(<script id="review-data" type="application
   await page.locator('#filter-major').focus();await page.keyboard.press('Enter');
   assert.equal(await page.locator('.case').count(),2);
   assert.equal(await page.evaluate(()=>document.activeElement.id),'filter-major');
-  await page.locator('#filter-wording').click();
+  await page.locator('#filter-wording').click({modifiers:['Control']});
   assert.equal(await page.locator('.case').count(),4,'multiple categories include either, without duplicate cases');
   assert.equal(await page.locator('#filter-major').getAttribute('aria-pressed'),'true');
   assert.equal(await page.locator('#filter-wording').getAttribute('aria-pressed'),'true');

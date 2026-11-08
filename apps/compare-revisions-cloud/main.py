@@ -508,7 +508,7 @@ are identical for both viewing modes. Always keep resident-to-attending order.""
 ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
-REVIEW_BUILD = '2026.11.07.8'
+REVIEW_BUILD = '2026.11.07.9'
 
 
 def review_metadata(raw=None):
@@ -2462,9 +2462,10 @@ function matchesFilter(c,filter) {
  return filter==='none'&&analyzed(c)&&revisions(c).length===0;
 }
 function filterChip(key,text,cls='',description='') {
- const chip=button(text,'filter-chip '+cls,()=>{
+ const chip=button(text,'filter-chip '+cls,event=>{
   if(key==='all')selectedFilters.clear();
-  else if(selectedFilters.has(key))selectedFilters.delete(key);else selectedFilters.add(key);
+  else if(event.ctrlKey||event.shiftKey){if(selectedFilters.has(key))selectedFilters.delete(key);else selectedFilters.add(key);}
+  else{selectedFilters.clear();selectedFilters.add(key);}
   renderAndFocus('filter-'+key);
  });
  chip.id='filter-'+key;chip.setAttribute('aria-pressed',String(key==='all'?selectedFilters.size===0:selectedFilters.has(key)));

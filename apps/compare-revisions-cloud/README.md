@@ -1,5 +1,12 @@
 # Compare Revisions: cloud review redesign
 
+## Single-click filters — November 7, 2026 (2026.11.07.9)
+
+Prepared source; deployment pending. An ordinary filter click replaces the
+current selection. Ctrl-click or Shift-click toggles an individual filter while
+retaining other selections. All cases always clears the filter selection. The
+same behavior applies inside More and in newly downloaded HTML reviews.
+
 ## Independent finding expansion — November 7, 2026 (2026.11.07.8)
 
 Prepared source; Cloud Run deployment is pending. Clicking another finding

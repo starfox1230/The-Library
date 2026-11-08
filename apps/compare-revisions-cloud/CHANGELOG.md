@@ -1,5 +1,11 @@
 # Changes and rationale — October 4, 2026
 
+## Single-click filters — November 7, 2026 (2026.11.07.9)
+
+- Ordinary clicks select only the clicked filter; Ctrl/Shift-click retains the
+  existing multi-filter toggle behavior. All cases clears the selection.
+- Share semantics across primary/More filters and newly exported reviews.
+
 ## Independent finding expansion — November 7, 2026 (2026.11.07.8)
 
 - Track individually revealed explanation/wording items as sets per case;

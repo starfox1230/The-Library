@@ -1,5 +1,14 @@
 # Verification record
 
+## November 7, 2026: modifier-based filter selection (2026.11.07.9)
+
+- All 118 offline backend tests pass; assembled source passes syntax checking.
+- New `check-filter-selection.cjs` checks ordinary replacement/repeated clicks,
+  Ctrl/Shift additive toggling and removal, More filters, All clearing, and
+  removing the final selection. The same checks pass in an actual offline export.
+- Recipient filters/diagnostic-retention browser checks also pass. All fixtures
+  are synthetic; no model calls or live clinical data. Deployment remains pending.
+
 ## November 7, 2026: independent finding expansion (2026.11.07.8)
 
 - All 118 offline backend tests pass; assembly syntax-checks the runtime source.
