@@ -1,5 +1,22 @@
 # Compare Revisions: cloud review redesign
 
+## Operator guide
+
+[Asser’s standalone HTML checklist](asser-guide.html) turns the November 6
+Notion "SOP for Asser" into seven steps, with separate First Call and Second
+Call checklists. It opens directly in a browser, needs no installation or
+network for its checklist, and includes a print layout. Checkmarks stay in
+memory only. The original illustrated SOP is linked; no patient screenshots
+are embedded in this repository template. The private copy delivered to Asser
+embeds all eight original screenshots, with captions, in one offline HTML file;
+that copy and its screenshot assets are excluded from GitHub. Added operator
+tips are limited to clipboard order, keeping the
+worklist stable, OCR checks, opening the downloaded file and approved handling.
+Verified in headless Edge: independent checklists, role/subject switching,
+completion/reset, expandable help, 320–1440px layouts, clipboard fallback,
+printing and standalone download/reopen. All eight embedded screenshots load
+offline in the private copy, with no external requests or script errors.
+
 ## Routine added reassurance — November 7, 2026 (2026.11.07.7)
 
 Prepared source; Cloud Run deployment is pending. Shared prompt
