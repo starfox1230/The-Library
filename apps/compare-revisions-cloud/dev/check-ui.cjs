@@ -16,12 +16,13 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  assert.match(await page.locator('.case-head').first().innerText(),/2 major/);
  assert.match(await page.locator('.case-head').first().innerText(),/4 minor/);
  assert.match(await page.locator('.case-head').first().innerText(),/5 wording/);
- assert.match(await page.locator('.case-head').first().innerText(),/\+9 more/);
+ assert.equal(await page.locator('#row-0 .preview-item').count(),6);
+ assert.equal(await page.locator('.change-preview .more,.preview-item.wording,.preview-item.review').count(),0);
  const totals=Object.fromEntries(['major','minor','wording','review'].map(group=>[group,fixtures.reduce((sum,c)=>sum+c.revisions.filter(r=>r.importance===group).length,0)]));
  for(const [group,total] of Object.entries(totals))if(group!=='review')assert.match(await page.locator('#revision-totals .'+group).innerText(),new RegExp('^'+total+' '),'totals count revisions across all numbered cases');
  assert.equal(await page.locator('#filter-review').innerText(),'Needs review (1)','review includes failed analyses without revision items');
  const initialTotals=await page.locator('#revision-totals').innerText();
- for(const group of ['major','wording']){
+ for(const group of ['major','minor']){
   const previews=page.locator('.preview-item.'+group);assert(await previews.count()>0);
   assert.equal(await previews.first().locator('.resident-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'resident preview uses reading color regardless of '+group);
   assert.equal(await previews.first().locator('.attending-summary').evaluate(n=>getComputedStyle(n).color),await page.locator('#filter-'+(group==='major'?'major':'minor')).evaluate(n=>getComputedStyle(n).color),'attending preview reflects importance');
@@ -135,7 +136,7 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  await page.emulateMedia({colorScheme:'dark'});
  await page.setViewportSize({width:1280,height:1000});
  await page.waitForTimeout(350);
- for(const group of ['major','wording'])assert.equal(await page.locator('.preview-item.'+group+' .resident-summary').first().evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'dark resident text uses reading color for '+group);
+ for(const group of ['major','minor'])assert.equal(await page.locator('.preview-item.'+group+' .resident-summary').first().evaluate(n=>getComputedStyle(n).color),await page.locator('.case-title').first().evaluate(n=>getComputedStyle(n).color),'dark resident text uses reading color for '+group);
  await page.screenshot({path:path.join(dir,'dark-collapsed.png'),fullPage:true});
  assert.equal(external,0,'synthetic preview must have no external requests');
  await page.locator('#input-disclosure > summary').click();

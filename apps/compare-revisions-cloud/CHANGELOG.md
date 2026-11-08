@@ -1,5 +1,13 @@
 # Changes and rationale — October 4, 2026
 
+## Complete clinical case headers — November 7, 2026 (2026.11.07.6)
+
+- Show every Major/Minor summary in collapsed headers, retaining severity order
+  and within-category order, without a two-item limit or +more indicator.
+- Remove Wording/detail, ungraded and status-message header fallbacks, including
+  Analysis complete on cases without revisions. Keep counts and expanded content.
+- Apply the same rendering to live and self-contained downloaded reviews.
+
 ## Administrator review state stays out of recipient UI — November 7, 2026 (2026.11.07.5)
 
 - Put Wording & detail under More; retain Needs review in the original view only.

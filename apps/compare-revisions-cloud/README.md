@@ -1,5 +1,15 @@
 # Compare Revisions: cloud review redesign
 
+## Complete clinical case headers — November 7, 2026 (2026.11.07.6)
+
+Prepared source; Cloud Run deployment is pending. Collapsed case headers show
+every Major and Minor summary, with Major first and no +more truncation.
+Wording/detail and ungraded summaries stay out of the header; opening a case
+still exposes its full available revision list. Cases without clinical changes
+have no summary/status fallback beneath the title, including Analysis complete.
+This applies to the website and newly downloaded reviews. Counts and genuine
+analysis-state badges/notices remain available in their existing locations.
+
 ## Recipient filters and hidden diagnostics — November 7, 2026 (2026.11.07.5)
 
 Prepared source; Cloud Run deployment is pending. Wording & detail is under

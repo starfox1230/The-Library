@@ -1,5 +1,17 @@
 # Verification record
 
+## November 7, 2026: complete clinical headers (2026.11.07.6)
+
+- All 117 offline Python tests pass; assembled main.py passes syntax checking.
+- New `check-header-summaries.cjs` verifies a dense 11-revision case shows all
+  six Major/Minor summaries in severity order, no Wording/review summaries or
+  +more, and no completion/status fallback for empty or nonclinical cases.
+  Expanded content retains all 11 items. Real export retains source records and
+  passes the same checks as a standalone HTML file at 1280, 375 and 320px.
+- Recipient filters/diagnostics, compact controls/downloads and dual-title/
+  severity browser suites also pass. Inspected the synthetic header screenshot.
+  No real reports or model calls used. Deployment pending: footer 2026.11.07.6.
+
 ## November 7, 2026: recipient filters and diagnostic retention (2026.11.07.5)
 
 - 117 offline Python tests pass, including validated ungraded record retention,
