@@ -1,5 +1,15 @@
 # Compare Revisions: cloud review redesign
 
+## Independent finding expansion — November 7, 2026 (2026.11.07.8)
+
+Prepared source; Cloud Run deployment is pending. Clicking another finding
+leaves earlier findings' explanations and report wording expanded. Click an
+expanded finding again to close its individual details. Whole cases also remain
+independently expandable. Explicit case/all-case visibility controls still apply.
+The text pane continues to follow the hovered or keyboard-focused finding,
+which takes priority over the last clicked source selection. Applies to new
+HTML exports as well. Grading, recommendations and prompts are unchanged.
+
 ## Operator guide
 
 [Asser’s standalone HTML checklist](asser-guide.html) turns the November 6

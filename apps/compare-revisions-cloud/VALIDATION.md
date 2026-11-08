@@ -1,5 +1,16 @@
 # Verification record
 
+## November 7, 2026: independent finding expansion (2026.11.07.8)
+
+- All 118 offline backend tests pass; assembly syntax-checks the runtime source.
+- Updated revision-details browser coverage checks simultaneous item expansion,
+  closing only the clicked item, separate cases staying open, case close/reopen,
+  and hover taking source-highlight priority over the last clicked item while
+  preserving all expanded details. Checked in both live-template and real offline
+  exports, alongside existing global controls, animations and sticky downloads.
+- Complete-header browser coverage also passes. No live AI/model calls or real
+  patient data used. Deployment remains pending; prior exported files are unchanged.
+
 ## November 7, 2026: routine added reassuring negatives (2026.11.07.7)
 
 - All 118 offline Python tests pass. Assembly syntax-checks main.py; both

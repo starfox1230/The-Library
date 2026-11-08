@@ -1,5 +1,14 @@
 # Changes and rationale — October 4, 2026
 
+## Independent finding expansion — November 7, 2026 (2026.11.07.8)
+
+- Track individually revealed explanation/wording items as sets per case;
+  expanding another finding no longer replaces the previous item's reveal.
+- Re-click closes only that finding's automatic details. Keep explicit
+  case/all-case toggles and hover/focus-driven source navigation unchanged.
+- Retain expansion through case collapse/reopen and ordinary rerenders; share
+  the behavior with exported reviews. No grading or recommendation-category change.
+
 ## Routine added reassurance — November 7, 2026 (2026.11.07.7)
 
 - Shared grading prompt 1.9 puts routine added reassuring negatives in

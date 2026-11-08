@@ -508,7 +508,7 @@ are identical for both viewing modes. Always keep resident-to-attending order.""
 ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
-REVIEW_BUILD = '2026.11.07.7'
+REVIEW_BUILD = '2026.11.07.8'
 
 
 def review_metadata(raw=None):
@@ -2591,7 +2591,7 @@ function mountExplanationOffer(key){
 function syncRevisionDetails(key){
  for(const card of $('row-'+key)?.querySelectorAll('.revision')||[]){
   const index=Number(card.dataset.revisionIndex),reason=card.querySelector('.reason'),evidence=card.querySelector('.evidence'),details=card.querySelector('.revision-details');
-  const showReason=explanationShown(key)||reasonReveals.get(key)===index,showEvidence=wordingShown(key)||wordingReveals.get(key)===index;
+  const showReason=explanationShown(key)||reasonReveals.get(key)?.has(index),showEvidence=wordingShown(key)||wordingReveals.get(key)?.has(index);
   const visible=Boolean((reason&&showReason)||showEvidence);
   if(visible&&!details.classList.contains('is-visible'))details.getBoundingClientRect();
   if(reason)reason.hidden=!showReason;evidence.hidden=!showEvidence;
@@ -2627,9 +2627,9 @@ function makeRevision(item,show,key,index) {
  }
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
  const details=el('div','revision-details'),clip=el('div','revision-details-clip');details.id='details-'+key+'-'+index;
- if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!(explanationShown(key)||reasonReveals.get(key)===index);clip.append(reason);}
- const evidence=el('div','evidence'); evidence.hidden=!(show||wordingReveals.get(key)===index);
- evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); clip.append(evidence);details.append(clip);const visible=Boolean((item.reason&&(explanationShown(key)||reasonReveals.get(key)===index))||!evidence.hidden);details.classList.toggle('is-visible',visible);details.inert=!visible;details.setAttribute('aria-hidden',String(!visible));node.append(details);node.querySelector('.revision-link').setAttribute('aria-controls',details.id);node.querySelector('.revision-link').setAttribute('aria-expanded',String(visible));return node;
+ if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!(explanationShown(key)||reasonReveals.get(key)?.has(index));clip.append(reason);}
+ const evidence=el('div','evidence'); evidence.hidden=!(show||wordingReveals.get(key)?.has(index));
+ evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); clip.append(evidence);details.append(clip);const visible=Boolean((item.reason&&(explanationShown(key)||reasonReveals.get(key)?.has(index)))||!evidence.hidden);details.classList.toggle('is-visible',visible);details.inert=!visible;details.setAttribute('aria-hidden',String(!visible));node.append(details);node.querySelector('.revision-link').setAttribute('aria-controls',details.id);node.querySelector('.revision-link').setAttribute('aria-expanded',String(visible));return node;
 }
 function summaryPanel(c,key) {
  const panel=el('div'), notices=new Set();
@@ -2708,7 +2708,14 @@ function previewRevision(key,index){if(!combinedView)return;hoveredRevisions.set
 function leaveRevision(key,index){clearTimeout(hoverTimers.get(key));hoverTimers.set(key,setTimeout(()=>{if(hoveredRevisions.get(key)===index)hoveredRevisions.delete(key);showRevisionLinks(key,false);},180));}
 function pinRevision(key,index){
  clearTimeout(hoverTimers.get(key));hoveredRevisions.delete(key);
- if(pinnedRevisions.get(key)===index){pinnedRevisions.delete(key);reasonReveals.delete(key);wordingReveals.delete(key);}else{pinnedRevisions.set(key,index);reasonReveals.set(key,index);wordingReveals.set(key,index);}
+ const expanded=reasonReveals.get(key)?.has(index)||wordingReveals.get(key)?.has(index);
+ if(expanded){
+  reasonReveals.get(key)?.delete(index);wordingReveals.get(key)?.delete(index);
+  if(pinnedRevisions.get(key)===index)pinnedRevisions.delete(key);
+ }else{
+  for(const reveals of [reasonReveals,wordingReveals]){if(!reveals.has(key))reveals.set(key,new Set());reveals.get(key).add(index);}
+  pinnedRevisions.set(key,index);
+ }
  syncRevisionDetails(key);passageIndices.set(key,0);showRevisionLinks(key,true);
 }
 function showRevisionLinks(key,scrollToPassage=false){
