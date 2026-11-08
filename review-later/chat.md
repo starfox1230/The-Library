@@ -44,101 +44,241 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-07 23:03 Central Standard Time
-Cards: 5
+Updated: 2026-11-08 06:43 Central Standard Time
+Cards: 10
 
 ## Card 1
 
-Deck: .NEW::Audio
-Flagged: 2026-10-15T12:59:18-05:00
-Last seen: 2026-11-07T13:54:27-06:00
-Card ID: 1776290396660
-Note ID: 1776290396659
+Deck: .NEW::Visual
+Flagged: 2026-10-20T23:25:42-05:00
+Last seen: 2026-11-08T06:43:36-06:00
+Card ID: 1780338677546
+Note ID: 1780338677545
 
 Question:
 00:12
 
-[...] impurity is wrong chemical form of the radioisotope.
+Most likely diagnosis?
+
+[...]
+
+1/3
 
 Answer:
 00:12
 
-Radiochemical impurity is wrong chemical form of the radioisotope.
+Most likely diagnosis?
+
+Cardiac amyloidosis
+
+1/3
+
+Cardiac MRI with diffuse non-coronary subendocardial/transmural delayed enhancement.
+
+Q45. Correct; difficulty: hard. Vital Concept: Cardiac amyloidosis demonstrates characteristic global subendocardial or transmural late gadolinium enhancement in a non-coronary distribution.
+
+Open review Q45
 
 ## Card 2
 
-Deck: .NEW::Visual
-Flagged: 2026-10-21T22:27:15-05:00
-Last seen: 2026-11-07T13:52:48-06:00
-Card ID: 1755604983830
-Note ID: 1755604983829
+Deck: .NEW::Audio
+Flagged: 2026-04-16T09:05:38-05:00
+Last seen: 2026-11-08T06:39:12-06:00
+Card ID: 1776199925611
+Note ID: 1776199925611
 
 Question:
 00:12
 
-Diagnosis?
+An enhancing lesion of the choroid plexus in an adult is most likely a [...].
+
+Answer:
+00:12
+
+An enhancing lesion of the choroid plexus in an adult is most likely a meningioma.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T07:01:56-05:00
+Last seen: 2026-11-08T06:39:00-06:00
+Card ID: 1775603570020
+Note ID: 1775603570019
+
+Question:
+00:12
+
+What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
 [...]
 
 Answer:
 00:08
 
-Diagnosis?
+What is the recommended treatment for primary hyperoxaluria and oxalosis?
 
-tillaux Fracture
-
-## Card 3
-
-Deck: .NEW::Audio
-Flagged: 2026-05-06T05:32:34-05:00
-Last seen: 2026-11-07T06:31:56-06:00
-Card ID: 1777842173601
-Note ID: 1777842173601
-
-Question:
-00:12
-
-The physiologic distribution of I-123 or I-131 includes [...].
-
-Answer:
-00:08
-
-The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
+combined liver–kidney transplantation
 
 ## Card 4
 
-Deck: .NEW::Audio
-Flagged: 2026-11-06T21:56:40-06:00
-Last seen: 2026-11-07T05:33:25-06:00
-Card ID: 1765507990197
-Note ID: 1765507990196
+Deck: .NEW::Visual
+Flagged: 2026-04-20T16:57:03-05:00
+Last seen: 2026-11-08T06:33:49-06:00
+Card ID: 1776688908529
+Note ID: 1776688908529
 
 Question:
 00:12
 
-A right aortic arch with mirror branching is most closely associated with [...].
+Most likely diagnosis?
 
-Answer:
-00:12
-
-A right aortic arch with mirror branching is most closely associated with Truncus arteriosus.
-
-## Card 5
-
-Deck: .NEW::Audio
-Flagged: 2026-11-07T05:32:01-06:00
-Last seen: 2026-11-07T05:32:47-06:00
-Card ID: 1760419317214
-Note ID: 1760419317214
-
-Question:
-00:12
-
-A quadrigeminal cistern mass with fluid and rim enhancement suggests [...].
+[...]
 
 Answer:
 00:08
 
-A quadrigeminal cistern mass with fluid and rim enhancement suggests pineal cyst.
+Most likely diagnosis?
 
-Notion - AIRP Pineal Gland Neoplasms
+Pancreatic ductal adenocarcinoma (double duct sign
+
+Other neoplasms of the ampulla, pancreas, and periampullary region such as duodenal carcinoma can also produce the double-duct sign.
+Benign causes include chronic pancreatitis and ampullary stenosis, but these are diagnoses ofexclusion.
+
+## Card 5
+
+Deck: .NEW::Visual
+Flagged: 2026-04-22T07:25:03-05:00
+Last seen: 2026-11-08T06:31:50-06:00
+Card ID: 1776200599136
+Note ID: 1776200599136
+
+Question:
+00:12
+
+What is C?
+
+[...]
+
+Answer:
+00:12
+
+What is C?
+
+Probst bundles
+
+## Card 6
+
+Deck: .NEW::Audio
+Flagged: 2026-11-08T06:30:08-06:00
+Last seen: 2026-11-08T06:30:08-06:00
+Card ID: 1773023096496
+Note ID: 1773023096496
+
+Question:
+00:12
+
+In brain imaging, the [...] junction means the boundary between the cerebral cortex (gray matter) and the underlying subcortical white matter.
+
+Answer:
+00:12
+
+In brain imaging, the corticomedullary junction means the boundary between the cerebral cortex (gray matter) and the underlying subcortical white matter.
+
+## Card 7
+
+Deck: Saved Cards
+Flagged: 2026-10-01T13:11:39-05:00
+Last seen: 2026-11-08T06:29:22-06:00
+Card ID: 1787199507814
+Note ID: 1787199507813
+
+Question:
+00:12
+
+What is the most likely diagnosis in adult?
+
+[...]
+
+Answer:
+00:12
+
+What is the most likely diagnosis in adult?
+
+Subependymoma
+
+Source: Notion Radiology entry.
+
+## Card 8
+
+Deck: .NEW::Audio
+Flagged: 2026-07-10T13:17:29-05:00
+Last seen: 2026-11-08T06:26:23-06:00
+Card ID: 1767702967546
+Note ID: 1767702967545
+
+Question:
+00:12
+
+The resulting [...] from increased photoelectric absorption mainly contribute to patient absorbed dose.
+
+Answer:
+00:12
+
+The resulting photoelectrons from increased photoelectric absorption mainly contribute to patient absorbed dose.
+
+## Card 9
+
+Deck: .NEW::Audio
+Flagged: 2026-06-27T14:57:59-05:00
+Last seen: 2026-11-08T06:25:16-06:00
+Card ID: 1782588006917
+Note ID: 1782588006916
+
+Question:
+00:12
+
+A spiculated periosteal reaction with divergent, radiating spicules is called a [...] pattern.
+
+Answer:
+00:12
+
+A spiculated periosteal reaction with divergent, radiating spicules is called a sunburst pattern.
+
+Hair-on-end spicules are parallel and perpendicular to the cortex; sunburst spicules diverge. Both are aggressive spiculated periosteal reactions.
+RadioGraphics terminology
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
+
+## Card 10
+
+Deck: Saved Cards
+Flagged: 2026-11-08T06:21:47-06:00
+Last seen: 2026-11-08T06:21:47-06:00
+Card ID: 1792431409775
+Note ID: 1792431409774
+
+Question:
+00:12
+
+What is the most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What is the most likely diagnosis?
+
+Tenosynovial giant cell tumor
+
+1/2
+
+The tendon-associated low-T2 mass blooms on the susceptibility-sensitive gradient-echo sequence because of hemosiderin.
+
+Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
+
+Open source PDF
