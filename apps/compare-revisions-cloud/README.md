@@ -1,5 +1,27 @@
 # Compare Revisions: cloud review redesign
 
+## Recipient filters and hidden diagnostics — November 7, 2026 (2026.11.07.5)
+
+Prepared source; Cloud Run deployment is pending. Wording & detail is under
+More in both views. Needs review stays available in the original administrator
+view and is absent from downloaded reviews' filters, badges, headings and normal
+summary UI. No additional recipient troubleshooting toggle is introduced.
+
+Ungraded revisions and their source-supported explanations remain in the file's
+embedded case data, but are omitted from recipient summary lists. Administrative
+analysis warnings/status notices are hidden there as well. Cases and clinical
+report comparisons are retained. A case with only ungraded changes is labeled
+Report comparison and is excluded from No revisions, rather than implying a
+successful all-clear. Valid Major/Minor/Wording summaries remain visible.
+
+Sanitized embedded `admin_diagnostics` retains original status, whether analysis
+warnings existed, and the validated ungraded-change count. Per-case analysis
+provenance and existing explanations remain available for troubleshooting and
+survive updated-copy/feedback serialization. This does not store raw unvalidated
+AI responses or restore excluded report context/arbitrary warning text. There
+is no new browser persistence, model request, grading change or approval step.
+
+
 ## Content-sized controls and item details — November 7, 2026 (2026.11.07.4)
 
 Prepared source; deployment pending. Filters now take their text/icon width,

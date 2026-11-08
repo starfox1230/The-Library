@@ -533,17 +533,18 @@ $('theme-toggle').addEventListener('click',()=>{themeChoice=$('theme-toggle').ge
 themeMedia.addEventListener('change',()=>{if(themeChoice==='system')applyTheme();});
 let combinedView=$('combined-view').checked;
 let showReportWording=$('report-wording-value').value==='1';
-const labels = {major:'Major',minor:'Minor',wording:'Wording & detail',review:'Needs review'};
-const groupOrder = ['major','review','minor','wording'];
+const labels = {major:'Major',minor:'Minor',wording:'Wording & detail'{% if not exported_review | default(false) %},review:'Needs review'{% endif %}};
+const groupOrder = exportedReview?['major','minor','wording']:['major','review','minor','wording'];
 const el = (tag, cls, text) => { const node=document.createElement(tag); if(cls)node.className=cls; if(text!==undefined && text!==null)node.textContent=String(text); return node; };
 const button = (text,cls,callback) => { const node=el('button',cls,text); node.type='button'; node.addEventListener('click',callback); return node; };
-const revisions = c => Array.isArray(c.revisions) ? c.revisions : [];
+const revisions = c => Array.isArray(c.revisions) ? c.revisions.filter(r=>!exportedReview||r.importance!=='review') : [];
 const counts = c => Object.fromEntries(groupOrder.map(g=>[g,revisions(c).filter(r=>r.importance===g).length]));
 const badgeText = (group,total) => total+' '+(group==='wording'?'wording/detail':group==='review'?'need review':group);
 const members = c => Array.isArray(c.source_numbers) ? c.source_numbers : [];
 const firstNumber = c => members(c).length ? Math.min(...members(c)) : Number.MAX_SAFE_INTEGER;
 const lastNumber = c => members(c).length ? Math.max(...members(c)) : -1;
-const analyzed = c => c.status==='complete';
+const analyzed = c => c.status==='complete'&&(!exportedReview||!(c.revisions||[]).some(r=>r.importance==='review'));
+const comparisonOnly = c => exportedReview&&!analyzed(c)&&revisions(c).length===0;
 const displayTitle = c => c['title_'+reviewMode] || c.title || 'Untitled case';
 const caseLabel = c => c.case_label || members(c).join(', ');
 /* REVIEW MARKS AUTHORING SOURCE */
@@ -739,8 +740,8 @@ function makeRevision(item,show,key,index) {
 }
 function summaryPanel(c,key) {
  const panel=el('div'), notices=new Set();
- if(c.status_message && c.status!=='complete')notices.add(c.status_message);
- for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))notices.add(warning);
+ if(!exportedReview&&c.status_message && c.status!=='complete')notices.add(c.status_message);
+ if(!exportedReview)for(const warning of (Array.isArray(c.analysis_warnings)?c.analysis_warnings:[]))notices.add(warning);
  for(const notice of notices)panel.append(el('p','notice',notice));
  if(!exportedReview&&!['complete','queued','processing'].includes(c.status)){
   const next=c.status==='needs_sections'?'Check Findings/Impression headings in both reports, then submit the corrected pair again.':
@@ -770,7 +771,8 @@ function summaryPanel(c,key) {
    for(const item of matches)section.append(makeRevision(item,show,key,revisions(c).indexOf(item)));
    panel.append(section);
   }
- } else if(analyzed(c)) panel.append(el('p','notice','No meaningful revisions in Findings and Impression.'));
+ } else if(comparisonOnly(c))panel.append(el('p','notice','See Text changes or Clinical reports for the comparison.'));
+ else if(analyzed(c)) panel.append(el('p','notice','No meaningful revisions in Findings and Impression.'));
  else if(!c.status_message) panel.append(el('p','notice','This case has not been analyzed.'));
  return panel;
 }
@@ -909,16 +911,16 @@ function caseRow(c,key) {
  const preview=el('span','change-preview');
  for(const revision of previewItems){const item=el('span','preview-item '+revision.importance);appendSummary(item,revision);preview.append(item);}
  if(ordered.length>previewItems.length)preview.append(el('span','more','+'+(ordered.length-previewItems.length)+' more'));
- if(!ordered.length && c.status_message)preview.append(el('span','preview-item',c.status_message));
+ if(!ordered.length && (comparisonOnly(c)||c.status_message))preview.append(el('span','preview-item',comparisonOnly(c)?'Report comparison available':c.status_message));
  if(preview.childNodes.length)name.append(preview);head.append(name);
  const metrics=el('span','case-metrics'), percent=textChange(c);
  const marker=el('span','text-change',percent===null?'Text change —':(c.text_change_approximate?'≈':'')+percent.toFixed(1)+'% changed');
  marker.title=percent===null?'Text change is unavailable without a complete pair of recognized clinical sections.':'Character changes in Findings and Impression: (removed + added) ÷ total characters in both versions. Measures text volume, not clinical importance.'+(c.text_change_approximate?' Approximate: a large rewritten region uses a coarse diff.':'');
  metrics.append(marker);
  const badges=el('span','badges'), tally=counts(c);
- for(const group of groupOrder)if(tally[group])badges.append(el('span','badge '+group,badgeText(group,tally[group])));
- if(c.status==='partial'&&!tally.review)badges.append(el('span','badge','Needs review'));
- if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?'Needs review':'Not analyzed'));metrics.append(badges);head.append(metrics);const header=el('div','case-header');header.append(head,caseMarkTools(c,key));row.append(header);
+ for(const group of groupOrder)if(tally[group]&&!(exportedReview&&group==='review'))badges.append(el('span','badge '+group,badgeText(group,tally[group])));
+ if(!exportedReview&&c.status==='partial'&&!tally.review)badges.append(el('span','badge',labels.review));
+ if(!ordered.length)badges.append(el('span','badge '+(analyzed(c)?'good':''),analyzed(c)?'No revisions':comparisonOnly(c)?'Report comparison':c.status==='queued'?'Queued':c.status==='processing'?'Analyzing…':c.status==='error'?'Analysis unavailable':c.status==='needs_sections'?(exportedReview?'Analysis unavailable':labels.review):'Not analyzed'));metrics.append(badges);head.append(metrics);const header=el('div','case-header');header.append(head,caseMarkTools(c,key));row.append(header);
  const copy=accessionIcon(c);if(copy){row.classList.add('has-accession');row.prepend(copy);}
  const reveal=el('div','case-reveal'), clip=el('div','case-clip');reveal.id='body-'+key;reveal.inert=!isOpen;reveal.setAttribute('aria-hidden',String(!isOpen));
  if(isOpen)clip.append(bodyPanel(c,key));reveal.append(clip);row.append(reveal);return row;
@@ -958,13 +960,14 @@ function render() {
  $('totals').textContent=cases.reduce((sum,c)=>sum+members(c).length,0)+' source cases · '+cases.length+' review entries';
  const allCounts=Object.fromEntries(groupOrder.map(group=>[group,0]));
  for(const c of cases){const tally=counts(c);for(const group of groupOrder)allCounts[group]+=tally[group];}
- $('revision-totals').replaceChildren(filterChip('all','All cases ('+cases.length+')'),...['major','minor','wording','review'].map(group=>{
+ const categoryChip=group=>{
   const matching=cases.filter(c=>matchesFilter(c,group)).length;
   return filterChip(group,group==='review'?'Needs review ('+matching+')':badgeText(group,allCounts[group]),'badge '+group,labels[group]+': '+allCounts[group]+' revisions; '+matching+' matching cases.');
- }));
+ };
+ $('revision-totals').replaceChildren(filterChip('all','All cases ('+cases.length+')'),...['major','minor',...(!exportedReview?['review']:[])].map(categoryChip));
  updateMarkTools();
- $('status-filters').replaceChildren(...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
- const extraActive=['pending','none'].filter(key=>selectedFilters.has(key)).length;$('more-filters-label').textContent='More'+(extraActive?' ('+extraActive+')':'');$('more-filters').classList.toggle('has-active',extraActive>0);
+ $('status-filters').replaceChildren(categoryChip('wording'),...[['pending','Not analyzed'],['none','No revisions']].map(([key,label])=>filterChip(key,label+' ('+cases.filter(c=>matchesFilter(c,key)).length+')')));
+ const extraActive=['wording','pending','none'].filter(key=>selectedFilters.has(key)).length;$('more-filters-label').textContent='More'+(extraActive?' ('+extraActive+')':'');$('more-filters').classList.toggle('has-active',extraActive>0);
  $('reset-filters').hidden=selectedFilters.size===0&&!query;
  const waiting=cases.filter(c=>['queued','processing'].includes(c.status)).length;
  $('results').textContent=filtered.length+' of '+cases.length+' entries'+(selectedFilters.size?' · '+[...selectedFilters].map(key=>labels[key]||({'pending':'Not analyzed','none':'No revisions','analysis-issues':'Analysis needs attention','not-submitted':'Not submitted','favorite':'Marked for later','flagged':'Project feedback'})[key]).join(' or '):'')+(waiting?' · '+waiting+' still analyzing':'');$('collapse').disabled=opened.size===0;

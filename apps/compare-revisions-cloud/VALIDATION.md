@@ -1,5 +1,22 @@
 # Verification record
 
+## November 7, 2026: recipient filters and diagnostic retention (2026.11.07.5)
+
+- 117 offline Python tests pass, including validated ungraded record retention,
+  sanitized diagnostic fields, unknown diagnostic-field exclusion and the prior
+  export/authentication/source-scope contracts.
+- `check-recipient-filters.cjs` exercises original and exported views: Wording
+  under More with an active count, original Needs review available, no recipient
+  review filter/badges/headings/warnings or replacement Additional changes group,
+  no false No revisions on review-only cases, valid Minor summaries still visible,
+  all cases/report comparisons retained, and raw validated ungraded records plus
+  original status surviving download and re-save. Arbitrary admin-warning text
+  remains excluded from exported bytes.
+- Compact controls, marks/export privacy, perspectives/severity and revision
+  detail suites check the affected filter/render/serialization paths. All reports
+  and AI responses are fictional. Deployment remains pending: footer 2026.11.07.5.
+
+
 ## November 7, 2026: item details and sticky downloads (2026.11.07.4)
 
 - 116 offline Python tests pass, including the updated hidden-by-default report

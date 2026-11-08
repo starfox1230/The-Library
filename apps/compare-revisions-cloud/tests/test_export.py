@@ -151,6 +151,19 @@ class ExportTests(unittest.TestCase):
             result=client.post('/export-review',json={'cases':[self.record()],'feedback_only':True},headers={'X-CSRF-Token':token})
         self.assertEqual(result.status_code,400)
 
+    def test_ungraded_data_and_sanitized_diagnostics_survive_export(self):
+        c=self.record()
+        c['revisions']=[dict(importance='review',action='changed',resident_summary='Clear lungs',
+            attending_summary='Clear lungs',reason='Synthetic uncertain matching.',resident_section='r0',
+            attending_section='a0',resident_quote='Clear lungs.',attending_quote='Clear lungs.',
+            major_evidence_side='none',major_evidence_section='',major_evidence_quote='')]
+        c['admin_diagnostics']={'source_status':'partial','had_analysis_warnings':True,'secret':'DIAGNOSTIC_SECRET'}
+        out=self.m.export_review_cases([c])[0]
+        self.assertEqual(out['revisions'][0]['importance'],'review')
+        self.assertEqual(out['revisions'][0]['reason'],'Synthetic uncertain matching.')
+        self.assertEqual(out['admin_diagnostics'],{'source_status':'partial','had_analysis_warnings':True,'ungraded_change_count':1})
+        self.assertNotIn('DIAGNOSTIC_SECRET',str(out))
+
     def test_export_requires_session_and_csrf(self):
         with self.m.app.test_client() as client:
             self.assertEqual(client.post('/export-review',json={'cases':[self.record()]}).status_code,400)

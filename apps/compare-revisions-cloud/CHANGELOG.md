@@ -1,5 +1,15 @@
 # Changes and rationale — October 4, 2026
 
+## Administrator review state stays out of recipient UI — November 7, 2026 (2026.11.07.5)
+
+- Put Wording & detail under More; retain Needs review in the original view only.
+- Suppress recipient review filters/badges, ungraded summary items and admin
+  warnings while retaining cases, clinical diffs, validated ungraded records and
+  sanitized diagnostic metadata inside the file. Do not label those cases clear.
+- Preserve original diagnostic status and analysis provenance through downloads,
+  updated copies and feedback; no new visible technical toggle or AI changes.
+
+
 ## Content-sized layout and pinned details — November 7, 2026 (2026.11.07.4)
 
 - Intrinsic-width left-aligned filters and compact search/sort; no premature

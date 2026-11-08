@@ -17,7 +17,7 @@ async function download(page,selector,file){const event=page.waitForEvent('downl
  });
  await page.goto('http://127.0.0.1:8766/qa');
  assert.ok((await page.locator('#filter-major').boundingBox()).width<130);assert.ok((await page.locator('#search').boundingBox()).width<=320);
- const filters=await page.locator('#filter-all,#filter-major,#filter-minor,#filter-wording,#filter-review,#filter-favorite,#filter-flagged,#more-filters').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().top));assert.ok(filters.every(y=>Math.abs(y-filters[0])<2));
+ const filters=await page.locator('#filter-all,#filter-major,#filter-minor,#filter-review,#filter-favorite,#filter-flagged,#more-filters').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().top));assert.ok(filters.every(y=>Math.abs(y-filters[0])<2));
  await page.locator('#case-0').click();await page.locator('#case-1').click();
  assert.equal(await page.locator('.evidence:visible,.reason:visible').count(),0);
  await page.locator('#revision-0-0').hover();await page.waitForTimeout(200);assert.equal(await page.locator('.evidence:visible,.reason:visible').count(),0);
