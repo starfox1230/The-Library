@@ -44,14 +44,54 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-07 06:26 Central Standard Time
-Cards: 3
+Updated: 2026-11-07 23:03 Central Standard Time
+Cards: 5
 
 ## Card 1
 
 Deck: .NEW::Audio
+Flagged: 2026-10-15T12:59:18-05:00
+Last seen: 2026-11-07T13:54:27-06:00
+Card ID: 1776290396660
+Note ID: 1776290396659
+
+Question:
+00:12
+
+[...] impurity is wrong chemical form of the radioisotope.
+
+Answer:
+00:12
+
+Radiochemical impurity is wrong chemical form of the radioisotope.
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-10-21T22:27:15-05:00
+Last seen: 2026-11-07T13:52:48-06:00
+Card ID: 1755604983830
+Note ID: 1755604983829
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+tillaux Fracture
+
+## Card 3
+
+Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
-Last seen: 2026-11-07T06:19:27-06:00
+Last seen: 2026-11-07T06:31:56-06:00
 Card ID: 1777842173601
 Note ID: 1777842173601
 
@@ -65,7 +105,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-11-06T21:56:40-06:00
@@ -83,7 +123,7 @@ Answer:
 
 A right aortic arch with mirror branching is most closely associated with Truncus arteriosus.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-11-07T05:32:01-06:00
