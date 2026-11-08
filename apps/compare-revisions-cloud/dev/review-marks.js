@@ -3,6 +3,7 @@ const reviewMetadata=JSON.parse($('review-metadata').textContent||'{}');
 $('feedback-notice').hidden=!reviewMetadata.feedback_only;
 let markRevision=0,feedbackCase=null,feedbackFocus=null,reviewToastTimer=null,reviewDownloadBusy=false;
 let markKeyboardInput=false;
+let syncBannerDownloads=()=>{};
 document.addEventListener('pointerdown',()=>{markKeyboardInput=false;});
 document.addEventListener('keydown',()=>{markKeyboardInput=true;});
 const starIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/></svg>';
@@ -19,15 +20,23 @@ function markChanged(){markRevision++;updateMarkTools();}
 function hideReviewToast(){
  clearTimeout(reviewToastTimer);reviewToastTimer=null;$('review-toast').hidden=true;
 }
+function scheduleReviewToast(){
+ clearTimeout(reviewToastTimer);
+ const toast=$('review-toast');
+ if(toast.hidden||toast.matches(':hover')||toast.contains(document.activeElement))return;
+ reviewToastTimer=setTimeout(hideReviewToast,4000);
+}
+$('review-toast').addEventListener('pointerenter',()=>clearTimeout(reviewToastTimer));
+$('review-toast').addEventListener('pointerleave',scheduleReviewToast);
+$('review-toast').addEventListener('focusin',()=>clearTimeout(reviewToastTimer));
+$('review-toast').addEventListener('focusout',()=>queueMicrotask(scheduleReviewToast));
 function showReviewToast(message='Changes are only saved when you download an updated copy.',download=true){
  const toast=$('review-toast'),action=$('review-toast-download');
  ($('feedback-dialog').open?$('feedback-dialog'):$('review-toast-host')).append(toast);
  $('review-toast-message').textContent=message;
  if(!download&&document.activeElement===action)($('feedback-dialog').open?$('feedback-done'):$(exportedReview?'save-review':'export-review')).focus({preventScroll:true});
  action.hidden=!download;action.disabled=reviewDownloadBusy||cases.some(c=>['queued','processing'].includes(c.status));
- toast.hidden=false;clearTimeout(reviewToastTimer);
- const expire=()=>{if(toast.contains(document.activeElement)){reviewToastTimer=setTimeout(expire,1000);return;}hideReviewToast();};
- reviewToastTimer=setTimeout(expire,4000);
+ toast.hidden=false;scheduleReviewToast();
 }
 function markFilter(key,count){
  const favorite=key==='favorite',label=(favorite?'Marked for later':'Project feedback')+' ('+count+')';
@@ -39,8 +48,26 @@ function updateMarkTools(){
  $('export-feedback').textContent='Download feedback ('+flags+')';
  const busy=reviewDownloadBusy||cases.some(c=>['queued','processing'].includes(c.status));
  $('export-feedback').disabled=!flags||busy;$('review-toast-download').disabled=busy;
+ if(exportedReview){$('banner-feedback').textContent='Feedback ('+flags+')';$('banner-feedback').disabled=!flags||busy;}
  $('mark-filters').replaceChildren(markFilter('favorite',stars),markFilter('flagged',flags));
  if(!exportedReview)$('export-review').textContent=stars||flags||markRevision?'Download updated review':'Download review HTML';
+ syncBannerDownloads();
+}
+if(exportedReview){
+ const banner=document.querySelector('.phi-banner'),notice=banner.querySelector('.phi-notice'),controls=banner.querySelector('.phi-downloads');
+ notice.title=notice.textContent;
+ const syncBanner=()=>{
+  const passed=document.querySelector('.mark-toolbar').getBoundingClientRect().bottom<=banner.getBoundingClientRect().bottom;
+  banner.classList.toggle('has-downloads',passed);controls.hidden=!passed;
+ };
+ const sizeBanner=()=>{
+  banner.classList.remove('has-downloads');controls.hidden=true;banner.style.height='';
+  banner.style.height=banner.getBoundingClientRect().height+'px';syncBanner();
+ };
+ syncBannerDownloads=syncBanner;
+ $('banner-save-review').addEventListener('click',()=>$('save-review').click());
+ $('banner-feedback').addEventListener('click',()=>$('export-feedback').click());
+ window.addEventListener('scroll',syncBanner,{passive:true});window.addEventListener('resize',sizeBanner);sizeBanner();
 }
 function refreshMarkRow(id){
  const key=id.slice(id.indexOf('-')+1),anchor=$('case-'+key),before=anchor?.getBoundingClientRect().top;

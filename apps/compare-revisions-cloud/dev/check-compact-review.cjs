@@ -27,7 +27,7 @@ async function download(page,selector,file){const event=page.waitForEvent('downl
  await page.locator('#explanation-0').click();assert.ok(await page.locator('#row-0 .reason').isVisible());assert.equal(await page.locator('#row-1 .reason').isVisible(),false);
  assert.equal(await page.locator('#explanation-0').innerText(),'Hide AI Explanation');
  const evidenceBefore=await page.locator('#row-0 .evidence').isVisible();await page.locator('#explanation-0').click();assert.equal(await page.locator('#row-0 .evidence').isVisible(),evidenceBefore);
- const positions=await page.locator('#row-0 .summary-tools').evaluate(n=>({explanation:n.querySelector('.explanation-toggle').getBoundingClientRect().left,wording:n.querySelector('.wording-tools').getBoundingClientRect().left}));assert.ok(positions.explanation<positions.wording);
+ const positions=await page.locator('#row-0 .summary-tools').evaluate(n=>({explanation:n.querySelector('.explanation-toggle').getBoundingClientRect().left,wording:n.querySelector('.wording-tools:not(.explanation-tools)').getBoundingClientRect().left}));assert.ok(positions.explanation<positions.wording);
  await page.locator('#favorite-0').click();assert.ok(await page.locator('#review-toast').isVisible());
  assert.equal(await color(page,'#favorite-0'),await color(page,'#filter-favorite svg'));
  await page.clock.fastForward(4500);assert.equal(await page.locator('#review-toast').isVisible(),false);

@@ -1,5 +1,22 @@
 # Changes and rationale — October 4, 2026
 
+## Content-sized layout and pinned details — November 7, 2026 (2026.11.07.4)
+
+- Intrinsic-width left-aligned filters and compact search/sort; no premature
+  grouping wraps or forced full-width buttons. Center action tags on wrapped text.
+- Hover/focus holds the save reminder; leaving starts the full four-second timer.
+- Default report wording off. Add per-case AI explanation Show/Hide in all cases
+  offers. Pinning reveals only that revision's reason and evidence, with a
+  reduced-motion-aware expansion, independent of other case/item visibility.
+- Add compact exported-reader download controls inside the sticky PHI banner
+  after the main download toolbar scrolls away, preserving its measured height.
+- Simplify Text changes to one compact title/settings row, removing redundant
+  scope, legend and pin/passage status headers. Fit linked quotes within the
+  visible pane around sticky banner/header, short viewports, scaling and case-end
+  clipping without moving the document; recheck after expansion settles.
+- No changes to authentication, storage, model, clinical grading or report scope.
+
+
 ## Red OCR review action — November 7, 2026 (2026.11.07.3)
 
 - Review OCR uses a prominent red fill whenever pending rows make it available.

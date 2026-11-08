@@ -1,5 +1,48 @@
 # Compare Revisions: cloud review redesign
 
+## Content-sized controls and item details — November 7, 2026 (2026.11.07.4)
+
+Prepared source; deployment pending. Filters now take their text/icon width,
+line up from the left and wrap only when space runs out. Search and sort use
+compact widths instead of expanding across the page. Action tags stay vertically
+centered alongside wrapped revision summaries.
+
+Both report wording and AI explanations start hidden on a fresh page. Each
+case has independent controls with a brief optional Show/Hide in all cases action.
+Explicit all-case report-wording choices continue to travel with the exported
+review; AI explanations remain hidden when a file is reopened, with reasons
+retained in its data.
+
+Clicking/pinning a revision reveals only that item's explanation and quoted
+wording, with a short expansion animation (disabled for reduced-motion users).
+Hovering only previews its source link. Clicking again returns to the
+case's visibility choices. Explicit case/all-case toggles override the automatic
+item reveal for their respective content, without changing classification.
+
+The save reminder now stays visible while hovered or keyboard-focused. Leaving
+starts a fresh four-second countdown; a later click restarts it. No persistent
+warning is introduced. Download now still downloads the complete updated copy.
+
+In exported readers, compact Save copy and Feedback controls appear inside the
+sticky PHI banner only after the original download toolbar has scrolled past it.
+They mirror the existing actions/counts and do not change banner height. On
+narrow screens, the notice is abbreviated visually while controls are present;
+its full wording remains in the notice text and tooltip. No new network/storage
+or authentication behavior is introduced. Model and grading prompt are unchanged.
+
+The Text changes header now contains only its title, View selector and Mark
+spacing edits, aligned in one row where space permits. Redundant scope/legend,
+source-location, pin status and passage navigation headers are removed; click
+an already pinned revision to unpin it. Genuine unavailable comparisons still
+show an error notice. Linking and inline/split source fidelity remain intact.
+Automatic report scrolling uses the actual visible scrollport, including the
+sticky banner/header, viewport scaling and partial clipping near a case's end.
+It fits the selected complete quote (or the first line of an oversized quote)
+without scrolling the page; after expansion it checks the settled layout again.
+Narrow stacked layouts do not automatically scroll the document on hover.
+
+
+
 ## Compact review controls — November 7, 2026 (2026.11.07.2)
 
 Prepared replacement source; Cloud Run deployment is pending. This implements the

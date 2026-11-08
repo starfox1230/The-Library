@@ -110,6 +110,11 @@ if __name__ == '__main__':
             error='',csrf_token='synthetic-preview',username='',synthetic_preview=True)
     (output/'preview.html').write_text(html,encoding='utf-8')
     (output/'fixtures.json').write_text(json.dumps(cases,ensure_ascii=False),encoding='utf-8')
+    with app.app.app_context():
+        reader=app.render_template_string(app.TEMPLATE,cases=app.export_review_cases(cases),
+            exported_review=True,lookup_rows=[],combined_view=True,show_report_wording=False,
+            review_mode='attending',theme='dark',synthetic_preview=False,username='')
+    (output/'viewport-reader.html').write_text(reader,encoding='utf-8')
     # Repeated evidence and overlapping quotations stress source-link navigation.
     repeated_r=report('🧪 marker. Small effusion. Stable comparison. Small effusion.', 'Small effusion.')
     repeated_a=report('🧪 marker. Moderate effusion. Stable comparison. Moderate effusion.', 'Moderate effusion.')

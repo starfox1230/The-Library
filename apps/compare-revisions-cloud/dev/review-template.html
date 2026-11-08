@@ -340,10 +340,43 @@ html[data-theme="dark"] {color-scheme:dark;}
 @media(max-width:540px) { #cr-app .summary-tools {grid-template-columns:1fr 1fr;} #cr-app .summary-tools > .muted {grid-column:1 / -1;} #cr-app .explanation-toggle {justify-self:start;} #cr-app .wording-tools {justify-self:end;} }
 @media print { #cr-app .review-toast {display:none;} }
 </style>
+<style>
+
+#cr-app #revision-totals .filter-chip {flex:0 0 auto;}
+#cr-app .filter-main {justify-content:flex-start;}
+#cr-app .controls {display:flex;flex-wrap:wrap;justify-content:flex-start;gap:12px;}
+#cr-app .controls .search-label {width:320px;max-width:100%;}
+#cr-app .controls > label:not(.search-label) {width:200px;max-width:100%;}
+#cr-app .revision-heading {align-items:center;flex-wrap:nowrap;}
+#cr-app .revision-heading .action {flex:none;align-self:center;}
+#cr-app .revision-heading h4 {min-width:0;}
+#cr-app .explanation-tools {justify-self:center;}
+#cr-app .revision-details {display:grid;grid-template-rows:0fr;transition:grid-template-rows 220ms ease;}
+#cr-app .revision-details.is-visible {grid-template-rows:1fr;}
+#cr-app .revision-details-clip {min-height:0;overflow:hidden;}
+#cr-app .phi-banner.has-downloads {display:flex;align-items:center;}
+#cr-app .phi-banner.has-downloads .phi-notice {display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:178px;}
+#cr-app .phi-downloads {position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;gap:6px;}
+#cr-app .phi-downloads button {font-size:11px;padding:3px 7px;min-height:26px;line-height:18px;}
+@media(max-width:540px) { #cr-app .explanation-tools {justify-self:start;} }
+@media(prefers-reduced-motion:reduce) { #cr-app .revision-details {transition:none;} }
+@media print { #cr-app .phi-downloads {display:none;} }
+</style>
+<style>
+
+#cr-app .report-dock {top:var(--report-sticky-top,20px);max-height:calc(var(--report-visible-height,100dvh) - var(--report-sticky-top,20px) - 12px);}
+#cr-app .report-dock .diff-scroll {min-height:0;}
+#cr-app .text-change-header {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 12px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px;}
+#cr-app .text-change-header .pane-heading {margin:0;padding:0;border:0;flex:none;}
+#cr-app .text-change-header .diff-tools {margin:0 0 0 auto;gap:8px;justify-content:flex-end;}
+#cr-app .text-change-header .diff-tools label {font-size:14px;font-weight:400;}
+#cr-app .text-change-header .diff-tools select {padding:3px 7px;font-size:14px;min-height:28px;}
+@media(max-width:980px) { #cr-app .report-dock {position:static;max-height:none;} }
+</style>
 </head>
 <body>
 <div id="cr-app" data-theme="{{ theme | default('dark') }}" {% if combined_view %}class="dual-view"{% endif %}>
-{% if exported_review | default(false) %}<aside class="phi-banner"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</aside>{% endif %}
+{% if exported_review | default(false) %}<aside class="phi-banner"><span class="phi-notice"><strong>Contains PHI.</strong> Use and share only within UAB-approved systems and with authorized recipients. Do not forward to personal email or upload to unapproved services.</span><span class="phi-downloads" hidden><button type="button" id="banner-save-review" title="Download updated review" aria-label="Download updated review">Save copy</button><button type="button" id="banner-feedback" title="Download feedback" aria-label="Download feedback" disabled>Feedback (0)</button></span></aside>{% endif %}
 <header class="site-header"><div><h1>Compare Revisions</h1><p class="subtitle" id="mode-subtitle">{{ 'Attending' if review_mode | default('attending') == 'attending' else 'Resident' }} report review</p></div><div class="header-actions">{% if username %}<span class="subtitle signed-in-name">{{ username }}</span>{% endif %}<button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Night mode" title="Switch to night mode"><span class="theme-thumb" aria-hidden="true"></span><svg class="theme-icon day-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-icon night-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 13.1A8.6 8.6 0 0 1 10.9 3.5a8.6 8.6 0 1 0 9.6 9.6Z"/></svg></button></div></header>
 <main>
 {% if not exported_review | default(false) %}
@@ -358,7 +391,7 @@ html[data-theme="dark"] {color-scheme:dark;}
 <form method="post" id="report-form">
 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 <input type="hidden" id="combined-view-value" name="combined_view" value="{{ '1' if combined_view else '0' }}">
-<input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(true)) else '0' }}">
+<input type="hidden" id="report-wording-value" name="show_report_wording" value="{{ '1' if (show_report_wording | default(false)) else '0' }}">
 <input type="hidden" id="theme-value" name="theme" value="{{ theme | default('dark') }}">
 <input type="hidden" id="lookup-value" name="lookup_json" value="">
 <div class="paste-tools"><label for="report-text">Paste report pairs</label><button type="button" id="paste-button" aria-controls="report-text">Paste</button></div>
@@ -458,8 +491,10 @@ const $ = id => document.getElementById(id);
 const exportedReview={{ exported_review | default(false) | tojson }};
 let cases = JSON.parse($('review-data').textContent || '[]');
 const opened = new Set(), views = new Map();
-const wordingOverrides=new Map(),explanationOverrides=new Map();
-const explanationShown=key=>explanationOverrides.get(key)===true;
+const wordingOverrides=new Map(),explanationOverrides=new Map(),reasonReveals=new Map(),wordingReveals=new Map();
+let showAIExplanations=false;
+const explanationShown=key=>explanationOverrides.get(key)??showAIExplanations;
+let explanationOffer=null,explanationOfferTimer=null;
 let wordingOffer=null, wordingOfferTimer=null;
 let wordingAnchorRestore=null, wordingAnchorPrevious='';
 const selectedFilters=new Set(), controllers=new Set();
@@ -591,7 +626,7 @@ function mountWordingOffer(key) {
  const show=wordingOffer.show, offer=el('div','wording-offer');offer.setAttribute('role','group');offer.setAttribute('aria-label','Optional change for all cases');
  const apply=button(show?'Show in all cases':'Hide in all cases','plain wording-apply-all',()=>{
   preserveWordingPosition(key,()=>{
-   showReportWording=show;wordingOverrides.clear();$('report-wording-value').value=show?'1':'0';
+   showReportWording=show;wordingOverrides.clear();wordingReveals.clear();$('report-wording-value').value=show?'1':'0';
    dismissWordingOffer();syncWording();
   });
   $('evidence-'+key)?.focus({preventScroll:true});
@@ -608,7 +643,7 @@ function mountWordingOffer(key) {
 function syncWording() {
  for(const row of document.querySelectorAll('#case-list .case')){
   const key=row.id.slice(4), show=wordingShown(key), toggle=$('evidence-'+key);
-  for(const evidence of row.querySelectorAll('.evidence'))evidence.hidden=!show;
+  syncRevisionDetails(key);
   if(toggle){toggle.textContent=show?'Hide report wording':'Show report wording';toggle.setAttribute('aria-expanded',String(show));}
  }
 }
@@ -631,36 +666,76 @@ function preserveWordingPosition(key,change,controlId='evidence-'+key) {
 function toggleWording(key) {
  const show=!wordingShown(key);
  preserveWordingPosition(key,()=>{
-  dismissWordingOffer();wordingOverrides.set(key,show);syncWording();
+  dismissWordingOffer();dismissExplanationOffer();wordingReveals.delete(key);wordingOverrides.set(key,show);syncWording();
   wordingOffer={key,show,expires:performance.now()+2000};mountWordingOffer(key);scheduleWordingOfferDismissal();
  });
  $('announcement').textContent='Report wording '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
 }
+function dismissExplanationOffer(){
+ clearTimeout(explanationOfferTimer);explanationOfferTimer=null;explanationOffer=null;
+ document.querySelectorAll('.explanation-offer').forEach(n=>n.remove());
+}
+function scheduleExplanationOffer(){
+ clearTimeout(explanationOfferTimer);explanationOfferTimer=setTimeout(()=>{
+  if(document.querySelector('.explanation-offer')?.contains(document.activeElement))return;
+  dismissExplanationOffer();
+ },Math.max(0,(explanationOffer?.expires||0)-performance.now()));
+}
+function mountExplanationOffer(key){
+ if(explanationOffer?.key!==key)return;
+ const holder=$('explanation-tools-'+key);if(!holder)return;
+ holder.querySelector('.explanation-offer')?.remove();
+ const show=explanationOffer.show,offer=el('div','wording-offer explanation-offer');offer.setAttribute('role','group');offer.setAttribute('aria-label','Optional AI explanation change for all cases');
+ const apply=button(show?'Show in all cases':'Hide in all cases','plain',()=>{
+  preserveWordingPosition(key,()=>{showAIExplanations=show;explanationOverrides.clear();reasonReveals.clear();dismissExplanationOffer();syncExplanations();},'explanation-'+key);
+  $('explanation-'+key)?.focus({preventScroll:true});
+ });apply.id='explanation-all-'+key;apply.setAttribute('aria-label',(show?'Show':'Hide')+' AI explanations in all cases');offer.append(apply);
+ offer.addEventListener('focusin',()=>clearTimeout(explanationOfferTimer));offer.addEventListener('focusout',scheduleExplanationOffer);
+ offer.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();dismissExplanationOffer();$('explanation-'+key)?.focus();}});
+ holder.append(offer);
+}
+function syncRevisionDetails(key){
+ for(const card of $('row-'+key)?.querySelectorAll('.revision')||[]){
+  const index=Number(card.dataset.revisionIndex),reason=card.querySelector('.reason'),evidence=card.querySelector('.evidence'),details=card.querySelector('.revision-details');
+  const showReason=explanationShown(key)||reasonReveals.get(key)===index,showEvidence=wordingShown(key)||wordingReveals.get(key)===index;
+  const visible=Boolean((reason&&showReason)||showEvidence);
+  if(visible&&!details.classList.contains('is-visible'))details.getBoundingClientRect();
+  if(reason)reason.hidden=!showReason;evidence.hidden=!showEvidence;
+  details.classList.toggle('is-visible',visible);details.inert=!visible;details.setAttribute('aria-hidden',String(!visible));
+  const link=card.querySelector('.revision-link');link?.setAttribute('aria-pressed',String(pinnedRevisions.get(key)===index));link?.setAttribute('aria-expanded',String(visible));
+ }
+}
+function syncExplanations(){
+ for(const row of document.querySelectorAll('#case-list .case')){
+  const key=row.id.slice(4),show=explanationShown(key),toggle=$('explanation-'+key);syncRevisionDetails(key);
+  if(toggle){toggle.textContent=show?'Hide AI Explanation':'Show AI Explanation';toggle.setAttribute('aria-expanded',String(show));}
+ }
+}
 function toggleExplanation(key){
  const show=!explanationShown(key);
  preserveWordingPosition(key,()=>{
-  explanationOverrides.set(key,show);
-  for(const reason of $('row-'+key).querySelectorAll('.reason'))reason.hidden=!show;
-  const toggle=$('explanation-'+key);toggle.textContent=show?'Hide AI Explanation':'Show AI Explanation';toggle.setAttribute('aria-expanded',String(show));
+  reasonReveals.delete(key);explanationOverrides.set(key,show);syncExplanations();dismissWordingOffer();dismissExplanationOffer();
+  explanationOffer={key,show,expires:performance.now()+2000};mountExplanationOffer(key);scheduleExplanationOffer();
  },'explanation-'+key);
- $('announcement').textContent='AI explanations '+(show?'shown':'hidden')+' for this case.';
+ $('announcement').textContent='AI explanations '+(show?'shown':'hidden')+' for this case. An optional change for all cases is available.';
 }
 function makeRevision(item,show,key,index) {
  const node=el('article','revision revision-'+item.importance), head=el('div','revision-heading');
  node.dataset.revisionIndex=String(index);
  const heading=el('h4'), text=summaryText(item);
- if(combinedView){
+ {
   const target=button('','revision-link',event=>{event.stopPropagation();pinRevision(key,index);});target.id='revision-'+key+'-'+index;target.setAttribute('aria-pressed',String(pinnedRevisions.get(key)===index));target.setAttribute('aria-label','Locate report wording: '+text);
   appendSummary(target,item);
   target.addEventListener('focus',()=>previewRevision(key,index));target.addEventListener('blur',()=>leaveRevision(key,index));heading.append(target);
   node.addEventListener('mouseenter',()=>{clearTimeout(hoverTimers.get(key));hoverTimers.set(key,setTimeout(()=>previewRevision(key,index),160));});
   node.addEventListener('mouseleave',()=>leaveRevision(key,index));
   node.addEventListener('click',event=>{if(!event.target.closest('button')&&!window.getSelection()?.toString())pinRevision(key,index);});
- }else appendSummary(heading,item);
+ }
  head.append(el('span','action',item.action || 'Changed'),heading); node.append(head);
- if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!explanationShown(key);node.append(reason);}
- const evidence=el('div','evidence'); evidence.hidden=!show;
- evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); node.append(evidence); return node;
+ const details=el('div','revision-details'),clip=el('div','revision-details-clip');details.id='details-'+key+'-'+index;
+ if(item.reason){const reason=el('p','reason',prose(item.reason));reason.id='reason-'+key+'-'+index;reason.hidden=!(explanationShown(key)||reasonReveals.get(key)===index);clip.append(reason);}
+ const evidence=el('div','evidence'); evidence.hidden=!(show||wordingReveals.get(key)===index);
+ evidence.append(evidenceCell('Resident',item.resident_quote),evidenceCell('Attending',item.attending_quote)); clip.append(evidence);details.append(clip);const visible=Boolean((item.reason&&(explanationShown(key)||reasonReveals.get(key)===index))||!evidence.hidden);details.classList.toggle('is-visible',visible);details.inert=!visible;details.setAttribute('aria-hidden',String(!visible));node.append(details);node.querySelector('.revision-link').setAttribute('aria-controls',details.id);node.querySelector('.revision-link').setAttribute('aria-expanded',String(visible));return node;
 }
 function summaryPanel(c,key) {
  const panel=el('div'), notices=new Set();
@@ -684,7 +759,7 @@ function summaryPanel(c,key) {
   const explanation=button(explanationShown(key)?'Hide AI Explanation':'Show AI Explanation','plain explanation-toggle',()=>toggleExplanation(key));
   explanation.id='explanation-'+key;explanation.setAttribute('aria-expanded',String(explanationShown(key)));
   explanation.setAttribute('aria-controls',items.map((r,i)=>r.reason?'reason-'+key+'-'+i:'').filter(Boolean).join(' '));
-  explanation.disabled=!items.some(r=>r.reason);tools.append(explanation);
+  explanation.disabled=!items.some(r=>r.reason);const explanationHolder=el('div','wording-tools explanation-tools');explanationHolder.id='explanation-tools-'+key;explanationHolder.append(explanation);tools.append(explanationHolder);
   const holder=el('div','wording-tools');holder.id='wording-tools-'+key;
   const toggle=button(show?'Hide report wording':'Show report wording','plain evidence-toggle',()=>toggleWording(key));
   toggle.addEventListener('keydown',event=>{if(event.key==='Escape'&&wordingOffer?.key===key){event.preventDefault();dismissWordingOffer();}});
@@ -701,22 +776,14 @@ function summaryPanel(c,key) {
 }
 function diffPanel(c,caseKey) {
  const panel=el('div','diff-panel'), tokens=Array.isArray(c.clinical_diff)?c.clinical_diff:[];
- if(c.diff_note&&(!combinedView||!tokens.length||c.diff_note!=='Findings and Impression/Conclusion only. Full context is available in the report tabs.'))panel.append(el('p','notice',c.diff_note));
- if(!tokens.length) { if(!c.diff_note)panel.append(el('p','notice','A clinical-section comparison is not available for this case.')); return panel; }
- if(combinedView){
-  const tools=el('div','link-tools'), status=el('span','link-status','Hover or select a finding to locate its report wording.'), count=el('span','link-count');
-  status.id='link-status-'+caseKey;status.setAttribute('role','status');count.id='link-count-'+caseKey;
-  const next=button('Next passage','plain',()=>{passageIndices.set(caseKey,(passageIndices.get(caseKey)||0)+1);showRevisionLinks(caseKey,true);});next.id='link-next-'+caseKey;next.hidden=true;
-  const clear=button('Unpin','plain',()=>{pinnedRevisions.delete(caseKey);hoveredRevisions.delete(caseKey);showRevisionLinks(caseKey,false);});clear.id='link-clear-'+caseKey;clear.hidden=true;tools.append(status,count,next,clear);panel.append(tools);
- }
- const key=el('div','diff-key'); key.append(el('del','','Resident wording removed'),el('ins','','Attending wording added'),el('span','','Findings and Impression only')); panel.append(key);
+ if(!tokens.length){const title=el('h3','pane-heading','Text changes');title.id='diff-heading-'+caseKey;panel.append(title,el('p','notice','Text comparison is unavailable for this case.'));return panel;}
  const mode=diffModes.get(caseKey)||'inline', showSpacing=spacingVisible.get(caseKey)!==false;
  const tools=el('div','diff-tools'), label=el('label','','View '), select=el('select');
  select.id='diff-mode-'+caseKey;
  for(const [value,text] of [['inline','Inline'],['split','Side by side']]){const option=el('option','',text);option.value=value;select.append(option);}select.value=mode;
  select.addEventListener('change',()=>{diffModes.set(caseKey,select.value);renderAndFocus(select.id);});label.append(select);tools.append(label);
  const spacingLabel=el('label'), checkbox=el('input');checkbox.type='checkbox';checkbox.id='spacing-'+caseKey;checkbox.checked=showSpacing;
- checkbox.addEventListener('change',()=>{spacingVisible.set(caseKey,checkbox.checked);renderAndFocus(checkbox.id);});spacingLabel.append(checkbox,document.createTextNode('Mark spacing edits'));tools.append(spacingLabel);panel.append(tools);
+ checkbox.addEventListener('change',()=>{spacingVisible.set(caseKey,checkbox.checked);renderAndFocus(checkbox.id);});spacingLabel.append(checkbox,document.createTextNode('Mark spacing edits'));tools.append(spacingLabel);const header=el('div','text-change-header'),title=el('h3','pane-heading','Text changes');title.id='diff-heading-'+caseKey;header.append(title,tools);panel.append(header);
  const links=revisions(c).flatMap((r,index)=>(Array.isArray(r.source_links)?r.source_links:[]).filter(l=>['resident','attending'].includes(l.side)&&Number.isInteger(l.start)&&Number.isInteger(l.end)&&l.start>=0&&l.end>l.start).map((l,n)=>({...l,index,location:index+':'+n})));
  const headings=['resident','attending'].flatMap(side=>(Array.isArray(c.clinical_headings?.[side])?c.clinical_headings[side]:[]).filter(h=>Number.isInteger(h.start)&&Number.isInteger(h.end)&&h.start>=0&&h.end>h.start).map(h=>({...h,side})));
  function content(exclude){
@@ -746,8 +813,8 @@ function previewRevision(key,index){if(!combinedView)return;hoveredRevisions.set
 function leaveRevision(key,index){clearTimeout(hoverTimers.get(key));hoverTimers.set(key,setTimeout(()=>{if(hoveredRevisions.get(key)===index)hoveredRevisions.delete(key);showRevisionLinks(key,false);},180));}
 function pinRevision(key,index){
  clearTimeout(hoverTimers.get(key));hoveredRevisions.delete(key);
- if(pinnedRevisions.get(key)===index)pinnedRevisions.delete(key);else pinnedRevisions.set(key,index);
- passageIndices.set(key,0);showRevisionLinks(key,true);
+ if(pinnedRevisions.get(key)===index){pinnedRevisions.delete(key);reasonReveals.delete(key);wordingReveals.delete(key);}else{pinnedRevisions.set(key,index);reasonReveals.set(key,index);wordingReveals.set(key,index);}
+ syncRevisionDetails(key);passageIndices.set(key,0);showRevisionLinks(key,true);
 }
 function showRevisionLinks(key,scrollToPassage=false){
  const row=$('row-'+key);if(!row||!combinedView)return;
@@ -755,20 +822,51 @@ function showRevisionLinks(key,scrollToPassage=false){
  const selected=[...row.querySelectorAll('.linked-passage')].filter(n=>(n.dataset.revisions||'').split(' ').includes(String(index)));
  for(const card of row.querySelectorAll('.revision')){const n=Number(card.dataset.revisionIndex);card.classList.toggle('is-highlighted',n===index);card.querySelector('.revision-link')?.setAttribute('aria-pressed',String(n===pinnedRevisions.get(key)));}
  for(const mark of row.querySelectorAll('.linked-passage'))mark.classList.toggle('is-linked',selected.includes(mark));
- const status=$('link-status-'+key), counter=$('link-count-'+key), next=$('link-next-'+key), clear=$('link-clear-'+key);
- if(!status)return;
- const scopes=[...new Set((item?.source_links||[]).map(l=>(l.side==='resident'?'Resident':'Attending')+' '+(l.kind==='combined'?'Findings/Impression':l.kind==='impression'?'Impression':'Findings')))];
  const locations=[...new Set(selected.flatMap(n=>(n.dataset.locations||'').split(' ')).filter(location=>location.startsWith(index+':')))];
  const anchors=[...new Set(locations.map(location=>{const nodes=selected.filter(n=>(n.dataset.locations||'').split(' ').includes(location));return nodes.find(n=>n.closest('del,ins'))||nodes[0];}).filter(Boolean))];
  anchors.sort((a,b)=>Number(!a.closest('del,ins'))-Number(!b.closest('del,ins')));
  const at=anchors.length?(passageIndices.get(key)||0)%anchors.length:0;passageIndices.set(key,at);
- status.textContent=!item?'Hover or select a finding to locate its report wording.':!selected.length?'Linked wording is unavailable for this finding.':scopes.join(' · ')+(pinnedRevisions.get(key)===index?' · pinned':'');
- counter.textContent=anchors.length>1?(at+1)+' of '+anchors.length+' passages':'';next.hidden=anchors.length<=1;clear.hidden=!pinnedRevisions.has(key);
  if(scrollToPassage&&anchors.length){
-  const target=anchors[at], viewer=$('diff-scroll-'+key), rect=viewer.getBoundingClientRect(), passage=target.getBoundingClientRect();
-  const desktop=window.matchMedia('(min-width:981px)').matches, top=Math.max(rect.top,20), bottom=Math.min(rect.bottom,innerHeight-20);
-  if(desktop&&bottom>top&&(passage.top<top+8||passage.bottom>bottom-8))viewer.scrollTo({top:Math.max(0,viewer.scrollTop+passage.top-top-(bottom-top)/3),behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'instant':'smooth'});
+  const target=anchors[at],location=locations.find(location=>target.dataset.locations.split(' ').includes(location));
+  const nodes=selected.filter(n=>(n.dataset.locations||'').split(' ').includes(location));
+  fitLinkedPassage(key,nodes);
+  clearTimeout(linkFitTimers.get(key));linkFitTimers.set(key,setTimeout(()=>{
+   if(activeRevision(key)===index)fitLinkedPassage(key,nodes);
+  },260));
  }
+}
+const linkFitTimers=new Map();
+function syncReportViewport(){
+ for(const viewer of document.querySelectorAll('.diff-scroll')){viewer.style.height='';viewer.style.flex='';viewer.style.paddingTop='';viewer.style.paddingBottom='';}
+ const root=$('cr-app'),scale=root.getBoundingClientRect().width/(root.offsetWidth||1)||1;
+ const banner=document.querySelector('.phi-banner'),top=(banner?banner.getBoundingClientRect().height/scale:0)+12;
+ $('cr-app').style.setProperty('--report-sticky-top',top+'px');
+ $('cr-app').style.setProperty('--report-visible-height',((window.visualViewport?.height||innerHeight)/scale)+'px');
+ requestAnimationFrame(()=>{for(const key of opened)if(activeRevision(key)!==undefined)showRevisionLinks(key,true);});
+}
+syncReportViewport();
+window.addEventListener('resize',syncReportViewport);window.visualViewport?.addEventListener('resize',syncReportViewport);
+function fitLinkedPassage(key,nodes){
+ if(!window.matchMedia('(min-width:981px)').matches)return;
+ const viewer=$('diff-scroll-'+key);if(!viewer||!nodes.length||!nodes[0].isConnected)return;
+ const viewport=window.visualViewport,vtop=viewport?.offsetTop||0,vbottom=vtop+(viewport?.height||innerHeight),rect=viewer.getBoundingClientRect();
+ const banner=document.querySelector('.phi-banner')?.getBoundingClientRect(),header=viewer.closest('.report-dock')?.querySelector('.text-change-header')?.getBoundingClientRect();
+ const top=Math.max(rect.top,vtop,banner&&banner.top<vbottom?banner.bottom:vtop,header?.bottom||vtop)+8,bottom=Math.min(rect.bottom,vbottom)-12;
+ if(bottom<=top)return;
+ // Near a case's end, sticky containment can pull part of the scrollport above
+ // the screen. Add scrollable breathing room without resizing that scrollport
+ // or moving the document, so even the first/last quote can reach its visible part.
+ const scale=rect.height/(viewer.offsetHeight||rect.height)||1;
+ viewer.style.height=(rect.height/scale)+'px';viewer.style.flex='0 0 auto';
+ viewer.style.paddingTop=Math.max(3,(top-rect.top)/scale)+'px';
+ viewer.style.paddingBottom=Math.max(8,(rect.bottom-bottom)/scale)+'px';
+ const ranges=nodes.flatMap(n=>[...n.getClientRects()]).filter(r=>r.width&&r.height).sort((a,b)=>a.top-b.top||a.left-b.left);if(!ranges.length)return;
+ let first=Math.min(...ranges.map(r=>r.top)),last=Math.max(...ranges.map(r=>r.bottom));
+ // A quote taller than the viewport cannot all fit: retain its first complete line.
+ if(last-first>bottom-top){first=ranges[0].top;last=ranges[0].bottom;}
+ const delta=first<top?first-top:last>bottom?last-bottom:0;
+ if(delta)viewer.scrollTo({top:Math.max(0,Math.min(viewer.scrollHeight-viewer.clientHeight,viewer.scrollTop+delta/scale)),behavior:'instant'});
+
 }
 function reportPanel(c) {
  const panel=el('div','report-grid');
@@ -794,7 +892,7 @@ function bodyPanel(c,key) {
   content=el('div','paired-review');
   for(const [name,panel] of [['Summary',summaryPanel(c,key)],['Text changes',diffPanel(c,key)]]){
    const pane=el('section','review-pane'+(name==='Text changes'?' report-pane':'')), heading=el('h3','pane-heading',name);heading.id='pane-'+key+'-'+(name==='Summary'?'summary':'diff');pane.setAttribute('aria-labelledby',heading.id);
-   if(name==='Text changes'){const dock=el('div','report-dock');dock.append(heading,panel);pane.append(dock);}else pane.append(heading,panel);content.append(pane);
+   if(name==='Text changes'){const dock=el('div','report-dock'),title=panel.querySelector('.pane-heading');if(title)title.id=heading.id;dock.append(panel);pane.append(dock);}else pane.append(heading,panel);content.append(pane);
   }
  }else content=active==='summary'?summaryPanel(c,key):active==='diff'?diffPanel(c,key):reportPanel(c);
  content.id='view-'+key;content.setAttribute('role','tabpanel');content.setAttribute('aria-labelledby','tab-'+key+'-'+active);body.append(content);appendAccessionTools(body,c);return body;
@@ -873,8 +971,9 @@ function render() {
  $('case-list').replaceChildren(...(filtered.length?filtered.map(({c,key})=>caseRow(c,key)):[el('div','empty','No matching cases.')]));
  updateLookupCoverage();
  for(const viewer of document.querySelectorAll('#cr-app .diff-scroll'))viewer.scrollTop=reportScroll.get(viewer.dataset.caseKey)||0;
- if(combinedView)for(const key of opened)showRevisionLinks(key,false);
+ if(combinedView)for(const key of opened)showRevisionLinks(key,activeRevision(key)!==undefined);
  if(wordingOffer)mountWordingOffer(wordingOffer.key);
+ if(explanationOffer)mountExplanationOffer(explanationOffer.key);
 }
 function renderAndFocus(id){render();$(id)?.focus({preventScroll:true});}
 function updateReview(){const focusId=document.activeElement?.id;render();if(focusId)$(focusId)?.focus({preventScroll:true});}
@@ -995,7 +1094,7 @@ $('paste-button').addEventListener('click',async()=>{
 $('collapse').addEventListener('click',()=>{for(const key of [...opened])toggleCase(key,false);$('search').focus();});
 $('clear-button').addEventListener('click',()=>{
  generation++;for(const controller of controllers)controller.abort();controllers.clear();submittedPrompt=defaultPrompt;
- dismissWordingOffer();wordingOverrides.clear();explanationOverrides.clear();hideReviewToast();$('wording-scroll-space').style.height='0px';
+ dismissWordingOffer();dismissExplanationOffer();wordingOverrides.clear();explanationOverrides.clear();reasonReveals.clear();wordingReveals.clear();showAIExplanations=false;hideReviewToast();$('wording-scroll-space').style.height='0px';
  for(const c of cases){c.review_marks={favorite:false,flagged:false,comment:''};c.resident_report='';c.attending_report='';c.revisions=[];c.clinical_diff=[];c.clinical_headings={resident:[],attending:[]};c.title='';c.title_resident='';c.title_attending='';c.exam_label='';c.status_message='';c.analysis_warnings=[];}queueRunning=false;
  cases=[];analysisIds.clear();opened.clear();views.clear();selectedFilters.clear();diffModes.clear();spacingVisible.clear();$('review-data')?.remove();
  clearLookup();

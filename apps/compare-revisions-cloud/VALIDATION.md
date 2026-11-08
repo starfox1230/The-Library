@@ -1,5 +1,34 @@
 # Verification record
 
+## November 7, 2026: item details and sticky downloads (2026.11.07.4)
+
+- 116 offline Python tests pass, including the updated hidden-by-default report
+  wording contract and explicit submitted preference preservation.
+- `check-revision-details.cjs` verifies intrinsic button/search sizing and genuine
+  single-row fit; two expanded cases with multiple revisions confirm hidden
+  defaults, no hover expansion, per-item pin/re-pin/unpin, independent all-case
+  reason/evidence controls and correct centering of wrapped action labels.
+- Measured expansion heights progress from zero through an intermediate height
+  to full height. Reduced-motion styling removes the transition. No scores or
+  clinical judgments are changed by these controls.
+- A simulated clock verifies that hovering holds the reminder past 12 seconds,
+  then leaving keeps it visible for another 3.9 seconds and hides it after four.
+- Exported readers verify that compact banner actions are initially absent,
+  appear only after scrolling past the original toolbar, disappear on returning,
+  work for full-copy and flagged-only downloads, and preserve exact banner
+  height at desktop and 390px widths. Screenshots were inspected.
+- `check-report-viewport.cjs` verifies the exported reader's stripped header and
+  complete linked quote visibility with a PHI banner in 900/600/420px viewports,
+  compact/dense summaries, inline/split views and 125%/150% CSS scaling. The
+  difficult case-end clipping condition passes without moving document scrollY.
+  `check-highlights.cjs` retains repeated/overlapping source matching, no heading
+  leakage, source-text fidelity, pin/unpin and responsive checks; assertions for
+  removed status/navigation UI were replaced by absence checks and re-click unpin.
+- Existing compact-review, marks, perspectives/severity, reader/OCR-source and
+  OCR-review browser suites cover the prior functionality. All data/model
+  responses are synthetic. Deployment remains pending; use footer 2026.11.07.4.
+
+
 ## November 7, 2026: red OCR review action (2026.11.07.3)
 
 - `check-ocr-review.cjs` verifies the pending count, prominent red background in

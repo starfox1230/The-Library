@@ -17,14 +17,12 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  assert(await card.evaluate(n=>n.classList.contains('is-highlighted')));
  assert(await page.locator('#row-0 .is-linked').count()>0);
  assert.equal(await page.locator('#row-0 .section-heading.is-linked').count(),0,'heading text never becomes evidence for a finding');
+ assert.equal(await page.locator('.link-tools,.diff-key').count(),0);
  assert.deepEqual(await page.locator('#row-0 .section-heading').allTextContents(),['FINDINGS:','IMPRESSION:'],'paired clinical report retains headers');
- assert.match(await page.locator('#link-status-0').innerText(),/Attending Impression/);
  await page.locator('#revision-0-0').click();await page.mouse.move(1590,10);await page.waitForTimeout(250);
  assert.equal(await page.locator('#revision-0-0').getAttribute('aria-pressed'),'true');
  assert(await page.locator('#row-0 .is-linked').count()>0,'pin survives leaving the card');
- const count=await page.locator('#link-count-0').innerText();assert.match(count,/1 of [234] passages/);
- await page.locator('#link-next-0').click();assert.match(await page.locator('#link-count-0').innerText(),/2 of/);
- await page.locator('#link-clear-0').click();await page.mouse.move(1590,10);await page.waitForTimeout(250);
+ await page.locator('#revision-0-0').click();await page.mouse.move(1590,10);await page.waitForTimeout(250);
  assert.equal(await page.locator('#row-0 .is-linked').count(),0);
  // Split view must retain every source character and map only that source's evidence.
  await page.locator('#diff-mode-0').selectOption('split');
@@ -41,6 +39,8 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  await page.locator('#evidence-0').click();assert.equal(await page.locator('#revision-0-'+addedIndex).getAttribute('aria-pressed'),'true');
  await page.locator('#evidence-0').click();
  await page.locator('#diff-mode-0').selectOption('inline');
+ // Explicitly show details to exercise a long expanded summary despite compact defaults.
+ await page.locator('#explanation-0').click();await page.locator('#evidence-0').click();
  // With a long expanded summary, the report stays visible and has its own scroll.
  await page.evaluate(()=>{const row=document.getElementById('row-0');scrollTo(0,row.getBoundingClientRect().top+scrollY+600);});
  await page.waitForTimeout(400);
@@ -48,8 +48,8 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
   const dock=row.querySelector('.report-dock'),viewer=row.querySelector('.diff-scroll'),panes=[...row.querySelectorAll('.review-pane')].map(n=>{const r=n.getBoundingClientRect();return {top:r.top,bottom:r.bottom};});
   return {dockTop:dock.getBoundingClientRect().top,dockBottom:dock.getBoundingClientRect().bottom,viewerHeight:viewer.clientHeight,viewerFull:viewer.scrollHeight,panes};
  });
- assert(layout.dockTop>=19&&layout.dockTop<=22,JSON.stringify(layout));
- assert(layout.dockBottom<=881,JSON.stringify(layout));
+ assert(layout.dockTop>=11&&layout.dockTop<=22,JSON.stringify(layout));
+ assert(layout.dockBottom<=889,JSON.stringify(layout));
  assert(layout.viewerFull>layout.viewerHeight+200,JSON.stringify(layout));
  assert.equal(layout.panes[0].top,layout.panes[1].top);assert.equal(layout.panes[0].bottom,layout.panes[1].bottom);
  const lowerIndex=fixtures[0].revisions.findIndex(r=>r.summary.includes('degeneration'));
@@ -59,7 +59,7 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  await page.mouse.move(1590,10);await page.waitForTimeout(250);
  // At 900px this fixture's lower Findings passage can already be visible;
  // use a shorter desktop viewport so the navigation target is offscreen.
- await page.setViewportSize({width:1600,height:600});
+ await page.setViewportSize({width:1600,height:400});
  // Prior hover/pin checks can leave a smooth scroll in flight. Isolate the
  // location check from that animation and start at a known report position.
  await page.emulateMedia({reducedMotion:'reduce'});
@@ -93,14 +93,10 @@ const fixtures=JSON.parse(fs.readFileSync(path.join(dir,'fixtures.json'),'utf8')
  await page.setViewportSize({width:1600,height:900});await page.emulateMedia({colorScheme:'light',reducedMotion:'reduce'});
  await page.setContent(repeatHtml);await page.locator('#combined-view').check();await page.locator('#case-0').click();
  await page.locator('#revision-0-0').click();await page.mouse.move(1590,10);await page.waitForTimeout(240);
- assert.equal(await page.locator('#link-count-0').innerText(),'1 of 4 passages','overlapping broader evidence must not add unrelated navigation targets');
  const matched=await page.locator('#row-0 .is-linked').allTextContents();
  assert.equal(matched.join(''),'SmallModerate effusion.SmallModerate effusion.');
- assert.match(await page.locator('#link-status-0').innerText(),/^Resident Findings · Attending Findings/);
- for(const count of [2,3,4,1]){await page.locator('#link-next-0').click();assert.equal(await page.locator('#link-count-0').innerText(),count+' of 4 passages');}
  await page.locator('#revision-0-2').click();await page.mouse.move(1590,10);await page.waitForTimeout(240);
  assert.equal(await page.locator('#row-0 .is-linked').allTextContents().then(x=>x.join('')),'SmallModerate effusion.');
- assert.match(await page.locator('#link-status-0').innerText(),/Resident Impression · Attending Impression/);
  await page.locator('#diff-mode-0').selectOption('split');
  assert.equal(await page.locator('#row-0 .report-grid .diff').first().textContent(),repeated[0].clinical_diff.filter(t=>t.kind!=='insert').map(t=>t.text).join(''));
  assert.equal(await page.locator('#row-0 .report-grid .diff').last().textContent(),repeated[0].clinical_diff.filter(t=>t.kind!=='delete').map(t=>t.text).join(''));
