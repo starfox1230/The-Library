@@ -185,7 +185,7 @@ def build_text_diff(resident_text, attending_text):
 
 # Everything the model needs is sent on every request. No conversation history
 # or remembered judgments are assumed. Report content is untrusted source data.
-PROMPT_VERSION = 'deltarad-review-1.8'
+PROMPT_VERSION = 'deltarad-review-1.9'
 MAX_PROMPT_CHARACTERS = 40_000
 MAX_PARALLEL_CASES = 100
 IMPRESSION_EMPHASIS_SUMMARY = 'Added to Impression; finding unchanged'
@@ -244,6 +244,8 @@ emphasis: an already documented finding is added to the impression without a
 meaning change. It may remain in Findings; do not imply it was removed there.
 description: supporting detail, equivalent terminology, or useful wording
 refinement for an already described finding, with no new clinical assertion.
+Also use description for routine added reassuring negatives that meet the
+ADDED REASSURING NEGATIVES rule below, even if newly documented literally.
 If matching is uncertain, do not force two lesions to be one; use review
 importance and explain uncertainty.
 
@@ -277,11 +279,26 @@ Apply the same importance standard in reverse: an important resident call
 removed/refuted can be major when the corresponding addition would be major
 in the same context. Do not invent another 'critical' category to bypass the
 section gate. Keep body-only revisions visible at lower importance.
-minor: a supported clinical assertion changes, but doesn't meet major criteria.
+minor: a supported substantive clinical assertion changes, but doesn't meet
+major criteria. Routine added reassurance as defined below is wording, not minor.
 wording: pure emphasis, description, or equivalent phrasing, outside major/minor
 clinical counts. Both emphasis and description MUST have importance wording.
 review: evidence or context does not support a dependable clinical importance
 or assertion match. Briefly explain what is uncertain; do not force a grade.
+
+ADDED REASSURING NEGATIVES: An added negative statement is not automatically a
+missed finding. When it supplies routine reassurance or a negative qualifier
+for an already described finding, without contradicting the resident or
+materially changing the assessment or recommendation, use description / wording.
+For a routine negative statement with no resident counterpart, use added /
+wording instead; leave the resident quote and section empty. Its literal
+addition does not make it a Minor clinical change.
+This applies even in Impression/Conclusion. Silence about an attribute does
+not establish that the resident missed it, believed its opposite, or explicitly
+excluded it. Failing major criteria does not by itself establish minor.
+Preserve minor/major eligibility when the negative actually refutes a reported
+abnormality or establishes a clinically meaningful exclusion; apply the usual
+importance criteria. Do not downgrade every negative statement automatically.
 
 DECISION ORDER: apply this independently to each distinct revision
 1. Find the same assertion in BOTH reports across ALL eligible sections.
@@ -289,9 +306,10 @@ DECISION ORDER: apply this independently to each distinct revision
    because the attending includes it in Impression. Identify the actual delta.
 2. Choose action from the definitions above. If assertion identity or clinical
    meaning is uncertain, use review and name the uncertainty rather than guess.
-3. If action is emphasis or description, importance MUST be wording. A real
-   change in laterality, negation, recommendation or interpretation is not
-   merely wording just because few words changed. A certainty edit may be
+3. Apply ADDED REASSURING NEGATIVES before treating a new negative as a clinical
+   addition. If action is emphasis or description, importance MUST be wording.
+   A real change in laterality, explicit refutation, recommendation or
+   interpretation is not merely wording just because few words changed. A certainty edit may be
    wording, minor or major: distinguish a stylistic confidence preference from
    a materially different assessment and its likely effect on clinical action.
 4. For a supported substantive clinical change, consider major ONLY if BOTH
@@ -350,6 +368,15 @@ CALIBRATION (context-specific examples, not universal disease rules)
   from stomach to mainstem bronchus with repositioning advised may be major when
   impression-supported. Device is a subject, not a fixed severity category.
 - Changed renal cyst laterality is a clinical change, not merely style.
+- Pancreatic cysts -> pancreatic cysts without suspicious features: description /
+  wording when this adds reassurance without contradicting the resident or
+  materially changing the assessment or recommendation, even in Conclusion.
+- No corresponding resident statement -> 'No aggressive osseous lesions':
+  added / wording when this is a routine added negative without a
+  substantive change elsewhere. Do not invent a resident positive or negative.
+- 'Splenic calcification, likely chronic granulomatous disease' -> 'No splenic
+  abnormality': an explicit change to a documented finding; the routine-added-
+  negative exception does not apply. Grade the actual delta by the usual criteria.
 - Routine 12-month nodule follow-up isn't automatically major just because actionable.
 - Negative assessment of clinically significant prostate cancer changed to a
   clearly identified, highly suspicious PI-RADS 5 lesion in Conclusion: major
@@ -481,7 +508,7 @@ are identical for both viewing modes. Always keep resident-to-attending order.""
 ATTENDING_PROMPT_VERSION = 'deltarad-review-dual-titles-1.2'
 ATTENDING_PROMPT = DEFAULT_PROMPT
 REVIEW_PROMPTS = {'resident': DEFAULT_PROMPT, 'attending': ATTENDING_PROMPT}
-REVIEW_BUILD = '2026.11.07.6'
+REVIEW_BUILD = '2026.11.07.7'
 
 
 def review_metadata(raw=None):

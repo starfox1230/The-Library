@@ -317,8 +317,32 @@ class ReviewerTests(unittest.TestCase):
     def test_exported_prompt_is_exact_and_explains_decision_order(self):
         exported = (APP_PATH.parent / 'ANALYSIS_PROMPT.md').read_text(encoding='utf-8')
         self.assertEqual(exported, self.module.DEFAULT_PROMPT)
+        self.assertEqual((APP_PATH.parent / 'ATTENDING_ANALYSIS_PROMPT.md').read_text(encoding='utf-8'), exported)
         self.assertIn('DECISION ORDER', exported)
         self.assertIn('Impression mention proves major', exported)
+
+    def test_reassuring_negative_wording_keeps_available_source_evidence(self):
+        # Preclassified synthetic outputs test validation, not model accuracy.
+        for action, before, after in (
+            ('description', 'Pancreatic cysts.', 'Pancreatic cysts without suspicious features.'),
+            ('added', '', 'No aggressive osseous lesions.'),
+        ):
+            with self.subTest(action=action):
+                case = self.pair(report('Clear lungs.', before), report('Clear lungs.', after))
+                item = self.revision(action=action, importance='wording',
+                    resident_summary=before or 'Not documented', attending_summary=after,
+                    resident_quote=before, resident_section='r1' if before else '',
+                    attending_quote=after, attending_section='a1',
+                    reason='Routine added reassurance without a substantive assessment change.')
+                result = self.module.validate_analysis(self.payload(item), case)
+                self.assertEqual(result['status'], 'complete')
+                self.assertEqual(len(result['revisions']), 1)
+                revision = result['revisions'][0]
+                self.assertEqual(revision['importance'], 'wording')
+                self.assertEqual(revision['resident_quote'], before)
+                self.assertEqual(revision['attending_quote'], after)
+                self.assertEqual({link['side'] for link in revision['source_links']},
+                    {'resident', 'attending'} if before else {'attending'})
 
     def test_invalid_endpoint_never_silently_falls_back_to_free_form_summary(self):
         malformed = []

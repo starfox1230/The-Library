@@ -1,6 +1,6 @@
 # How Compare Revisions classifies changes
 
-Resident prompt: `deltarad-review-1.8`; Attending prompt: `deltarad-review-dual-titles-1.2`.
+Shared grading prompt: `deltarad-review-1.9`; dual-title contract: `deltarad-review-dual-titles-1.2`.
 Both modes use identical instructions and generate both title perspectives in
 one analysis. The November 7, 2026 update requires a likely substantially different clinical
 action for Major, including important nonacute evaluation or follow-up. Urgency
@@ -33,13 +33,32 @@ the [attending default](ATTENDING_ANALYSIS_PROMPT.md), and [implementation](main
 | Importance: how consequential the particular revision is | Current criterion |
 | --- | --- |
 | Major | Relying on the resident’s complete clinical report instead would likely produce a **substantially different clinical action** (investigation, referral, treatment, monitoring or important follow-up), **and** the actual delta meets the Impression/Conclusion section rule. Urgency is not required. Grade the incremental effect; do not invent patient-specific plans, future outcomes or automatic disease-keyword upgrades. |
-| Minor | A supported clinical assertion changes, but it does not meet the Major criteria. A clear clinical change confined to Findings remains below Major under this app's rule. |
-| Wording/detail | Pure emphasis, equivalent phrasing or descriptive refinement without a new clinical assertion. Emphasis and Description actions must use this importance. |
+| Minor | A supported substantive clinical assertion changes, but it does not meet the Major criteria. A clear clinical change confined to Findings remains below Major under this app's rule. Routine added reassurance does not by itself qualify. |
+| Wording/detail | Pure emphasis, equivalent phrasing, descriptive refinement or routine added reassurance without a material change in assessment/recommendation. Emphasis and Description actions must use this importance. |
 | Needs review | Insufficient evidence/context to confidently assess importance or establish whether assertions concern the same finding. Name the uncertainty rather than forcing a grade. |
 
 Action is not importance: Added can be Major or Minor, Changed can describe a
 downward reinterpretation, and placement in Impression alone does not make
 something Major. Text-change percentage is never an importance criterion.
+
+### Routine added reassuring negatives
+
+An added negative is Wording/detail when it supplies routine reassurance or a
+negative qualifier without contradicting the resident or materially changing
+the assessment or recommendation, even in Impression/Conclusion. Silence does
+not establish a missed finding or an implicit positive/negative. Not meeting
+Major criteria does not establish Minor.
+
+- Pancreatic cysts with newly documented absence of suspicious features:
+  Description / Wording when only reassuring detail is added.
+- Newly documented "No aggressive osseous lesions" with no resident counterpart:
+  Added / Wording when routine reassurance; keep the resident quote empty.
+- Splenic calcification changed to "No splenic abnormality": a documented finding
+  is explicitly changed, so this exception does not automatically apply.
+
+A negative that actually refutes an abnormality or establishes a clinically
+meaningful exclusion remains eligible for Minor/Major under the usual criteria.
+The model must make this contextual distinction; no keyword downgrade is applied.
 
 ## The section rule for Major
 

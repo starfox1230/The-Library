@@ -1,5 +1,16 @@
 # Changes and rationale — October 4, 2026
 
+## Routine added reassurance — November 7, 2026 (2026.11.07.7)
+
+- Shared grading prompt 1.9 puts routine added reassuring negatives in
+  Wording/detail, including Impression additions. Missing documentation is not
+  itself a missed finding; failing Major criteria does not establish Minor.
+- Include pancreatic-cyst and routine osseous-negative examples and preserve
+  substantive refutations/exclusions under usual Minor/Major criteria.
+- Use Description/Wording for an existing finding; Added/Wording for a routine
+  negative with no counterpart, preserving exact source-evidence requirements.
+- Archive prompt 1.8 for rollback. No model, schema or automatic regrading change.
+
 ## Complete clinical case headers — November 7, 2026 (2026.11.07.6)
 
 - Show every Major/Minor summary in collapsed headers, retaining severity order

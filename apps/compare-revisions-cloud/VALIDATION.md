@@ -1,5 +1,19 @@
 # Verification record
 
+## November 7, 2026: routine added reassuring negatives (2026.11.07.7)
+
+- All 118 offline Python tests pass. Assembly syntax-checks main.py; both
+  exported mode prompts match the shared runtime default exactly.
+- New synthetic validation coverage preserves Wording classifications and
+  source links for pancreatic-cyst reassurance in Conclusion and a routine
+  osseous negative with no resident counterpart. Existing explicit-refutation,
+  Major-evidence and source-quotation checks pass. No validator relaxation or
+  keyword-based severity downgrade was introduced.
+- Reviewed prompt 1.9's definition, ordered decision step and calibration
+  examples together; archived exact prior prompt 1.8 for rollback. No live AI
+  requests or clinical-accuracy claims: actual model grading needs assessment
+  on new analyses after deployment. Deployment remains pending.
+
 ## November 7, 2026: complete clinical headers (2026.11.07.6)
 
 - All 117 offline Python tests pass; assembled main.py passes syntax checking.

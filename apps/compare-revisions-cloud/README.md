@@ -1,5 +1,16 @@
 # Compare Revisions: cloud review redesign
 
+## Routine added reassurance — November 7, 2026 (2026.11.07.7)
+
+Prepared source; Cloud Run deployment is pending. Shared prompt
+`deltarad-review-1.9` classifies routine added reassuring negatives as
+Wording/detail when they do not contradict the resident or materially change
+the assessment/recommendation, even in Impression/Conclusion. Includes pancreatic
+cyst and osseous-negative examples, with an explicit splenic-refutation contrast.
+Substantive exclusions/refutations remain eligible for Minor/Major. Previous
+prompt 1.8 is archived in `prompts/` for rollback. Existing results are not
+regraded; evaluate the change on new analyses after deployment.
+
 ## Complete clinical case headers — November 7, 2026 (2026.11.07.6)
 
 Prepared source; Cloud Run deployment is pending. Collapsed case headers show
