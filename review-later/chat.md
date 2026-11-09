@@ -44,10 +44,40 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-09 13:27 Central Standard Time
+Updated: 2026-11-09 13:30 Central Standard Time
 Cards: 26
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-11-09T06:30:03-06:00
+Last seen: 2026-11-09T13:28:27-06:00
+Card ID: 1792987742871
+Note ID: 1792987742870
+
+Question:
+00:12
+
+Which ossified ligament extends to the ischial spine?
+
+[...]
+
+1/5
+
+Answer:
+00:12
+
+Which ossified ligament extends to the ischial spine?
+
+Sacrospinous ligament
+
+1/5
+
+Sagittal stills and coronal/axial cine images preserve the available anatomy.
+
+Notion source
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-10-15T06:31:01-05:00
@@ -65,7 +95,7 @@ Answer:
 
 Shuttering masks the bright area outside the collimated field.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-07-07T23:08:06-05:00
@@ -83,7 +113,7 @@ Answer:
 
 Decreased putaminal uptake bilaterally is the classic sign on an I-123 ioflupane study {DaTscan} of Parkinsonian syndromes such as Dementia with Lewy Bodies
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T13:17:29-05:00
@@ -101,7 +131,7 @@ Answer:
 
 The resulting photoelectrons from increased photoelectric absorption mainly contribute to patient absorbed dose.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-11-08T13:11:17-06:00
@@ -125,7 +155,7 @@ Intramedullary rod/nail
 
 Dynamic Hip Screw
 
-## Card 5
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-11-09T13:11:26-06:00
@@ -145,7 +175,7 @@ Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis
 
 Source: Notion Radiology entry.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-09-02T19:52:53-05:00
@@ -167,7 +197,7 @@ Which lung cancer subtype does not express the tissue marker thyroid transcripti
 
 squamous cell carcinoma
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T13:08:52-06:00
@@ -187,7 +217,7 @@ The term meaning short proximal limb segments such as humerus or femur is rhizom
 
 Notion AIRP Lecture Link
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:40:19-05:00
@@ -209,7 +239,7 @@ Most likely diagnosis in patient with hypoglycemia and finger clubbing?
 
 solitary fibrous tumor
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T13:21:19-06:00
@@ -231,7 +261,7 @@ Most likely diagnosis?
 
 SI joint resorption due to ESRD-related hyperparathyroidism
 
-## Card 10
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-11-08T06:21:47-06:00
@@ -263,7 +293,7 @@ Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
 
 Open source PDF
 
-## Card 11
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T08:18:31-05:00
@@ -289,7 +319,7 @@ Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While
 
 Per ChatGPT
 
-## Card 12
+## Card 13
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:54:41-05:00
@@ -306,36 +336,6 @@ Answer:
 00:12
 
 A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
-
-## Card 13
-
-Deck: Saved Cards
-Flagged: 2026-11-09T06:30:03-06:00
-Last seen: 2026-11-09T06:30:03-06:00
-Card ID: 1792987742871
-Note ID: 1792987742870
-
-Question:
-00:12
-
-Which ossified ligament extends to the ischial spine?
-
-[...]
-
-1/5
-
-Answer:
-00:12
-
-Which ossified ligament extends to the ischial spine?
-
-Sacrospinous ligament
-
-1/5
-
-Sagittal stills and coronal/axial cine images preserve the available anatomy.
-
-Notion source
 
 ## Card 14
 
