@@ -44,10 +44,96 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-09 13:07 Central Standard Time
-Cards: 19
+Updated: 2026-11-09 13:14 Central Standard Time
+Cards: 23
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-08T13:11:17-06:00
+Last seen: 2026-11-09T13:11:49-06:00
+Card ID: 1757025519983
+Note ID: 1757025519983
+
+Question:
+00:12
+
+Intramedullary rod/nail is the classic treatment for [what femoral neck fractures?]
+
+Answer:
+00:08
+
+Intramedullary rod/nail is the classic treatment for unstable basicervical or intertrochanteric fractures (comminuted, reverse obliquity, subtrochanteric extension, or involvement of the posteromedial cortex [calcar femorale])
+
+Dynamic Hip Screw
+
+Intramedullary rod/nail
+
+Dynamic Hip Screw
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-11-09T13:11:26-06:00
+Last seen: 2026-11-09T13:11:26-06:00
+Card ID: 1787199507830
+Note ID: 1787199507827
+
+Question:
+00:12
+
+Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis and should raise strong concern for [...].
+
+Answer:
+00:12
+
+Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis and should raise strong concern for NMOSD.
+
+Source: Notion Radiology entry.
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-09-02T19:52:53-05:00
+Last seen: 2026-11-09T13:10:38-06:00
+Card ID: 1752168044213
+Note ID: 1752168044213
+
+Question:
+00:12
+
+Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
+
+[...]
+
+Answer:
+00:08
+
+Which lung cancer subtype does not express the tissue marker thyroid transcription factor 1 (TTF-1)?
+
+squamous cell carcinoma
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-11-09T13:08:52-06:00
+Last seen: 2026-11-09T13:08:52-06:00
+Card ID: 1761190546835
+Note ID: 1761190546833
+
+Question:
+00:12
+
+The term meaning short proximal limb segments such as humerus or femur is [...].
+
+Answer:
+00:08
+
+The term meaning short proximal limb segments such as humerus or femur is rhizomelia.
+
+Notion AIRP Lecture Link
+
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-04-22T06:40:19-05:00
@@ -69,7 +155,7 @@ Most likely diagnosis in patient with hypoglycemia and finger clubbing?
 
 solitary fibrous tumor
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T13:21:19-06:00
@@ -91,7 +177,7 @@ Most likely diagnosis?
 
 SI joint resorption due to ESRD-related hyperparathyroidism
 
-## Card 3
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-11-08T06:21:47-06:00
@@ -123,7 +209,7 @@ Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
 
 Open source PDF
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T08:18:31-05:00
@@ -149,7 +235,7 @@ Renal angiomyolipomas contain amounts of muscle, fat, and vascular tissue. While
 
 Per ChatGPT
 
-## Card 5
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:54:41-05:00
@@ -167,7 +253,7 @@ Answer:
 
 A well counter is typically a scintillation detector used to measure relatively small amounts of activity in samples such as wipes, blood, or urine.
 
-## Card 6
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-11-09T06:30:03-06:00
@@ -197,7 +283,7 @@ Sagittal stills and coronal/axial cine images preserve the available anatomy.
 
 Notion source
 
-## Card 7
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-10-18T21:01:21-05:00
@@ -219,7 +305,7 @@ Gastrointestinal stromal tumor may also produce hypervascular liver metastases.
 
 Source: Notion Radiology note.
 
-## Card 8
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-09-03T05:22:42-05:00
@@ -243,7 +329,7 @@ Type II Smith fracture (reverse Barton fracture)
 
 Q8. Incorrect; difficulty: hard. Vital Concept: Distal radius fracture with volar angulation and intra-articular extension is a reverse Barton (or type II Smith) fracture.
 
-## Card 9
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T06:26:11-06:00
@@ -261,7 +347,7 @@ Answer:
 
 The number of yolk sacs present in a gestational sac can help determine the amnionicity of a pregnancy.
 
-## Card 10
+## Card 14
 
 Deck: .NEW::Audio
 Flagged: 2026-09-26T07:32:55-05:00
@@ -279,7 +365,7 @@ Answer:
 
 If the pressure amplitude of an ultrasound wave doubles, the output power quadruples.
 
-## Card 11
+## Card 15
 
 Deck: .NEW::Audio
 Flagged: 2026-11-07T05:32:01-06:00
@@ -299,7 +385,7 @@ A quadrigeminal cistern mass with fluid and rim enhancement suggests pineal cyst
 
 Notion - AIRP Pineal Gland Neoplasms
 
-## Card 12
+## Card 16
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -317,7 +403,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 13
+## Card 17
 
 Deck: Saved Cards
 Flagged: 2026-10-04T19:57:56-05:00
@@ -337,7 +423,7 @@ Neuromyelitis optica spectrum disorder optic neuritis commonly involves the post
 
 Source: Notion Radiology entry.
 
-## Card 14
+## Card 18
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
@@ -355,7 +441,7 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 15
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-23T12:47:27-05:00
@@ -375,7 +461,7 @@ Anomaly of termination in coronary artery anatomy refers to coronary artery fist
 
 Notion AIRP Lecture
 
-## Card 16
+## Card 20
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:24:27-05:00
@@ -398,7 +484,7 @@ Notion AIRP Lecture
 Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
 Bone metastases in thyroid cancer
 
-## Card 17
+## Card 21
 
 Deck: .NEW::Audio
 Flagged: 2026-11-08T07:31:54-06:00
@@ -416,7 +502,7 @@ Answer:
 
 Intraparenchymal Hemorrhage: At the late subacute stage (8 days–1 month), the predominant hemoglobin form is methemoglobin (extracellular).
 
-## Card 18
+## Card 22
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -434,7 +520,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 19
+## Card 23
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T07:32:28-06:00
