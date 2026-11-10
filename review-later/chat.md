@@ -44,10 +44,92 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-10 12:17 Central Standard Time
-Cards: 13
+Updated: 2026-11-10 12:25 Central Standard Time
+Cards: 17
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-04T12:42:43-05:00
+Last seen: 2026-11-10T12:24:45-06:00
+Card ID: 1782588006937
+Note ID: 1782588006936
+
+Question:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as [...].
+
+Answer:
+00:12
+
+Pseudopermeative bone appearance extending to the cortex suggests benign entities such as osteoporosis or osseous hemangioma.
+
+Source Core Radiology, 2nd edition, section 13.03, Bone Tumors, printed pages MSK 934-936.
+
+Periosteal reaction morphology, margin analysis, matrix, age, and location were selected as board-relevant discriminators for nonspecific bone lesions.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-03-21T07:08:31-05:00
+Last seen: 2026-11-10T12:24:33-06:00
+Card ID: 1760419282610
+Note ID: 1760419282609
+
+Question:
+00:12
+
+A quadrigeminal cistern mass with [...] suggests pineal parenchymal tumor.
+
+Answer:
+00:08
+
+A quadrigeminal cistern mass with peripheral or scattered calcifications suggests pineal parenchymal tumor.
+
+Notion - AIRP Pineal Gland Neoplasms
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-04-27T05:55:17-05:00
+Last seen: 2026-11-10T12:19:09-06:00
+Card ID: 1763769382858
+Note ID: 1763769382857
+
+Question:
+00:12
+
+For solitary fibrous tumor of the pleura, the [...] morphology is associated with the highest risk of local recurrence.
+
+Answer:
+00:12
+
+For solitary fibrous tumor of the pleura, the sessile morphology is associated with the highest risk of local recurrence.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:09:41-05:00
+Last seen: 2026-11-10T12:18:44-06:00
+Card ID: 1776961759623
+Note ID: 1776961759623
+
+Question:
+00:12
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+[...]
+
+Answer:
+00:08
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+SNR is inversely proportional to the square root of bandwidth
+
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-11-10T12:14:53-06:00
@@ -73,7 +155,7 @@ external anal sphincter (/ puborectalis muscle?)
 
 1/2
 
-## Card 2
+## Card 6
 
 Deck: .NEW::Visual
 Flagged: 2026-09-29T06:51:10-05:00
@@ -97,7 +179,7 @@ Organo-axial volvulus
 
 Incorrect; difficulty: Hard.
 
-## Card 3
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T07:32:28-06:00
@@ -119,7 +201,7 @@ Diagnosis in trauma?
 
 Grade 3 hepatic laceration
 
-## Card 4
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -137,7 +219,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 5
+## Card 9
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -155,7 +237,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 6
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
@@ -173,7 +255,7 @@ Answer:
 
 In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
 
-## Card 7
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -191,7 +273,7 @@ Answer:
 
 In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 8
+## Card 12
 
 Deck: Saved Cards
 Flagged: 2026-11-09T06:30:03-06:00
@@ -221,7 +303,7 @@ Sagittal stills and coronal/axial cine images preserve the available anatomy.
 
 Notion source
 
-## Card 9
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-05-09T05:45:27-05:00
@@ -239,7 +321,7 @@ Answer:
 
 Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
 
-## Card 10
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-11-10T06:13:59-06:00
@@ -265,7 +347,7 @@ levator ani musculature (which?)
 
 1/2
 
-## Card 11
+## Card 15
 
 Deck: Saved Cards
 Flagged: 2026-11-09T13:11:26-06:00
@@ -285,7 +367,7 @@ Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis
 
 Source: Notion Radiology entry.
 
-## Card 12
+## Card 16
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
@@ -303,7 +385,7 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 13
+## Card 17
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T13:08:52-06:00
