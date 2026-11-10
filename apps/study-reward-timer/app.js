@@ -50,6 +50,7 @@
     catch { corrupt = true; storageWarning('Saved data could not be read. Export the original backup in Settings → Data, then restore a valid backup. Existing data has not been overwritten.'); return state; }
   }
   state = readStored();
+  const alerts = AfterglowAlerts.create({haptics:H, navigator, getState:()=>state, elapsed:E.elapsed, onAlarm:active=>{$('dismissAlarm').hidden=!active;}, status:message=>{$('alertStatus').textContent=message;}});
   function mutate(fn) {
     const latest = readStored();
     if (corrupt) { toast('Restore a valid backup before changing data.'); return null; }
@@ -140,6 +141,7 @@
     if ($('historyDialog').open) renderHistory();
     if ($('settingsDialog').open) renderFutureGoals();
     updateWakeLock();
+    alerts.tick();
   }
   async function updateWakeLock() {
     const wanted = state.settings.keepAwake && (state.active?.runningSince != null || state.active?.holding) && document.visibilityState === 'visible';
@@ -218,6 +220,7 @@
   }
   function toggleTimer() {
     if (state.active?.holding) return;
+    alerts.unlock();
     clearCelebration();
     const action = mutate(s => {
       if (s.active?.holding) return null;
@@ -416,7 +419,7 @@
   function renderHapticSettings() {
     const config = actionOption(), pattern = resolvedPattern();
     $('hapticEvent').value = hapticEvent;
-    $('eventHapticLabel').textContent = {start:'Start feedback',pause:'Pause feedback',resume:'Resume feedback',hold:'Hold progress feedback',complete:'Completion feedback'}[hapticEvent];
+    $('eventHapticLabel').textContent = {minute:'Minute reminder feedback',warning:'Final minutes feedback',alarm:'Time-up alarm feedback',start:'Start feedback',pause:'Pause feedback',resume:'Resume feedback',hold:'Hold progress feedback',complete:'Completion feedback'}[hapticEvent];
     $('eventHapticEnabled').checked = config.enabled;
     $('hapticPattern').replaceChildren();
     const groups = new Map();
@@ -587,6 +590,7 @@
   function populateSettings() {
     const f = $('goalForm').elements;
     f.goalName.value = state.settings.goalName; f.goalAmount.value = (state.settings.goalCents / 100).toFixed(2);
+    Object.entries(state.settings.alerts).forEach(([key,value]) => { const field=$(key+'Alert'); if(typeof value==='boolean')field.checked=value;else field.value=value; });
     ['sound', 'haptics', 'motion', 'keepAwake', 'countUp', 'holdToComplete'].forEach(key => { $(key + 'Setting').checked = state.settings[key]; });
     const modalities = [...new Set(state.types.map(t => t.modality))];
     $('bulkModality').replaceChildren(...modalities.map(m => new Option(m, m)));
@@ -595,6 +599,18 @@
   }
   $('settingsButton').onclick = () => { state = readStored(); populateSettings(); open($('settingsDialog')); };
   $('goalForm').onsubmit = event => { event.preventDefault(); const f = event.currentTarget.elements; const name = f.goalName.value.trim(); if (!name) return toast('Enter a goal name.'); mutate(s => { s.settings.goalName = name; s.settings.goalCents = Math.round(Number(f.goalAmount.value) * 100); }); toast('Goal saved'); };
+  Object.entries(E.alertDefaults()).forEach(([key,value]) => {
+    $(key+'Alert').onchange=event=>{
+      const next=typeof value==='boolean'?event.target.checked:Number(event.target.value);
+      if(typeof value!=='boolean' && (!Number.isInteger(next)||next<1||next>(key==='warningMinutes'?30:120))) {event.target.value=state.settings.alerts[key];return;}
+      alerts.stop(); alerts.unlock(); mutate(s=>{s.settings.alerts[key]=next;});
+    };
+  });
+  $('testMinuteAlert').onclick=()=>{alerts.unlock();alerts.announce(2,true);};
+  $('testAlarmAlert').onclick=()=>{alerts.unlock();alerts.alarm(true);};
+  $('stopAlerts').onclick=()=>alerts.stop();
+  $('dismissAlarm').onclick=()=>alerts.stop();
+  $('settingsDialog').addEventListener('close',()=>alerts.stop());
   $('settingsSearch').oninput = renderStudySettings;
   $('settingsSort').onchange = changeStudyOrder;
   $('bulkModality').onchange = updateGroupOptions;
@@ -622,7 +638,7 @@
     const saved = mutate(s => { const index = s.types.findIndex(t => t.id === type.id); if (index < 0) s.types.push(type); else s.types[index] = type; return true; });
     if (saved) { $('typeDialog').close(); renderStudySettings(); renderPicker(); toast('Study saved'); }
   };
-  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp', 'holdToComplete'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; if (key === 'haptics') stopHapticTest(); mutate(s => { s.settings[key] = checked; }); if (key === 'haptics') renderHapticSettings(); }; });
+  ['sound', 'haptics', 'motion', 'keepAwake', 'countUp', 'holdToComplete'].forEach(key => { $(key + 'Setting').onchange = event => { const checked = event.target.checked; if (key === 'haptics') {alerts.stop();stopHapticTest();} mutate(s => { s.settings[key] = checked; }); if (key === 'haptics') renderHapticSettings(); }; });
   $('previewReward').onclick = () => { $('settingsDialog').close(); celebrate(selected().rewardCents || 200, true); };
   function backupText() {
     if (corrupt) { try { return localStorage.getItem(E.KEY) || JSON.stringify(state); } catch { /* Memory fallback. */ } }
@@ -701,10 +717,10 @@
   });
   document.addEventListener('visibilitychange',()=> {
     if(document.visibilityState==='visible'){state=readStored();recoverHold();render();}
-    else {gestures.cancel();stopHapticTest();updateWakeLock();}
+    else {alerts.stop();gestures.cancel();stopHapticTest();updateWakeLock();}
   });
   window.addEventListener('pageshow',()=>{state=readStored();recoverHold();render();});
-  setInterval(() => { if (document.visibilityState === 'visible') renderTimer(); }, 250);
+  setInterval(() => { if (document.visibilityState === 'visible') {renderTimer();alerts.tick();} }, 250);
   // Keyboard shortcuts never intercept inputs or open sheets.
   document.addEventListener('keydown', event => {
     if (event.repeat || document.querySelector('dialog[open]') || event.target.closest('button,a,input,select,textarea')) return;
