@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-10 06:31 Central Standard Time
-Cards: 9
+Updated: 2026-11-10 12:07 Central Standard Time
+Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-09-29T13:16:51-05:00
+Last seen: 2026-11-10T07:24:39-06:00
+Card ID: 1765507990137
+Note ID: 1765507990136
+
+Question:
+00:12
+
+The standard treatment for osteoblastoma is [...].
+
+Answer:
+00:12
+
+The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-04-13T05:58:39-05:00
@@ -65,7 +83,7 @@ Answer:
 
 The oval window receives the stapes footplate, while the round window sits at the basal turn of the cochlea opening into the scala tympani.
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-10-28T12:57:00-05:00
@@ -83,7 +101,7 @@ Answer:
 
 In classic pancreas divisum, most pancreatic drainage occurs through the dorsal duct and minor papilla.
 
-## Card 3
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-07T08:45:32-05:00
@@ -101,7 +119,7 @@ Answer:
 
 In breast ultrasound, the fundamental distinction between a complicated breast cyst and a mixed solid and cystic mass is the absence versus presence of a true solid component.
 
-## Card 4
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-11-09T06:30:03-06:00
@@ -131,7 +149,7 @@ Sagittal stills and coronal/axial cine images preserve the available anatomy.
 
 Notion source
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-05-09T05:45:27-05:00
@@ -149,7 +167,7 @@ Answer:
 
 Signal abnormality in the mammillary bodies is a classic MRI clue to Wernicke encephalopathy.
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Visual
 Flagged: 2026-11-10T06:13:59-06:00
@@ -175,7 +193,7 @@ levator ani musculature (which?)
 
 1/2
 
-## Card 7
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-11-09T13:11:26-06:00
@@ -195,7 +213,7 @@ Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis
 
 Source: Notion Radiology entry.
 
-## Card 8
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
@@ -213,7 +231,7 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 9
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T13:08:52-06:00
