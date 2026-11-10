@@ -12,7 +12,7 @@
   const clone = value => JSON.parse(JSON.stringify(value));
   function hapticDefaults(settings = {}) {
     const option = (pattern, strength = 60) => ({ enabled: true, pattern, strength, engine: 'auto' });
-    return { minute: option('soft-click',40), warning: option('breathing',60), alarm: option('heartbeat',80), start: option('soft-click'), pause: option('soft-click', 40), resume: option('clean-click', 60), hold: option('hold-rise', 80), complete: { enabled: true, pattern: settings.hapticPattern || 'rise-snap', strength: settings.hapticStrength || 80, engine: settings.hapticEngine || 'auto' } };
+    return { minute: option('pocket-pulse',100), warning: option('breathing',60), alarm: option('heartbeat',80), start: option('soft-click'), pause: option('soft-click', 40), resume: option('clean-click', 60), hold: option('hold-rise', 80), complete: { enabled: true, pattern: settings.hapticPattern || 'rise-snap', strength: settings.hapticStrength || 80, engine: settings.hapticEngine || 'auto' } };
   }
   function alertDefaults() {
     return { minuteHaptic: false, warningHaptic: false, warningMinutes: 2, spokenMinutes: false, speakUnits: false, audioAlarm: false, audioSeconds: 5, vibrationAlarm: false, vibrationSeconds: 30 };
@@ -43,7 +43,7 @@
   }
   function fresh() {
     const types = catalogue();
-    return { version: 1, settings: { alerts: alertDefaults(), goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', studySort: 'recent', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: true, holdDefaultVersion: 1, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, recentTypeIds: [types[0].id], records: [], active: null };
+    return { version: 1, settings: { minuteHapticVersion: 1, alerts: alertDefaults(), goalCents: 90000, goalName: 'Steam Deck · 512GB OLED', studySort: 'recent', sound: false, haptics: true, hapticPattern: 'rise-snap', hapticStrength: 80, hapticEngine: 'auto', hapticEvents: hapticDefaults(), holdToComplete: true, holdDefaultVersion: 1, motion: true, keepAwake: true, countUp: false }, customHaptics: [], futureGoals: [], types, selectedTypeId: types[0].id, recentTypeIds: [types[0].id], records: [], active: null };
   }
   function selectType(state, typeId) {
     if (state.active) return false;
@@ -145,6 +145,11 @@
       const e = hapticEvents[key];
       return e && typeof e.enabled === 'boolean' && text(e.pattern,80) && number(e.strength,20,100) && ['auto','standard'].includes(e.engine);
     }) || (s.holdToComplete !== undefined && typeof s.holdToComplete !== 'boolean')) throw new Error('Invalid action haptic preferences in backup.');
+    if (s.minuteHapticVersion !== undefined && s.minuteHapticVersion !== 1) throw new Error('Invalid minute haptic version in backup.');
+    // Upgrade only the original faint minute default once; preserve later custom choices.
+    if (s.minuteHapticVersion !== 1 && hapticEvents.minute.pattern === 'soft-click' && hapticEvents.minute.strength === 40 && hapticEvents.minute.engine === 'auto') {
+      hapticEvents.minute = { ...hapticEvents.minute, pattern: 'pocket-pulse', strength: 100 };
+    }
     if (s.holdDefaultVersion !== undefined && s.holdDefaultVersion !== 1) throw new Error('Invalid completion preferences in backup.');
     // Apply the new hold default once; later explicit opt-outs survive reload and restore.
     const alerts = { ...alertDefaults(), ...s.alerts };
@@ -163,7 +168,7 @@
     const types = clone(data.types);
     // Older/custom catalogues may predate CAP. Keep existing edited targets intact.
     if (!typeIds.has('ct-body-2') && types.length < 2000) types.push(catalogue().find(t => t.id === 'ct-body-2'));
-    return { ...clone(data), types, recentTypeIds: clone(recentTypeIds), settings: { ...clone(s), alerts, studySort, hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete, holdDefaultVersion: 1 }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
+    return { ...clone(data), types, recentTypeIds: clone(recentTypeIds), settings: { ...clone(s), minuteHapticVersion: 1, alerts, studySort, hapticPattern, hapticStrength, hapticEngine, hapticEvents: clone(hapticEvents), holdToComplete, holdDefaultVersion: 1 }, customHaptics: clone(customHaptics), futureGoals: clone(goals) };
   }
   function validCustomHaptic(p) {
     return p && text(p.id,80) && p.id.startsWith('custom-') && text(p.name,60) && number(p.durationMs,200,3000) && typeof p.snap === 'boolean' && Array.isArray(p.points) && p.points.length >= 2 && p.points.length <= 32 && p.points[0]?.at === 0 && p.points.at(-1)?.at === p.durationMs && p.points.every((point,i) => point && number(point.at,0,p.durationMs) && number(point.intensity,0,1) && number(point.sharpness,0,1) && (i === 0 || point.at - p.points[i-1].at >= 10));

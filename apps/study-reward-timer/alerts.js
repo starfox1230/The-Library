@@ -31,6 +31,20 @@
       if(!s.settings.haptics||!config.enabled)return;
       const result=player.play(haptics.get(config.pattern,s.customHaptics),config);
       if(result.mode==='none')status('Haptics are unavailable in this browser.');
+      return result;
+    }
+    function testHaptic(){
+      stop();
+      const s=getState(),config=s.settings.hapticEvents.minute;
+      let message;
+      if(!s.settings.haptics)message='Turn on the master Haptics switch above to test.';
+      else if(!config.enabled)message='Minute feedback is off. Tap Customize and enable feedback for this action.';
+      else {
+        const result=play('minute'),pattern=haptics.get(config.pattern,s.customHaptics);
+        if(result.mode==='none')message='Haptics unavailable here. On iPhone, use Brrrowser; Safari cannot vibrate.';
+        else message=`Sent ${pattern.name} · ${result.mode==='hd'?`HD strength ${config.strength}%`:'standard vibration (phone controls strength)'}. Try it in your pocket.${s.settings.alerts.minuteHaptic?'':' Turn on Minute reminder for automatic pulses.'}`;
+      }
+      status(message);return message;
     }
     function announce(count,test=false){
       const a=getState().settings.alerts;
@@ -81,7 +95,7 @@
         nextWave=now+Math.max(3000,haptics.duration(haptics.get(s.settings.hapticEvents.warning.pattern,s.customHaptics))+350);
       }
     }
-    return {tick,stop,unlock,announce,alarm};
+    return {tick,stop,unlock,announce,alarm,testHaptic};
   }
   return {create,crossing};
 });

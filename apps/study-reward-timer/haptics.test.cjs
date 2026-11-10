@@ -8,8 +8,8 @@ function clock() {
   return { schedule(fn,at) { queue.set(++id,{fn,at}); return id; }, cancel(id) {queue.delete(id);}, flush() { [...queue].sort((a,b)=>a[1].at-b[1].at).forEach(([id,event])=>{if(queue.delete(id))event.fn();}); }, queue };
 }
 test('all presets have bounded timing, valid native parameters and vibration fallbacks', () => {
-  assert.equal(H.patterns.length,28);
-  assert.equal(new Set(H.patterns.map(p=>p.id)).size,28);
+  assert.equal(H.patterns.length,29);
+  assert.equal(new Set(H.patterns.map(p=>p.id)).size,29);
   for (const p of H.patterns) {
     assert.ok(H.duration(p)>0 && H.duration(p)<1500,p.id);
     const pattern=H.vibrationFor(p);

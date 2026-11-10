@@ -606,6 +606,8 @@
       alerts.stop(); alerts.unlock(); mutate(s=>{s.settings.alerts[key]=next;});
     };
   });
+  $('testMinuteHaptic').onclick=()=>{stopHapticTest();$('minuteHapticStatus').textContent=alerts.testHaptic();};
+  $('customizeMinuteHaptic').onclick=()=>{alerts.stop();stopHapticTest();hapticEvent='minute';renderHapticSettings();document.querySelector('.haptic-options').open=true;$('hapticEvent').scrollIntoView({block:'center'});$('hapticPattern').focus({preventScroll:true});};
   $('testMinuteAlert').onclick=()=>{alerts.unlock();alerts.announce(2,true);};
   $('testAlarmAlert').onclick=()=>{alerts.unlock();alerts.alarm(true);};
   $('stopAlerts').onclick=()=>alerts.stop();

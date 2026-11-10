@@ -32,3 +32,23 @@ test('pause and completion cancel active alerts without saving a case',()=>{
  const a=A.create({haptics:{createPlayer:()=>({play:()=>({}),stop(){stops++;}}),get:()=>({}),duration:()=>500},navigator:{},getState:()=>s,elapsed:E.elapsed,clock:()=>now,env:{}});
  a.tick();now+=1000;a.tick();E.pause(s,now);a.tick();assert.ok(stops);assert.equal(s.records.length,0);
 });
+test('original faint minute feedback upgrades once and later custom choices survive',()=>{
+ const s=E.fresh();delete s.settings.minuteHapticVersion;
+ s.settings.hapticEvents.minute={enabled:false,pattern:'soft-click',strength:40,engine:'auto'};
+ const restored=E.validate(s);assert.equal(restored.settings.hapticEvents.minute.pattern,'pocket-pulse');assert.equal(restored.settings.hapticEvents.minute.strength,100);assert.equal(restored.settings.hapticEvents.minute.enabled,false);
+ restored.settings.hapticEvents.minute.pattern='soft-click';restored.settings.hapticEvents.minute.strength=40;
+ assert.equal(E.validate(restored).settings.hapticEvents.minute.pattern,'soft-click');
+ s.settings.hapticEvents.minute.pattern='heartbeat';assert.equal(E.validate(s).settings.hapticEvents.minute.pattern,'heartbeat');
+});
+test('minute preview uses configured pocket pattern even with automatic reminder off, without audio or ledger changes',()=>{
+ const H=require('./haptics.js');const s=E.fresh(),before=JSON.stringify(s),calls=[];
+ const a=A.create({haptics:H,navigator:{vibrate:p=>calls.push(p)},getState:()=>s,elapsed:E.elapsed,env:{}});
+ assert.match(a.testHaptic(),/Pocket pulse/);
+ assert.deepEqual(calls.at(-1),[220,160,220,160,280]);assert.equal(JSON.stringify(s),before);
+ s.settings.hapticEvents.minute.pattern='heartbeat';a.testHaptic();assert.deepEqual(calls.at(-1),H.vibrationFor(H.get('heartbeat')));
+});
+test('minute preview explains disabled feedback and unsupported browsers',()=>{
+ const H=require('./haptics.js'),s=E.fresh();const a=A.create({haptics:H,navigator:{},getState:()=>s,elapsed:E.elapsed,env:{}});
+ assert.match(a.testHaptic(),/Safari cannot vibrate/);s.settings.haptics=false;assert.match(a.testHaptic(),/master Haptics/);
+ s.settings.haptics=true;s.settings.hapticEvents.minute.enabled=false;assert.match(a.testHaptic(),/feedback is off/);
+});

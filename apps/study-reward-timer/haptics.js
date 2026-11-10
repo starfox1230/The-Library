@@ -12,6 +12,7 @@
   const preset = (id, name, group, description, events, vibration = null) => ({ id, name, group, description, events, vibration });
   const patterns = [
     preset('rise-snap', 'Crescendo + snap', 'Build & finish', 'A warm buzz builds, takes a breath, then clicks shut.', [...ramp(6, 90), tap(620, 1, .95)]),
+    preset('pocket-pulse', 'Pocket pulse', 'Tactile rhythms', 'Three long, firm pulses with clear gaps. Designed for a more noticeable minute reminder; adjust HD strength to taste.', [buzz(0,220,1,.65),buzz(380,220,1,.75),buzz(760,280,1,.85)], [220,160,220,160,280]),
     preset('power-up', 'Power up', 'Build & finish', 'Four rising steps with a firm final lock.', [tap(0,.2,.2), tap(110,.35,.35), tap(210,.55,.5), tap(300,.75,.7), tap(450,1,.9)]),
     preset('charge-release', 'Charge & release', 'Build & finish', 'A longer, smoother build with a sharp release.', [...ramp(10, 90), tap(1000,1,1)]),
     preset('lift-off', 'Lift off', 'Build & finish', 'Accelerating taps lift into a bright finishing buzz.', [tap(0,.18,.2),tap(140,.28,.3),tap(260,.4,.4),tap(360,.55,.5),tap(440,.7,.65),buzz(500,160,.9,.8),tap(760,1,.95)]),
