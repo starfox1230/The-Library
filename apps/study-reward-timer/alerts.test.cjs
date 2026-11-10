@@ -52,3 +52,22 @@ test('minute preview explains disabled feedback and unsupported browsers',()=>{
  assert.match(a.testHaptic(),/Safari cannot vibrate/);s.settings.haptics=false;assert.match(a.testHaptic(),/master Haptics/);
  s.settings.haptics=true;s.settings.hapticEvents.minute.enabled=false;assert.match(a.testHaptic(),/feedback is off/);
 });
+test('holding keeps the original one-second haptic playing between alert ticks',()=>{
+ const H=require('./haptics.js');let now=100000;const s=E.fresh(),calls=[];
+ const nav={vibrate:value=>{calls.push(value);return true;}};
+ const alerts=A.create({haptics:H,navigator:nav,getState:()=>s,elapsed:E.elapsed,clock:()=>now,env:{}});
+ const actionPlayer=H.createPlayer(nav);
+ E.start(s,now);alerts.tick();
+ now+=100;E.beginHold(s,now);alerts.tick();
+ const config=s.settings.hapticEvents.hold;
+ assert.equal(config.pattern,'hold-rise');assert.equal(config.strength,80);
+ const pattern=H.fit(H.get(config.pattern),1000);
+ actionPlayer.play(pattern,{...config,engine:'standard'});
+ const count=calls.length;
+ for(let i=0;i<3;i++){now+=250;alerts.tick();}
+ assert.equal(calls.length,count,'alert polling must not interrupt the held button vibration');
+ assert.deepEqual(calls.at(-1),H.vibrationFor(pattern));
+ actionPlayer.stop();E.cancelHold(s,now);alerts.tick();
+ now+=100;E.pause(s,now);alerts.tick();const pausedCount=calls.length;
+ now+=250;alerts.tick();assert.equal(calls.length,pausedCount,'pause also stops alerts only on transition');
+});

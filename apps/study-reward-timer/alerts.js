@@ -81,7 +81,7 @@
       const current=a?{id:a.id,running:a.runningSince!==null&&!a.holding,spent:elapsed(a,now),at:now}:null;
       if(current)current.left=a.targetMs-current.spent;
       if(alarmId&&!preview&&(!current||current.id!==alarmId||!current.running))stop();
-      if(previous&&(!current||current.id!==previous.id||!current.running)) {if(!preview)stop();nextWave=0;}
+      if(previous&&(!current||current.id!==previous.id||(previous.running&&!current.running))) {if(!preview)stop();nextWave=0;}
       const events=current?crossing(previous,current,now):{};
       previous=current;
       if(events.deadline&&mutedId!==current.id){alarm();return;}
