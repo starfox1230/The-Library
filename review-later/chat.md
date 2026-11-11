@@ -44,10 +44,30 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-11 07:57 Central Standard Time
-Cards: 1
+Updated: 2026-11-11 13:02 Central Standard Time
+Cards: 2
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-03-21T07:08:31-05:00
+Last seen: 2026-11-11T11:34:41-06:00
+Card ID: 1760419282610
+Note ID: 1760419282609
+
+Question:
+00:12
+
+A quadrigeminal cistern mass with [...] suggests pineal parenchymal tumor.
+
+Answer:
+00:08
+
+A quadrigeminal cistern mass with peripheral or scattered calcifications suggests pineal parenchymal tumor.
+
+Notion - AIRP Pineal Gland Neoplasms
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
