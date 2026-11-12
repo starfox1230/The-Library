@@ -7,7 +7,8 @@
   // Skip stale boundaries after sleep instead of replaying a queue of reminders.
   function crossing(previous,current,now) {
     if(!previous||previous.id!==current.id||!previous.running||!current.running||now-previous.at>2000||current.spent<previous.spent)return {};
-    return {minute:Math.floor(current.spent/60000)>Math.floor(previous.spent/60000),
+    const overtimeMinutes=Math.floor(-current.left/60000);
+    return {...(overtimeMinutes>0&&overtimeMinutes>Math.max(0,Math.floor(-previous.left/60000))?{overtimeMinutes}:{}),minute:Math.floor(current.spent/60000)>Math.floor(previous.spent/60000),
       remaining:Math.ceil(current.left/60000)<Math.ceil(previous.left/60000)&&current.left>0,
       deadline:previous.left>0&&current.left<=0};
   }
@@ -46,12 +47,12 @@
       }
       status(message);return message;
     }
-    function announce(count,test=false){
+    function announce(count,test=false,overtime=false){
       const a=getState().settings.alerts;
       if(!a.spokenMinutes){if(test)status('Turn on Announce minutes remaining to preview.');return;}
       if(!env.speechSynthesis||!env.SpeechSynthesisUtterance){status('Spoken announcements are unavailable in this browser.');return;}
       if(utterance)env.speechSynthesis.cancel();
-      utterance=new env.SpeechSynthesisUtterance(`${count}${a.speakUnits?count===1?' minute':' minutes':''}`);
+      utterance=new env.SpeechSynthesisUtterance(`${count}${a.speakUnits?(count===1?' minute':' minutes')+(overtime?' over':''):''}`);
       utterance.lang='en-US';utterance.rate=1; speechUntil=clock()+5000;
       utterance.onerror=()=>{status('The device could not speak. Try Test announcement after enabling sound.');utterance=null;};
       utterance.onend=()=>{utterance=null;speechUntil=0;};
@@ -86,7 +87,15 @@
       previous=current;
       if(events.deadline&&mutedId!==current.id){alarm();return;}
       service(now);
-      if(!current?.running||current.left<=0||alarmId)return;
+      if(!current?.running)return;
+      if(current.left<=0){
+        if(s.settings.alerts.continueOvertime&&events.overtimeMinutes){
+          if(s.settings.alerts.minuteHaptic)play('minute');
+          announce(events.overtimeMinutes,false,true);
+        }
+        return;
+      }
+      if(alarmId)return;
       if(events.minute&&s.settings.alerts.minuteHaptic)play('minute');
       if(events.remaining)announce(Math.ceil(current.left/60000));
       if(s.settings.alerts.warningHaptic&&current.left<=s.settings.alerts.warningMinutes*60000&&now>=nextWave){

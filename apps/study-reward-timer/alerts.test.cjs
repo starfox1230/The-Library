@@ -71,3 +71,32 @@ test('holding keeps the original one-second haptic playing between alert ticks',
  now+=100;E.pause(s,now);alerts.tick();const pausedCount=calls.length;
  now+=250;alerts.tick();assert.equal(calls.length,pausedCount,'pause also stops alerts only on transition');
 });
+function overtimeFixture(options={}) {
+ let now=100000,pulses=0;const spoken=[],s=E.fresh();s.types[0].targetMs=90000;
+ Object.assign(s.settings.alerts,{continueOvertime:true,minuteHaptic:true,spokenMinutes:true,speakUnits:true},options);E.start(s,now);
+ const a=A.create({haptics:{createPlayer:()=>({play:()=>{pulses++;return {mode:'hd'};},stop(){}}),get:()=>({}),duration:()=>500},navigator:{},getState:()=>s,elapsed:E.elapsed,clock:()=>now,env:{SpeechSynthesisUtterance:function(text){this.text=text;},speechSynthesis:{speak:u=>spoken.push(u.text),cancel(){}}}});
+ a.tick();return {s,a,spoken,pulses:()=>pulses,advance(seconds){for(let i=0;i<seconds;i++){now+=1000;a.tick();}},tick:()=>a.tick(),now:()=>now};
+}
+test('overtime counts whole minutes after the target and does not auto-save or pay',()=>{
+ const f=overtimeFixture();f.advance(149);assert.deepEqual(f.spoken,['1 minute']);assert.equal(f.pulses(),1);
+ f.advance(1);assert.equal(f.spoken.at(-1),'1 minute over');assert.equal(f.pulses(),2);
+ f.tick();assert.equal(f.pulses(),2);f.advance(60);assert.equal(f.spoken.at(-1),'2 minutes over');assert.equal(f.pulses(),3);
+ assert.equal(f.s.records.length,0);assert.ok(f.s.active);
+});
+test('overtime is opt-in and respects existing sound and vibration switches',()=>{
+ const off=overtimeFixture({continueOvertime:false});off.advance(210);assert.deepEqual(off.spoken,['1 minute']);assert.equal(off.pulses(),1);
+ const quiet=overtimeFixture({minuteHaptic:false,spokenMinutes:false});quiet.advance(210);assert.deepEqual(quiet.spoken,[]);assert.equal(quiet.pulses(),0);
+ const numbers=overtimeFixture({minuteHaptic:false,speakUnits:false});numbers.advance(150);assert.equal(numbers.spoken.at(-1),'1');assert.equal(numbers.pulses(),0);
+});
+test('pause, hold and save stop overtime; resume uses active time without a backlog',()=>{
+ const f=overtimeFixture();f.advance(149);E.pause(f.s,f.now());f.tick();f.advance(180);assert.equal(f.pulses(),1);
+ E.resume(f.s,f.now());f.tick();E.beginHold(f.s,f.now());f.tick();f.advance(30);assert.equal(f.pulses(),1);
+ E.cancelHold(f.s,f.now());f.tick();f.advance(1);assert.equal(f.spoken.at(-1),'1 minute over');assert.equal(f.pulses(),2);
+ E.finish(f.s,f.now());f.tick();f.advance(120);assert.equal(f.pulses(),2);assert.equal(f.s.records.length,1);assert.equal(E.total(f.s.records),0);
+});
+test('older preferences migrate overtime off and preserve an opted-in backup',()=>{
+ const s=E.fresh();delete s.settings.alerts.continueOvertime;
+ const restored=E.validate(s);assert.equal(restored.settings.alerts.continueOvertime,false);
+ restored.settings.alerts.continueOvertime=true;assert.equal(E.validate(restored).settings.alerts.continueOvertime,true);
+ restored.settings.alerts.continueOvertime='true';assert.throws(()=>E.validate(restored),/timer alerts/);
+});
