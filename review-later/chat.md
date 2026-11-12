@@ -44,10 +44,68 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-11 20:49 Central Standard Time
-Cards: 11
+Updated: 2026-11-11 21:00 Central Standard Time
+Cards: 13
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-11-08T06:21:47-06:00
+Last seen: 2026-11-11T20:58:09-06:00
+Card ID: 1792431409775
+Note ID: 1792431409774
+
+Question:
+00:12
+
+What is the most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What is the most likely diagnosis?
+
+Tenosynovial giant cell tumor
+
+1/2
+
+The tendon-associated low-T2 mass blooms on the susceptibility-sensitive gradient-echo sequence because of hemosiderin.
+
+Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
+
+Open source PDF
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-11-10T06:13:59-06:00
+Last seen: 2026-11-11T20:57:30-06:00
+Card ID: 1794249144951
+Note ID: 1794249144951
+
+Question:
+00:12
+
+What structure is this?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What structure is this?
+
+levator ani musculature (which?)
+
+1/2
+
+## Card 3
 
 Deck: .NEW::Visual
 Flagged: 2026-09-23T12:36:35-05:00
@@ -71,7 +129,7 @@ Metastatic calcifications
 
 Nukes Quiz Session. Soft tissue uptake in the thyroid, lungs, stomach, liver, and kidneys supports metastatic calcification.
 
-## Card 2
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-11-11T13:17:15-06:00
@@ -93,7 +151,7 @@ Through which hepatic fissure does a recanalized paraumbilical vein course?
 
 The fissure for the ligamentum teres
 
-## Card 3
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
@@ -111,7 +169,7 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -131,7 +189,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:48:46-05:00
@@ -149,7 +207,7 @@ Answer:
 
 In a cyanotic infant with a left aortic arch and massively enlarged heart on chest radiograph, you should think of Ebstein anomaly.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-10T20:37:18-05:00
@@ -167,7 +225,7 @@ Answer:
 
 Before I-131 therapy in a lactating patient, a dopamine agonist may be used to suppress prolactin. Why? reduce lactation-related iodine uptake in breast tissue, reducing breast irradiation.
 
-## Card 7
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-11-09T13:11:26-06:00
@@ -187,7 +245,7 @@ Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis
 
 Source: Notion Radiology entry.
 
-## Card 8
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-07-19T07:05:17-05:00
@@ -209,7 +267,7 @@ The shunt traverses the membranous septal region and may be congenital or acquir
 
 Notion cardiothoracic lecture note.
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:06:59-05:00
@@ -231,7 +289,7 @@ What is the typical zonal distribution of cysts in pulmonary Langerhans cell his
 
 Upper lobe predominance with relative sparing of the lung bases
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-03-21T07:08:31-05:00
@@ -251,7 +309,7 @@ A quadrigeminal cistern mass with peripheral or scattered calcifications suggest
 
 Notion - AIRP Pineal Gland Neoplasms
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
