@@ -44,10 +44,58 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-12 06:29 Central Standard Time
-Cards: 11
+Updated: 2026-11-12 15:03 Central Standard Time
+Cards: 13
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-06T21:56:40-06:00
+Last seen: 2026-11-12T14:59:36-06:00
+Card ID: 1765507990197
+Note ID: 1765507990196
+
+Question:
+00:12
+
+A right aortic arch with mirror branching is most closely associated with [...].
+
+Answer:
+00:12
+
+A right aortic arch with mirror branching is most closely associated with Truncus arteriosus.
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-11-09T06:30:03-06:00
+Last seen: 2026-11-12T13:58:18-06:00
+Card ID: 1792987742871
+Note ID: 1792987742870
+
+Question:
+00:12
+
+Which ossified ligament extends to the ischial spine?
+
+[...]
+
+1/5
+
+Answer:
+00:12
+
+Which ossified ligament extends to the ischial spine?
+
+Sacrospinous ligament
+
+1/5
+
+Sagittal stills and coronal/axial cine images preserve the available anatomy.
+
+Notion source
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-03-21T07:08:31-05:00
@@ -67,7 +115,7 @@ A quadrigeminal cistern mass with peripheral or scattered calcifications suggest
 
 Notion - AIRP Pineal Gland Neoplasms
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-11-12T06:22:31-06:00
@@ -91,7 +139,7 @@ Predisposing factors: Primary Ischemia – SMA or SMV thrombosis, low flow ische
 
 Portal venous gas.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-05:00
@@ -113,7 +161,7 @@ What is the relationship between signal to noise ratio and bandwidth?
 
 SNR is inversely proportional to the square root of bandwidth
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-11-08T06:30:08-06:00
@@ -131,7 +179,7 @@ Answer:
 
 In brain imaging, the corticomedullary junction means the boundary between the cerebral cortex (gray matter) and the underlying subcortical white matter.
 
-## Card 5
+## Card 7
 
 Deck: Saved Cards
 Flagged: 2026-08-30T20:38:04-05:00
@@ -155,7 +203,7 @@ Goblet sign of right ureteral transitional cell carcinoma
 
 Source: Notion Radiology entry.
 
-## Card 6
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-09-26T15:53:48-05:00
@@ -179,7 +227,7 @@ Ulcer-like projection
 
 Reworked from user-selected existing Anki notes. Diagnosis recognition and exact radiologic phrase retrieval are tested on separate cards.
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-08-22T06:38:18-05:00
@@ -203,7 +251,7 @@ D
 
 Source: Visual Cards for nukes session. Original note used lettered locations; this card tests the physiologic localization instead of the answer letters.
 
-## Card 8
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-08-22T07:25:29-05:00
@@ -233,7 +281,7 @@ Sagittal and axial fluid-sensitive MRI show edema in the superolateral Hoffa fat
 
 Source image: Collin et al., BJR Case Reports 2023, Figure 1, CC BY.
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:51:25-05:00
@@ -251,7 +299,7 @@ Answer:
 
 The effective dose takes into account the anatomic region being scanned and its relative radiosensitivity.
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -271,7 +319,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 11
+## Card 13
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
