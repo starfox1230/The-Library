@@ -15,7 +15,7 @@
     return { minute: option('pocket-pulse',100), warning: option('breathing',60), alarm: option('heartbeat',80), start: option('soft-click'), pause: option('soft-click', 40), resume: option('clean-click', 60), hold: option('hold-rise', 80), complete: { enabled: true, pattern: settings.hapticPattern || 'rise-snap', strength: settings.hapticStrength || 80, engine: settings.hapticEngine || 'auto' } };
   }
   function alertDefaults() {
-    return { continueOvertime: false, minuteHaptic: false, warningHaptic: false, warningMinutes: 2, spokenMinutes: false, speakUnits: false, audioAlarm: false, audioSeconds: 5, vibrationAlarm: false, vibrationSeconds: 30 };
+    return { continueOvertime: false, minuteHaptic: false, warningHaptic: false, warningMinutes: 2, spokenMinutes: false, speakUnits: false, speakOver: false, audioAlarm: false, audioSeconds: 5, vibrationAlarm: false, vibrationSeconds: 30 };
   }
   function catalogue() {
     const groups = [
@@ -153,7 +153,9 @@
     if (s.holdDefaultVersion !== undefined && s.holdDefaultVersion !== 1) throw new Error('Invalid completion preferences in backup.');
     // Apply the new hold default once; later explicit opt-outs survive reload and restore.
     const alerts = { ...alertDefaults(), ...s.alerts };
-    if ((s.alerts !== undefined && (!s.alerts || typeof s.alerts !== 'object' || Array.isArray(s.alerts))) || !['continueOvertime','minuteHaptic','warningHaptic','spokenMinutes','speakUnits','audioAlarm','vibrationAlarm'].every(k => typeof alerts[k] === 'boolean') || !number(alerts.warningMinutes,1,30) || !Number.isInteger(alerts.warningMinutes) || !['audioSeconds','vibrationSeconds'].every(k => Number.isInteger(alerts[k]) && number(alerts[k],1,120))) throw new Error('Invalid timer alerts in backup.');
+    // Older versions appended “over” only when speaking units; retain that choice.
+    if (s.alerts?.speakOver === undefined) alerts.speakOver = s.alerts?.speakUnits === true;
+    if ((s.alerts !== undefined && (!s.alerts || typeof s.alerts !== 'object' || Array.isArray(s.alerts))) || !['continueOvertime','minuteHaptic','warningHaptic','spokenMinutes','speakUnits','speakOver','audioAlarm','vibrationAlarm'].every(k => typeof alerts[k] === 'boolean') || !number(alerts.warningMinutes,1,30) || !Number.isInteger(alerts.warningMinutes) || !['audioSeconds','vibrationSeconds'].every(k => Number.isInteger(alerts[k]) && number(alerts[k],1,120))) throw new Error('Invalid timer alerts in backup.');
     const holdToComplete = s.holdDefaultVersion === 1 ? (s.holdToComplete ?? true) : true;
     const customHaptics = data.customHaptics === undefined ? [] : data.customHaptics;
     if (!Array.isArray(customHaptics) || customHaptics.length > 100 || new Set(customHaptics.map(p => p?.id)).size !== customHaptics.length || !customHaptics.every(validCustomHaptic)) throw new Error('Invalid custom haptic curves in backup.');

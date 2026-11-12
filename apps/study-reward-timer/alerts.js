@@ -52,7 +52,7 @@
       if(!a.spokenMinutes){if(test)status('Turn on Announce minutes remaining to preview.');return;}
       if(!env.speechSynthesis||!env.SpeechSynthesisUtterance){status('Spoken announcements are unavailable in this browser.');return;}
       if(utterance)env.speechSynthesis.cancel();
-      utterance=new env.SpeechSynthesisUtterance(`${count}${a.speakUnits?(count===1?' minute':' minutes')+(overtime?' over':''):''}`);
+      utterance=new env.SpeechSynthesisUtterance(`${count}${a.speakUnits?(count===1?' minute':' minutes'):''}${overtime&&a.speakOver?' over':''}`);
       utterance.lang='en-US';utterance.rate=1; speechUntil=clock()+5000;
       utterance.onerror=()=>{status('The device could not speak. Try Test announcement after enabling sound.');utterance=null;};
       utterance.onend=()=>{utterance=null;speechUntil=0;};

@@ -112,3 +112,7 @@ Settings → Feel → Minute reminder now has **Test minute haptic**, which audi
 ### Overtime minute reminders (release 16)
 
 Settings → Feel → **Continue minute alerts after zero** is an optional global switch, off by default. It continues the enabled Minute reminder haptic and/or Announce minutes remaining voice after the target expires, every full minute over target. With a 90-second target the first overtime reminder is at 150 seconds of active time. Spoken numbers count up (1, 2, 3…); enabling Say minutes too adds “minute over” / “minutes over”. Audio remains controlled by its existing switch. Pauses, completion holds, saving a case, discarding, and background restrictions work as before. Skipped boundaries after suspension or reload are not replayed. Past cases are not monitored, and no automatic completion or reward is introduced. The new preference is included in backups; older backups default it off.
+
+### Optional “over” suffix (release 17)
+
+Settings → Feel → **Say “over” in overtime** controls the suffix independently from Say minutes too: “2”, “2 over”, “2 minutes”, or “2 minutes over”. It applies only to overtime speech, with Continue minute alerts after zero and spoken announcements enabled. New installations default it off. Older saved settings and backups preserve their prior format: users speaking minutes retain the existing “over” suffix, and users speaking bare numbers keep bare numbers until opting in. Explicit choices survive reload and backup restore.
