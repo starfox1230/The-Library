@@ -29,7 +29,9 @@ Lexical flags search stems, choices and explanations for a small explicit list o
 
 ## Study design
 
-The default seven-session plan assumes 30–45 minutes daily because the rotation start date and final schedule were not supplied. The 14-day plan splits each session into learning and retrieval; the weekend plan groups work into three blocks. All modes cover selected core activities rather than complete courses. Individual reading speed and case difficulty may require carrying work into the rotation.
+Sterling confirmed a Monday, November 16, 2026 start and a weekend of preparation followed by 20 minutes daily. The default weekend plan assigns Saturday 90 minutes, Sunday diagnostic essentials 60 minutes, and Sunday procedure orientation/day-one setup 30 minutes. Weekend dates occupy Saturday/Sunday even though there are three blocks. The first five evenings and every on-service track use a 20-minute budget. Full MRI, physics and longer technique courses are deferred to relevant service days. Seven-day and 14-day alternatives remain available. Stop at the time budget and carry unfinished work forward.
+
+The schedule preference migration `weekend-monday-2026-11-16` applies the confirmed pace/date once to older saved settings, while retaining existing completion data. New weekend content uses new completion IDs. Subsequent user pace/date changes persist, including through progress import/export.
 
 Four on-service tracks support screening, diagnostics, procedures and MRI/cancer workup. Exact clinical technique, medication decisions, follow-up processes and departmental implementation of v2025 remain service-specific learning targets.
 
