@@ -44,14 +44,32 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-13 13:52 Central Standard Time
-Cards: 13
+Updated: 2026-11-13 14:22 Central Standard Time
+Cards: 19
 
 ## Card 1
 
 Deck: .NEW::Audio
+Flagged: 2026-11-09T06:26:11-06:00
+Last seen: 2026-11-13T14:21:27-06:00
+Card ID: 1775849352861
+Note ID: 1775849352861
+
+Question:
+00:12
+
+The number of yolk sacs present in a gestational sac can help determine the [...] of a pregnancy.
+
+Answer:
+00:08
+
+The number of yolk sacs present in a gestational sac can help determine the amnionicity of a pregnancy.
+
+## Card 2
+
+Deck: .NEW::Audio
 Flagged: 2026-11-13T13:46:04-06:00
-Last seen: 2026-11-13T13:46:04-06:00
+Last seen: 2026-11-13T14:20:44-06:00
 Card ID: 1780189331874
 Note ID: 1780189331874
 
@@ -69,7 +87,105 @@ What happens to image contrast when breast compression is increased?
 
 increased contrast
 
-## Card 2
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-18T06:10:57-05:00
+Last seen: 2026-11-13T14:20:39-06:00
+Card ID: 1776293987828
+Note ID: 1776293987828
+
+Question:
+00:12
+
+[...] scans are readily identified by the intense activity within the bilateral kidneys and lack of myocardial uptake.
+
+Answer:
+00:12
+
+Octreotide scans are readily identified by the intense activity within the bilateral kidneys and lack of myocardial uptake.
+
+(indium-111-DTPA-pentetreotide -- Octreoscan)
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-11-08T13:11:17-06:00
+Last seen: 2026-11-13T14:17:38-06:00
+Card ID: 1757025519983
+Note ID: 1757025519983
+
+Question:
+00:12
+
+Intramedullary rod/nail is the classic treatment for [what femoral neck fractures?]
+
+Answer:
+00:08
+
+Intramedullary rod/nail is the classic treatment for unstable basicervical or intertrochanteric fractures (comminuted, reverse obliquity, subtrochanteric extension, or involvement of the posteromedial cortex [calcar femorale])
+
+Dynamic Hip Screw
+
+Intramedullary rod/nail
+
+Dynamic Hip Screw
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-11-02T06:10:55-06:00
+Last seen: 2026-11-13T14:17:06-06:00
+Card ID: 1789015833796
+Note ID: 1789015833795
+
+Question:
+00:12
+
+Standard treatment for a symptomatic chondroblastoma is usually [...].
+
+Answer:
+00:12
+
+Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
+
+## Card 6
+
+Deck: Saved Cards
+Flagged: 2026-10-01T13:17:37-05:00
+Last seen: 2026-11-13T14:14:39-06:00
+Card ID: 1790657855414
+Note ID: 1790657855413
+
+Question:
+00:12
+
+Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be [...].
+
+Answer:
+00:12
+
+Proximal interruption of a pulmonary artery causes the lung on the side opposite the aortic arch to be small, hyperlucent, and oligemic.
+
+## Card 7
+
+Deck: .NEW::Audio
+Flagged: 2026-11-13T14:09:57-06:00
+Last seen: 2026-11-13T14:09:57-06:00
+Card ID: 1751461636854
+Note ID: 1751461636853
+
+Question:
+00:12
+
+On a lateral chest radiograph, the left main pulmonary artery courses [where with respect to key anatomic landmark]
+
+Answer:
+00:08
+
+On a lateral chest radiograph, the left main pulmonary artery courses posterior to the left upper lobe bronchus
+
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-20T12:43:54-05:00
@@ -87,7 +203,7 @@ Answer:
 
 In a 1.5D transducer array, elevational focusing is usually achieved with dynamic electronic focusing.
 
-## Card 3
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-03-27T06:41:27-05:00
@@ -105,7 +221,7 @@ Mylohyoid boutonniere (herniation of the sublingual duct)
 
 Images
 
-## Card 4
+## Card 10
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:33:58-06:00
@@ -127,7 +243,7 @@ What are the red arrows indicating?
 
 Horizontal acetabular roofs
 
-## Card 5
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T13:21:19-06:00
@@ -149,7 +265,7 @@ Most likely diagnosis?
 
 SI joint resorption due to ESRD-related hyperparathyroidism
 
-## Card 6
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:33:21-06:00
@@ -171,7 +287,7 @@ Describe the flow this ovarian lesion?
 
 very strong
 
-## Card 7
+## Card 13
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:32:28-06:00
@@ -197,7 +313,7 @@ Birt-Hogg-Dube
 
 1/2
 
-## Card 8
+## Card 14
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:32:13-06:00
@@ -221,7 +337,7 @@ gallstone ileus
 
 This is gallstone ileus. Notice the obstructing stone in the distal ileum at the point of caliber change and air in a contracted gallbaldder.
 
-## Card 9
+## Card 15
 
 Deck: .NEW::Visual
 Flagged: 2026-10-11T08:05:58-05:00
@@ -358,7 +474,7 @@ countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
 Answer:
 SHOW ALL
 
-## Card 10
+## Card 16
 
 Deck: .NEW::Visual
 Flagged: 2026-04-19T06:09:03-05:00
@@ -384,7 +500,7 @@ A depression on the lateral femoral condyle at the terminal sulcus, between the 
 
 https://radiopaedia.org/cases/deep-lateral-femoral-notch-sulcus-sign?lang=us
 
-## Card 11
+## Card 17
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:23:11-06:00
@@ -410,7 +526,7 @@ Lobar nephronia (Acute focal nephritis)
 
 1/3
 
-## Card 12
+## Card 18
 
 Deck: .NEW::Audio
 Flagged: 2026-10-11T07:57:21-05:00
@@ -428,7 +544,7 @@ Answer:
 
 On ultrasound, parathyromatosis usually looks like typical enlarged parathyroid tissue but is distinguished by its atypical ectopic location in the neck.
 
-## Card 13
+## Card 19
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
