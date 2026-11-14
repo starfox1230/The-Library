@@ -44,10 +44,89 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-14 06:56 Central Standard Time
-Cards: 11
+Updated: 2026-11-14 07:10 Central Standard Time
+Cards: 13
 
 ## Card 1
+
+Deck: .NEW::Visual
+Flagged: 2026-09-10T05:44:13-05:00
+Last seen: 2026-11-14T07:08:13-06:00
+Card ID: 1775678781115
+Note ID: 1775678781115
+
+Question:
+00:12
+
+Diagnosis?
+
+[...]
+
+Answer:
+00:08
+
+Diagnosis?
+
+tricuspid regurgitation
+
+Normal Hepatic Vein:
+
+Pulsatile Portal Vein:
+
+Pulsatile Hepatic Vein due to Tricuspid Regurgitation:
+
+Pulsatile Hepatic Vein due to Right Heart Failure:
+
+Normal:
+
+Abnormal:
+
+Any waveform can be systematically described
+or may be named with conventional terms. The
+systematic characterization of all waveforms
+includes the features described earlier. Specifically,
+these features include predominant flow
+direction (antegrade versus retrograde), phasicity
+(pulsatile, phasic, nonphasic, or aphasic), phase
+quantification (monophasic, biphasic, triphasic,
+or tetraphasic), and inflection quantification (aninflectional,
+di-inflectional, or tetrainflectional).
+Additional features include the presence or absence
+of spectral broadening and, in arteries, the
+level of resistance (high versus low). Pragmatically,
+work volume and time constraints limit the
+usefulness of routine systematic characterization
+for all spectral Doppler examinations. However,
+conventional naming systems, designed for conciseness,
+help overcome these limitations. These
+waveform concepts are best reviewed by perusing
+multiple normal (Fig 11) and abnormal (Fig 12)
+waveforms, each with its corresponding identifying
+characteristics and conventional name.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-10-21T17:50:02-05:00
+Last seen: 2026-11-14T07:00:00-06:00
+Card ID: 1753327112541
+Note ID: 1753327112541
+
+Question:
+00:12
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+[...]
+
+Answer:
+00:08
+
+What histologic pattern of interstitial lung disease is associated with asbestosis?
+
+Usual interstitial pneumonia (UIP)
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-11-14T06:54:37-06:00
@@ -65,7 +144,7 @@ Answer:
 
 The lentiform fork sign suggests uremic encephalopathy or metabolic acidosis.
 
-## Card 2
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-11-02T06:10:55-06:00
@@ -83,7 +162,7 @@ Answer:
 
 Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
 
-## Card 3
+## Card 5
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -105,7 +184,7 @@ The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-07-10T12:45:53-05:00
@@ -123,7 +202,7 @@ Answer:
 
 Medial displacement of the ossicles is characteristic of acquired cholesteatoma arising from the pars flaccida.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -141,7 +220,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-08-13T13:19:44-05:00
@@ -163,7 +242,7 @@ Most likely diagnosis?
 
 ameloblastoma
 
-## Card 7
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-03-22T21:49:08-05:00
@@ -187,7 +266,7 @@ paraganglioma
 
 AIRP Retroperitoneum Lecture
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -207,7 +286,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:33:58-06:00
@@ -229,7 +308,7 @@ What are the red arrows indicating?
 
 Horizontal acetabular roofs
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:23:11-06:00
@@ -255,7 +334,7 @@ Lobar nephronia (Acute focal nephritis)
 
 1/3
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-11-13T14:09:57-06:00
