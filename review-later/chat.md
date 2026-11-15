@@ -44,10 +44,50 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-15 08:57 Central Standard Time
-Cards: 9
+Updated: 2026-11-15 16:35 Central Standard Time
+Cards: 11
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-11-15T16:31:13-06:00
+Last seen: 2026-11-15T16:31:13-06:00
+Card ID: 1789015833868
+Note ID: 1789015833867
+
+Question:
+00:12
+
+Tc-99m DTPA is primarily a [...] tracer for brain scintigraphy because it does not normally cross the intact blood-brain barrier.
+
+Answer:
+00:12
+
+Tc-99m DTPA is primarily a blood-flow tracer for brain scintigraphy because it does not normally cross the intact blood-brain barrier.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-11-15T15:31:38-06:00
+Last seen: 2026-11-15T16:30:56-06:00
+Card ID: 1779144700503
+Note ID: 1779144700502
+
+Question:
+00:12
+
+Symptomatic renal FMD resistant to medical therapy is initially treated with [...].
+
+Answer:
+00:12
+
+Symptomatic renal FMD resistant to medical therapy is initially treated with percutaneous angioplasty without routine stenting.
+
+Q36. Correct; difficulty: easy. Vital Concept: Percutaneous angioplasty is first-line for patients with symptomatic renal FMD resistant to medical therapy. Stents are reserved for dissection or angioplasty failure. Correct answer: Angioplasty alone.
+
+1/4
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-10-09T13:22:43-05:00
@@ -69,7 +109,7 @@ What is the primary difference between subacute granulomatous thyroiditis and su
 
 Subacute granulomatous thyroiditis is classically painful and tender, often with an antecedent viral URI. And subacute lymphocytic thyroiditis is classically painless and commonly occurs postpartum.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-08-01T07:27:54-05:00
@@ -87,7 +127,7 @@ Answer:
 
 The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-11-13T13:46:04-06:00
@@ -109,7 +149,7 @@ What happens to image contrast when breast compression is increased?
 
 increased contrast
 
-## Card 4
+## Card 6
 
 Deck: Saved Cards
 Flagged: 2026-11-09T13:11:26-06:00
@@ -129,7 +169,7 @@ Chiasmatic optic-nerve enhancement is a major red flag against MS optic neuritis
 
 Source: Notion Radiology entry.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-04-17T06:40:03-05:00
@@ -147,7 +187,7 @@ Answer:
 
 In a right aortic arch, origin of the left subclavian artery from the front of the arch suggests mirror image branching pattern.
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -167,7 +207,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 7
+## Card 9
 
 Deck: .Core Backlog
 Flagged: 2026-09-17T06:45:29-05:00
@@ -189,7 +229,7 @@ Q8. Correct; difficulty: hard. Vital Concept: The darkness of the blood pool on 
 
 Open review Q8
 
-## Card 8
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-11-14T06:54:37-06:00
@@ -207,7 +247,7 @@ Answer:
 
 The lentiform fork sign suggests uremic encephalopathy or metabolic acidosis.
 
-## Card 9
+## Card 11
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
