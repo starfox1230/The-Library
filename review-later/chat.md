@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-16 21:25 Central Standard Time
+Updated: 2026-11-16 21:59 Central Standard Time
 Cards: 15
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-16T20:55:43-06:00
+Last seen: 2026-11-16T21:56:16-06:00
+Card ID: 1758508255869
+Note ID: 1758508255868
+
+Question:
+00:12
+
+Dysphagia lusoria is an impairment of swallowing due to [...]
+
+Answer:
+00:08
+
+Dysphagia lusoria is an impairment of swallowing due to compression from an aberrant right subclavian artery
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-03-22T21:49:08-05:00
@@ -71,7 +89,7 @@ paraganglioma
 
 AIRP Retroperitoneum Lecture
 
-## Card 2
+## Card 3
 
 Deck: Saved Cards
 Flagged: 2026-10-29T06:07:31-05:00
@@ -96,7 +114,7 @@ Flash-filling hemangioma, hypervascular metastases, adenoma or well-differentiat
 Flash-filling hemangiomas can enhance rapidly and uniformly in the arterial phase.
 Hepatic hemangioma imaging review
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-10-25T08:24:27-05:00
@@ -119,7 +137,7 @@ Notion AIRP Lecture
 Follicular thyroid carcinoma is the classic thyroid subtype associated with hematogenous bone metastases. Other thyroid carcinomas can also produce lytic metastases.
 Bone metastases in thyroid cancer
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -137,7 +155,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 5
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T13:08:52-06:00
@@ -157,7 +175,7 @@ The term meaning short proximal limb segments such as humerus or femur is rhizom
 
 Notion AIRP Lecture Link
 
-## Card 6
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-05-24T06:07:31-05:00
@@ -175,7 +193,7 @@ Answer:
 
 In ultrasound, pulse repetition frequency (PRF) is the number of wave cycles passing a given point per second within a pulse.
 
-## Card 7
+## Card 8
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:21:48-05:00
@@ -197,7 +215,7 @@ The dark anterior humeral line crosses the green middle third of the capitellum.
 
 Image by Kilborn, Moodley and Mears; annotations by Mikael Häggström. Unmodified. Image source · CC BY-SA 4.0 · Original article
 
-## Card 8
+## Card 9
 
 Deck: .NEW::Visual
 Flagged: 2026-11-13T13:23:11-06:00
@@ -222,24 +240,6 @@ Most likely diagnosis? The last image is three months following the first two.
 Lobar nephronia (Acute focal nephritis)
 
 1/3
-
-## Card 9
-
-Deck: .NEW::Audio
-Flagged: 2026-11-16T20:55:43-06:00
-Last seen: 2026-11-16T20:55:43-06:00
-Card ID: 1758508255869
-Note ID: 1758508255868
-
-Question:
-00:12
-
-Dysphagia lusoria is an impairment of swallowing due to [...]
-
-Answer:
-00:08
-
-Dysphagia lusoria is an impairment of swallowing due to compression from an aberrant right subclavian artery
 
 ## Card 10
 
