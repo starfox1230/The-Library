@@ -44,10 +44,28 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-17 04:43 Central Standard Time
+Updated: 2026-11-17 08:03 Central Standard Time
 Cards: 6
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-17T04:18:49-06:00
+Last seen: 2026-11-17T05:23:38-06:00
+Card ID: 1742991835760
+Note ID: 1742991835758
+
+Question:
+00:12
+
+An Essex-Lopresti fracture is a [...].
+
+Answer:
+00:08
+
+An Essex-Lopresti fracture is a comminuted radial head fracture with disruption of the interosseous membrane and distal radioulnar joint.
+
+## Card 2
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:49:17-05:00
@@ -65,7 +83,7 @@ Answer:
 
 Lowering kVp tends to increase photoelectric absorption, which improves image contrast.
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-08-18T06:10:57-05:00
@@ -85,7 +103,7 @@ Octreotide scans are readily identified by the intense activity within the bilat
 
 (indium-111-DTPA-pentetreotide -- Octreoscan)
 
-## Card 3
+## Card 4
 
 Deck: Saved Cards
 Flagged: 2026-09-15T06:32:26-05:00
@@ -106,24 +124,6 @@ A tongue-type calcaneal fracture extends from the posterior facet to the posteri
 The Achilles tendon pulls the posterior fragment superiorly.
 
 Source: Maroufi et al., 2023.
-
-## Card 4
-
-Deck: .NEW::Audio
-Flagged: 2026-11-17T04:18:49-06:00
-Last seen: 2026-11-17T04:18:49-06:00
-Card ID: 1742991835760
-Note ID: 1742991835758
-
-Question:
-00:12
-
-An Essex-Lopresti fracture is a [...].
-
-Answer:
-00:08
-
-An Essex-Lopresti fracture is a comminuted radial head fracture with disruption of the interosseous membrane and distal radioulnar joint.
 
 ## Card 5
 
