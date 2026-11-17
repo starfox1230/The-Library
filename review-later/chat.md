@@ -44,10 +44,42 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-16 18:19 Central Standard Time
+Updated: 2026-11-16 20:43 Central Standard Time
 Cards: 6
 
 ## Card 1
+
+Deck: Saved Cards
+Flagged: 2026-11-08T06:21:47-06:00
+Last seen: 2026-11-16T18:26:39-06:00
+Card ID: 1792431409775
+Note ID: 1792431409774
+
+Question:
+00:12
+
+What is the most likely diagnosis?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What is the most likely diagnosis?
+
+Tenosynovial giant cell tumor
+
+1/2
+
+The tendon-associated low-T2 mass blooms on the susceptibility-sensitive gradient-echo sequence because of hemosiderin.
+
+Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
+
+Open source PDF
+
+## Card 2
 
 Deck: .NEW::Visual
 Flagged: 2026-07-06T06:36:12-05:00
@@ -184,7 +216,7 @@ countdown("s2", 0, 10 ); //2nd value is the minute, 3rd is the seconds
 Answer:
 SHOW ALL
 
-## Card 2
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-04T12:51:08-05:00
@@ -207,7 +239,7 @@ Differentiate lipomyelocele from lipomyelomeningocele on imaging.
 lipomyelocele = placode-fat interface without CSF sac protruding beyond placode
 lipomyelomeningocele = placode-fat interface plus meningeal and CSF protrusion beyond the placode
 
-## Card 3
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-19T13:32:37-05:00
@@ -225,7 +257,7 @@ Answer:
 
 An endometrial thickness of greater than 8 mm (Lockhart says that’s for tamoxifen) in a postmenopausal patient who is not bleeding is abnormal.
 
-## Card 4
+## Card 5
 
 Deck: .NEW::Visual
 Flagged: 2026-11-10T06:13:59-06:00
@@ -250,38 +282,6 @@ What structure is this?
 levator ani musculature (which?)
 
 1/2
-
-## Card 5
-
-Deck: Saved Cards
-Flagged: 2026-11-08T06:21:47-06:00
-Last seen: 2026-11-16T17:49:22-06:00
-Card ID: 1792431409775
-Note ID: 1792431409774
-
-Question:
-00:12
-
-What is the most likely diagnosis?
-
-[...]
-
-1/2
-
-Answer:
-00:12
-
-What is the most likely diagnosis?
-
-Tenosynovial giant cell tumor
-
-1/2
-
-The tendon-associated low-T2 mass blooms on the susceptibility-sensitive gradient-echo sequence because of hemosiderin.
-
-Wu and Hochman. Radiology 2009, Figure 16, PDF page 14.
-
-Open source PDF
 
 ## Card 6
 
