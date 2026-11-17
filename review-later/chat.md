@@ -44,7 +44,45 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-17 03:41 Central Standard Time
-Cards: 0
+Updated: 2026-11-17 04:02 Central Standard Time
+Cards: 2
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-15T15:31:38-06:00
+Last seen: 2026-11-17T03:43:31-06:00
+Card ID: 1779144700503
+Note ID: 1779144700502
+
+Question:
+00:12
+
+Symptomatic renal FMD resistant to medical therapy is initially treated with [...].
+
+Answer:
+00:12
+
+Symptomatic renal FMD resistant to medical therapy is initially treated with percutaneous angioplasty without routine stenting.
+
+Q36. Correct; difficulty: easy. Vital Concept: Percutaneous angioplasty is first-line for patients with symptomatic renal FMD resistant to medical therapy. Stents are reserved for dissection or angioplasty failure. Correct answer: Angioplasty alone.
+
+1/4
+
+## Card 2
+
+Deck: Saved Cards
+Flagged: 2026-11-02T06:10:55-06:00
+Last seen: 2026-11-17T03:42:42-06:00
+Card ID: 1789015833796
+Note ID: 1789015833795
+
+Question:
+00:12
+
+Standard treatment for a symptomatic chondroblastoma is usually [...].
+
+Answer:
+00:12
+
+Standard treatment for a symptomatic chondroblastoma is usually intralesional curettage, often with filling of the resulting defect.
