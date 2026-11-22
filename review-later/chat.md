@@ -44,7 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-22 10:03 Central Standard Time
+Updated: 2026-11-22 10:04 Central Standard Time
 Cards: 11
 
 ## Card 1
@@ -187,7 +187,7 @@ Before I-131 therapy for differentiated thyroid carcinoma, TSH stimulation can b
 
 ## Card 8
 
-Deck: ..Due 2026-10-28 to 2026-11-21 Combined
+Deck: Saved Cards
 Flagged: 2026-11-22T06:39:27-06:00
 Last seen: 2026-11-22T06:39:27-06:00
 Card ID: 1795239071626
