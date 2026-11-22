@@ -44,10 +44,46 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-22 10:04 Central Standard Time
-Cards: 11
+Updated: 2026-11-22 12:59 Central Standard Time
+Cards: 13
 
 ## Card 1
+
+Deck: ..Due 2026-10-29 to 2026-11-22 Combined
+Flagged: 2026-11-22T12:37:51-06:00
+Last seen: 2026-11-22T12:37:51-06:00
+Card ID: 1788323799995
+Note ID: 1788323799994
+
+Question:
+00:12
+
+Multiple myeloma is a malignancy of [...] cells, which are terminally differentiated B-lineage cells that produce immunoglobulin.
+
+Answer:
+00:12
+
+Multiple myeloma is a malignancy of plasma cells, which are terminally differentiated B-lineage cells that produce immunoglobulin.
+
+## Card 2
+
+Deck: ..Due 2026-10-29 to 2026-11-22 Combined
+Flagged: 2026-11-22T11:49:45-06:00
+Last seen: 2026-11-22T11:49:45-06:00
+Card ID: 1776805025979
+Note ID: 1776290226191
+
+Question:
+00:12
+
+The most common method for testing [...] purity of Tc-99m labeled compounds is thin layer chromatography.
+
+Answer:
+00:12
+
+The most common method for testing radiochemical purity of Tc-99m labeled compounds is thin layer chromatography.
+
+## Card 3
 
 Deck: .NEW::Audio
 Flagged: 2026-09-20T17:32:39-05:00
@@ -65,7 +101,7 @@ Answer:
 
 After administration of Tc-99m pertechnetate, the patient can resume breast-feeding after 24 hours.
 
-## Card 2
+## Card 4
 
 Deck: .NEW::Audio
 Flagged: 2026-09-09T18:06:59-05:00
@@ -87,7 +123,7 @@ What is the typical zonal distribution of cysts in pulmonary Langerhans cell his
 
 Upper lobe predominance with relative sparing of the lung bases
 
-## Card 3
+## Card 5
 
 Deck: .NEW::Audio
 Flagged: 2026-09-29T13:16:51-05:00
@@ -105,7 +141,7 @@ Answer:
 
 The standard treatment for osteoblastoma is curettage or surgical resection of the lesion.
 
-## Card 4
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-11-17T08:07:17-06:00
@@ -123,7 +159,7 @@ Answer:
 
 Transmit frequency in ultrasound is the number of sound wave cycles sent each second.
 
-## Card 5
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-11-22T07:44:41-06:00
@@ -145,7 +181,7 @@ Coxa profunda
 
 Protrusio acetabuli
 
-## Card 6
+## Card 8
 
 Deck: .NEW::Visual
 Flagged: 2026-11-08T07:32:28-06:00
@@ -167,7 +203,7 @@ Diagnosis in trauma?
 
 Grade 3 hepatic laceration
 
-## Card 7
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-11-18T17:25:39-06:00
@@ -185,7 +221,7 @@ Answer:
 
 Before I-131 therapy for differentiated thyroid carcinoma, TSH stimulation can be achieved through thyroid hormone withdrawal or recombinant human TSH administration.
 
-## Card 8
+## Card 10
 
 Deck: Saved Cards
 Flagged: 2026-11-22T06:39:27-06:00
@@ -207,7 +243,7 @@ Speaker-specific teaching from the supplied Galgano transcript. Treatment choice
 
 Source note
 
-## Card 9
+## Card 11
 
 Deck: .NEW::Audio
 Flagged: 2026-11-22T00:31:36-06:00
@@ -225,7 +261,7 @@ Answer:
 
 In patient safety, hidden system problems that make mistakes more likely are called latent errors.
 
-## Card 10
+## Card 12
 
 Deck: .NEW::Audio
 Flagged: 2026-05-06T05:32:34-05:00
@@ -243,7 +279,7 @@ Answer:
 
 The physiologic distribution of I-123 or I-131 includes salivary glands, thyroid gland, GI tract, and bladder, as well as the liver after 24 hours.
 
-## Card 11
+## Card 13
 
 Deck: .NEW::Audio
 Flagged: 2026-11-12T06:22:31-06:00
