@@ -44,7 +44,31 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-23 06:26 Central Standard Time
-Cards: 0
+Updated: 2026-11-23 19:19 Central Standard Time
+Cards: 1
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: ..Due 2026-10-30 to 2026-11-23 Audio
+Flagged: 2026-11-23T12:50:40-06:00
+Last seen: 2026-11-23T12:50:40-06:00
+Card ID: 1795239071644
+Note ID: 1795239071643
+
+Question:
+00:12
+
+When reporting below-knee runoff, what should you identify about the flow reaching the ankle and foot?
+
+[...]
+
+Answer:
+00:12
+
+When reporting below-knee runoff, what should you identify about the flow reaching the ankle and foot?
+
+Which artery or arteries provide the dominant flow.
+
+Speaker-specific teaching from the supplied Galgano transcript. Treatment choices depend on anatomy and patient factors; these cards preserve the authored teaching rather than asserting a universal treatment rule.
+
+Source note
