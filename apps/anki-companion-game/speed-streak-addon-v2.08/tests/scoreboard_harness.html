@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speed Streak v2.04 scoreboard harness</title>
+  <link rel="stylesheet" href="../web/overlay.css">
+  <style>
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #202225; }
+  </style>
+</head>
+<body>
+  <script>
+    window.speedStreakHarnessCommands = [];
+    window.pycmd = (command) => {
+      const value = String(command);
+      window.speedStreakHarnessCommands.push(value);
+      document.documentElement.setAttribute("data-last-pycmd", value);
+    };
+  </script>
+  <script src="../web/overlay.js"></script>
+  <script>
+    window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const requestedLayout = params.get("layout") || "best_only";
+      const emptyHistory = params.get("empty") === "1";
+      const firstScore = params.get("first") === "1";
+      const celebrateRecord = params.get("celebrate") === "1";
+      const timeDrain = params.get("timeDrain") === "1";
+      const requestedSet = params.get("set") || "recent";
+      const payload = {
+        enabled: 1,
+        visualsEnabled: 1,
+        showCardTimer: 1,
+        displayMode: "compatibility",
+        visualMode: "sphere",
+        sphereMode: "fusion",
+        renderMode: "ultra_low_resource",
+        appearanceMode: "midnight",
+        customColors: {},
+        phase: "question",
+        timeDrainFlag: 2,
+        currentCardFlag: timeDrain ? 2 : 0,
+        timeDrainAutoPaused: timeDrain ? 1 : 0,
+        timeDrainTimerOverrideEnabled: 0,
+        phaseStartEpochMs: Date.now(),
+        phaseLimitMs: 12000,
+        phaseBaseLimitMs: 12000,
+        timerDisplayRemainingMs: 8500,
+        timerDisplayNowEpochMs: Date.now(),
+        timerDisplayStepMs: 100,
+        streak: celebrateRecord ? 168 : 86,
+        // Keep the visual renderer honest: a displayed streak of 86 must carry
+        // all 86 earned satellites. In Fusion Rings, the first 50 become one
+        // completed ring and the remaining 36 stay in the live formation.
+        satelliteColors: Array.from(
+          { length: celebrateRecord ? 168 : 86 },
+          (_, index) => ["green", "blue", "yellow", "green"][index % 4],
+        ),
+        gameplayMode: "time_boost",
+        boostCharges: 3,
+        maxBoostCharges: 5,
+        boostChargeProgress: 4,
+        cardsPerBoostCharge: 10,
+        canUseTimeBoost: 1,
+        showFocusModeToggles: 1,
+        scoreboardLayout: requestedLayout,
+        scoreboardListMode: requestedSet,
+        scoreboardOrder: "ranked",
+        scoreboardCelebrationEnabled: 1,
+        scoreboardColors: {
+          label: params.get("label") || "#8ea0cc",
+          value: params.get("value") || "#65f0c2",
+          new_record: params.get("new_record") || "#f5aa41"
+        },
+        runHistory: {
+          bestStreak: firstScore ? 6 : (requestedSet === "today" ? 86 : 168),
+          savedBestStreak: firstScore ? 0 : (requestedSet === "today" ? 74 : 168),
+          benchmarkMode: requestedSet === "today" ? "today" : "all_time",
+          active: {
+            id: "live",
+            streak: firstScore ? 6 : (celebrateRecord ? 168 : 86),
+            startedAt: new Date(Date.now() - 420000).toISOString(),
+            runSpanMs: 390000,
+            activeMs: 240000,
+            pausedMs: 18000,
+            pauseCount: 2,
+            reviewExitMs: 55000,
+            reviewExitCount: 1,
+            resumedAfterRestart: false,
+            usedUndo: false
+          },
+          runs: emptyHistory ? [] : [
+            { id: 5, streak: 74, endedAt: new Date(Date.now() - 3600000).toISOString(), endReason: "timeout", runSpanMs: 330000, activeMs: 220000, pausedMs: 0, pauseCount: 0, reviewExitMs: 0, reviewExitCount: 0 },
+            { id: 4, streak: 119, endedAt: new Date(Date.now() - 86400000).toISOString(), endReason: "timeout", runSpanMs: 520000, activeMs: 410000, pausedMs: 30000, pauseCount: 1, reviewExitMs: 90000, reviewExitCount: 2 },
+            { id: 3, streak: 52, endedAt: new Date(Date.now() - 172800000).toISOString(), endReason: "anki-closed", runSpanMs: 280000, activeMs: 190000, pausedMs: 12000, pauseCount: 1, reviewExitMs: 62000, reviewExitCount: 1 },
+            { id: 2, streak: 168, endedAt: new Date(Date.now() - 259200000).toISOString(), endReason: "timeout", runSpanMs: 780000, activeMs: 610000, pausedMs: 45000, pauseCount: 2, reviewExitMs: 130000, reviewExitCount: 3 },
+            { id: 1, streak: 91, endedAt: new Date(Date.now() - 345600000).toISOString(), endReason: "manual-reset", runSpanMs: 420000, activeMs: 330000, pausedMs: 0, pauseCount: 0, reviewExitMs: 0, reviewExitCount: 0 }
+          ]
+        }
+      };
+      window.SpeedStreak.receiveState(payload);
+      if (celebrateRecord) {
+        window.setTimeout(() => {
+          const recordPayload = JSON.parse(JSON.stringify(payload));
+          recordPayload.streak = 169;
+          recordPayload.runHistory.bestStreak = 169;
+          recordPayload.runHistory.active.streak = 169;
+          window.SpeedStreak.receiveState(recordPayload);
+        }, 350);
+      }
+    }, 50);
+  </script>
+</body>
+</html>
