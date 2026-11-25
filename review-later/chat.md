@@ -44,7 +44,7 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-24 07:21 Central Standard Time
+Updated: 2026-11-24 20:18 Eastern Standard Time
 Cards: 0
 
 No currently blue cards were seen in this period.
