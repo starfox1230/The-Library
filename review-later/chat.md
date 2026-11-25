@@ -44,10 +44,122 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-25 07:56 Eastern Standard Time
-Cards: 5
+Updated: 2026-11-25 12:56 Eastern Standard Time
+Cards: 10
 
 ## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-13T13:46:04-05:00
+Last seen: 2026-11-25T12:54:29-05:00
+Card ID: 1780189331874
+Note ID: 1780189331874
+
+Question:
+00:12
+
+What happens to image contrast when breast compression is increased?
+
+[...]
+
+Answer:
+00:08
+
+What happens to image contrast when breast compression is increased?
+
+increased contrast
+
+## Card 2
+
+Deck: .NEW::Visual
+Flagged: 2026-09-26T07:29:03-04:00
+Last seen: 2026-11-25T12:48:49-05:00
+Card ID: 1790272665570
+Note ID: 1790272665569
+
+Question:
+00:12
+
+What’s the black structure in the left atrium?
+
+[...]
+
+1/2
+
+Answer:
+00:12
+
+What’s the black structure in the left atrium?
+
+Coumadin ridge
+
+1/2
+
+## Card 3
+
+Deck: .NEW::Audio
+Flagged: 2026-08-01T07:27:54-04:00
+Last seen: 2026-11-25T12:48:09-05:00
+Card ID: 1779082174695
+Note ID: 1779082174694
+
+Question:
+00:12
+
+The [...] is the collateral connection between the middle colic artery and the left colic artery.
+
+Answer:
+00:12
+
+The Arc of Riolan is the collateral connection between the middle colic artery and the left colic artery.
+
+## Card 4
+
+Deck: .NEW::Audio
+Flagged: 2026-11-16T20:55:43-05:00
+Last seen: 2026-11-25T12:45:47-05:00
+Card ID: 1758508255869
+Note ID: 1758508255868
+
+Question:
+00:12
+
+Dysphagia lusoria is an impairment of swallowing due to [...]
+
+Answer:
+00:08
+
+Dysphagia lusoria is an impairment of swallowing due to compression from an aberrant right subclavian artery
+
+## Card 5
+
+Deck: Saved Cards
+Flagged: 2026-11-22T14:25:58-05:00
+Last seen: 2026-11-25T12:42:19-05:00
+Card ID: 1792431409717
+Note ID: 1792431409716
+
+Question:
+00:12
+
+End-stage renal disease with hypercalcemia. What is the most likely diagnosis?
+
+[...]
+
+Answer:
+00:12
+
+End-stage renal disease with hypercalcemia. What is the most likely diagnosis?
+
+Metastatic soft-tissue calcification
+
+The lobulated periarticular calcium deposits occur in a metabolic setting. Here metastatic refers to metabolic calcium deposition, not cancer spread.
+
+Subhawong et al. AJR 2010, Figure 2, PDF page 2.
+
+Open source PDF
+
+## Card 6
 
 Deck: .NEW::Audio
 Flagged: 2026-11-09T06:26:11-05:00
@@ -65,7 +177,7 @@ Answer:
 
 The number of yolk sacs present in a gestational sac can help determine the amnionicity of a pregnancy.
 
-## Card 2
+## Card 7
 
 Deck: .NEW::Audio
 Flagged: 2026-11-25T06:33:23-05:00
@@ -85,7 +197,7 @@ Answer:
 Failure mode and effects analysis (FMEA)
 is a complex process of prospectively procedure mapping and then determining points and likelihood of failure of any given process step.
 
-## Card 3
+## Card 8
 
 Deck: Saved Cards
 Flagged: 2026-11-25T06:23:23-05:00
@@ -111,7 +223,7 @@ Speaker-specific teaching from the supplied Galgano transcript. Treatment choice
 
 Source note
 
-## Card 4
+## Card 9
 
 Deck: Saved Cards
 Flagged: 2026-08-19T06:36:04-04:00
@@ -137,7 +249,7 @@ Experimental multiple-sclerosis candidate from the reporting-phrases set.
 
 Source: Notion Radiology note.
 
-## Card 5
+## Card 10
 
 Deck: .NEW::Audio
 Flagged: 2026-10-29T06:09:41-04:00
