@@ -44,7 +44,117 @@ Be flexible if the conversation reveals another useful category or task.
 
 # Anki Speed Streak — Review Later
 
-Updated: 2026-11-24 20:18 Eastern Standard Time
-Cards: 0
+Updated: 2026-11-25 07:56 Eastern Standard Time
+Cards: 5
 
-No currently blue cards were seen in this period.
+## Card 1
+
+Deck: .NEW::Audio
+Flagged: 2026-11-09T06:26:11-05:00
+Last seen: 2026-11-25T07:47:56-05:00
+Card ID: 1775849352861
+Note ID: 1775849352861
+
+Question:
+00:12
+
+The number of yolk sacs present in a gestational sac can help determine the [...] of a pregnancy.
+
+Answer:
+00:08
+
+The number of yolk sacs present in a gestational sac can help determine the amnionicity of a pregnancy.
+
+## Card 2
+
+Deck: .NEW::Audio
+Flagged: 2026-11-25T06:33:23-05:00
+Last seen: 2026-11-25T06:33:23-05:00
+Card ID: 1737607449318
+Note ID: 1737607449318
+
+Question:
+00:12
+
+[...]
+is a complex process of prospectively procedure mapping and then determining points and likelihood of failure of any given process step.
+
+Answer:
+00:08
+
+Failure mode and effects analysis (FMEA)
+is a complex process of prospectively procedure mapping and then determining points and likelihood of failure of any given process step.
+
+## Card 3
+
+Deck: Saved Cards
+Flagged: 2026-11-25T06:23:23-05:00
+Last seen: 2026-11-25T06:23:23-05:00
+Card ID: 1795239071644
+Note ID: 1795239071643
+
+Question:
+00:12
+
+When reporting below-knee runoff, what should you identify about the flow reaching the foot?
+
+[...]
+
+Answer:
+00:12
+
+When reporting below-knee runoff, what should you identify about the flow reaching the foot?
+
+Which artery or arteries provide the dominant flow.
+
+Speaker-specific teaching from the supplied Galgano transcript. Treatment choices depend on anatomy and patient factors; these cards preserve the authored teaching rather than asserting a universal treatment rule.
+
+Source note
+
+## Card 4
+
+Deck: Saved Cards
+Flagged: 2026-08-19T06:36:04-04:00
+Last seen: 2026-11-25T06:17:38-05:00
+Card ID: 1786336094644
+Note ID: 1786336094643
+
+Question:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+[...]
+
+Answer:
+00:12
+
+What qualifies a white matter lesion as juxtacortical?
+
+directly contacts the cortex without intervening normal white matter
+
+Experimental multiple-sclerosis candidate from the reporting-phrases set.
+
+Source: Notion Radiology note.
+
+## Card 5
+
+Deck: .NEW::Audio
+Flagged: 2026-10-29T06:09:41-04:00
+Last seen: 2026-11-25T06:17:10-05:00
+Card ID: 1776961759623
+Note ID: 1776961759623
+
+Question:
+00:12
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+[...]
+
+Answer:
+00:08
+
+What is the relationship between signal to noise ratio and bandwidth?
+
+SNR is inversely proportional to the square root of bandwidth
